@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const ageRanges = ["18-24", "25-34", "35-44", "45+"];
+const ageRanges = ["18-29", "27-37", "30-40", "37-47", "45-55", "48-58"];
 
 const OnboardingAge = () => {
   const navigate = useNavigate();
