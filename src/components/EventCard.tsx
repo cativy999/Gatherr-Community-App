@@ -1,5 +1,7 @@
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface EventCardProps {
   event: {
@@ -8,13 +10,29 @@ interface EventCardProps {
     title: string;
     description: string;
     image: string;
+    date: string;
     hasComment?: boolean;
   };
 }
 
 const EventCard = ({ event }: EventCardProps) => {
+  const navigate = useNavigate();
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleCardClick = () => {
+    navigate(`/event/${event.id}`);
+  };
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsSaved(!isSaved);
+  };
+
   return (
-    <div className="bg-card rounded-3xl overflow-hidden border border-border hover:shadow-lg transition-all">
+    <div 
+      onClick={handleCardClick}
+      className="bg-card rounded-3xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
+    >
       <div className="flex gap-4 p-4">
         {/* Content */}
         <div className="flex-1 space-y-3">
@@ -23,20 +41,35 @@ const EventCard = ({ event }: EventCardProps) => {
               {event.category}
             </p>
             <h3 className="text-xl font-bold mt-1">{event.title}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{event.date}</p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {event.description}
           </p>
-          {event.hasComment && (
+          <div className="flex items-center gap-2">
+            {event.hasComment && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary hover:text-primary hover:bg-accent -ml-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/event/${event.id}`);
+                }}
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Comment
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
-              className="text-primary hover:text-primary hover:bg-accent -ml-2"
+              className={`ml-auto -mr-2 ${isSaved ? 'text-red-500' : 'text-muted-foreground'}`}
+              onClick={handleSaveClick}
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Comment
+              <Heart className={`h-5 w-5 ${isSaved ? 'fill-current' : ''}`} />
             </Button>
-          )}
+          </div>
         </div>
 
         {/* Image */}

@@ -11,6 +11,7 @@ const events = [
     title: "Community Picnic",
     description: "Join us for a fun picnic in the park. Bring your favorite dish to share!",
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=400&h=300&fit=crop",
+    date: "Today, 2:00 PM",
   },
   {
     id: 2,
@@ -18,6 +19,7 @@ const events = [
     title: "Book Club Meeting",
     description: "Discussing 'The Secret Garden' at the local library. All are welcome!",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=300&fit=crop",
+    date: "Tomorrow, 6:00 PM",
   },
   {
     id: 3,
@@ -25,6 +27,7 @@ const events = [
     title: "Yoga in the Park",
     description: "Relax and rejuvenate with a morning yoga session. Mats provided.",
     image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop",
+    date: "March 15, 8:00 AM",
   },
 ];
 
