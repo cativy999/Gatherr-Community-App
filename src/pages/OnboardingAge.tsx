@@ -23,7 +23,7 @@ const OnboardingAge = () => {
             How old are you?
           </h1>
           <p className="text-lg text-muted-foreground">
-            This helps us find the best activities for you.
+            Scroll to your age range.
           </p>
         </div>
 

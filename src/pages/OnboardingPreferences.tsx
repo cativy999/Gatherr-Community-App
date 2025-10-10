@@ -2,12 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const preferences = [
-  { label: "Young Adults (18-35)", value: "young" },
-  { label: "Adults (35-55)", value: "adults" },
-  { label: "Seniors (55+)", value: "seniors" },
-  { label: "All Ages", value: "all" },
-];
+const ageRanges = ["18-29", "27-37", "30-40", "37-47", "45-55", "48-58"];
 
 const OnboardingPreferences = () => {
   const navigate = useNavigate();
@@ -29,19 +24,19 @@ const OnboardingPreferences = () => {
           </h1>
         </div>
 
-        {/* Preference Options */}
+        {/* Age Range Options */}
         <div className="space-y-4 pt-8">
-          {preferences.map((pref) => (
+          {ageRanges.map((range) => (
             <button
-              key={pref.value}
-              onClick={() => setSelected(pref.value)}
+              key={range}
+              onClick={() => setSelected(range)}
               className={`w-full rounded-2xl px-6 py-6 text-xl font-semibold transition-all ${
-                selected === pref.value
+                selected === range
                   ? "bg-primary text-primary-foreground shadow-lg scale-[1.02]"
                   : "bg-secondary text-foreground hover:bg-accent"
               }`}
             >
-              {pref.label}
+              {range}
             </button>
           ))}
         </div>
