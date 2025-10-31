@@ -5,10 +5,10 @@ import { useState } from "react";
 
 const OnboardingAge = () => {
   const navigate = useNavigate();
-  const [age, setAge] = useState<string>("");
+  const [birthday, setBirthday] = useState<string>("");
 
   const handleNext = () => {
-    if (age) {
+    if (birthday) {
       navigate("/onboarding/ward");
     }
   };
@@ -19,17 +19,16 @@ const OnboardingAge = () => {
         {/* Header */}
         <div className="space-y-4 text-center pt-12">
           <h1 className="text-4xl font-bold tracking-tight">
-            How old are you?
+            What's your birthday?
           </h1>
         </div>
 
-        {/* Age Input */}
+        {/* Birthday Input */}
         <div className="pt-8">
           <Input
-            type="number"
-            placeholder="Enter your age"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
+            type="date"
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
             className="w-full h-14 text-lg text-center"
           />
         </div>
@@ -41,7 +40,7 @@ const OnboardingAge = () => {
           size="lg"
           className="w-full h-14 text-base font-semibold"
           onClick={handleNext}
-          disabled={!age}
+          disabled={!birthday}
         >
           Next
         </Button>
