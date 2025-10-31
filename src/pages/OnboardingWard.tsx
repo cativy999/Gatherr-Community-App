@@ -3,13 +3,13 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const OnboardingAge = () => {
+const OnboardingWard = () => {
   const navigate = useNavigate();
-  const [age, setAge] = useState<string>("");
+  const [ward, setWard] = useState<string>("");
 
   const handleNext = () => {
-    if (age) {
-      navigate("/onboarding/ward");
+    if (ward) {
+      navigate("/onboarding/preferences");
     }
   };
 
@@ -19,17 +19,17 @@ const OnboardingAge = () => {
         {/* Header */}
         <div className="space-y-4 text-center pt-12">
           <h1 className="text-4xl font-bold tracking-tight">
-            How old are you?
+            What's the current ward you're in?
           </h1>
         </div>
 
-        {/* Age Input */}
+        {/* Ward Input */}
         <div className="pt-8">
           <Input
-            type="number"
-            placeholder="Enter your age"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
+            type="text"
+            placeholder="Enter your ward"
+            value={ward}
+            onChange={(e) => setWard(e.target.value)}
             className="w-full h-14 text-lg text-center"
           />
         </div>
@@ -41,7 +41,7 @@ const OnboardingAge = () => {
           size="lg"
           className="w-full h-14 text-base font-semibold"
           onClick={handleNext}
-          disabled={!age}
+          disabled={!ward}
         >
           Next
         </Button>
@@ -50,4 +50,4 @@ const OnboardingAge = () => {
   );
 };
 
-export default OnboardingAge;
+export default OnboardingWard;
