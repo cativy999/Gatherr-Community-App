@@ -12,6 +12,7 @@ interface EventCardProps {
     image: string;
     date: string;
     hasComment?: boolean;
+    attendees?: number;
   };
 }
 
@@ -46,6 +47,11 @@ const EventCard = ({ event }: EventCardProps) => {
           <p className="text-sm text-muted-foreground leading-relaxed">
             {event.description}
           </p>
+          {event.attendees && (
+            <p className="text-sm font-semibold text-primary">
+              {event.attendees} people going
+            </p>
+          )}
           <div className="flex items-center gap-2">
             {event.hasComment && (
               <Button

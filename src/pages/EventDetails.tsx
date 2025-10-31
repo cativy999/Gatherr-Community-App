@@ -39,6 +39,7 @@ const EventDetails = () => {
   const [comment, setComment] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [comments, setComments] = useState(eventData[id || "1"]?.comments || []);
+  const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
 
   const event = eventData[id || "1"];
 
@@ -115,9 +116,33 @@ const EventDetails = () => {
 
             <p className="text-lg leading-relaxed pt-4">{event.description}</p>
 
-            <Button size="lg" className="w-full rounded-full">
-              Join Event
-            </Button>
+            {/* RSVP Buttons */}
+            <div className="grid grid-cols-3 gap-3 pt-4">
+              <Button
+                variant={rsvpStatus === "going" ? "default" : "outline"}
+                size="lg"
+                className="rounded-full"
+                onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
+              >
+                Going
+              </Button>
+              <Button
+                variant={rsvpStatus === "maybe" ? "default" : "outline"}
+                size="lg"
+                className="rounded-full"
+                onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
+              >
+                Maybe
+              </Button>
+              <Button
+                variant={rsvpStatus === "not-going" ? "default" : "outline"}
+                size="lg"
+                className="rounded-full"
+                onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
+              >
+                Not Going
+              </Button>
+            </div>
           </div>
 
           {/* Comments Section */}
