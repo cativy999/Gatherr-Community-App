@@ -40,6 +40,7 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const [comment, setComment] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(event?.likes || 0);
   const [comments, setComments] = useState(eventData[id || "1"]?.comments || []);
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
 
