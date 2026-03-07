@@ -77,7 +77,10 @@ const EventDetails = () => {
             variant="ghost"
             size="icon"
             className={`${isSaved ? 'text-red-500' : ''}`}
-            onClick={() => setIsSaved(!isSaved)}
+            onClick={() => {
+              setIsSaved(!isSaved);
+              setLikeCount((prev: number) => isSaved ? prev - 1 : prev + 1);
+            }}
           >
             <Heart className={`h-6 w-6 ${isSaved ? 'fill-current' : ''}`} />
           </Button>
