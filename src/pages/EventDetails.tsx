@@ -15,6 +15,7 @@ const eventData: Record<string, any> = {
     date: "Today, 10:00 AM",
     location: "Central Park",
     attendees: 45,
+    likes: 128,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
       { id: 2, author: "Mike Chen", time: "4 hours ago", text: "Will there be food vendors?" },
@@ -29,6 +30,7 @@ const eventData: Record<string, any> = {
     date: "March 18, 7:00 AM",
     location: "Mountain Trail Head",
     attendees: 12,
+    likes: 34,
     comments: [],
   },
 };
@@ -36,12 +38,12 @@ const eventData: Record<string, any> = {
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const event = eventData[id || "1"];
   const [comment, setComment] = useState("");
   const [isSaved, setIsSaved] = useState(false);
-  const [comments, setComments] = useState(eventData[id || "1"]?.comments || []);
+  const [likeCount, setLikeCount] = useState(event?.likes || 0);
+  const [comments, setComments] = useState(event?.comments || []);
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
-
-  const event = eventData[id || "1"];
 
   if (!event) {
     return <div>Event not found</div>;
@@ -75,7 +77,10 @@ const EventDetails = () => {
             variant="ghost"
             size="icon"
             className={`${isSaved ? 'text-red-500' : ''}`}
-            onClick={() => setIsSaved(!isSaved)}
+            onClick={() => {
+              setIsSaved(!isSaved);
+              setLikeCount((prev: number) => isSaved ? prev - 1 : prev + 1);
+            }}
           >
             <Heart className={`h-6 w-6 ${isSaved ? 'fill-current' : ''}`} />
           </Button>
@@ -111,6 +116,10 @@ const EventDetails = () => {
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 <span>{event.attendees} attendees</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                <span>{likeCount} likes</span>
               </div>
             </div>
 
