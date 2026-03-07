@@ -22,15 +22,21 @@ const stats = [
 
 const ageRanges = ["18-29", "27-37", "30-40", "37-47", "45-55", "48-58"];
 
+const wardOptions = [
+  "Downtown Ward", "North Ward", "South Ward", "East Ward", "West Ward",
+  "Central Ward", "Riverside Ward", "Hillside Ward",
+];
+
 const Profile = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingWard, setIsEditingWard] = useState(false);
+  const [isEditingAge, setIsEditingAge] = useState(false);
   const [birthday, setBirthday] = useState("1990-01-15");
   const [ward, setWard] = useState("Downtown Ward");
   const [activityAge, setActivityAge] = useState("27-37");
 
   const handleSave = () => {
-    // Save logic will go here
     setIsEditing(false);
   };
 
