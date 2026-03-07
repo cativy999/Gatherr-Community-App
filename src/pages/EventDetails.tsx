@@ -38,13 +38,12 @@ const eventData: Record<string, any> = {
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const event = eventData[id || "1"];
   const [comment, setComment] = useState("");
   const [isSaved, setIsSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(event?.likes || 0);
-  const [comments, setComments] = useState(eventData[id || "1"]?.comments || []);
+  const [comments, setComments] = useState(event?.comments || []);
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
-
-  const event = eventData[id || "1"];
 
   if (!event) {
     return <div>Event not found</div>;
