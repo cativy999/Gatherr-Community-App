@@ -156,6 +156,36 @@ const EventDetails = () => {
           </div>
         </div>
       </main>
+
+      {/* Sticky RSVP Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-10">
+        <div className="grid grid-cols-3 gap-3 max-w-4xl mx-auto">
+          <Button
+            variant={rsvpStatus === "going" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
+          >
+            Going
+          </Button>
+          <Button
+            variant={rsvpStatus === "maybe" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
+          >
+            Maybe
+          </Button>
+          <Button
+            variant={rsvpStatus === "not-going" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
+          >
+            Not Going
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
