@@ -61,7 +61,7 @@ const EventDetails = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
@@ -115,34 +115,6 @@ const EventDetails = () => {
             </div>
 
             <p className="text-lg leading-relaxed pt-4">{event.description}</p>
-
-            {/* RSVP Buttons */}
-            <div className="grid grid-cols-3 gap-3 pt-4">
-              <Button
-                variant={rsvpStatus === "going" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
-              >
-                Going
-              </Button>
-              <Button
-                variant={rsvpStatus === "maybe" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
-              >
-                Maybe
-              </Button>
-              <Button
-                variant={rsvpStatus === "not-going" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
-              >
-                Not Going
-              </Button>
-            </div>
           </div>
 
           {/* Comments Section */}
@@ -184,6 +156,36 @@ const EventDetails = () => {
           </div>
         </div>
       </main>
+
+      {/* Sticky RSVP Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-10">
+        <div className="grid grid-cols-3 gap-3 max-w-4xl mx-auto">
+          <Button
+            variant={rsvpStatus === "going" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
+          >
+            Going
+          </Button>
+          <Button
+            variant={rsvpStatus === "maybe" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
+          >
+            Maybe
+          </Button>
+          <Button
+            variant={rsvpStatus === "not-going" ? "default" : "outline"}
+            size="lg"
+            className="rounded-full"
+            onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
+          >
+            Not Going
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

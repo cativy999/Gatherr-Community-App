@@ -5,7 +5,7 @@ import { useState } from "react";
 
 const OnboardingAge = () => {
   const navigate = useNavigate();
-  const [birthday, setBirthday] = useState<string>("");
+  const [birthday, setBirthday] = useState<string>("1986-12-27");
 
   const handleNext = () => {
     if (birthday) {
@@ -34,8 +34,8 @@ const OnboardingAge = () => {
         </div>
       </div>
 
-      {/* Next Button */}
-      <div className="mx-auto w-full max-w-md pt-8">
+      {/* Buttons */}
+      <div className="mx-auto w-full max-w-md pt-8 space-y-3">
         <Button
           size="lg"
           className="w-full h-14 text-base font-semibold"
@@ -43,6 +43,14 @@ const OnboardingAge = () => {
           disabled={!birthday}
         >
           Next
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          className="w-full h-14 text-base"
+          onClick={() => navigate("/onboarding/ward")}
+        >
+          Skip
         </Button>
       </div>
     </div>

@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Calendar, Heart, MapPin, Edit2 } from "lucide-react";
+import { Settings, Calendar, Heart, MapPin, Edit2, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
   { label: "Events Joined", value: "12" },
@@ -15,6 +16,7 @@ const stats = [
 const ageRanges = ["18-29", "27-37", "30-40", "37-47", "45-55", "48-58"];
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [birthday, setBirthday] = useState("1990-01-15");
   const [ward, setWard] = useState("Downtown Ward");
@@ -181,6 +183,15 @@ const Profile = () => {
                 <Button variant="outline" size="lg" className="w-full h-12">
                   <Heart className="mr-2 h-5 w-5" />
                   Saved Events
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full h-12 text-destructive hover:text-destructive"
+                  onClick={() => navigate("/")}
+                >
+                  <LogOut className="mr-2 h-5 w-5" />
+                  Log Out
                 </Button>
               </div>
             </>
