@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Calendar, Heart, MapPin, Edit2, LogOut } from "lucide-react";
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 
 const stats = [
@@ -15,15 +22,21 @@ const stats = [
 
 const ageRanges = ["18-29", "27-37", "30-40", "37-47", "45-55", "48-58"];
 
+const wardOptions = [
+  "Downtown Ward", "North Ward", "South Ward", "East Ward", "West Ward",
+  "Central Ward", "Riverside Ward", "Hillside Ward",
+];
+
 const Profile = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingWard, setIsEditingWard] = useState(false);
+  const [isEditingAge, setIsEditingAge] = useState(false);
   const [birthday, setBirthday] = useState("1990-01-15");
   const [ward, setWard] = useState("Downtown Ward");
   const [activityAge, setActivityAge] = useState("27-37");
 
   const handleSave = () => {
-    // Save logic will go here
     setIsEditing(false);
   };
 
@@ -155,12 +168,59 @@ const Profile = () => {
                     <p className="text-base font-medium">{birthday}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Ward</p>
-                    <p className="text-base font-medium">{ward}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Ward</p>
+                      <button
+                        onClick={() => setIsEditingWard(!isEditingWard)}
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        {isEditingWard ? "Done" : "Edit"}
+                      </button>
+                    </div>
+                    {isEditingWard ? (
+                      <Select value={ward} onValueChange={(val) => { setWard(val); setIsEditingWard(false); }}>
+                        <SelectTrigger className="h-10 mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {wardOptions.map((w) => (
+                            <SelectItem key={w} value={w}>{w}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-base font-medium">{ward}</p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Activity Age Range</p>
-                    <p className="text-base font-medium">{activityAge}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Activity Age Range</p>
+                      <button
+                        onClick={() => setIsEditingAge(!isEditingAge)}
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        {isEditingAge ? "Done" : "Edit"}
+                      </button>
+                    </div>
+                    {isEditingAge ? (
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        {ageRanges.map((range) => (
+                          <button
+                            key={range}
+                            onClick={() => { setActivityAge(range); setIsEditingAge(false); }}
+                            className={`rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                              activityAge === range
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-foreground hover:bg-accent"
+                            }`}
+                          >
+                            {range}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-base font-medium">{activityAge}</p>
+                    )}
                   </div>
                 </div>
               </div>
