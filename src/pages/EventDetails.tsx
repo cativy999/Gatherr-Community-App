@@ -117,6 +117,10 @@ const EventDetails = () => {
                 <Users className="h-5 w-5" />
                 <span>{event.attendees} attendees</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                <span>{likeCount} likes</span>
+              </div>
             </div>
 
             <p className="text-lg leading-relaxed pt-4">{event.description}</p>
