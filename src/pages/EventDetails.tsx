@@ -115,34 +115,6 @@ const EventDetails = () => {
             </div>
 
             <p className="text-lg leading-relaxed pt-4">{event.description}</p>
-
-            {/* RSVP Buttons */}
-            <div className="grid grid-cols-3 gap-3 pt-4">
-              <Button
-                variant={rsvpStatus === "going" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
-              >
-                Going
-              </Button>
-              <Button
-                variant={rsvpStatus === "maybe" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
-              >
-                Maybe
-              </Button>
-              <Button
-                variant={rsvpStatus === "not-going" ? "default" : "outline"}
-                size="lg"
-                className="rounded-full"
-                onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
-              >
-                Not Going
-              </Button>
-            </div>
           </div>
 
           {/* Comments Section */}

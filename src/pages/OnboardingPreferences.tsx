@@ -42,8 +42,8 @@ const OnboardingPreferences = () => {
         </div>
       </div>
 
-      {/* Next Button */}
-      <div className="mx-auto w-full max-w-md pt-8">
+      {/* Buttons */}
+      <div className="mx-auto w-full max-w-md pt-8 space-y-3">
         <Button
           size="lg"
           className="w-full h-14 text-base font-semibold"
@@ -51,6 +51,14 @@ const OnboardingPreferences = () => {
           disabled={!selected}
         >
           Next
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          className="w-full h-14 text-base"
+          onClick={() => navigate("/home")}
+        >
+          Skip
         </Button>
       </div>
     </div>
