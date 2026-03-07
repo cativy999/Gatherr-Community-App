@@ -46,14 +46,6 @@ const Home = () => {
             <Users className="h-8 w-8 text-primary" strokeWidth={2.5} />
             <span className="text-2xl font-bold">Gather</span>
           </div>
-          <Button
-            variant="default"
-            size="lg"
-            className="rounded-full px-6"
-            onClick={() => navigate("/")}
-          >
-            Log In
-          </Button>
         </div>
       </header>
 
