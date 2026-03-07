@@ -15,6 +15,7 @@ const eventData: Record<string, any> = {
     date: "Today, 10:00 AM",
     location: "Central Park",
     attendees: 45,
+    likes: 128,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
       { id: 2, author: "Mike Chen", time: "4 hours ago", text: "Will there be food vendors?" },
@@ -29,6 +30,7 @@ const eventData: Record<string, any> = {
     date: "March 18, 7:00 AM",
     location: "Mountain Trail Head",
     attendees: 12,
+    likes: 34,
     comments: [],
   },
 };
