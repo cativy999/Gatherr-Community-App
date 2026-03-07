@@ -21,7 +21,7 @@ const Post = () => {
       <main className="flex-1 px-6 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Image Upload */}
-          <div className="flex items-center justify-center w-full h-48 bg-secondary rounded-2xl border-2 border-dashed border-border hover:bg-accent transition-colors cursor-pointer">
+          <div className="flex items-center justify-center w-full h-32 bg-secondary rounded-2xl border-2 border-dashed border-border hover:bg-accent transition-colors cursor-pointer">
             <div className="text-center space-y-2">
               <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
