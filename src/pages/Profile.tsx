@@ -168,12 +168,59 @@ const Profile = () => {
                     <p className="text-base font-medium">{birthday}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Ward</p>
-                    <p className="text-base font-medium">{ward}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Ward</p>
+                      <button
+                        onClick={() => setIsEditingWard(!isEditingWard)}
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        {isEditingWard ? "Done" : "Edit"}
+                      </button>
+                    </div>
+                    {isEditingWard ? (
+                      <Select value={ward} onValueChange={(val) => { setWard(val); setIsEditingWard(false); }}>
+                        <SelectTrigger className="h-10 mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {wardOptions.map((w) => (
+                            <SelectItem key={w} value={w}>{w}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-base font-medium">{ward}</p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Activity Age Range</p>
-                    <p className="text-base font-medium">{activityAge}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Activity Age Range</p>
+                      <button
+                        onClick={() => setIsEditingAge(!isEditingAge)}
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        {isEditingAge ? "Done" : "Edit"}
+                      </button>
+                    </div>
+                    {isEditingAge ? (
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        {ageRanges.map((range) => (
+                          <button
+                            key={range}
+                            onClick={() => { setActivityAge(range); setIsEditingAge(false); }}
+                            className={`rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                              activityAge === range
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-foreground hover:bg-accent"
+                            }`}
+                          >
+                            {range}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-base font-medium">{activityAge}</p>
+                    )}
                   </div>
                 </div>
               </div>
