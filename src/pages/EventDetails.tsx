@@ -138,6 +138,7 @@ const eventData: Record<string, any> = {
     description: "Bring blankets and snacks for a family-friendly movie night in the cultural hall. Popcorn provided!",
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "Pasadena 1st Ward Building", likes: 25,
+    host: "Pasadena 1st Ward",
     going: 30, maybe: 10, notGoing: 3,
     comments: [{ id: 1, author: "Sister Adams", time: "1 hour ago", text: "What movie are we watching?" }],
   },
