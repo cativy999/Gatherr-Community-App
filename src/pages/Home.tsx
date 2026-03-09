@@ -10,6 +10,7 @@ const events = [
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=400&h=300&fit=crop",
     date: "Today, 2:00 PM", attendees: 28, price: 0, likes: 45, createdAt: "2026-03-09",
     isHappeningNow: true, isToday: true, isTomorrow: false, isWeekend: false, isHoliday: false,
+    happeningInHours: 2,
   },
   {
     id: 2, title: "Book Club Meeting",
