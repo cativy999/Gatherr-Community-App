@@ -109,6 +109,7 @@ const eventData: Record<string, any> = {
     description: "Bring your favorite board games or try new ones! Snacks and drinks available. Fun for everyone.",
     image: "https://images.unsplash.com/photo-1611371805429-8b5c1b2c34ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "The Game Lounge", likes: 41,
+    host: "Game Lounge Team",
     going: 24, maybe: 9, notGoing: 3,
     comments: [
       { id: 1, author: "Jake P.", time: "1 hour ago", text: "I'm bringing Catan!" },
