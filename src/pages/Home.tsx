@@ -100,7 +100,7 @@ const Home = () => {
         case "today": result = result.filter((e) => e.isToday); break;
         case "tomorrow": result = result.filter((e) => e.isTomorrow); break;
         case "weekend": result = result.filter((e) => e.isWeekend); break;
-        case "holiday": result = result.filter((e) => e.isHoliday); break;
+        
       }
     }
 
