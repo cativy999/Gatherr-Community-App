@@ -36,6 +36,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=800&h=600&fit=crop",
     date: "Today, 2:00 PM", location: "Balboa Park", likes: 45,
     host: "Parks & Recreation Department",
+    creator: "John Smith",
     going: 28, maybe: 12, notGoing: 5,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
@@ -48,6 +49,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Tomorrow, 6:00 PM", location: "Downtown Library", likes: 22,
     host: "Sarah's Book Club",
+    creator: "Sarah Johnson",
     going: 15, maybe: 4, notGoing: 2,
     comments: [],
   },
@@ -57,6 +59,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
     date: "March 15, 8:00 AM", location: "Mission Bay Park", likes: 67,
     host: "Zen Wellness Studio",
+    creator: "Emily Rodriguez",
     going: 42, maybe: 8, notGoing: 3,
     comments: [
       { id: 1, author: "Emily R.", time: "1 day ago", text: "Love these outdoor sessions!" },
@@ -68,6 +71,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "North Park", likes: 30,
     host: "Neighborhood Association",
+    creator: "Robert Mitchell",
     going: 35, maybe: 6, notGoing: 4,
     comments: [],
   },
@@ -77,6 +81,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
     date: "March 15, 3:00 PM", location: "Community Kitchen", likes: 55,
     host: "Chef Antonio's Kitchen",
+    creator: "Antonio Rossi",
     going: 20, maybe: 7, notGoing: 2,
     comments: [
       { id: 1, author: "Carlos M.", time: "3 hours ago", text: "Is this beginner friendly?" },
@@ -89,6 +94,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=600&fit=crop",
     date: "March 20, 12:00 PM", location: "Civic Center Plaza", likes: 89,
     host: "City Cultural Events",
+    creator: "Jennifer Lee",
     going: 120, maybe: 34, notGoing: 11,
     comments: [
       { id: 1, author: "Lisa T.", time: "5 hours ago", text: "Will there be live bands?" },
@@ -101,6 +107,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&h=600&fit=crop",
     date: "Tomorrow, 9:00 AM", location: "Gaslamp Quarter", likes: 33,
     host: "Photography Collective",
+    creator: "Marcus Thompson",
     going: 18, maybe: 5, notGoing: 1,
     comments: [],
   },
@@ -110,6 +117,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1611371805429-8b5c1b2c34ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "The Game Lounge", likes: 41,
     host: "Game Lounge Team",
+    creator: "David Park",
     going: 24, maybe: 9, notGoing: 3,
     comments: [
       { id: 1, author: "Jake P.", time: "1 hour ago", text: "I'm bringing Catan!" },
@@ -121,6 +129,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     date: "Today, 5:00 PM", location: "Arcadia Ward Building", likes: 18,
     host: "Arcadia Ward",
+    creator: "Bishop Taylor",
     going: 22, maybe: 8, notGoing: 2,
     comments: [{ id: 1, author: "Bishop Taylor", time: "3 hours ago", text: "Looking forward to seeing everyone!" }],
   },
@@ -130,6 +139,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=600&fit=crop",
     date: "Sunday, 9:00 AM", location: "Arcadia Ward Building", likes: 12,
     host: "Arcadia Ward Youth",
+    creator: "Sister Maria",
     going: 15, maybe: 5, notGoing: 1,
     comments: [],
   },
@@ -139,6 +149,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "Pasadena 1st Ward Building", likes: 25,
     host: "Pasadena 1st Ward",
+    creator: "Brother Johnson",
     going: 30, maybe: 10, notGoing: 3,
     comments: [{ id: 1, author: "Sister Adams", time: "1 hour ago", text: "What movie are we watching?" }],
   },
@@ -148,6 +159,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&h=600&fit=crop",
     date: "Sunday, 4:00 PM", location: "Monrovia Ward Building", likes: 9,
     host: "Monrovia Ward Music",
+    creator: "Sister Williams",
     going: 12, maybe: 3, notGoing: 1,
     comments: [],
   },
@@ -157,6 +169,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&h=600&fit=crop",
     date: "Today, 8:00 AM", location: "Arcadia Ward Building", likes: 20,
     host: "Arcadia Ward Kitchen",
+    creator: "Brother James",
     going: 28, maybe: 6, notGoing: 2,
     comments: [{ id: 1, author: "Brother James", time: "5 hours ago", text: "I'll bring the maple syrup!" }],
   },
@@ -166,6 +179,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=600&fit=crop",
     date: "Sunday, 2:00 PM", location: "Duarte Ward Gym", likes: 35,
     host: "Duarte Ward Sports",
+    creator: "Coach Martinez",
     going: 40, maybe: 12, notGoing: 4,
     comments: [],
   },
@@ -175,6 +189,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "Pasadena 2nd Ward Building", likes: 14,
     host: "Pasadena 2nd Ward",
+    creator: "Brother Jackson",
     going: 10, maybe: 4, notGoing: 1,
     comments: [],
   },
@@ -184,6 +199,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&h=600&fit=crop",
     date: "Sunday, 6:00 AM", location: "Los Angeles Temple", likes: 28,
     host: "Arcadia Ward Leadership",
+    creator: "President Brown",
     going: 18, maybe: 7, notGoing: 2,
     comments: [{ id: 1, author: "Sister Kim", time: "2 hours ago", text: "I can drive 4 people!" }],
   },
@@ -336,6 +352,9 @@ const EventDetails = () => {
               </div>
               <div className="text-sm font-medium text-foreground">
                 Hosted by <span className="font-semibold text-primary">{event.host}</span>
+              </div>
+              <div className="text-sm font-medium text-foreground">
+                Created by <span className="font-semibold text-primary">{event.creator}</span>
               </div>
             </div>
 
