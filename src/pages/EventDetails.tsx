@@ -120,6 +120,22 @@ const EventDetails = () => {
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
   const [activeList, setActiveList] = useState<"going" | "maybe" | "notGoing" | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+
+  const rsvpLabels: Record<string, string> = {
+    going: "You're going!",
+    maybe: "You're maybe going",
+    "not-going": "You're not going",
+  };
+
+  const handleRsvp = (status: "going" | "maybe" | "not-going") => {
+    if (rsvpStatus === status) return;
+    setRsvpLoading(status);
+    setTimeout(() => {
+      setRsvpStatus(status);
+      setRsvpLoading(null);
+    }, 800);
+  };
 
   const shareOptions = [
     { icon: Copy, label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); } },
