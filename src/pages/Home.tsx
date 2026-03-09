@@ -219,6 +219,11 @@ const Home = () => {
                     <CalendarDays className="h-3 w-3" />
                     <span>{event.date}</span>
                   </div>
+                  {event.isHappeningNow && event.happeningInHours && (
+                    <p className="text-xs font-semibold text-orange-500">
+                      🔥 In {event.happeningInHours} {event.happeningInHours === 1 ? 'hour' : 'hours'}
+                    </p>
+                  )}
                   <p className="text-xs font-medium text-primary">{event.attendees} going</p>
                 </div>
               </div>

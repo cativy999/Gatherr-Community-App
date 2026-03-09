@@ -33,6 +33,7 @@ const App = () => (
           <Route path="/post" element={<Post />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/event/:id" element={<EventDetails />} />
+          <Route path="/my-events" element={<MyEvents />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
