@@ -2,7 +2,7 @@ import { Home, Search, PlusCircle, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BottomNavProps {
-  currentPage: "home" | "browse" | "post" | "profile";
+  currentPage: "home" | "wards" | "post" | "profile";
 }
 
 const BottomNav = ({ currentPage }: BottomNavProps) => {
