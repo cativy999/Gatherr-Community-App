@@ -139,6 +139,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=600&fit=crop",
     date: "Sunday, 9:00 AM", location: "Arcadia Ward Building", likes: 12,
     host: "Arcadia Ward Youth",
+    creator: "Sister Maria",
     going: 15, maybe: 5, notGoing: 1,
     comments: [],
   },
