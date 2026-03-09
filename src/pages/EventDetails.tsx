@@ -149,6 +149,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "Pasadena 1st Ward Building", likes: 25,
     host: "Pasadena 1st Ward",
+    creator: "Brother Johnson",
     going: 30, maybe: 10, notGoing: 3,
     comments: [{ id: 1, author: "Sister Adams", time: "1 hour ago", text: "What movie are we watching?" }],
   },
