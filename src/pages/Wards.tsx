@@ -1,4 +1,4 @@
-import { Users, Heart, CalendarDays, MapPin, ChevronDown } from "lucide-react";
+import { Heart, CalendarDays, MapPin, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
@@ -143,10 +143,7 @@ const Wards = () => {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Users className="h-8 w-8 text-primary" strokeWidth={2.5} />
-            <span className="text-2xl font-bold">Gatherr</span>
-          </div>
+          <h1 className="text-3xl font-bold">Ward Activities</h1>
         </div>
       </header>
 

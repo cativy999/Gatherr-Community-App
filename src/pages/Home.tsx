@@ -1,4 +1,4 @@
-import { Users, Heart, CalendarDays } from "lucide-react";
+import { Users, Heart, CalendarDays, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
@@ -221,6 +221,12 @@ const Home = () => {
             <Users className="h-8 w-8 text-primary" strokeWidth={2.5} />
             <span className="text-2xl font-bold">Gatherr</span>
           </div>
+          <button
+            onClick={() => navigate("/wards")}
+            className="p-2 hover:bg-accent rounded-full transition-colors"
+          >
+            <Search className="h-6 w-6" />
+          </button>
         </div>
       </header>
 
