@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
+import { useLocation } from "@/contexts/LocationContext";
 
 const USER_WARD = "Arcadia Ward";
 
