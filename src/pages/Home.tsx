@@ -1,4 +1,4 @@
-import { Heart, CalendarDays, Search, ChevronDown } from "lucide-react";
+import { Users, Heart, CalendarDays, Search, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
@@ -129,9 +129,10 @@ const Home = () => {
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <button
             onClick={() => setProfileOpen(true)}
-            className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
           >
-            <span className="text-xl font-extrabold tracking-tighter text-primary">GATHERR</span>
+            <Users className="h-7 w-7 text-primary" strokeWidth={2.5} />
+            <span className="text-xl font-bold tracking-tight">Gatherr</span>
           </button>
           <div className="flex items-center gap-2">
             <LocationSelector value={location} onChange={setLocation} />
