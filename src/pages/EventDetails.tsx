@@ -256,19 +256,19 @@ const EventDetails = () => {
 
             {/* People List Popup */}
             <Dialog open={!!activeList} onOpenChange={(open) => !open && setActiveList(null)}>
-              <DialogContent className="rounded-2xl max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>{activeList ? listLabels[activeList] : ""}</DialogTitle>
+              <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
+                <DialogHeader className="p-5 pb-3">
+                  <DialogTitle className="text-lg font-bold">{activeList ? listLabels[activeList] : ""}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
+                <div className="px-5 pb-5 space-y-1 max-h-64 overflow-y-auto">
                   {activeList && mockPeople[activeList].map((person, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
+                    <div key={i} className="flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-accent/30 transition-colors">
+                      <Avatar className="h-9 w-9">
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">
                           {person.avatar}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{person.name}</span>
+                      <span className="text-sm font-medium text-foreground">{person.name}</span>
                     </div>
                   ))}
                 </div>
