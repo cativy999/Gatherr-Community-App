@@ -47,6 +47,7 @@ const eventData: Record<string, any> = {
     description: "Discuss the latest bestseller in a cozy cafe. All book lovers welcome!",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Tomorrow, 6:00 PM", location: "Downtown Library", likes: 22,
+    host: "Sarah's Book Club",
     going: 15, maybe: 4, notGoing: 2,
     comments: [],
   },
