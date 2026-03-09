@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, MessageCircle, Mail, Link } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, Link } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
