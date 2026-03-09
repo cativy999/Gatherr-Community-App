@@ -8,6 +8,7 @@ import { useState } from "react";
 
 const Post = () => {
   const [category, setCategory] = useState<"ward" | "community" | null>(null);
+  const [isFree, setIsFree] = useState(true);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
