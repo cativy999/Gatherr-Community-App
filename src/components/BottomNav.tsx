@@ -10,7 +10,7 @@ const BottomNav = ({ currentPage }: BottomNavProps) => {
 
   const navItems = [
     { id: "home", label: "Home", icon: Home, path: "/home" },
-    { id: "browse", label: "Browse", icon: Search, path: "/browse" },
+    { id: "wards", label: "Wards", icon: Church, path: "/wards" },
     { id: "post", label: "Post", icon: PlusCircle, path: "/post" },
     { id: "profile", label: "Profile", icon: User, path: "/profile" },
   ];
