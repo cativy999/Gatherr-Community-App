@@ -129,6 +129,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     date: "Today, 5:00 PM", location: "Arcadia Ward Building", likes: 18,
     host: "Arcadia Ward",
+    creator: "Bishop Taylor",
     going: 22, maybe: 8, notGoing: 2,
     comments: [{ id: 1, author: "Bishop Taylor", time: "3 hours ago", text: "Looking forward to seeing everyone!" }],
   },
