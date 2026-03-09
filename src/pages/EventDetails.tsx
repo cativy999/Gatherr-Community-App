@@ -349,25 +349,28 @@ const EventDetails = () => {
             variant={rsvpStatus === "going" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("going")}
           >
-            Going
+            {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Going"}
           </Button>
           <Button
             variant={rsvpStatus === "maybe" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("maybe")}
           >
-            Maybe
+            {rsvpLoading === "maybe" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Maybe"}
           </Button>
           <Button
             variant={rsvpStatus === "not-going" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("not-going")}
           >
-            Not Going
+            {rsvpLoading === "not-going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Not Going"}
           </Button>
         </div>
       </div>
