@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const OnboardingWisdom = () => {
   const navigate = useNavigate();
-  const [wisdom, setWisdom] = useState("");
+  const [ward, setWard] = useState("");
 
   const handleNext = () => {
     navigate("/home");
@@ -17,24 +17,21 @@ const OnboardingWisdom = () => {
         <div className="space-y-3 text-center pt-12">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 3 of 3</p>
           <h1 className="text-3xl font-bold tracking-tight">
-            What is your wisdom?
+            What is your LDS ward?
           </h1>
           <p className="text-muted-foreground text-base">
-            Share something meaningful with your community
+            This helps us connect you with your local community
           </p>
         </div>
 
-        <div className="pt-8">
-          <Textarea
-            placeholder="Share your wisdom..."
-            value={wisdom}
-            onChange={(e) => setWisdom(e.target.value)}
-            className="w-full min-h-[140px] text-base rounded-2xl border-2 p-4 resize-none"
-            maxLength={500}
+        <div className="pt-8 flex justify-center">
+          <Input
+            type="text"
+            placeholder="Enter your ward name"
+            value={ward}
+            onChange={(e) => setWard(e.target.value)}
+            className="w-full h-14 text-lg text-center rounded-2xl border-2"
           />
-          <p className="text-xs text-muted-foreground text-right mt-2">
-            {wisdom.length}/500
-          </p>
         </div>
       </div>
 
@@ -43,6 +40,7 @@ const OnboardingWisdom = () => {
           size="lg"
           className="w-full h-14 text-base font-semibold"
           onClick={handleNext}
+          disabled={!ward.trim()}
         >
           Get Started
         </Button>
