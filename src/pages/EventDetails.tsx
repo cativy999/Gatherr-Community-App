@@ -174,6 +174,7 @@ const eventData: Record<string, any> = {
     description: "Join us for an uplifting group scripture study. This week we're covering 1 Nephi chapters 1-5.",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "Pasadena 2nd Ward Building", likes: 14,
+    host: "Pasadena 2nd Ward",
     going: 10, maybe: 4, notGoing: 1,
     comments: [],
   },
