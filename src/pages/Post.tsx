@@ -7,6 +7,8 @@ import { Calendar, MapPin, Users, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 const Post = () => {
+  const [category, setCategory] = useState<"ward" | "community" | null>(null);
+
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
       {/* Header */}
