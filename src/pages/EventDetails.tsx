@@ -123,8 +123,6 @@ const EventDetails = () => {
 
   const shareOptions = [
     { icon: Copy, label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); } },
-    { icon: MessageCircle, label: "Message", action: () => { window.open(`sms:?body=${encodeURIComponent(event.title + " - " + window.location.href)}`); } },
-    { icon: Mail, label: "Email", action: () => { window.open(`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(window.location.href)}`); } },
   ];
 
   if (!event) {
