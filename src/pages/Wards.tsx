@@ -1,97 +1,51 @@
-import { Heart, CalendarDays, MapPin, ChevronDown } from "lucide-react";
+import { Heart, CalendarDays, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
+import LocationSelector from "@/components/LocationSelector";
 
 const USER_WARD = "Arcadia Ward";
 
-const locations = [
-  { id: "arcadia", label: "Arcadia, CA" },
-  { id: "pasadena", label: "Pasadena, CA" },
-  { id: "monrovia", label: "Monrovia, CA" },
-  { id: "duarte", label: "Duarte, CA" },
-];
-
 const wardActivities = [
   {
-    id: 101,
-    title: "Sunday Potluck Dinner",
-    wardName: "Arcadia Ward",
+    id: 101, title: "Sunday Potluck Dinner", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop",
-    time: "Today, 5:00 PM",
-    distance: 0.3,
-    isToday: true,
-    isSunday: false,
+    time: "Today, 5:00 PM", distance: 0.3, isToday: true, isSunday: false,
   },
   {
-    id: 102,
-    title: "Youth Service Project",
-    wardName: "Arcadia Ward",
+    id: 102, title: "Youth Service Project", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400&h=300&fit=crop",
-    time: "Sunday, 9:00 AM",
-    distance: 0.3,
-    isToday: false,
-    isSunday: true,
+    time: "Sunday, 9:00 AM", distance: 0.3, isToday: false, isSunday: true,
   },
   {
-    id: 103,
-    title: "Family Movie Night",
-    wardName: "Pasadena 1st Ward",
+    id: 103, title: "Family Movie Night", wardName: "Pasadena 1st Ward",
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=300&fit=crop",
-    time: "Today, 7:00 PM",
-    distance: 2.1,
-    isToday: true,
-    isSunday: false,
+    time: "Today, 7:00 PM", distance: 2.1, isToday: true, isSunday: false,
   },
   {
-    id: 104,
-    title: "Choir Practice",
-    wardName: "Monrovia Ward",
+    id: 104, title: "Choir Practice", wardName: "Monrovia Ward",
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&h=300&fit=crop",
-    time: "Sunday, 4:00 PM",
-    distance: 3.5,
-    isToday: false,
-    isSunday: true,
+    time: "Sunday, 4:00 PM", distance: 3.5, isToday: false, isSunday: true,
   },
   {
-    id: 105,
-    title: "Pancake Breakfast",
-    wardName: "Arcadia Ward",
+    id: 105, title: "Pancake Breakfast", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop",
-    time: "Today, 8:00 AM",
-    distance: 0.3,
-    isToday: true,
-    isSunday: false,
+    time: "Today, 8:00 AM", distance: 0.3, isToday: true, isSunday: false,
   },
   {
-    id: 106,
-    title: "Volleyball Tournament",
-    wardName: "Duarte Ward",
+    id: 106, title: "Volleyball Tournament", wardName: "Duarte Ward",
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=300&fit=crop",
-    time: "Sunday, 2:00 PM",
-    distance: 5.2,
-    isToday: false,
-    isSunday: true,
+    time: "Sunday, 2:00 PM", distance: 5.2, isToday: false, isSunday: true,
   },
   {
-    id: 107,
-    title: "Book of Mormon Study",
-    wardName: "Pasadena 2nd Ward",
+    id: 107, title: "Book of Mormon Study", wardName: "Pasadena 2nd Ward",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=300&fit=crop",
-    time: "Today, 10:00 AM",
-    distance: 2.8,
-    isToday: true,
-    isSunday: false,
+    time: "Today, 10:00 AM", distance: 2.8, isToday: true, isSunday: false,
   },
   {
-    id: 108,
-    title: "Temple Trip",
-    wardName: "Monrovia Ward",
+    id: 108, title: "Temple Trip", wardName: "Monrovia Ward",
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=400&h=300&fit=crop",
-    time: "Sunday, 6:00 AM",
-    distance: 3.5,
-    isToday: false,
-    isSunday: true,
+    time: "Sunday, 6:00 AM", distance: 3.5, isToday: false, isSunday: true,
   },
 ];
 
@@ -105,8 +59,7 @@ const Wards = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
-  const [selectedLocation, setSelectedLocation] = useState("arcadia");
-  const [locationOpen, setLocationOpen] = useState(false);
+  const [location, setLocation] = useState("San Diego, CA");
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -117,71 +70,41 @@ const Wards = () => {
     });
   };
 
-  const currentLocation = locations.find((l) => l.id === selectedLocation);
-
   const filteredActivities = useMemo(() => {
     let result = [...wardActivities];
-
-    if (activeFilter === "today") {
-      result = result.filter((a) => a.isToday);
-    } else if (activeFilter === "sunday") {
-      result = result.filter((a) => a.isSunday);
-    } else if (activeFilter === "my-ward") {
-      result = result.filter((a) => a.wardName === USER_WARD);
-    }
-
+    if (activeFilter === "today") result = result.filter((a) => a.isToday);
+    else if (activeFilter === "sunday") result = result.filter((a) => a.isSunday);
+    else if (activeFilter === "my-ward") result = result.filter((a) => a.wardName === USER_WARD);
     result.sort((a, b) => a.distance - b.distance);
     return result;
   }, [activeFilter]);
 
-  const getDisplayWardName = (wardName: string) => {
-    return wardName === USER_WARD ? `${wardName} (Your Ward)` : wardName;
-  };
+  const getDisplayWardName = (wardName: string) =>
+    wardName === USER_WARD ? `${wardName} (Your Ward)` : wardName;
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold">Ward Activities</h1>
+          <h1 className="text-2xl font-bold">Ward Activities</h1>
+          <div className="flex items-center gap-2">
+            <LocationSelector value={location} onChange={setLocation} />
+            <button
+              onClick={() => navigate("/home")}
+              className="p-2 hover:bg-accent rounded-full transition-colors"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 px-6 py-6">
-        <div className="max-w-4xl mx-auto space-y-5">
-          {/* Location Selector */}
-          <div className="relative">
-            <button
-              onClick={() => setLocationOpen(!locationOpen)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground hover:bg-accent/80 transition-colors w-full"
-            >
-              <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-sm font-medium">{currentLocation?.label}</span>
-              <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${locationOpen ? "rotate-180" : ""}`} />
-            </button>
-            {locationOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden">
-                {locations.map((loc) => (
-                  <button
-                    key={loc.id}
-                    onClick={() => {
-                      setSelectedLocation(loc.id);
-                      setLocationOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors ${
-                      selectedLocation === loc.id ? "text-primary font-semibold" : "text-foreground"
-                    }`}
-                  >
-                    {loc.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
+      <main className="flex-1 px-5 py-4">
+        <div className="max-w-4xl mx-auto space-y-4">
           {/* Filter Chips */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {filterChips.map((chip) => (
               <button
                 key={chip.id}
@@ -205,35 +128,18 @@ const Wards = () => {
                 onClick={() => navigate(`/event/${activity.id}`)}
                 className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
               >
-                {/* Image with heart overlay */}
                 <div className="relative">
-                  <img
-                    src={activity.image}
-                    alt={activity.title}
-                    className="w-full h-28 object-cover"
-                  />
+                  <img src={activity.image} alt={activity.title} className="w-full h-28 object-cover" />
                   <button
                     onClick={(e) => toggleSaved(activity.id, e)}
                     className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
                   >
-                    <Heart
-                      className={`h-4 w-4 ${
-                        savedEvents.has(activity.id)
-                          ? "text-red-500 fill-current"
-                          : "text-foreground"
-                      }`}
-                    />
+                    <Heart className={`h-4 w-4 ${savedEvents.has(activity.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
                   </button>
                 </div>
-
-                {/* Card content */}
                 <div className="p-3 space-y-1">
-                  <h3 className="font-semibold text-sm leading-tight line-clamp-2">
-                    {activity.title}
-                  </h3>
-                  <p className={`text-xs font-medium ${
-                    activity.wardName === USER_WARD ? "text-primary" : "text-muted-foreground"
-                  }`}>
+                  <h3 className="font-semibold text-sm leading-tight line-clamp-2">{activity.title}</h3>
+                  <p className={`text-xs font-medium ${activity.wardName === USER_WARD ? "text-primary" : "text-muted-foreground"}`}>
                     {getDisplayWardName(activity.wardName)}
                   </p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
