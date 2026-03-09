@@ -78,6 +78,8 @@ const Wards = () => {
     if (activeFilter === "today") result = result.filter((a) => a.isToday);
     else if (activeFilter === "sunday") result = result.filter((a) => a.isSunday);
     else if (activeFilter === "my-ward") result = result.filter((a) => a.wardName === USER_WARD);
+    else if (activeFilter === "mingle") result = result.filter((a) => a.type === "mingle");
+    else if (activeFilter === "devotional") result = result.filter((a) => a.type === "devotional");
     result.sort((a, b) => a.distance - b.distance);
     return result;
   }, [activeFilter]);
