@@ -29,6 +29,7 @@ const events = [
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop",
     date: "Today, 10:00 AM", attendees: 35, price: 0, likes: 30, createdAt: "2026-03-09",
     isHappeningNow: true, isToday: true, isTomorrow: false, isWeekend: false, isHoliday: false,
+    happeningInHours: 1,
   },
   {
     id: 5, title: "Cooking Workshop",
