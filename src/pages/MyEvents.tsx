@@ -8,6 +8,11 @@ const goingEvents = [
   { id: 8, title: "Board Game Night", image: "https://images.unsplash.com/photo-1611371805429-8b5c1b2c34ba?w=400&h=300&fit=crop", date: "Today, 7:00 PM", attendees: 24 },
 ];
 
+const maybeEvents = [
+  { id: 3, title: "Yoga in the Park", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop", date: "March 15, 8:00 AM", attendees: 42 },
+  { id: 6, title: "Spring Festival", image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=300&fit=crop", date: "March 20, 12:00 PM", attendees: 120 },
+];
+
 const savedEvents = [
   { id: 3, title: "Yoga in the Park", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop", date: "March 15, 8:00 AM", attendees: 42 },
   { id: 5, title: "Cooking Workshop", image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=400&h=300&fit=crop", date: "March 15, 3:00 PM", attendees: 20 },
@@ -21,6 +26,7 @@ const pastEvents = [
 
 const tabs = [
   { id: "going", label: "Going" },
+  { id: "maybe", label: "Maybe Going" },
   { id: "saved", label: "Saved" },
   { id: "past", label: "Past" },
 ];
