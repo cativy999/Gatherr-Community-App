@@ -81,6 +81,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
     date: "March 15, 3:00 PM", location: "Community Kitchen", likes: 55,
     host: "Chef Antonio's Kitchen",
+    creator: "Antonio Rossi",
     going: 20, maybe: 7, notGoing: 2,
     comments: [
       { id: 1, author: "Carlos M.", time: "3 hours ago", text: "Is this beginner friendly?" },
