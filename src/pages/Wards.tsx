@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
+import { useLocation } from "@/contexts/LocationContext";
 
 const USER_WARD = "Arcadia Ward";
 
@@ -59,7 +60,7 @@ const Wards = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
-  const [location, setLocation] = useState("San Diego, CA");
+  const { location, setLocation } = useLocation();
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();

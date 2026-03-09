@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Pencil, Check, MapPin } from "lucide-react";
+import { useLocation } from "@/contexts/LocationContext";
 
 const LOCATIONS = [
   "Los Angeles, CA",
@@ -45,9 +46,10 @@ interface UserProfile {
 }
 
 const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { location, setLocation: setGlobalLocation } = useLocation();
   const [profile, setProfile] = useState<UserProfile>({
     name: "Ivy Wang",
-    location: "LA",
+    location: location,
     ward: "Santa Monica",
     ldsWard: "Santa Monica 3rd",
     ageRange: [29, 39],
@@ -88,6 +90,7 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
   const selectLocation = (loc: string) => {
     setProfile((p) => ({ ...p, location: loc }));
+    setGlobalLocation(loc);
     setEditing(null);
   };
 

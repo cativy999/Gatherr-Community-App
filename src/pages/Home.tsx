@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 import ProfilePopup from "@/components/ProfilePopup";
+import { useLocation } from "@/contexts/LocationContext";
 
 const events = [
   {
@@ -63,7 +64,6 @@ const timeFilters = [
   { id: "today", label: "Today" },
   { id: "tomorrow", label: "Tomorrow" },
   { id: "weekend", label: "This Weekend" },
-  { id: "holiday", label: "Holiday" },
 ];
 
 const sortOptions = [
@@ -79,7 +79,7 @@ const Home = () => {
   const [sortBy, setSortBy] = useState("popular");
   const [sortOpen, setSortOpen] = useState(false);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
-  const [location, setLocation] = useState("San Diego, CA");
+  const { location, setLocation } = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {
@@ -100,7 +100,7 @@ const Home = () => {
         case "today": result = result.filter((e) => e.isToday); break;
         case "tomorrow": result = result.filter((e) => e.isTomorrow); break;
         case "weekend": result = result.filter((e) => e.isWeekend); break;
-        case "holiday": result = result.filter((e) => e.isHoliday); break;
+        
       }
     }
 
