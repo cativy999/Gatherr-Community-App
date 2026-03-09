@@ -59,6 +59,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
     date: "March 15, 8:00 AM", location: "Mission Bay Park", likes: 67,
     host: "Zen Wellness Studio",
+    creator: "Emily Rodriguez",
     going: 42, maybe: 8, notGoing: 3,
     comments: [
       { id: 1, author: "Emily R.", time: "1 day ago", text: "Love these outdoor sessions!" },
