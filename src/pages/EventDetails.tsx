@@ -147,6 +147,7 @@ const eventData: Record<string, any> = {
     description: "Weekly choir rehearsal. All voices welcome, no experience needed. Come make joyful music together!",
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&h=600&fit=crop",
     date: "Sunday, 4:00 PM", location: "Monrovia Ward Building", likes: 9,
+    host: "Monrovia Ward Music",
     going: 12, maybe: 3, notGoing: 1,
     comments: [],
   },
