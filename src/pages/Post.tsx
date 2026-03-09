@@ -53,16 +53,27 @@ const Post = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select>
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ward">Ward Activities</SelectItem>
-                  <SelectItem value="community">Community Activities</SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Activity Category</label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={category === "ward" ? "default" : "outline"}
+                  size="lg"
+                  className="rounded-full h-12 text-base"
+                  onClick={() => setCategory("ward")}
+                >
+                  Ward
+                </Button>
+                <Button
+                  type="button"
+                  variant={category === "community" ? "default" : "outline"}
+                  size="lg"
+                  className="rounded-full h-12 text-base"
+                  onClick={() => setCategory("community")}
+                >
+                  Community
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-border p-4">
