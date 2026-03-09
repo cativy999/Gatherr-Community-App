@@ -1,4 +1,4 @@
-import { Heart, CalendarDays, Search } from "lucide-react";
+import { Heart, CalendarDays } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
@@ -88,15 +88,7 @@ const Wards = () => {
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold">Ward Activities</h1>
-          <div className="flex items-center gap-2">
-            <LocationSelector value={location} onChange={setLocation} />
-            <button
-              onClick={() => navigate("/home")}
-              className="p-2 hover:bg-accent rounded-full transition-colors"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-          </div>
+          <LocationSelector value={location} onChange={setLocation} />
         </div>
       </header>
 
