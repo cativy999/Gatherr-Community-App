@@ -91,7 +91,7 @@ const Browse = () => {
         </div>
       </main>
 
-      <BottomNav currentPage="browse" />
+      <BottomNav currentPage="wards" />
     </div>
   );
 };
