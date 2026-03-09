@@ -156,6 +156,7 @@ const eventData: Record<string, any> = {
     description: "Start your morning with delicious pancakes, eggs, and fresh fruit. A ward tradition everyone loves!",
     image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&h=600&fit=crop",
     date: "Today, 8:00 AM", location: "Arcadia Ward Building", likes: 20,
+    host: "Arcadia Ward Kitchen",
     going: 28, maybe: 6, notGoing: 2,
     comments: [{ id: 1, author: "Brother James", time: "5 hours ago", text: "I'll bring the maple syrup!" }],
   },
