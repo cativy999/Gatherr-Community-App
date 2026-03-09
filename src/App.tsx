@@ -12,6 +12,7 @@ import Wards from "./pages/Wards";
 import Post from "./pages/Post";
 import Profile from "./pages/Profile";
 import EventDetails from "./pages/EventDetails";
+import MyEvents from "./pages/MyEvents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
