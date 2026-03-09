@@ -1,4 +1,4 @@
-import { Users, Heart, CalendarDays, Search, ChevronDown } from "lucide-react";
+import { Users, Heart, CalendarDays, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
