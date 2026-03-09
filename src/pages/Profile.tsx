@@ -45,7 +45,7 @@ const Profile = () => {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold">Profile</h1>
+          <h1 className="text-2xl font-bold">Profile</h1>
           <button className="p-2 hover:bg-accent rounded-full transition-colors">
             <Settings className="h-6 w-6" />
           </button>
