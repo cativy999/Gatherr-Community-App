@@ -8,7 +8,7 @@ import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingWard from "./pages/OnboardingWard";
 import OnboardingPreferences from "./pages/OnboardingPreferences";
 import Home from "./pages/Home";
-import Browse from "./pages/Browse";
+import Wards from "./pages/Wards";
 import Post from "./pages/Post";
 import Profile from "./pages/Profile";
 import EventDetails from "./pages/EventDetails";
