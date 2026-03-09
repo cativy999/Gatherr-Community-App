@@ -35,6 +35,7 @@ const eventData: Record<string, any> = {
     description: "Join your neighbors for a fun afternoon picnic with games, food, and great company in the park.",
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=800&h=600&fit=crop",
     date: "Today, 2:00 PM", location: "Balboa Park", likes: 45,
+    host: "Parks & Recreation Department",
     going: 28, maybe: 12, notGoing: 5,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
