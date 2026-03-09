@@ -334,6 +334,9 @@ const EventDetails = () => {
                 <Heart className="h-5 w-5" />
                 <span>{likeCount} likes</span>
               </div>
+              <div className="text-sm font-medium text-foreground">
+                Hosted by <span className="font-semibold text-primary">{event.host}</span>
+              </div>
             </div>
 
             {/* RSVP Counts */}
