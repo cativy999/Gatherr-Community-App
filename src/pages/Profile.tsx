@@ -4,11 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Calendar, MapPin, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const stats = [
-  { label: "Events Joined", value: "12" },
-  { label: "Events Created", value: "3" },
-  { label: "Connections", value: "48" },
-];
 
 const Profile = () => {
   const navigate = useNavigate();
