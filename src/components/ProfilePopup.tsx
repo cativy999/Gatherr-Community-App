@@ -106,7 +106,6 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
   const fields = [
     { key: "name", label: "Name" },
     { key: "location", label: "Location" },
-    { key: "ward", label: "Ward" },
     { key: "ldsWard", label: "LDS Ward" },
     { key: "ageRange", label: "Age Range" },
   ];
@@ -167,7 +166,7 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[360px] rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[360px] rounded-2xl p-0 overflow-hidden mx-5">
         <DialogHeader className="p-5 pb-3">
           <DialogTitle className="text-lg font-bold">My Profile</DialogTitle>
         </DialogHeader>
