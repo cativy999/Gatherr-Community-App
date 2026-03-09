@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 import ProfilePopup from "@/components/ProfilePopup";
+import { useLocation } from "@/contexts/LocationContext";
 
 const events = [
   {
