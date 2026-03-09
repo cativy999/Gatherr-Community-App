@@ -4,11 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings, Calendar, MapPin, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const stats = [
-  { label: "Events Joined", value: "12" },
-  { label: "Events Created", value: "3" },
-  { label: "Connections", value: "48" },
-];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -43,19 +38,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-card rounded-2xl p-4 text-center border border-border"
-              >
-                <div className="text-2xl font-bold text-primary">{stat.value}</div>
-                <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
           {/* Action Buttons */}
           <div className="space-y-3">
             <Button variant="outline" size="lg" className="w-full h-12" onClick={() => navigate("/my-events")}>
@@ -73,16 +55,20 @@ const Profile = () => {
             </Button>
           </div>
 
-          {/* Recent Activity */}
+          {/* Recently Viewed */}
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Recent Activity</h3>
+            <h3 className="text-xl font-bold">Recently Viewed</h3>
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card rounded-xl p-4 border border-border">
+              {[
+                { name: "Spring Festival", time: "2 days ago" },
+                { name: "Yoga in the Park", time: "2 days ago" },
+                { name: "Cooking Workshop", time: "2 days ago" },
+              ].map((item) => (
+                <div key={item.name} className="bg-card rounded-xl p-4 border border-border">
                   <p className="text-sm">
-                    Joined <span className="font-semibold">Community Picnic</span>
+                    <span className="font-semibold">{item.name}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">2 days ago</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.time}</p>
                 </div>
               ))}
             </div>
