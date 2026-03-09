@@ -134,15 +134,7 @@ const Home = () => {
             <Users className="h-7 w-7 text-primary" strokeWidth={2.5} />
             <span className="text-xl font-bold tracking-tight">Gatherr</span>
           </button>
-          <div className="flex items-center gap-2">
-            <LocationSelector value={location} onChange={setLocation} />
-            <button
-              onClick={() => navigate("/browse")}
-              className="p-2 hover:bg-accent rounded-full transition-colors"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-          </div>
+          <LocationSelector value={location} onChange={setLocation} />
         </div>
       </header>
 
