@@ -46,9 +46,10 @@ interface UserProfile {
 }
 
 const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
+  const { location, setLocation: setGlobalLocation } = useLocation();
   const [profile, setProfile] = useState<UserProfile>({
     name: "Ivy Wang",
-    location: "LA",
+    location: location,
     ward: "Santa Monica",
     ldsWard: "Santa Monica 3rd",
     ageRange: [29, 39],
