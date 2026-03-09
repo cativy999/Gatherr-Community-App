@@ -11,42 +11,42 @@ const wardActivities = [
   {
     id: 101, title: "Sunday Potluck Dinner", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop",
-    time: "Today, 5:00 PM", distance: 0.3, isToday: true, isSunday: false,
+    time: "Today, 5:00 PM", distance: 0.3, isToday: true, isSunday: false, type: "mingle",
   },
   {
     id: 102, title: "Youth Service Project", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400&h=300&fit=crop",
-    time: "Sunday, 9:00 AM", distance: 0.3, isToday: false, isSunday: true,
+    time: "Sunday, 9:00 AM", distance: 0.3, isToday: false, isSunday: true, type: "devotional",
   },
   {
     id: 103, title: "Family Movie Night", wardName: "Pasadena 1st Ward",
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=300&fit=crop",
-    time: "Today, 7:00 PM", distance: 2.1, isToday: true, isSunday: false,
+    time: "Today, 7:00 PM", distance: 2.1, isToday: true, isSunday: false, type: "mingle",
   },
   {
     id: 104, title: "Choir Practice", wardName: "Monrovia Ward",
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&h=300&fit=crop",
-    time: "Sunday, 4:00 PM", distance: 3.5, isToday: false, isSunday: true,
+    time: "Sunday, 4:00 PM", distance: 3.5, isToday: false, isSunday: true, type: "devotional",
   },
   {
     id: 105, title: "Pancake Breakfast", wardName: "Arcadia Ward",
     image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop",
-    time: "Today, 8:00 AM", distance: 0.3, isToday: true, isSunday: false,
+    time: "Today, 8:00 AM", distance: 0.3, isToday: true, isSunday: false, type: "mingle",
   },
   {
     id: 106, title: "Volleyball Tournament", wardName: "Duarte Ward",
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=300&fit=crop",
-    time: "Sunday, 2:00 PM", distance: 5.2, isToday: false, isSunday: true,
+    time: "Sunday, 2:00 PM", distance: 5.2, isToday: false, isSunday: true, type: "mingle",
   },
   {
     id: 107, title: "Book of Mormon Study", wardName: "Pasadena 2nd Ward",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=300&fit=crop",
-    time: "Today, 10:00 AM", distance: 2.8, isToday: true, isSunday: false,
+    time: "Today, 10:00 AM", distance: 2.8, isToday: true, isSunday: false, type: "devotional",
   },
   {
     id: 108, title: "Temple Trip", wardName: "Monrovia Ward",
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=400&h=300&fit=crop",
-    time: "Sunday, 6:00 AM", distance: 3.5, isToday: false, isSunday: true,
+    time: "Sunday, 6:00 AM", distance: 3.5, isToday: false, isSunday: true, type: "devotional",
   },
 ];
 
@@ -54,6 +54,8 @@ const filterChips = [
   { id: "today", label: "Today" },
   { id: "sunday", label: "This Sunday" },
   { id: "my-ward", label: "My Ward" },
+  { id: "mingle", label: "Mingle" },
+  { id: "devotional", label: "Devotional" },
 ];
 
 const Wards = () => {
@@ -76,6 +78,8 @@ const Wards = () => {
     if (activeFilter === "today") result = result.filter((a) => a.isToday);
     else if (activeFilter === "sunday") result = result.filter((a) => a.isSunday);
     else if (activeFilter === "my-ward") result = result.filter((a) => a.wardName === USER_WARD);
+    else if (activeFilter === "mingle") result = result.filter((a) => a.type === "mingle");
+    else if (activeFilter === "devotional") result = result.filter((a) => a.type === "devotional");
     result.sort((a, b) => a.distance - b.distance);
     return result;
   }, [activeFilter]);
