@@ -1,10 +1,11 @@
-import { ArrowLeft, Calendar, MapPin, Heart } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, MessageCircle, Mail, Link } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 type Person = { name: string; avatar: string };
 
