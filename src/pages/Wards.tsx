@@ -54,6 +54,8 @@ const filterChips = [
   { id: "today", label: "Today" },
   { id: "sunday", label: "This Sunday" },
   { id: "my-ward", label: "My Ward" },
+  { id: "mingle", label: "Mingle" },
+  { id: "devotional", label: "Devotional" },
 ];
 
 const Wards = () => {
