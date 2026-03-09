@@ -165,6 +165,7 @@ const eventData: Record<string, any> = {
     description: "Inter-ward volleyball tournament! Form your teams and come ready to play. Refreshments provided.",
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=600&fit=crop",
     date: "Sunday, 2:00 PM", location: "Duarte Ward Gym", likes: 35,
+    host: "Duarte Ward Sports",
     going: 40, maybe: 12, notGoing: 4,
     comments: [],
   },
