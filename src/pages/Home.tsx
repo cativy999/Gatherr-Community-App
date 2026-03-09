@@ -10,6 +10,7 @@ const events = [
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=400&h=300&fit=crop",
     date: "Today, 2:00 PM", attendees: 28, price: 0, likes: 45, createdAt: "2026-03-09",
     isHappeningNow: true, isToday: true, isTomorrow: false, isWeekend: false, isHoliday: false,
+    happeningInHours: 2,
   },
   {
     id: 2, title: "Book Club Meeting",
@@ -28,6 +29,7 @@ const events = [
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop",
     date: "Today, 10:00 AM", attendees: 35, price: 0, likes: 30, createdAt: "2026-03-09",
     isHappeningNow: true, isToday: true, isTomorrow: false, isWeekend: false, isHoliday: false,
+    happeningInHours: 1,
   },
   {
     id: 5, title: "Cooking Workshop",
@@ -129,7 +131,7 @@ const Home = () => {
           <div className="flex items-center gap-2">
             <LocationSelector value={location} onChange={setLocation} />
             <button
-              onClick={() => navigate("/wards")}
+              onClick={() => navigate("/browse")}
               className="p-2 hover:bg-accent rounded-full transition-colors"
             >
               <Search className="h-5 w-5" />
@@ -217,6 +219,11 @@ const Home = () => {
                     <CalendarDays className="h-3 w-3" />
                     <span>{event.date}</span>
                   </div>
+                  {event.isHappeningNow && event.happeningInHours && (
+                    <p className="text-xs font-semibold text-orange-500">
+                      🔥 In {event.happeningInHours} {event.happeningInHours === 1 ? 'hour' : 'hours'}
+                    </p>
+                  )}
                   <p className="text-xs font-medium text-primary">{event.attendees} going</p>
                 </div>
               </div>

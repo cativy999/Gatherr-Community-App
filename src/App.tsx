@@ -12,6 +12,7 @@ import Wards from "./pages/Wards";
 import Post from "./pages/Post";
 import Profile from "./pages/Profile";
 import EventDetails from "./pages/EventDetails";
+import MyEvents from "./pages/MyEvents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/post" element={<Post />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/event/:id" element={<EventDetails />} />
+          <Route path="/my-events" element={<MyEvents />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -236,13 +236,9 @@ const Profile = () => {
                   <Edit2 className="mr-2 h-5 w-5" />
                   Edit Profile
                 </Button>
-                <Button variant="outline" size="lg" className="w-full h-12">
+                <Button variant="outline" size="lg" className="w-full h-12" onClick={() => navigate("/my-events")}>
                   <Calendar className="mr-2 h-5 w-5" />
                   My Events
-                </Button>
-                <Button variant="outline" size="lg" className="w-full h-12">
-                  <Heart className="mr-2 h-5 w-5" />
-                  Saved Events
                 </Button>
                 <Button
                 variant="outline"
