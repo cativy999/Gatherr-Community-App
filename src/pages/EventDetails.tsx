@@ -159,6 +159,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&h=600&fit=crop",
     date: "Sunday, 4:00 PM", location: "Monrovia Ward Building", likes: 9,
     host: "Monrovia Ward Music",
+    creator: "Sister Williams",
     going: 12, maybe: 3, notGoing: 1,
     comments: [],
   },
