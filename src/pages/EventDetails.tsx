@@ -119,6 +119,13 @@ const EventDetails = () => {
   const [comments, setComments] = useState(event?.comments || []);
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
   const [activeList, setActiveList] = useState<"going" | "maybe" | "notGoing" | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const shareOptions = [
+    { icon: Copy, label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); } },
+    { icon: MessageCircle, label: "Message", action: () => { window.open(`sms:?body=${encodeURIComponent(event.title + " - " + window.location.href)}`); } },
+    { icon: Mail, label: "Email", action: () => { window.open(`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(window.location.href)}`); } },
+  ];
 
   if (!event) {
     return <div>Event not found</div>;
