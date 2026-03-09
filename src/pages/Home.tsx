@@ -1,8 +1,9 @@
-import { Users, Heart, CalendarDays, Search, ChevronDown } from "lucide-react";
+import { Heart, CalendarDays, Search, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
+import ProfilePopup from "@/components/ProfilePopup";
 
 const events = [
   {
@@ -68,6 +69,7 @@ const timeFilters = [
 const sortOptions = [
   { id: "popular", label: "Popular" },
   { id: "latest", label: "Latest" },
+  { id: "free", label: "Free" },
 ];
 
 const Home = () => {
@@ -78,6 +80,7 @@ const Home = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
   const [location, setLocation] = useState("San Diego, CA");
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,7 +94,6 @@ const Home = () => {
   const filteredEvents = useMemo(() => {
     let result = [...events];
 
-    // Time filter
     if (activeTimeFilter) {
       switch (activeTimeFilter) {
         case "happening-now": result = result.filter((e) => e.isHappeningNow); break;
@@ -102,16 +104,17 @@ const Home = () => {
       }
     }
 
-    // Free filter (combinable)
     if (freeOnly) {
       result = result.filter((e) => e.price === 0);
     }
 
-    // Sort
     if (sortBy === "popular") {
       result.sort((a, b) => b.likes - a.likes);
     } else if (sortBy === "latest") {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortBy === "free") {
+      result = result.filter((e) => e.price === 0);
+      result.sort((a, b) => b.likes - a.likes);
     }
 
     return result;
@@ -124,10 +127,12 @@ const Home = () => {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-2.5">
-            <Users className="h-7 w-7 text-primary" strokeWidth={2.5} />
-            <span className="text-xl font-bold tracking-tight">Gatherr</span>
-          </div>
+          <button
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+          >
+            <span className="text-xl font-extrabold tracking-tighter text-primary">GATHERR</span>
+          </button>
           <div className="flex items-center gap-2">
             <LocationSelector value={location} onChange={setLocation} />
             <button
@@ -240,6 +245,7 @@ const Home = () => {
       </main>
 
       <BottomNav currentPage="home" />
+      <ProfilePopup open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 };
