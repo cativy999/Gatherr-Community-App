@@ -1,10 +1,11 @@
-import { ArrowLeft, Calendar, MapPin, Heart } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, MessageCircle, Mail, Link } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 type Person = { name: string; avatar: string };
 
@@ -118,6 +119,13 @@ const EventDetails = () => {
   const [comments, setComments] = useState(event?.comments || []);
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
   const [activeList, setActiveList] = useState<"going" | "maybe" | "notGoing" | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const shareOptions = [
+    { icon: Copy, label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); } },
+    { icon: MessageCircle, label: "Message", action: () => { window.open(`sms:?body=${encodeURIComponent(event.title + " - " + window.location.href)}`); } },
+    { icon: Mail, label: "Email", action: () => { window.open(`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent(window.location.href)}`); } },
+  ];
 
   if (!event) {
     return <div>Event not found</div>;
@@ -167,11 +175,42 @@ const EventDetails = () => {
       <main className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Event Image */}
-          <img
-            src={event.image}
-            alt={event.title}
-            className="w-full h-44 object-cover rounded-3xl"
-          />
+          <div className="relative">
+            <img
+              src={event.image}
+              alt={event.title}
+              className="w-full h-44 object-cover rounded-3xl"
+            />
+            <button
+              onClick={() => setShareOpen(true)}
+              className="absolute bottom-3 right-3 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors shadow-md"
+            >
+              <Share2 className="h-5 w-5 text-foreground" />
+            </button>
+          </div>
+
+          {/* Share Popup */}
+          <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
+              <DialogHeader className="p-5 pb-3">
+                <DialogTitle className="text-lg font-bold">Share Event</DialogTitle>
+              </DialogHeader>
+              <div className="px-5 pb-5 space-y-1">
+                {shareOptions.map(({ icon: Icon, label, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors group"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
+                      <Icon className="h-4 w-4 text-foreground" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Event Info */}
           <div className="space-y-4">
