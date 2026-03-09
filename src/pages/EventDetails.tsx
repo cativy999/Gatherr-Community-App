@@ -179,6 +179,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=600&fit=crop",
     date: "Sunday, 2:00 PM", location: "Duarte Ward Gym", likes: 35,
     host: "Duarte Ward Sports",
+    creator: "Coach Martinez",
     going: 40, maybe: 12, notGoing: 4,
     comments: [],
   },
