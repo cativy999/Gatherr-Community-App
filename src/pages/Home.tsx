@@ -131,7 +131,7 @@ const Home = () => {
           <div className="flex items-center gap-2">
             <LocationSelector value={location} onChange={setLocation} />
             <button
-              onClick={() => navigate("/wards")}
+              onClick={() => navigate("/browse")}
               className="p-2 hover:bg-accent rounded-full transition-colors"
             >
               <Search className="h-5 w-5" />
