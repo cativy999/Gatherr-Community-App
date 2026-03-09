@@ -188,6 +188,14 @@ const EventDetails = () => {
       {/* Main Content */}
       <main className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
+          {/* RSVP Status Banner */}
+          {rsvpStatus && (
+            <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-3 rounded-2xl">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-semibold">{rsvpLabels[rsvpStatus]}</span>
+            </div>
+          )}
+
           {/* Event Image */}
           <div className="relative">
             <img
