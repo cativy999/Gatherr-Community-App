@@ -36,6 +36,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=800&h=600&fit=crop",
     date: "Today, 2:00 PM", location: "Balboa Park", likes: 45,
     host: "Parks & Recreation Department",
+    creator: "John Smith",
     going: 28, maybe: 12, notGoing: 5,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
