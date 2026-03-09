@@ -8,7 +8,7 @@ import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingWard from "./pages/OnboardingWard";
 import OnboardingPreferences from "./pages/OnboardingPreferences";
 import Home from "./pages/Home";
-import Browse from "./pages/Browse";
+import Wards from "./pages/Wards";
 import Post from "./pages/Post";
 import Profile from "./pages/Profile";
 import EventDetails from "./pages/EventDetails";
@@ -28,7 +28,7 @@ const App = () => (
           <Route path="/onboarding/ward" element={<OnboardingWard />} />
           <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/wards" element={<Browse />} />
+          <Route path="/wards" element={<Wards />} />
           <Route path="/post" element={<Post />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/event/:id" element={<EventDetails />} />
