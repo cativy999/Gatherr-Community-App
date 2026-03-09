@@ -1,9 +1,10 @@
-import { ArrowLeft, Calendar, MapPin, Heart, X } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Person = { name: string; avatar: string };
 
@@ -197,36 +198,33 @@ const EventDetails = () => {
             {/* RSVP Counts */}
             <div className="flex gap-4 pt-2">
               <button
-                onClick={() => setActiveList(activeList === "going" ? null : "going")}
+                onClick={() => setActiveList("going")}
                 className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 <span className="text-lg font-bold">{event.going}</span> Going
               </button>
               <button
-                onClick={() => setActiveList(activeList === "maybe" ? null : "maybe")}
+                onClick={() => setActiveList("maybe")}
                 className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 <span className="text-lg font-bold">{event.maybe}</span> Maybe
               </button>
               <button
-                onClick={() => setActiveList(activeList === "notGoing" ? null : "notGoing")}
+                onClick={() => setActiveList("notGoing")}
                 className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 <span className="text-lg font-bold">{event.notGoing}</span> Not Going
               </button>
             </div>
 
-            {/* People List */}
-            {activeList && (
-              <div className="bg-card rounded-2xl border border-border p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm">{listLabels[activeList]}</h3>
-                  <button onClick={() => setActiveList(null)} className="p-1 hover:bg-accent rounded-full">
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {mockPeople[activeList].map((person, i) => (
+            {/* People List Popup */}
+            <Dialog open={!!activeList} onOpenChange={(open) => !open && setActiveList(null)}>
+              <DialogContent className="rounded-2xl max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>{activeList ? listLabels[activeList] : ""}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {activeList && mockPeople[activeList].map((person, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">
@@ -237,8 +235,8 @@ const EventDetails = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              </DialogContent>
+            </Dialog>
 
             <p className="text-lg leading-relaxed pt-4">{event.description}</p>
           </div>
