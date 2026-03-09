@@ -79,9 +79,9 @@ const Post = () => {
             <div className="flex items-center justify-between rounded-xl border border-border p-4">
               <div className="space-y-0.5">
                 <label className="text-sm font-medium">Paid Event</label>
-                <p className="text-xs text-muted-foreground">Attendees need to pay to join</p>
+                <p className="text-xs text-muted-foreground">Attendees need to pay</p>
               </div>
-              <Switch />
+              <Switch className="data-[state=checked]:bg-green-500" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
