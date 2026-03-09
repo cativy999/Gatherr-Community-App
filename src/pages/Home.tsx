@@ -219,7 +219,7 @@ const Home = () => {
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <Users className="h-8 w-8 text-primary" strokeWidth={2.5} />
-            <span className="text-2xl font-bold">Gather</span>
+            <span className="text-2xl font-bold">Gatherr</span>
           </div>
         </div>
       </header>
