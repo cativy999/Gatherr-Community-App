@@ -94,6 +94,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=600&fit=crop",
     date: "March 20, 12:00 PM", location: "Civic Center Plaza", likes: 89,
     host: "City Cultural Events",
+    creator: "Jennifer Lee",
     going: 120, maybe: 34, notGoing: 11,
     comments: [
       { id: 1, author: "Lisa T.", time: "5 hours ago", text: "Will there be live bands?" },
