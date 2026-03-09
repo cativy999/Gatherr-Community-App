@@ -63,7 +63,6 @@ const timeFilters = [
   { id: "today", label: "Today" },
   { id: "tomorrow", label: "Tomorrow" },
   { id: "weekend", label: "This Weekend" },
-  { id: "holiday", label: "Holiday" },
 ];
 
 const sortOptions = [
