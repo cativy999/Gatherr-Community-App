@@ -353,6 +353,9 @@ const EventDetails = () => {
               <div className="text-sm font-medium text-foreground">
                 Hosted by <span className="font-semibold text-primary">{event.host}</span>
               </div>
+              <div className="text-sm font-medium text-foreground">
+                Created by <span className="font-semibold text-primary">{event.creator}</span>
+              </div>
             </div>
 
             {/* RSVP Counts */}
