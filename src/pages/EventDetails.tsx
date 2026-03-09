@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, Link } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, Link, Loader2, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,6 +120,22 @@ const EventDetails = () => {
   const [rsvpStatus, setRsvpStatus] = useState<"going" | "maybe" | "not-going" | null>(null);
   const [activeList, setActiveList] = useState<"going" | "maybe" | "notGoing" | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
+
+  const rsvpLabels: Record<string, string> = {
+    going: "You're going!",
+    maybe: "You're maybe going",
+    "not-going": "You're not going",
+  };
+
+  const handleRsvp = (status: "going" | "maybe" | "not-going") => {
+    if (rsvpStatus === status) return;
+    setRsvpLoading(status);
+    setTimeout(() => {
+      setRsvpStatus(status);
+      setRsvpLoading(null);
+    }, 800);
+  };
 
   const shareOptions = [
     { icon: Copy, label: "Copy Link", action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); } },
@@ -172,6 +188,14 @@ const EventDetails = () => {
       {/* Main Content */}
       <main className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
+          {/* RSVP Status Banner */}
+          {rsvpStatus && (
+            <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-3 rounded-2xl">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-semibold">{rsvpLabels[rsvpStatus]}</span>
+            </div>
+          )}
+
           {/* Event Image */}
           <div className="relative">
             <img
@@ -325,25 +349,28 @@ const EventDetails = () => {
             variant={rsvpStatus === "going" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "going" ? null : "going")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("going")}
           >
-            Going
+            {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Going"}
           </Button>
           <Button
             variant={rsvpStatus === "maybe" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "maybe" ? null : "maybe")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("maybe")}
           >
-            Maybe
+            {rsvpLoading === "maybe" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Maybe"}
           </Button>
           <Button
             variant={rsvpStatus === "not-going" ? "default" : "outline"}
             size="lg"
             className="rounded-full"
-            onClick={() => setRsvpStatus(rsvpStatus === "not-going" ? null : "not-going")}
+            disabled={!!rsvpLoading}
+            onClick={() => handleRsvp("not-going")}
           >
-            Not Going
+            {rsvpLoading === "not-going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Not Going"}
           </Button>
         </div>
       </div>
