@@ -107,6 +107,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&h=600&fit=crop",
     date: "Tomorrow, 9:00 AM", location: "Gaslamp Quarter", likes: 33,
     host: "Photography Collective",
+    creator: "Marcus Thompson",
     going: 18, maybe: 5, notGoing: 1,
     comments: [],
   },
