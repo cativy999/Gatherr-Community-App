@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, User } from "lucide-react";
+import { Home, Church, PlusCircle, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BottomNavProps {
