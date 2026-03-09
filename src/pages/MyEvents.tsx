@@ -37,6 +37,7 @@ const MyEvents = () => {
 
   const eventsMap: Record<string, typeof goingEvents> = {
     going: goingEvents,
+    maybe: maybeEvents,
     saved: savedEvents,
     past: pastEvents,
   };
