@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Pencil, Check, MapPin } from "lucide-react";
+import { useLocation } from "@/contexts/LocationContext";
 
 const LOCATIONS = [
   "Los Angeles, CA",

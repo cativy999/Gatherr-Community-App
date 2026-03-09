@@ -60,7 +60,7 @@ const Wards = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
-  const [location, setLocation] = useState("San Diego, CA");
+  const { location, setLocation } = useLocation();
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();

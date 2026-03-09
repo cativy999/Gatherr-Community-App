@@ -79,7 +79,7 @@ const Home = () => {
   const [sortBy, setSortBy] = useState("popular");
   const [sortOpen, setSortOpen] = useState(false);
   const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
-  const [location, setLocation] = useState("San Diego, CA");
+  const { location, setLocation } = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const toggleSaved = (id: number, e: React.MouseEvent) => {

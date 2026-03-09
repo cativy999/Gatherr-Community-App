@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { LocationProvider } from "@/contexts/LocationContext";
 import Welcome from "./pages/Welcome";
 import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingPreferences from "./pages/OnboardingPreferences";
@@ -20,23 +21,25 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Welcome />} />
-          <Route path="/onboarding/age" element={<OnboardingAge />} />
-          <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
-          <Route path="/onboarding/wisdom" element={<OnboardingWisdom />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/wards" element={<Wards />} />
-          <Route path="/post" element={<Post />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/event/:id" element={<EventDetails />} />
-          <Route path="/my-events" element={<MyEvents />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <LocationProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Welcome />} />
+            <Route path="/onboarding/age" element={<OnboardingAge />} />
+            <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
+            <Route path="/onboarding/wisdom" element={<OnboardingWisdom />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/wards" element={<Wards />} />
+            <Route path="/post" element={<Post />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/event/:id" element={<EventDetails />} />
+            <Route path="/my-events" element={<MyEvents />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </LocationProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
