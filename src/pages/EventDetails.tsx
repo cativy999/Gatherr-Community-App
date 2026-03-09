@@ -35,6 +35,7 @@ const eventData: Record<string, any> = {
     description: "Join your neighbors for a fun afternoon picnic with games, food, and great company in the park.",
     image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=800&h=600&fit=crop",
     date: "Today, 2:00 PM", location: "Balboa Park", likes: 45,
+    host: "Parks & Recreation Department",
     going: 28, maybe: 12, notGoing: 5,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
@@ -46,6 +47,7 @@ const eventData: Record<string, any> = {
     description: "Discuss the latest bestseller in a cozy cafe. All book lovers welcome!",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Tomorrow, 6:00 PM", location: "Downtown Library", likes: 22,
+    host: "Sarah's Book Club",
     going: 15, maybe: 4, notGoing: 2,
     comments: [],
   },
@@ -54,6 +56,7 @@ const eventData: Record<string, any> = {
     description: "Start your weekend with a relaxing yoga session surrounded by nature. All levels welcome, mats provided.",
     image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
     date: "March 15, 8:00 AM", location: "Mission Bay Park", likes: 67,
+    host: "Zen Wellness Studio",
     going: 42, maybe: 8, notGoing: 3,
     comments: [
       { id: 1, author: "Emily R.", time: "1 day ago", text: "Love these outdoor sessions!" },
@@ -64,6 +67,7 @@ const eventData: Record<string, any> = {
     description: "Help keep our neighborhood beautiful! Gloves and bags provided. Great way to meet your neighbors.",
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "North Park", likes: 30,
+    host: "Neighborhood Association",
     going: 35, maybe: 6, notGoing: 4,
     comments: [],
   },
@@ -72,6 +76,7 @@ const eventData: Record<string, any> = {
     description: "Learn to cook authentic Italian pasta from scratch with a professional chef. Ingredients included.",
     image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
     date: "March 15, 3:00 PM", location: "Community Kitchen", likes: 55,
+    host: "Chef Antonio's Kitchen",
     going: 20, maybe: 7, notGoing: 2,
     comments: [
       { id: 1, author: "Carlos M.", time: "3 hours ago", text: "Is this beginner friendly?" },
@@ -83,6 +88,7 @@ const eventData: Record<string, any> = {
     description: "Celebrate the arrival of spring with live music, food trucks, art booths, and activities for all ages.",
     image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=600&fit=crop",
     date: "March 20, 12:00 PM", location: "Civic Center Plaza", likes: 89,
+    host: "City Cultural Events",
     going: 120, maybe: 34, notGoing: 11,
     comments: [
       { id: 1, author: "Lisa T.", time: "5 hours ago", text: "Will there be live bands?" },
@@ -94,6 +100,7 @@ const eventData: Record<string, any> = {
     description: "Explore scenic spots in the city with fellow photography enthusiasts. Bring your camera or phone!",
     image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&h=600&fit=crop",
     date: "Tomorrow, 9:00 AM", location: "Gaslamp Quarter", likes: 33,
+    host: "Photography Collective",
     going: 18, maybe: 5, notGoing: 1,
     comments: [],
   },
@@ -102,6 +109,7 @@ const eventData: Record<string, any> = {
     description: "Bring your favorite board games or try new ones! Snacks and drinks available. Fun for everyone.",
     image: "https://images.unsplash.com/photo-1611371805429-8b5c1b2c34ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "The Game Lounge", likes: 41,
+    host: "Game Lounge Team",
     going: 24, maybe: 9, notGoing: 3,
     comments: [
       { id: 1, author: "Jake P.", time: "1 hour ago", text: "I'm bringing Catan!" },
@@ -112,6 +120,7 @@ const eventData: Record<string, any> = {
     description: "Bring your favorite dish and enjoy a wonderful evening of food and fellowship with ward members.",
     image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
     date: "Today, 5:00 PM", location: "Arcadia Ward Building", likes: 18,
+    host: "Arcadia Ward",
     going: 22, maybe: 8, notGoing: 2,
     comments: [{ id: 1, author: "Bishop Taylor", time: "3 hours ago", text: "Looking forward to seeing everyone!" }],
   },
@@ -120,6 +129,7 @@ const eventData: Record<string, any> = {
     description: "Join the youth for a morning of community service. We'll be cleaning up the local park and planting trees.",
     image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&h=600&fit=crop",
     date: "Sunday, 9:00 AM", location: "Arcadia Ward Building", likes: 12,
+    host: "Arcadia Ward Youth",
     going: 15, maybe: 5, notGoing: 1,
     comments: [],
   },
@@ -128,6 +138,7 @@ const eventData: Record<string, any> = {
     description: "Bring blankets and snacks for a family-friendly movie night in the cultural hall. Popcorn provided!",
     image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=600&fit=crop",
     date: "Today, 7:00 PM", location: "Pasadena 1st Ward Building", likes: 25,
+    host: "Pasadena 1st Ward",
     going: 30, maybe: 10, notGoing: 3,
     comments: [{ id: 1, author: "Sister Adams", time: "1 hour ago", text: "What movie are we watching?" }],
   },
@@ -136,6 +147,7 @@ const eventData: Record<string, any> = {
     description: "Weekly choir rehearsal. All voices welcome, no experience needed. Come make joyful music together!",
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&h=600&fit=crop",
     date: "Sunday, 4:00 PM", location: "Monrovia Ward Building", likes: 9,
+    host: "Monrovia Ward Music",
     going: 12, maybe: 3, notGoing: 1,
     comments: [],
   },
@@ -144,6 +156,7 @@ const eventData: Record<string, any> = {
     description: "Start your morning with delicious pancakes, eggs, and fresh fruit. A ward tradition everyone loves!",
     image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&h=600&fit=crop",
     date: "Today, 8:00 AM", location: "Arcadia Ward Building", likes: 20,
+    host: "Arcadia Ward Kitchen",
     going: 28, maybe: 6, notGoing: 2,
     comments: [{ id: 1, author: "Brother James", time: "5 hours ago", text: "I'll bring the maple syrup!" }],
   },
@@ -152,6 +165,7 @@ const eventData: Record<string, any> = {
     description: "Inter-ward volleyball tournament! Form your teams and come ready to play. Refreshments provided.",
     image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=600&fit=crop",
     date: "Sunday, 2:00 PM", location: "Duarte Ward Gym", likes: 35,
+    host: "Duarte Ward Sports",
     going: 40, maybe: 12, notGoing: 4,
     comments: [],
   },
@@ -160,6 +174,7 @@ const eventData: Record<string, any> = {
     description: "Join us for an uplifting group scripture study. This week we're covering 1 Nephi chapters 1-5.",
     image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "Pasadena 2nd Ward Building", likes: 14,
+    host: "Pasadena 2nd Ward",
     going: 10, maybe: 4, notGoing: 1,
     comments: [],
   },
@@ -168,6 +183,7 @@ const eventData: Record<string, any> = {
     description: "Ward temple trip to the Los Angeles Temple. Carpool available from the ward building.",
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&h=600&fit=crop",
     date: "Sunday, 6:00 AM", location: "Los Angeles Temple", likes: 28,
+    host: "Arcadia Ward Leadership",
     going: 18, maybe: 7, notGoing: 2,
     comments: [{ id: 1, author: "Sister Kim", time: "2 hours ago", text: "I can drive 4 people!" }],
   },
@@ -317,6 +333,9 @@ const EventDetails = () => {
               <div className="flex items-center gap-2">
                 <Heart className="h-5 w-5" />
                 <span>{likeCount} likes</span>
+              </div>
+              <div className="text-sm font-medium text-foreground">
+                Hosted by <span className="font-semibold text-primary">{event.host}</span>
               </div>
             </div>
 
