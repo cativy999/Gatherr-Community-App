@@ -2,6 +2,8 @@ import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Calendar, MapPin, Users, Image as ImageIcon } from "lucide-react";
 
 const Post = () => {
@@ -50,10 +52,23 @@ const Post = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
-              <Input
-                placeholder="e.g., Community Event, Outdoor Activity"
-                className="h-12 text-base"
-              />
+              <Select>
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ward">Ward Activities</SelectItem>
+                  <SelectItem value="community">Community Activities</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-border p-4">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Paid Event</label>
+                <p className="text-xs text-muted-foreground">Attendees need to pay to join</p>
+              </div>
+              <Switch />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
