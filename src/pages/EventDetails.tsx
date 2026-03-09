@@ -7,31 +7,73 @@ import { useState } from "react";
 // Mock data - in a real app, this would come from an API or database
 const eventData: Record<string, any> = {
   "1": {
-    id: 1,
-    category: "COMMUNITY EVENT",
-    title: "Local Art Fair",
-    description: "Join us for a day of art, music, and food in the park. Featuring local artists and artisans.",
-    image: "https://images.unsplash.com/photo-1531243269054-5ebf6f34081e?w=800&h=600&fit=crop",
-    date: "Today, 10:00 AM",
-    location: "Central Park",
-    attendees: 45,
-    likes: 128,
+    id: 1, category: "COMMUNITY EVENT", title: "Community Picnic",
+    description: "Join your neighbors for a fun afternoon picnic with games, food, and great company in the park.",
+    image: "https://images.unsplash.com/photo-1506368083636-6defb67639a7?w=800&h=600&fit=crop",
+    date: "Today, 2:00 PM", location: "Balboa Park", attendees: 28, likes: 45,
     comments: [
       { id: 1, author: "Sarah Johnson", time: "2 hours ago", text: "Can't wait! This is going to be amazing!" },
       { id: 2, author: "Mike Chen", time: "4 hours ago", text: "Will there be food vendors?" },
     ],
   },
   "2": {
-    id: 2,
-    category: "OUTDOOR ACTIVITY",
-    title: "Hiking Adventure",
-    description: "Explore the scenic trails of the nearby mountains. Moderate difficulty, suitable for all fitness levels.",
-    image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=600&fit=crop",
-    date: "March 18, 7:00 AM",
-    location: "Mountain Trail Head",
-    attendees: 12,
-    likes: 34,
+    id: 2, category: "SOCIAL GATHERING", title: "Book Club Meeting",
+    description: "Discuss the latest bestseller in a cozy cafe. All book lovers welcome!",
+    image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&h=600&fit=crop",
+    date: "Tomorrow, 6:00 PM", location: "Downtown Library", attendees: 15, likes: 22,
     comments: [],
+  },
+  "3": {
+    id: 3, category: "OUTDOOR ACTIVITY", title: "Yoga in the Park",
+    description: "Start your weekend with a relaxing yoga session surrounded by nature. All levels welcome, mats provided.",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
+    date: "March 15, 8:00 AM", location: "Mission Bay Park", attendees: 42, likes: 67,
+    comments: [
+      { id: 1, author: "Emily R.", time: "1 day ago", text: "Love these outdoor sessions!" },
+    ],
+  },
+  "4": {
+    id: 4, category: "COMMUNITY EVENT", title: "Neighborhood Cleanup",
+    description: "Help keep our neighborhood beautiful! Gloves and bags provided. Great way to meet your neighbors.",
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop",
+    date: "Today, 10:00 AM", location: "North Park", attendees: 35, likes: 30,
+    comments: [],
+  },
+  "5": {
+    id: 5, category: "WORKSHOP", title: "Cooking Workshop",
+    description: "Learn to cook authentic Italian pasta from scratch with a professional chef. Ingredients included.",
+    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop",
+    date: "March 15, 3:00 PM", location: "Community Kitchen", attendees: 20, likes: 55,
+    comments: [
+      { id: 1, author: "Carlos M.", time: "3 hours ago", text: "Is this beginner friendly?" },
+      { id: 2, author: "Chef Anna", time: "2 hours ago", text: "Absolutely! All skill levels welcome." },
+    ],
+  },
+  "6": {
+    id: 6, category: "FESTIVAL", title: "Spring Festival",
+    description: "Celebrate the arrival of spring with live music, food trucks, art booths, and activities for all ages.",
+    image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=600&fit=crop",
+    date: "March 20, 12:00 PM", location: "Civic Center Plaza", attendees: 120, likes: 89,
+    comments: [
+      { id: 1, author: "Lisa T.", time: "5 hours ago", text: "Will there be live bands?" },
+      { id: 2, author: "Event Team", time: "3 hours ago", text: "Yes! 4 bands performing throughout the day." },
+    ],
+  },
+  "7": {
+    id: 7, category: "OUTDOOR ACTIVITY", title: "Photography Walk",
+    description: "Explore scenic spots in the city with fellow photography enthusiasts. Bring your camera or phone!",
+    image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&h=600&fit=crop",
+    date: "Tomorrow, 9:00 AM", location: "Gaslamp Quarter", attendees: 18, likes: 33,
+    comments: [],
+  },
+  "8": {
+    id: 8, category: "SOCIAL GATHERING", title: "Board Game Night",
+    description: "Bring your favorite board games or try new ones! Snacks and drinks available. Fun for everyone.",
+    image: "https://images.unsplash.com/photo-1611371805429-8b5c1b2c34ba?w=800&h=600&fit=crop",
+    date: "Today, 7:00 PM", location: "The Game Lounge", attendees: 24, likes: 41,
+    comments: [
+      { id: 1, author: "Jake P.", time: "1 hour ago", text: "I'm bringing Catan!" },
+    ],
   },
 };
 
