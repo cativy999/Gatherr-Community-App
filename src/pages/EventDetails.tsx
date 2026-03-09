@@ -183,6 +183,7 @@ const eventData: Record<string, any> = {
     description: "Ward temple trip to the Los Angeles Temple. Carpool available from the ward building.",
     image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&h=600&fit=crop",
     date: "Sunday, 6:00 AM", location: "Los Angeles Temple", likes: 28,
+    host: "Arcadia Ward Leadership",
     going: 18, maybe: 7, notGoing: 2,
     comments: [{ id: 1, author: "Sister Kim", time: "2 hours ago", text: "I can drive 4 people!" }],
   },
