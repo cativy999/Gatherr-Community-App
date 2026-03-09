@@ -90,6 +90,7 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
   const selectLocation = (loc: string) => {
     setProfile((p) => ({ ...p, location: loc }));
+    setGlobalLocation(loc);
     setEditing(null);
   };
 
