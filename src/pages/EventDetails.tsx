@@ -71,6 +71,7 @@ const eventData: Record<string, any> = {
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop",
     date: "Today, 10:00 AM", location: "North Park", likes: 30,
     host: "Neighborhood Association",
+    creator: "Robert Mitchell",
     going: 35, maybe: 6, notGoing: 4,
     comments: [],
   },
