@@ -12,13 +12,11 @@ const OnboardingWard = () => {
   const handleNext = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("User:", user);
 
     if (user) {
       const age = sessionStorage.getItem("onboarding_age");
       const preferred_age_min = sessionStorage.getItem("onboarding_age_min");
       const preferred_age_max = sessionStorage.getItem("onboarding_age_max");
-      console.log("Data to save:", { age, preferred_age_min, preferred_age_max, ward });
 
       const { data, error } = await supabase.from("profiles").upsert({
         user_id: user.id,
@@ -26,10 +24,10 @@ const OnboardingWard = () => {
         preferred_age_min: preferred_age_min ? parseInt(preferred_age_min) : null,
         preferred_age_max: preferred_age_max ? parseInt(preferred_age_max) : null,
         ward: ward.trim() || null,
-      });
+      }, { onConflict: 'user_id' });
+
       console.log("Supabase result:", data, error);
-    } else {
-      console.log("No user found!");
+      sessionStorage.clear();
     }
 
     setLoading(false);
