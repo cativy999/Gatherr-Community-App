@@ -1,41 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Pencil, Check, MapPin } from "lucide-react";
+import { Pencil, Check, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
+import { supabase } from "@/lib/supabase";
 
-const LOCATIONS = [
-  "Los Angeles, CA",
-  "San Diego, CA",
-  "San Francisco, CA",
-  "Santa Monica, CA",
-  "Long Beach, CA",
-  "Irvine, CA",
-  "Pasadena, CA",
-  "Burbank, CA",
-  "Glendale, CA",
-  "Anaheim, CA",
-  "Provo, UT",
-  "Salt Lake City, UT",
-  "Orem, UT",
-  "Lehi, UT",
-  "Mesa, AZ",
-  "Gilbert, AZ",
-  "Rexburg, ID",
-  "Boise, ID",
-  "Las Vegas, NV",
-  "Portland, OR",
-  "Seattle, WA",
-  "New York, NY",
-  "Austin, TX",
-  "Dallas, TX",
-  "Houston, TX",
-  "Chicago, IL",
-  "Miami, FL",
-  "Denver, CO",
-];
+interface LocationResult {
+  display_name: string;
+  place_id: number;
+}
 
 interface UserProfile {
   name: string;
@@ -48,50 +23,139 @@ interface UserProfile {
 const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { location, setLocation: setGlobalLocation } = useLocation();
   const [profile, setProfile] = useState<UserProfile>({
-    name: "Ivy Wang",
+    name: "",
     location: location,
-    ward: "Santa Monica",
-    ldsWard: "Santa Monica 3rd",
-    ageRange: [29, 39],
+    ward: "",
+    ldsWard: "",
+    ageRange: [25, 35],
   });
 
   const [editing, setEditing] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
-  const [tempRange, setTempRange] = useState<[number, number]>([29, 39]);
+  const [tempRange, setTempRange] = useState<[number, number]>([25, 35]);
   const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
 
-  const filteredLocations = useMemo(() => {
-    if (!locationSearch.trim()) return LOCATIONS.slice(0, 6);
-    return LOCATIONS.filter((loc) =>
-      loc.toLowerCase().includes(locationSearch.toLowerCase())
-    ).slice(0, 6);
-  }, [locationSearch]);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) {
+        setProfile((p) => ({
+          ...p,
+          name: data.name || user.user_metadata?.full_name || user.email || "",
+          ldsWard: data.ward || "",
+          ward: data.ward || "",
+          location: data.location || location,
+          ageRange: [data.preferred_age_min || 25, data.preferred_age_max || 35],
+        }));
+        setTempRange([data.preferred_age_min || 25, data.preferred_age_max || 35]);
+      }
+    };
+
+    if (open) fetchProfile();
+  }, [open]);
+
+  const searchLocations = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setLocationResults([]);
+      return;
+    }
+    setLocationLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`
+      );
+      const data = await res.json();
+      setLocationResults(data);
+    } catch (e) {
+      setLocationResults([]);
+    }
+    setLocationLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (editing === "location") searchLocations(locationSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [locationSearch, editing, searchLocations]);
+
+  const formatLocation = (result: LocationResult) => {
+    const parts = result.display_name.split(", ");
+    if (parts.length >= 3) {
+      return `${parts[0]}, ${parts[parts.length - 2]}`;
+    }
+    return parts.slice(0, 2).join(", ");
+  };
 
   const startEdit = (field: string) => {
     if (field === "ageRange") {
       setTempRange([...profile.ageRange]);
     } else if (field === "location") {
       setLocationSearch("");
+      setLocationResults([]);
     } else {
       setTempValue(profile[field as keyof UserProfile] as string);
     }
     setEditing(field);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editing) return;
+    const { data: { user } } = await supabase.auth.getUser();
+
     if (editing === "ageRange") {
       setProfile((p) => ({ ...p, ageRange: tempRange }));
+      if (user) {
+        await supabase.from("profiles").upsert({
+          user_id: user.id,
+          preferred_age_min: tempRange[0],
+          preferred_age_max: tempRange[1],
+        }, { onConflict: 'user_id' });
+      }
+    } else if (editing === "ldsWard") {
+      setProfile((p) => ({ ...p, ldsWard: tempValue, ward: tempValue }));
+      if (user) {
+        await supabase.from("profiles").upsert({
+          user_id: user.id,
+          ward: tempValue,
+        }, { onConflict: 'user_id' });
+      }
+    } else if (editing === "name") {
+      setProfile((p) => ({ ...p, name: tempValue }));
+      if (user) {
+        await supabase.from("profiles").upsert({
+          user_id: user.id,
+          name: tempValue,
+        }, { onConflict: 'user_id' });
+      }
     } else {
       setProfile((p) => ({ ...p, [editing]: tempValue }));
     }
     setEditing(null);
   };
 
-  const selectLocation = (loc: string) => {
-    setProfile((p) => ({ ...p, location: loc }));
-    setGlobalLocation(loc);
+  const selectLocation = async (result: LocationResult) => {
+    const formatted = formatLocation(result);
+    setProfile((p) => ({ ...p, location: formatted }));
+    setGlobalLocation(formatted);
     setEditing(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("profiles").upsert({
+        user_id: user.id,
+        location: formatted,
+      }, { onConflict: 'user_id' });
+    }
   };
 
   const handleRangeChange = (val: number[]) => {
@@ -134,22 +198,27 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           <Input
             value={locationSearch}
             onChange={(e) => setLocationSearch(e.target.value)}
-            placeholder="Search location..."
+            placeholder="Search any city..."
             className="h-10 text-sm rounded-xl"
             autoFocus
           />
+          {locationLoading && (
+            <div className="flex justify-center py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
           <div className="max-h-[180px] overflow-y-auto space-y-0.5">
-            {filteredLocations.map((loc) => (
+            {locationResults.map((result) => (
               <button
-                key={loc}
-                onClick={() => selectLocation(loc)}
+                key={result.place_id}
+                onClick={() => selectLocation(result)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors text-left"
               >
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground">{loc}</span>
+                <span className="text-foreground">{formatLocation(result)}</span>
               </button>
             ))}
-            {filteredLocations.length === 0 && (
+            {!locationLoading && locationSearch.length > 1 && locationResults.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-3">No locations found</p>
             )}
           </div>
