@@ -24,9 +24,19 @@ const AuthListener = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        navigate("/onboarding/age");
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (profile) {
+          navigate("/home");
+        } else {
+          navigate("/onboarding/age");
+        }
       }
     });
     return () => subscription.unsubscribe();
