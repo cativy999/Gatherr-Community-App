@@ -13,6 +13,11 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Space Grotesk', 'ui-sans-serif', 'system-ui'],
+        serif: ['Lora', 'ui-serif', 'Georgia'],
+        mono: ['Space Mono', 'ui-monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

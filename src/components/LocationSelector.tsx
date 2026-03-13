@@ -1,16 +1,5 @@
-import { MapPin, Search, X } from "lucide-react";
+import { MapPin, Search, X, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-
-const popularLocations = [
-  "San Diego, CA",
-  "Arcadia, CA",
-  "Pasadena, CA",
-  "Monrovia, CA",
-  "Duarte, CA",
-  "Los Angeles, CA",
-  "San Francisco, CA",
-  "Phoenix, AZ",
-];
 
 interface LocationSelectorProps {
   value: string;
@@ -20,17 +9,14 @@ interface LocationSelectorProps {
 const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [results, setResults] = useState<string[]>([]);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const filtered = popularLocations.filter((loc) =>
-    loc.toLowerCase().includes(search.toLowerCase())
-  );
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isOpen && inputRef.current) inputRef.current.focus();
   }, [isOpen]);
 
   useEffect(() => {
@@ -38,11 +24,37 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
         setSearch("");
+        setResults([]);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!search.trim()) { setResults([]); return; }
+
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        const locations = data.map((item: any) => {
+          const { city, town, village, state, country } = item.address;
+          const place = city || town || village || item.display_name.split(",")[0];
+          return `${place}, ${state || country}`;
+        }).filter(Boolean);
+        setResults([...new Set(locations)] as string[]);
+      } catch {
+        setResults([]);
+      }
+      setSearching(false);
+    }, 400);
+  }, [search]);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -62,30 +74,35 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Search location..."
+                placeholder="Search any city..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-accent text-sm outline-none placeholder:text-muted-foreground"
               />
               {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
-                >
+                <button onClick={() => { setSearch(""); setResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2">
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               )}
             </div>
           </div>
+
           <div className="max-h-48 overflow-y-auto">
-            {filtered.map((loc) => (
+            {searching && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {!searching && search && results.length === 0 && (
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">No locations found</div>
+            )}
+            {!searching && !search && (
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">Type to search any city</div>
+            )}
+            {!searching && results.map((loc) => (
               <button
                 key={loc}
-                onClick={() => {
-                  onChange(loc);
-                  setIsOpen(false);
-                  setSearch("");
-                }}
+                onClick={() => { onChange(loc); setIsOpen(false); setSearch(""); setResults([]); }}
                 className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
                   value === loc ? "text-primary font-semibold" : "text-foreground"
                 }`}
@@ -94,11 +111,6 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
                 {loc}
               </button>
             ))}
-            {filtered.length === 0 && (
-              <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                No locations found
-              </div>
-            )}
           </div>
         </div>
       )}

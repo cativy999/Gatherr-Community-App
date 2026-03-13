@@ -10,6 +10,7 @@ const OnboardingAge = () => {
   const handleNext = () => {
     const num = parseInt(age);
     if (num >= 13 && num <= 120) {
+      sessionStorage.setItem("onboarding_age", age);
       navigate("/onboarding/preferences");
     }
   };
@@ -24,12 +25,8 @@ const OnboardingAge = () => {
       <div className="mx-auto w-full max-w-md flex-1 space-y-8">
         <div className="space-y-3 text-center pt-12">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 1 of 3</p>
-          <h1 className="text-3xl font-bold tracking-tight">
-            What is your age?
-          </h1>
-          <p className="text-muted-foreground text-base">
-            This helps us personalize your experience
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">What is your age?</h1>
+          <p className="text-muted-foreground text-base">This helps us personalize your experience</p>
         </div>
 
         <div className="pt-8 flex justify-center">
@@ -47,20 +44,10 @@ const OnboardingAge = () => {
       </div>
 
       <div className="mx-auto w-full max-w-md pt-8 space-y-3">
-        <Button
-          size="lg"
-          className="w-full h-14 text-base font-semibold"
-          onClick={handleNext}
-          disabled={!isValid}
-        >
+        <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleNext} disabled={!isValid}>
           Next
         </Button>
-        <Button
-          variant="ghost"
-          size="lg"
-          className="w-full h-14 text-base"
-          onClick={() => navigate("/onboarding/preferences")}
-        >
+        <Button variant="ghost" size="lg" className="w-full h-14 text-base" onClick={() => navigate("/onboarding/preferences")}>
           Skip
         </Button>
       </div>

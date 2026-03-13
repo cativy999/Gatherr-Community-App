@@ -1,70 +1,59 @@
 import { Heart, CalendarDays } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 import { useLocation } from "@/contexts/LocationContext";
+import { supabase } from "@/lib/supabase";
 
-const USER_WARD = "Arcadia Ward";
-
-const wardActivities = [
-  {
-    id: 101, title: "Sunday Potluck Dinner", wardName: "Arcadia Ward",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop",
-    time: "Today, 5:00 PM", distance: 0.3, isToday: true, isSunday: false, type: "mingle",
-  },
-  {
-    id: 102, title: "Youth Service Project", wardName: "Arcadia Ward",
-    image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400&h=300&fit=crop",
-    time: "Sunday, 9:00 AM", distance: 0.3, isToday: false, isSunday: true, type: "devotional",
-  },
-  {
-    id: 103, title: "Family Movie Night", wardName: "Pasadena 1st Ward",
-    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&h=300&fit=crop",
-    time: "Today, 7:00 PM", distance: 2.1, isToday: true, isSunday: false, type: "mingle",
-  },
-  {
-    id: 104, title: "Choir Practice", wardName: "Monrovia Ward",
-    image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&h=300&fit=crop",
-    time: "Sunday, 4:00 PM", distance: 3.5, isToday: false, isSunday: true, type: "devotional",
-  },
-  {
-    id: 105, title: "Pancake Breakfast", wardName: "Arcadia Ward",
-    image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop",
-    time: "Today, 8:00 AM", distance: 0.3, isToday: true, isSunday: false, type: "mingle",
-  },
-  {
-    id: 106, title: "Volleyball Tournament", wardName: "Duarte Ward",
-    image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=400&h=300&fit=crop",
-    time: "Sunday, 2:00 PM", distance: 5.2, isToday: false, isSunday: true, type: "mingle",
-  },
-  {
-    id: 107, title: "Book of Mormon Study", wardName: "Pasadena 2nd Ward",
-    image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=300&fit=crop",
-    time: "Today, 10:00 AM", distance: 2.8, isToday: true, isSunday: false, type: "devotional",
-  },
-  {
-    id: 108, title: "Temple Trip", wardName: "Monrovia Ward",
-    image: "https://images.unsplash.com/photo-1548013146-72479768bada?w=400&h=300&fit=crop",
-    time: "Sunday, 6:00 AM", distance: 3.5, isToday: false, isSunday: true, type: "devotional",
-  },
-];
+type Event = {
+  id: string;
+  title: string;
+  image_url: string | null;
+  date: string;
+  attendees: number;
+  is_free: boolean;
+  age_min: number;
+  age_max: number;
+  created_at: string;
+};
 
 const filterChips = [
   { id: "today", label: "Today" },
-  { id: "sunday", label: "This Sunday" },
-  { id: "my-ward", label: "My Ward" },
-  { id: "mingle", label: "Mingle" },
-  { id: "devotional", label: "Devotional" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "weekend", label: "This Weekend" },
+  { id: "free", label: "Free" },
 ];
 
 const Wards = () => {
   const navigate = useNavigate();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [savedEvents, setSavedEvents] = useState<Set<number>>(new Set());
+  const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation } = useLocation();
 
-  const toggleSaved = (id: number, e: React.MouseEvent) => {
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, image_url, date, attendees, is_free, age_min, age_max, created_at")
+        .eq("status", "published")
+        .eq("category", "ward")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching ward events:", error);
+      } else {
+        setEvents(data ?? []);
+      }
+      setLoading(false);
+    };
+
+    fetchEvents();
+  }, []);
+
+  const toggleSaved = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSavedEvents((prev) => {
       const next = new Set(prev);
@@ -73,23 +62,43 @@ const Wards = () => {
     });
   };
 
-  const filteredActivities = useMemo(() => {
-    let result = [...wardActivities];
-    if (activeFilter === "today") result = result.filter((a) => a.isToday);
-    else if (activeFilter === "sunday") result = result.filter((a) => a.isSunday);
-    else if (activeFilter === "my-ward") result = result.filter((a) => a.wardName === USER_WARD);
-    else if (activeFilter === "mingle") result = result.filter((a) => a.type === "mingle");
-    else if (activeFilter === "devotional") result = result.filter((a) => a.type === "devotional");
-    result.sort((a, b) => a.distance - b.distance);
-    return result;
-  }, [activeFilter]);
+  const filteredEvents = useMemo(() => {
+    let result = [...events];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const weekendStart = new Date(today);
+    weekendStart.setDate(today.getDate() + (6 - today.getDay()));
 
-  const getDisplayWardName = (wardName: string) =>
-    wardName === USER_WARD ? `${wardName} (Your Ward)` : wardName;
+    if (activeFilter === "today") {
+      result = result.filter((e) => {
+        const d = new Date(e.date);
+        return d >= today && d < tomorrow;
+      });
+    } else if (activeFilter === "tomorrow") {
+      result = result.filter((e) => {
+        const d = new Date(e.date);
+        return d >= tomorrow && d < new Date(tomorrow.getTime() + 86400000);
+      });
+    } else if (activeFilter === "weekend") {
+      result = result.filter((e) => {
+        const d = new Date(e.date);
+        return d >= weekendStart;
+      });
+    } else if (activeFilter === "free") {
+      result = result.filter((e) => e.is_free);
+    }
+
+    return result;
+  }, [events, activeFilter]);
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold">Ward Activities</h1>
@@ -97,10 +106,8 @@ const Wards = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-4">
-          {/* Filter Chips */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {filterChips.map((chip) => (
               <button
@@ -117,42 +124,61 @@ const Wards = () => {
             ))}
           </div>
 
-          {/* Activities Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {filteredActivities.map((activity) => (
-              <div
-                key={activity.id}
-                onClick={() => navigate(`/event/${activity.id}`)}
-                className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
-              >
-                <div className="relative">
-                  <img src={activity.image} alt={activity.title} className="w-full h-28 object-cover" />
-                  <button
-                    onClick={(e) => toggleSaved(activity.id, e)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
+          {loading ? (
+            <p className="text-center text-muted-foreground py-12">Loading events...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {filteredEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    onClick={() => navigate(`/event/${event.id}`)}
+                    className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
                   >
-                    <Heart className={`h-4 w-4 ${savedEvents.has(activity.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
-                  </button>
-                </div>
-                <div className="p-3 space-y-1">
-                  <h3 className="font-semibold text-sm leading-tight line-clamp-2">{activity.title}</h3>
-                  <p className={`text-xs font-medium ${activity.wardName === USER_WARD ? "text-primary" : "text-muted-foreground"}`}>
-                    {getDisplayWardName(activity.wardName)}
-                  </p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" />
-                    <span>{activity.time}</span>
+                    <div className="relative">
+                      {event.image_url ? (
+                        <img src={event.image_url} alt={event.title} className="w-full h-28 object-cover" />
+                      ) : (
+                        <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">No image</span>
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => toggleSaved(event.id, e)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
+                      >
+                        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
+                      </button>
+                    </div>
+                    <div className="p-3 space-y-1">
+                      <h3 className="font-semibold text-sm leading-tight line-clamp-2">{event.title}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarDays className="h-3 w-3" />
+                        <span>{formatDate(event.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-0.5">
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          {event.attendees ?? 0} going
+                        </span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+                          {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {filteredActivities.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No activities found</p>
-              <p className="text-sm mt-1">Try a different filter</p>
-            </div>
+              {filteredEvents.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p className="text-lg font-medium">No activities found</p>
+                  <p className="text-sm mt-1">Try a different filter</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

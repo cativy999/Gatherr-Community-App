@@ -1,8 +1,8 @@
-import { Home, Church, PlusCircle, User } from "lucide-react";
+import { Home, Church, PlusCircle, User, CalendarDays } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BottomNavProps {
-  currentPage: "home" | "wards" | "post" | "profile";
+  currentPage: "home" | "wards" | "post" | "events" | "profile";
 }
 
 const BottomNav = ({ currentPage }: BottomNavProps) => {
@@ -12,6 +12,7 @@ const BottomNav = ({ currentPage }: BottomNavProps) => {
     { id: "home", label: "Home", icon: Home, path: "/home" },
     { id: "wards", label: "Wards", icon: Church, path: "/wards" },
     { id: "post", label: "Post", icon: PlusCircle, path: "/post" },
+    { id: "events", label: "Events", icon: CalendarDays, path: "/events" },
     { id: "profile", label: "Profile", icon: User, path: "/profile" },
   ];
 
