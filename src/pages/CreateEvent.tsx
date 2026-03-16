@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Users, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Users, Image as ImageIcon, Trash2, Loader2, Clock  } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,23 +30,27 @@ const CreateEvent = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [ageRange, setAgeRange] = useState<[number, number]>([25, 35]);
   const [existingStatus, setExistingStatus] = useState<string>("draft");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState<{ display: string; city: string; lat: number; lng: number }[]>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
+  const locationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [time, setTime] = useState("");
+  const [address, setAddress] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
 
   // Load existing event data if editing
   useEffect(() => {
     if (!id) return;
-
     const fetchEvent = async () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("id", id)
         .single();
-
-      if (error) {
-        console.error("Error fetching event:", error);
-        return;
-      }
-
+      if (error) { console.error("Error fetching event:", error); return; }
       setTitle(data.title ?? "");
       setDescription(data.description ?? "");
       setCategory(data.category ?? null);
@@ -57,27 +61,53 @@ const CreateEvent = () => {
       setImagePreview(data.image_url ?? null);
       setAgeRange([data.age_min ?? 25, data.age_max ?? 35]);
       setExistingStatus(data.status ?? "draft");
+      setTime(data.time ?? "");
+      setAddress(data.address ?? "");
+      setLocationSearch(data.address ?? "");
     };
-
     fetchEvent();
   }, [id]);
 
-  const handleAgeRangeChange = (val: number[]) => {
-    let [low, high] = val as [number, number];
-    if (high - low > 10) {
-      if (low !== ageRange[0]) {
-        high = Math.min(low + 10, 80);
-      } else {
-        low = Math.max(high - 10, 18);
+  useEffect(() => {
+    if (locationDebounceRef.current) clearTimeout(locationDebounceRef.current);
+    if (!locationSearch.trim()) { setLocationResults([]); return; }
+    locationDebounceRef.current = setTimeout(async () => {
+      setLocationSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)}&format=json&addressdetails=1&limit=6`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        const locations = data.map((item: any) => {
+          const { city, town, village, state, country } = item.address;
+          const cityName = city || town || village || item.display_name.split(",")[0];
+          return {
+            display: item.display_name,
+            city: `${cityName}, ${state || country}`,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+          };
+        });
+        setLocationResults(locations);
+      } catch { setLocationResults([]); }
+      setLocationSearching(false);
+    }, 400);
+  }, [locationSearch]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationOpen(false);
       }
-    }
-    setAgeRange([low, high]);
-  };
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -102,34 +132,22 @@ const CreateEvent = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleDelete = async () => {
-    setDeleteOpen(true);
-  };
-  
+  const handleDelete = async () => { setDeleteOpen(true); };
+
   const confirmDelete = async () => {
     if (!id) return;
     const { error } = await supabase.from("events").delete().eq("id", id);
-    if (error) {
-      alert("Failed to delete event.");
-      console.error(error);
-    } else {
-      navigate("/post");
-    }
+    if (error) { alert("Failed to delete event."); console.error(error); }
+    else { navigate("/post"); }
   };
 
   const handleSubmit = async (isDraft = false) => {
-    if (!title || !date || !location || !category) {
+    if (!title || !date || !address || !category) {
       alert("Please fill in title, date, location and category!");
       return;
     }
-    if (sessionLoading) {
-      alert("Still loading, please wait a moment!");
-      return;
-    }
-    if (!session?.user) {
-      alert("Not logged in!");
-      return;
-    }
+    if (sessionLoading) { alert("Still loading, please wait a moment!"); return; }
+    if (!session?.user) { alert("Not logged in!"); return; }
 
     setLoading(true);
     let imageUrl = imagePreview;
@@ -139,13 +157,10 @@ const CreateEvent = () => {
       const { error: uploadError } = await supabase.storage
         .from("event-images")
         .upload(fileName, imageFile);
-
       if (uploadError) {
         console.error("Image upload error:", uploadError);
       } else {
-        const { data } = supabase.storage
-          .from("event-images")
-          .getPublicUrl(fileName);
+        const { data } = supabase.storage.from("event-images").getPublicUrl(fileName);
         imageUrl = data.publicUrl;
       }
     }
@@ -158,15 +173,18 @@ const CreateEvent = () => {
       is_free: isFree,
       date,
       max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
-      location,
+      location: location || address,
       image_url: imageUrl,
       status: isDraft ? "draft" : "published",
       age_min: ageRange[0],
       age_max: ageRange[1],
+      time,
+      address,
+      lat,
+      lng,
     };
 
     let error;
-
     if (isEditing) {
       ({ error } = await supabase.from("events").update(eventData).eq("id", id));
     } else {
@@ -185,47 +203,55 @@ const CreateEvent = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between max-w-4xl mx-auto">
-  <h1 className="text-2xl font-bold">{isEditing ? "Edit Event" : "Create Event"}</h1>
-  <div className="flex items-center gap-2">
-   
-    <Button variant="ghost" size="sm" onClick={() => navigate("/post")}>
-      Cancel
-    </Button>
-    {isEditing && (
-      <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={handleDelete} disabled={loading}>
-        <Trash2 className="h-5 w-5" />
-      </Button>
-    )}
-  </div>
-</div>
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold">{isEditing ? "Edit Event" : "Create Event"}</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/post")}>
+              Cancel
+            </Button>
+            {isEditing && (
+              <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={handleDelete} disabled={loading}>
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+        </div>
       </header>
 
       <main className="flex-1 px-6 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
 
-          <div
-            className="flex items-center justify-center w-full h-48 bg-secondary rounded-2xl border-2 border-dashed border-border hover:bg-accent transition-colors cursor-pointer overflow-hidden"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {imagePreview ? (
-              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
-            ) : (
-              <div className="text-center space-y-2">
-                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Tap to upload event image</p>
-              </div>
+          {/* Image Upload */}
+          <div className="relative">
+            <div
+              className="flex items-center justify-center w-full h-48 bg-secondary rounded-2xl border-2 border-dashed border-border hover:bg-accent transition-colors cursor-pointer overflow-hidden"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
+              ) : (
+                <div className="text-center space-y-2">
+                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Tap to upload event image</p>
+                </div>
+              )}
+            </div>
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-background/80 backdrop-blur-sm rounded-full text-xs font-semibold border border-border hover:bg-background transition-colors"
+              >
+                Change Image
+              </button>
             )}
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImagePick}
-          />
+
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
 
           <div className="space-y-4">
+
+            {/* Event Title */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Event Title</label>
               <Input
@@ -236,6 +262,55 @@ const CreateEvent = () => {
               />
             </div>
 
+            {/* Address */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Address
+              </label>
+              <div className="relative" ref={locationRef}>
+                <Input
+                  placeholder="Search for an address..."
+                  className="h-12 text-base"
+                  value={locationSearch}
+                  onChange={(e) => {
+                    setLocationSearch(e.target.value);
+                    setLocation(e.target.value);
+                    setAddress(e.target.value);
+                  }}
+                  onFocus={() => setLocationOpen(true)}
+                />
+                {locationOpen && locationResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                    {locationSearching && (
+                      <div className="flex items-center justify-center py-3">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    {locationResults.map((result) => (
+                      <button
+                        key={result.display}
+                        type="button"
+                        onClick={() => {
+                          setLocation(result.city);
+                          setAddress(result.display);
+                          setLocationSearch(result.display);
+                          setLat(result.lat);
+                          setLng(result.lng);
+                          setLocationOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        {result.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <Textarea
@@ -246,6 +321,7 @@ const CreateEvent = () => {
               />
             </div>
 
+            {/* Category */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Activity Category</label>
               <div className="grid grid-cols-2 gap-3">
@@ -256,7 +332,7 @@ const CreateEvent = () => {
                   className="rounded-full h-12 text-base"
                   onClick={() => setCategory("ward")}
                 >
-                  Ward
+                  Ward Activity
                 </Button>
                 <Button
                   type="button"
@@ -265,7 +341,7 @@ const CreateEvent = () => {
                   className="rounded-full h-12 text-base"
                   onClick={() => setCategory("community")}
                 >
-                  Community
+                  Community Activity
                 </Button>
               </div>
             </div>
@@ -295,6 +371,7 @@ const CreateEvent = () => {
               </div>
             </div>
 
+            {/* Free Toggle */}
             <div className="flex items-center justify-between rounded-xl border border-border p-4">
               <div className="space-y-0.5">
                 <label className="text-sm font-medium">Free Event</label>
@@ -309,6 +386,7 @@ const CreateEvent = () => {
               />
             </div>
 
+            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -322,39 +400,57 @@ const CreateEvent = () => {
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Max Attendees
+                  <Clock className="h-4 w-4" />
+                  Time
                 </label>
-                <Input
-                  type="number"
-                  placeholder="50"
-                  className="h-12 text-base"
-                  value={maxAttendees}
-                  onChange={(e) => setMaxAttendees(e.target.value)}
-                />
+                <select
+                  className="w-full h-12 px-3 text-base rounded-md border border-input bg-background"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                >
+                 <option value="">Select a time...</option>
+                  {/* 6 AM – 11:30 PM */}
+                  {Array.from({ length: 36 }, (_, i) => {
+                    const hour = Math.floor(i / 2) + 6;
+                    const min = i % 2 === 0 ? "00" : "30";
+                    const val = `${String(hour).padStart(2, "0")}:${min}`;
+                    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                  {/* Late Night (12 AM – 5:30 AM) */}
+                  <option disabled>── Late Night ──</option>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const hour = Math.floor(i / 2);
+                    const min = i % 2 === 0 ? "00" : "30";
+                    const val = `${String(hour).padStart(2, "0")}:${min}`;
+                    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                    return <option key={`late-${val}`} value={val}>{label}</option>;
+                  })}
+                </select>
               </div>
             </div>
 
+            {/* Max Attendees */}
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
+                <Users className="h-4 w-4" />
+                Max Attendees
               </label>
               <Input
-                placeholder="e.g., Central Park"
+                type="number"
+                placeholder="50"
                 className="h-12 text-base"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={maxAttendees}
+                onChange={(e) => setMaxAttendees(e.target.value)}
               />
             </div>
+
           </div>
 
-
+          {/* Action Buttons */}
           <div className="flex gap-3">
-            {/* Show "Save as Draft" only for drafts, not for published events */}
             {(!isEditing || existingStatus === "draft") && (
               <Button
                 size="lg"
@@ -375,25 +471,26 @@ const CreateEvent = () => {
               {loading ? "Saving..." : "Publish"}
             </Button>
           </div>
+
+          {/* Delete Dialog */}
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-  <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
-    <DialogHeader>
-      <DialogTitle>Delete Event</DialogTitle>
-    </DialogHeader>
-    <p className="text-sm text-muted-foreground">Are you sure you want to delete this event? This cannot be undone.</p>
-    <div className="flex gap-3 mt-2">
-      <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>
-        Not now
-      </Button>
-      <Button variant="destructive" className="flex-1" onClick={confirmDelete}>
-        Yes, delete
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
+            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Delete Event</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">Are you sure you want to delete this event? This cannot be undone.</p>
+              <div className="flex gap-3 mt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>
+                  Not now
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={confirmDelete}>
+                  Yes, delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
         </div>
-        
       </main>
 
       <BottomNav currentPage="post" />

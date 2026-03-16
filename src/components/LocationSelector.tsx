@@ -1,5 +1,6 @@
 import { MapPin, Search, X, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "@/contexts/LocationContext";
 
 interface LocationSelectorProps {
   value: string;
@@ -7,9 +8,10 @@ interface LocationSelectorProps {
 }
 
 const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
+  const { setLocationCoords } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<string[]>([]);
+  const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,9 +48,20 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
         const locations = data.map((item: any) => {
           const { city, town, village, state, country } = item.address;
           const place = city || town || village || item.display_name.split(",")[0];
-          return `${place}, ${state || country}`;
+          return {
+            label: `${place}, ${state || country}`,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+          };
         }).filter(Boolean);
-        setResults([...new Set(locations)] as string[]);
+        // Deduplicate by label
+        const seen = new Set();
+        const unique = locations.filter((l: any) => {
+          if (seen.has(l.label)) return false;
+          seen.add(l.label);
+          return true;
+        });
+        setResults(unique);
       } catch {
         setResults([]);
       }
@@ -101,14 +114,20 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
             )}
             {!searching && results.map((loc) => (
               <button
-                key={loc}
-                onClick={() => { onChange(loc); setIsOpen(false); setSearch(""); setResults([]); }}
+                key={loc.label}
+                onClick={() => {
+                  onChange(loc.label);
+                  setLocationCoords(loc.lat, loc.lng);
+                  setIsOpen(false);
+                  setSearch("");
+                  setResults([]);
+                }}
                 className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
-                  value === loc ? "text-primary font-semibold" : "text-foreground"
+                  value === loc.label ? "text-primary font-semibold" : "text-foreground"
                 }`}
               >
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                {loc}
+                {loc.label}
               </button>
             ))}
           </div>

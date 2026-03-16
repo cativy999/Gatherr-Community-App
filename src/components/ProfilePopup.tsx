@@ -5,6 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Pencil, Check, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 import { supabase } from "@/lib/supabase";
 
 interface LocationResult {
@@ -22,6 +23,7 @@ interface UserProfile {
 
 const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { location, setLocation: setGlobalLocation } = useLocation();
+  const { setPreferredAge } = useUserProfile();
   const [profile, setProfile] = useState<UserProfile>({
     name: "",
     location: location,
@@ -115,6 +117,7 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
     if (editing === "ageRange") {
       setProfile((p) => ({ ...p, ageRange: tempRange }));
+      setPreferredAge(tempRange[0], tempRange[1]);
       if (user) {
         await supabase.from("profiles").upsert({
           user_id: user.id,
@@ -122,6 +125,7 @@ const ProfilePopup = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
           preferred_age_max: tempRange[1],
         }, { onConflict: 'user_id' });
       }
+      
     } else if (editing === "ldsWard") {
       setProfile((p) => ({ ...p, ldsWard: tempValue, ward: tempValue }));
       if (user) {

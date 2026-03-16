@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Welcome from "./pages/Welcome";
@@ -51,30 +52,32 @@ const AuthListener = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-    <AuthProvider>
-  <LocationProvider>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-          <AuthListener />
-          <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/onboarding/age" element={<OnboardingAge />} />
-            <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
-            <Route path="/onboarding/ward" element={<OnboardingWard />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/wards" element={<Wards />} />
-            <Route path="/post" element={<Post />} />
-            <Route path="/create-event" element={<CreateEvent />} />
-            <Route path="/create-event/:id" element={<CreateEvent />} />            
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/event/:id" element={<EventDetails />} />
-            <Route path="/my-events" element={<MyEvents />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </LocationProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <UserProfileProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthListener />
+              <Routes>
+                <Route path="/" element={<Welcome />} />
+                <Route path="/onboarding/age" element={<OnboardingAge />} />
+                <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
+                <Route path="/onboarding/ward" element={<OnboardingWard />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/wards" element={<Wards />} />
+                <Route path="/post" element={<Post />} />
+                <Route path="/create-event" element={<CreateEvent />} />
+                <Route path="/create-event/:id" element={<CreateEvent />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/event/:id" element={<EventDetails />} />
+                <Route path="/my-events" element={<MyEvents />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </UserProfileProvider>
+        </LocationProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
