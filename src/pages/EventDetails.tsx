@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, Loader2, CheckCircle2, ThumbsUp, Smile, User } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Heart, Share2, Copy, Loader2, CheckCircle2, ThumbsUp, Smile, User, Trash2, Link } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +48,7 @@ const EventDetails = () => {
         console.error("Error fetching event:", error);
       } else {
         setEvent(data);
+        setGoingCount(data.attendees ?? 0);
 
         if (data.user_id) {
           const { data: profile } = await supabase
@@ -111,6 +112,36 @@ const EventDetails = () => {
 
     fetchUserStatus();
   }, [id, userId]);
+
+  // Fetch comments
+useEffect(() => {
+  if (!id) return;
+  const fetchComments = async () => {
+    const { data } = await supabase
+      .from("comments")
+      .select("id, content, created_at, user_id")
+      .eq("event_id", id)
+      .order("created_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map((c: any) => c.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, avatar_url")
+        .in("user_id", userIds);
+
+      const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
+      setComments(data.map((c: any) => ({
+        ...c,
+        author: profileMap[c.user_id]?.name || "Anonymous",
+        avatar: profileMap[c.user_id]?.avatar_url || null,
+      })));
+    } else {
+      setComments([]);
+    }
+  };
+  fetchComments();
+}, [id]);
 
   // ── Fetch going list ───────────────────────────────────────────────────────
   const fetchGoingList = async () => {
@@ -206,14 +237,41 @@ const EventDetails = () => {
     }
   };
 
-  const handleSubmitComment = () => {
-    if (comment.trim()) {
-      const newComment = { id: comments.length + 1, author: "You", time: "Just now", text: comment };
-      setComments([newComment, ...comments]);
-      setComment("");
-    }
+  const handleSubmitComment = async () => {
+    if (!comment.trim()) return;
+    if (!userId) { toast.error("Please log in to comment"); return; }
+  
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ event_id: id, user_id: userId, content: comment.trim().charAt(0).toUpperCase() + comment.trim().slice(1) })
+      .select("id, content, created_at, user_id")
+      .single();
+  
+    if (error) { toast.error("Failed to post comment"); return; }
+  
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, avatar_url")
+      .eq("user_id", userId)
+      .single();
+  
+    setComments([{
+      ...data,
+      author: profile?.name || "Anonymous",
+      avatar: profile?.avatar_url || null,
+    }, ...comments]);
+    setComment("");
+    toast.success("Comment posted!");
   };
 
+  const handleDeleteComment = async (commentId: string, commentUserId: string) => {
+    if (commentUserId !== userId) return;
+    const { error } = await supabase.from("comments").delete().eq("id", commentId);
+    if (error) { toast.error("Failed to delete comment"); return; }
+    setComments(comments.filter((c) => c.id !== commentId));
+    toast.success("Comment deleted");
+  };
+  
   const shareOptions = [
     {
       icon: Copy, label: "Copy Link",
@@ -237,6 +295,32 @@ const EventDetails = () => {
   if (!event) {
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Event not found</div>;
   }
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+  
+  const renderDescription = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) =>
+      urlRegex.test(part) ? (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all inline-flex items-center gap-1">
+          <Link className="h-3.5 w-3.5 flex-shrink-0" />
+          {part}
+        </a>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-24">
@@ -393,7 +477,7 @@ const EventDetails = () => {
           </div>
 
         {/* Description */}
-        <p className="text-base leading-relaxed">{event.description}</p>
+        <p className="text-base leading-relaxed whitespace-pre-wrap">{renderDescription(event.description)}</p>
 
 {/* Posted by */}
 {creatorName && (
@@ -409,9 +493,7 @@ const EventDetails = () => {
       <span className="text-sm text-muted-foreground">
         Posted by <span className="font-semibold text-foreground">{creatorName}</span>
       </span>
-      <p className="text-xs text-muted-foreground">
-        {new Date(event.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-      </p>
+      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
     </div>
   </div>
 )}
@@ -439,21 +521,54 @@ const EventDetails = () => {
           <div className="space-y-6 pt-4">
           <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
           <h2 className="text-lg font-bold" >Comments</h2>
-            <div className="space-y-3">
-              <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
-              <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
-            </div>
+          <div className="space-y-3">
+  <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
+  <div className="flex gap-2">
+    {["📣", "🎉", "❤️", "😢", "😮"].map((emoji) => (
+      <button
+        key={emoji}
+        type="button"
+        onClick={() => setComment((prev) => prev + emoji)}
+        className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors"
+      >
+        {emoji}
+      </button>
+    ))}
+  </div>
+  <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
+</div>
             <div className="space-y-4">
               {comments.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
               ) : (
                 comments.map((c) => (
-                  <div key={c.id} className="bg-card rounded-2xl p-4 border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-semibold">{c.author}</p>
-                      <p className="text-sm text-muted-foreground">{c.time}</p>
+                  <div key={c.id} className="flex gap-3">
+                    {c.avatar ? (
+                      <img src={c.avatar} alt={c.author} className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1 bg-card rounded-2xl p-3 border border-border">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-semibold text-sm">{c.author}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                          {timeAgo(c.created_at)}
+                          </p>
+                          {c.user_id === userId && (
+                            <button
+                              onClick={() => handleDeleteComment(c.id, c.user_id)}
+                              className="text-muted-foreground hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{c.content}</p>
                     </div>
-                    <p className="text-muted-foreground">{c.text}</p>
                   </div>
                 ))
               )}

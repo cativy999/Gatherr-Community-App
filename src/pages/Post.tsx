@@ -1,6 +1,6 @@
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, MapPin, PenLine, CheckCircle2, PlusCircle } from "lucide-react";
+import { CalendarDays, PenLine, CheckCircle2, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +13,7 @@ type Event = {
   location: string;
   image_url: string | null;
   status: string;
+  category: string;
   attendees?: number;
   age_min?: number;
   age_max?: number;
@@ -21,34 +22,33 @@ type Event = {
 const Post = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [drafts, setDrafts] = useState<Event[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "ward" | "community">("all");
   const [published, setPublished] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-  if (!session?.user) {
-    setLoading(false);
-    return;
-  }
-
-  const fetchEvents = async () => {
-    const { data, error } = await supabase
-      .from("events")
-      .select("id, title, date, location, image_url, status, attendees, age_min, age_max")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching events:", error);
-    } else {
-      setDrafts(data.filter((e) => e.status === "draft"));
-      setPublished(data.filter((e) => e.status === "published"));
+  useEffect(() => {
+    if (!session?.user) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  };
 
-  fetchEvents();
-}, [session]);
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, date, location, image_url, status, category, attendees, age_min, age_max")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching events:", error);
+      } else {
+        setPublished(data.filter((e) => e.status === "published"));
+      }
+      setLoading(false);
+    };
+
+    fetchEvents();
+  }, [session]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -57,7 +57,7 @@ const Post = () => {
 
   const EventCard = ({ event, isDraft }: { event: Event; isDraft: boolean }) => (
     <div
-    onClick={() => navigate(`/create-event/${event.id}`)}
+      onClick={() => navigate(`/create-event/${event.id}`)}
       className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
     >
       <div className="relative">
@@ -117,30 +117,37 @@ const Post = () => {
             <p className="text-center text-muted-foreground">Loading...</p>
           ) : (
             <>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold">Drafts</h2>
-                  <span className="text-sm text-muted-foreground">({drafts.length})</span>
-                </div>
-                {drafts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No drafts yet</p>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {drafts.map((event) => <EventCard key={event.id} event={event} isDraft={true} />)}
-                  </div>
-                )}
+              {/* Filter Pills */}
+              <div className="flex gap-2">
+                {(["all", "ward", "community"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setCategoryFilter(f)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      categoryFilter === f
+                        ? "bg-primary text-white"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {f === "all" ? "All" : f === "ward" ? "Ward" : "Community"}
+                  </button>
+                ))}
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold">Published</h2>
-                  <span className="text-sm text-muted-foreground">({published.length})</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({published.filter(e => categoryFilter === "all" || e.category === categoryFilter).length})
+                  </span>
                 </div>
-                {published.length === 0 ? (
+                {published.filter(e => categoryFilter === "all" || e.category === categoryFilter).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No published events yet</p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {published.map((event) => <EventCard key={event.id} event={event} isDraft={false} />)}
+                    {published
+                      .filter(e => categoryFilter === "all" || e.category === categoryFilter)
+                      .map((event) => <EventCard key={event.id} event={event} isDraft={false} />)}
                   </div>
                 )}
               </div>

@@ -6,8 +6,9 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
 import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingPreferences from "./pages/OnboardingPreferences";
@@ -26,25 +27,28 @@ const queryClient = new QueryClient();
 
 const AuthListener = () => {
   const navigate = useNavigate();
+  const { session, loading } = useAuth();
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("user_id")
-          .eq("user_id", session.user.id)
-          .single();
+    if (loading) return;
+    if (hasNavigated.current) return;
+    if (!session) return;
 
+    hasNavigated.current = true;
+    supabase
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", session.user.id)
+      .single()
+      .then(({ data: profile }) => {
         if (profile) {
           navigate("/home");
         } else {
           navigate("/onboarding/age");
         }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+      });
+  }, [session, loading]);
 
   return null;
 };

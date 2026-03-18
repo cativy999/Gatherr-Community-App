@@ -7,10 +7,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const tabs = [
-  { id: "going",      label: "Going" },
+  { id: "going", label: "Going" },
   { id: "interested", label: "Interests" },
-  { id: "saved",      label: "Saved" },
-  { id: "past",       label: "Past" },
+  { id: "saved", label: "Saved" },
+  { id: "past", label: "Past" },
 ];
 
 const Events = () => {
@@ -22,87 +22,43 @@ const Events = () => {
   const { session } = useAuth();
   const userId = session?.user?.id;
 
-  const now = new Date().toISOString();
-
-  // ── Fetch events for the active tab ───────────────────────────────────────
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) { setLoading(false); return; }
     fetchEvents();
   }, [activeTab, userId]);
 
   const fetchEvents = async () => {
     setLoading(true);
     setEvents([]);
-
     try {
       if (activeTab === "going" || activeTab === "interested") {
-        // Fetch RSVPs with joined event data
         const { data, error } = await supabase
           .from("rsvps")
           .select("status, events(*)")
           .eq("user_id", userId)
           .eq("status", activeTab === "interested" ? "interested" : "going");
-
         if (error) throw error;
-
-        // Filter: only upcoming events (date >= now)
-        const upcoming = (data ?? [])
-          .map((r: any) => r.events)
-          .filter((e: any) => e && new Date(e.date) >= new Date());
-
+        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
         setEvents(upcoming);
-
       } else if (activeTab === "saved") {
-        // Fetch saved events
-        const { data, error } = await supabase
-          .from("saved_events")
-          .select("events(*)")
-          .eq("user_id", userId);
-
+        const { data, error } = await supabase.from("saved_events").select("events(*)").eq("user_id", userId);
         if (error) throw error;
-
-        const upcoming = (data ?? [])
-          .map((r: any) => r.events)
-          .filter((e: any) => e && new Date(e.date) >= new Date());
-
+        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
         setEvents(upcoming);
-
       } else if (activeTab === "past") {
-        // Past = any event (going, interested, or saved) where date < now
         const [rsvpRes, savedRes] = await Promise.all([
-          supabase
-            .from("rsvps")
-            .select("events(*)")
-            .eq("user_id", userId),
-          supabase
-            .from("saved_events")
-            .select("events(*)")
-            .eq("user_id", userId),
+          supabase.from("rsvps").select("events(*)").eq("user_id", userId),
+          supabase.from("saved_events").select("events(*)").eq("user_id", userId),
         ]);
-
         const allEvents = [
           ...(rsvpRes.data ?? []).map((r: any) => r.events),
           ...(savedRes.data ?? []).map((r: any) => r.events),
         ].filter((e: any) => e && new Date(e.date) < new Date());
-
-        // Deduplicate by id
         const seen = new Set();
-        const unique = allEvents.filter((e: any) => {
-          if (seen.has(e.id)) return false;
-          seen.add(e.id);
-          return true;
-        });
-
-        setEvents(unique);
+        setEvents(allEvents.filter((e: any) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; }));
       }
-
-      // Also load saved IDs so hearts render correctly
-      const { data: savedData } = await supabase
-        .from("saved_events")
-        .select("event_id")
-        .eq("user_id", userId);
+      const { data: savedData } = await supabase.from("saved_events").select("event_id").eq("user_id", userId);
       setSavedIds(new Set((savedData ?? []).map((s: any) => s.event_id)));
-
     } catch (err) {
       console.error("Error fetching events:", err);
     } finally {
@@ -110,21 +66,14 @@ const Events = () => {
     }
   };
 
-  // ── Toggle save (heart) ───────────────────────────────────────────────────
   const toggleSaved = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!userId) { toast.error("Please log in"); return; }
-
     const isSaved = savedIds.has(eventId);
-
     if (isSaved) {
-      await supabase.from("saved_events").delete()
-        .eq("event_id", eventId).eq("user_id", userId);
+      await supabase.from("saved_events").delete().eq("event_id", eventId).eq("user_id", userId);
       setSavedIds(prev => { const n = new Set(prev); n.delete(eventId); return n; });
-      // If we're on saved tab, remove card from view
-      if (activeTab === "saved") {
-        setEvents(prev => prev.filter(ev => ev.id !== eventId));
-      }
+      if (activeTab === "saved") setEvents(prev => prev.filter(ev => ev.id !== eventId));
       toast.success("Removed from saved");
     } else {
       await supabase.from("saved_events").insert({ event_id: eventId, user_id: userId });
@@ -134,24 +83,21 @@ const Events = () => {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">Events</h1>
+
+      {/* Sticky Header + Tabs */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="px-5 py-3">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold">Events</h1>
+          </div>
         </div>
-      </header>
-
-      <main className="flex-1 px-5 py-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-
-          {/* Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+        <div className="px-5 pb-3">
+          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -166,8 +112,12 @@ const Events = () => {
               </button>
             ))}
           </div>
+        </div>
+        <div className="border-b border-border" />
+      </div>
 
-          {/* Content */}
+      <main className="flex-1 px-5 py-4">
+        <div className="max-w-4xl mx-auto space-y-4">
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -175,15 +125,13 @@ const Events = () => {
           ) : events.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground space-y-2">
               <p className="text-lg font-medium">
-                {activeTab === "going"      && "No events you're going to yet"}
+                {activeTab === "going" && "No events you're going to yet"}
                 {activeTab === "interested" && "No events you're interested in yet"}
-                {activeTab === "saved"      && "No saved events yet"}
-                {activeTab === "past"       && "No past events"}
+                {activeTab === "saved" && "No saved events yet"}
+                {activeTab === "past" && "No past events"}
               </p>
               <p className="text-sm">
-                {activeTab === "past"
-                  ? "Events you attended will appear here"
-                  : "Browse events and tap Going, Interested, or ♥ to add them here"}
+                {activeTab === "past" ? "Events you attended will appear here" : "Browse events and tap Going, Interested, or ♥ to add them here"}
               </p>
             </div>
           ) : (
@@ -210,7 +158,7 @@ const Events = () => {
                     </button>
                   </div>
                   <div className="p-3 space-y-1">
-                    <h3 className="font-semibold text-sm leading-tight line-clamp-2">{event.title}</h3>
+                    <h3 className="font-semibold text-base leading-tight line-clamp-2">{event.title}</h3>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <CalendarDays className="h-3 w-3 flex-shrink-0" />
                       <span>{formatDate(event.date)}</span>

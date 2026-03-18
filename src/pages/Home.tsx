@@ -39,7 +39,7 @@ const sortOptions = [
 const Home = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
-const userId = session?.user?.id;
+  const userId = session?.user?.id;
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTimeFilter, setActiveTimeFilter] = useState<string | null>(null);
@@ -58,17 +58,13 @@ const userId = session?.user?.id;
         .eq("status", "published")
         .eq("category", "community")
         .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching events:", error);
-      } else {
-        setEvents(data ?? []);
-      }
+      if (error) { console.error("Error fetching events:", error); }
+      else { setEvents(data ?? []); }
       setLoading(false);
     };
-
     fetchEvents();
   }, [location]);
+
   useEffect(() => {
     if (!userId) return;
     const fetchSaved = async () => {
@@ -92,8 +88,9 @@ const userId = session?.user?.id;
       toast.success("Event saved!");
     }
   };
+
   const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 3958.8; // miles
+    const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -101,81 +98,58 @@ const userId = session?.user?.id;
       Math.sin(dLng/2) * Math.sin(dLng/2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
+
   const filteredEvents = useMemo(() => {
     let result = [...events];
-
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const weekendStart = new Date(today);
-    weekendStart.setDate(today.getDate() + (6 - today.getDay()));
-
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const weekendStart = new Date(today); weekendStart.setDate(today.getDate() + (6 - today.getDay()));
     if (activeTimeFilter === "today") {
-      result = result.filter((e) => {
-        const d = new Date(e.date);
-        return d >= today && d < tomorrow;
-      });
+      result = result.filter((e) => { const d = new Date(e.date); return d >= today && d < tomorrow; });
     } else if (activeTimeFilter === "tomorrow") {
-      result = result.filter((e) => {
-        const d = new Date(e.date);
-        return d >= tomorrow && d < new Date(tomorrow.getTime() + 86400000);
-      });
+      result = result.filter((e) => { const d = new Date(e.date); return d >= tomorrow && d < new Date(tomorrow.getTime() + 86400000); });
     } else if (activeTimeFilter === "weekend") {
-      result = result.filter((e) => {
-        const d = new Date(e.date);
-        return d >= weekendStart;
-      });
+      result = result.filter((e) => { const d = new Date(e.date); return d >= weekendStart; });
     }
-
     if (freeOnly) result = result.filter((e) => e.is_free);
-
     if (sortBy === "latest") {
       result.sort((a, b) => {
-        // First sort by distance if we have coords
         if (locationLat && locationLng && a.lat && b.lat) {
-          const distA = getDistance(locationLat, locationLng, a.lat, a.lng);
-          const distB = getDistance(locationLat, locationLng, b.lat, b.lng);
-          if (Math.abs(distA - distB) > 5) return distA - distB; // 5 mile threshold
+          const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
+          const distB = getDistance(locationLat, locationLng, b.lat, b.lng!);
+          if (Math.abs(distA - distB) > 5) return distA - distB;
         }
-        // Then by date soonest first
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
-    }else if (sortBy === "free") {
+    } else if (sortBy === "free") {
       result = result.filter((e) => e.is_free);
     }
-
     return result;
   }, [events, activeTimeFilter, freeOnly, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
 
   const currentSort = sortOptions.find((s) => s.id === sortBy);
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  };
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-         
-        <div className="flex items-center gap-2.5">
-            <Users className="h-7 w-7 text-primary" strokeWidth={2.5} />
-            <span className="text-xl font-bold tracking-tight">Gatherr</span>
+
+      {/* Sticky Header + Filters */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="px-5 py-3">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-2.5">
+              <Users className="h-7 w-7 text-primary" strokeWidth={2.5} />
+              <span className="text-xl font-bold tracking-tight">Gatherr</span>
+            </div>
+            <LocationSelector value={location} onChange={setLocation} />
           </div>
-
-          <LocationSelector value={location} onChange={setLocation} />
         </div>
-      </header>
-
-      <main className="flex-1 px-5 py-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+        <div className="px-5 pb-3">
+          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {timeFilters.map((chip) => (
               <button
                 key={chip.id}
@@ -192,14 +166,18 @@ const userId = session?.user?.id;
             <button
               onClick={() => setFreeOnly(!freeOnly)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                freeOnly
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-accent text-accent-foreground hover:bg-accent/80"
+                freeOnly ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80"
               }`}
             >
               Free
             </button>
           </div>
+        </div>
+        <div className="border-b border-border" />
+      </div>
+
+      <main className="flex-1 px-5 py-4">
+        <div className="max-w-4xl mx-auto space-y-4">
 
           <div className="flex justify-end relative">
             <button
@@ -253,30 +231,29 @@ const userId = session?.user?.id;
                       </button>
                     </div>
                     <div className="p-3 space-y-2">
-                    <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <CalendarDays className="h-3 w-3 flex-shrink-0" />
-                      <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+                      <h3 className="font-semibold text-base leading-tight">{event.title}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                        <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="line-clamp-1">{event.location}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          {event.attendees ?? 0} going
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+                          {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="line-clamp-1">{event.location}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        {event.attendees ?? 0} going
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-                        {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
-                      </span>
-                    </div>
-                  </div>
                   </div>
                 ))}
               </div>
-
               {filteredEvents.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
                   <p className="text-lg font-medium">No events found</p>

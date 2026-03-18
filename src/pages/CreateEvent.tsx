@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Users, Image as ImageIcon, Trash2, Loader2, Clock  } from "lucide-react";
+import { Calendar, MapPin, Users, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate, useParams } from "react-router-dom";
@@ -40,6 +40,7 @@ const CreateEvent = () => {
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+  const [wardType, setWardType] = useState<string | null>(null);
 
   // Load existing event data if editing
   useEffect(() => {
@@ -64,6 +65,7 @@ const CreateEvent = () => {
       setTime(data.time ?? "");
       setAddress(data.address ?? "");
       setLocationSearch(data.address ?? "");
+      setWardType(data.ward_type ?? null);
     };
     fetchEvent();
   }, [id]);
@@ -182,6 +184,7 @@ const CreateEvent = () => {
       address,
       lat,
       lng,
+      ward_type: category === "ward" ? wardType : null,
     };
 
     let error;
@@ -258,8 +261,16 @@ const CreateEvent = () => {
                 placeholder="e.g., Community Picnic"
                 className="h-12 text-base"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTitle(val.charAt(0).toUpperCase() + val.slice(1));
+                }}
+
+                maxLength={80}
               />
+               <div className="text-sm text-gray-500 text-right">
+    {title.length}/80
+  </div>
             </div>
 
             {/* Address */}
@@ -267,7 +278,9 @@ const CreateEvent = () => {
               <label className="text-sm font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Address
+                <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
               </label>
+
               <div className="relative" ref={locationRef}>
                 <Input
                   placeholder="Search for an address..."
@@ -317,34 +330,87 @@ const CreateEvent = () => {
                 placeholder="Tell people about your event..."
                 className="min-h-32 text-base"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDescription(val.charAt(0).toUpperCase() + val.slice(1));
+                }}
+                maxLength={2000}
               />
+              <div className="text-sm text-gray-500 text-right">
+    {description.length}/2000
+  </div>
             </div>
 
-            {/* Category */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Activity Category</label>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant={category === "ward" ? "default" : "outline"}
-                  size="lg"
-                  className="rounded-full h-12 text-base"
-                  onClick={() => setCategory("ward")}
-                >
-                  Ward Activity
-                </Button>
-                <Button
-                  type="button"
-                  variant={category === "community" ? "default" : "outline"}
-                  size="lg"
-                  className="rounded-full h-12 text-base"
-                  onClick={() => setCategory("community")}
-                >
-                  Community Activity
-                </Button>
-              </div>
-            </div>
+           {/* Category */}
+<div className="space-y-2">
+  <label className="text-sm font-medium">Activity Category</label>
+  <div className="grid grid-cols-2 gap-3">
+    <Button
+      type="button"
+      variant={category === "ward" ? "default" : "outline"}
+      size="lg"
+      className="rounded-full h-12 text-base"
+      onClick={() => setCategory("ward")}
+    >
+      Ward Activity
+    </Button>
+    <Button
+      type="button"
+      variant={category === "community" ? "default" : "outline"}
+      size="lg"
+      className="rounded-full h-12 text-base"
+      onClick={() => setCategory("community")}
+    >
+      Community Activity
+    </Button>
+  </div>
+</div>
+
+{/* Ward Type — only show when Ward is selected */}
+{category === "ward" && (
+  <div className="space-y-3 pb-12">
+    <label className="text-sm font-medium">Type</label>
+    <div className="grid grid-cols-2 gap-3 mb-12">
+      {[
+        { id: "spiritual", label: "Spiritual", desc: "Temple, study, devotionals", icon: <SunMedium className="h-4 w-4" /> },
+        { id: "fhe", label: "FHE", desc: "Family Home Evening activities", icon: <LandPlot className="h-4 w-4" /> },
+        { id: "service", label: "Service", desc: "Volunteering, charity work", icon: <HandPlatter className="h-4 w-4" /> },
+        { id: "general", label: "General", desc: "Social gatherings & other", icon: <Rainbow className="h-4 w-4" /> },
+      ].map((type) => (
+        <button
+  key={type.id}
+  type="button"
+  onClick={() => setWardType(type.id)}
+  className={`rounded-2xl text-left transition-all overflow-hidden ${
+    wardType === type.id
+      ? "border-[2px] border-primary"
+      : "border-[1px] border-border/20 hover:border-primary/10"
+  }`}
+>
+  {wardType === type.id ? (
+    <>
+      <div className="bg-primary px-3 py-2 flex items-center gap-1.5">
+        {type.icon && <span className="text-white">{type.icon}</span>}
+        <p className="font-semibold text-sm text-white">{type.label}</p>
+      </div>
+      <div className="px-3 py-2">
+        <p className="text-xs text-black">{type.desc}</p>
+      </div>
+    </>
+  ) : (
+    <div className="p-3">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        {type.icon}
+        <p className="font-semibold text-sm">{type.label}</p>
+      </div>
+      <p className="text-xs text-muted-foreground mt-0.5">{type.desc}</p>
+    </div>
+  )}
+</button>
+      ))}
+    </div>
+  </div>
+)}
 
             {/* Age Range */}
             <div className="space-y-3 rounded-xl border border-border p-4">

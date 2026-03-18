@@ -44,22 +44,35 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("name, location, ward, preferred_age_min, preferred_age_max")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setName(data.name || user.user_metadata?.full_name || user.email || "");
-          setLocation(data.location || "");
-          setWard(data.ward || "");
-          const min = data.preferred_age_min ?? preferredAgeMin;
-          const max = data.preferred_age_max ?? preferredAgeMax;
-          setAgeRange([min, max]);
-          setTempRange([min, max]);
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("name, location, ward, preferred_age_min, preferred_age_max, avatar_url")
+        .eq("user_id", user.id)
+        .single();
+  
+      if (data) {
+        setName(data.name || user.user_metadata?.full_name || user.email || "");
+        setLocation(data.location || "");
+        setWard(data.ward || "");
+        const min = data.preferred_age_min ?? preferredAgeMin;
+        const max = data.preferred_age_max ?? preferredAgeMax;
+        setAgeRange([min, max]);
+        setTempRange([min, max]);
+  
+        if (!data.avatar_url || !data.name) {
+          await supabase.from("profiles").upsert(
+            { 
+              user_id: user.id, 
+              avatar_url: user.user_metadata?.avatar_url || data.avatar_url,
+              name: data.name || user.user_metadata?.full_name || "",
+            },
+            { onConflict: "user_id" }
+          );
         }
-      });
+      }
+    };
+    fetchProfile();
   }, [user]);
 
   const searchLocations = useCallback(async (query: string) => {

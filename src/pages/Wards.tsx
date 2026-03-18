@@ -23,6 +23,7 @@ type Event = {
   location: string | null;
   lat: number | null;
   lng: number | null;
+  ward_type: string | null;
 
 };
 const sortOptions = [
@@ -31,10 +32,11 @@ const sortOptions = [
 ];
 
 const filterChips = [
+  { id: "all", label: "All" },
   { id: "today", label: "Today" },
-  { id: "tomorrow", label: "Tomorrow" },
-  { id: "weekend", label: "This Weekend" },
-  { id: "free", label: "Free" },
+  { id: "spiritual", label: "Spiritual" },
+  { id: "fhe", label: "FHE" },
+  { id: "service", label: "Service" },
 ];
 
 const Wards = () => {
@@ -44,7 +46,7 @@ const Wards = () => {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState("latest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -56,7 +58,7 @@ const Wards = () => {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
+        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type")
         .eq("status", "published")
         .eq("category", "ward")
         .order("created_at", { ascending: false });
@@ -147,6 +149,8 @@ const Wards = () => {
       });
     } else if (activeFilter === "free") {
       result = result.filter((e) => e.is_free);
+    } else if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
+      result = result.filter((e) => e.ward_type === activeFilter);
     }
 
   // Sort by distance then date
@@ -176,34 +180,38 @@ const Wards = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
+    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      {/* Header */}
+      <div className="px-5 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold">Ward Activities</h1>
           <LocationSelector value={location} onChange={setLocation} />
         </div>
-      </header>
-
-      <main className="flex-1 px-5 py-4">
+      </div>
+  
+      {/* Filter Chips */}
+<div className="px-5 pb-3">
+  <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+    {filterChips.map((chip) => (
+      <button
+        key={chip.id}
+        onClick={() => setActiveFilter(chip.id)}
+        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+          activeFilter === chip.id
+            ? "bg-primary text-primary-foreground"
+            : "bg-accent text-accent-foreground hover:bg-accent/80"
+        }`}
+      >
+        {chip.label}
+      </button>
+    ))}
+  </div>
+</div>
+</div>
+<main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-4">
           
-          
         
-
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-            {filterChips.map((chip) => (
-              <button
-                key={chip.id}
-                onClick={() => setActiveFilter(activeFilter === chip.id ? null : chip.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeFilter === chip.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-accent text-accent-foreground hover:bg-accent/80"
-                }`}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
 
           <div className="flex justify-end relative">
             <button

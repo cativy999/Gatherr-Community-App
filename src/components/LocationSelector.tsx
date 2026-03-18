@@ -8,7 +8,7 @@ interface LocationSelectorProps {
 }
 
 const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
-  const { setLocationCoords } = useLocation();
+  const { setLocationCoords, userGpsLat, userGpsLng } = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
@@ -40,8 +40,11 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
+        const biasParams = userGpsLat && userGpsLng
+          ? `&viewbox=${userGpsLng - 5},${userGpsLat + 5},${userGpsLng + 5},${userGpsLat - 5}&bounded=0`
+          : "";
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6${biasParams}`,
           { headers: { "Accept-Language": "en" } }
         );
         const data = await res.json();
