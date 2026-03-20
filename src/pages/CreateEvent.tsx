@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Users, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useNavigate, useParams } from "react-router-dom";
@@ -22,7 +22,6 @@ const CreateEvent = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
-  const [maxAttendees, setMaxAttendees] = useState("");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -57,7 +56,6 @@ const CreateEvent = () => {
       setCategory(data.category ?? null);
       setIsFree(data.is_free ?? true);
       setDate(data.date ?? "");
-      setMaxAttendees(data.max_attendees?.toString() ?? "");
       setLocation(data.location ?? "");
       setImagePreview(data.image_url ?? null);
       setAgeRange([data.age_min ?? 25, data.age_max ?? 35]);
@@ -174,7 +172,6 @@ const CreateEvent = () => {
       category,
       is_free: isFree,
       date,
-      max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
       location: location || address,
       image_url: imageUrl,
       status: isDraft ? "draft" : "published",
@@ -498,20 +495,6 @@ const CreateEvent = () => {
               </div>
             </div>
 
-            {/* Max Attendees */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Max Attendees
-              </label>
-              <Input
-                type="number"
-                placeholder="50"
-                className="h-12 text-base"
-                value={maxAttendees}
-                onChange={(e) => setMaxAttendees(e.target.value)}
-              />
-            </div>
 
           </div>
 

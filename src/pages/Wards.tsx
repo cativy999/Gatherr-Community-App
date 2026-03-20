@@ -24,8 +24,8 @@ type Event = {
   lat: number | null;
   lng: number | null;
   ward_type: string | null;
-
 };
+
 const sortOptions = [
   { id: "latest", label: "Latest" },
   { id: "free", label: "Free" },
@@ -53,7 +53,6 @@ const Wards = () => {
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
-  // Fetch ward events
   useEffect(() => {
     const fetchEvents = async () => {
       const { data, error } = await supabase
@@ -74,7 +73,6 @@ const Wards = () => {
     fetchEvents();
   }, [location]);
 
-  // Load user's saved events from Supabase
   useEffect(() => {
     if (!userId) return;
     const fetchSaved = async () => {
@@ -87,7 +85,6 @@ const Wards = () => {
     fetchSaved();
   }, [userId]);
 
-  // Toggle save → Supabase
   const toggleSaved = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!userId) { toast.error("Please log in to save events"); return; }
@@ -107,7 +104,7 @@ const Wards = () => {
   };
 
   const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 3958.8; // miles
+    const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -118,19 +115,16 @@ const Wards = () => {
 
   const filteredEvents = useMemo(() => {
     let result = [...events];
-    // Filter by user's preferred age range (overlap check)
+
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
 
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    const weekendStart = new Date(today);
-    weekendStart.setDate(today.getDate() + (6 - today.getDay()));
 
     if (activeFilter === "today") {
       result = result.filter((e) => {
@@ -142,37 +136,27 @@ const Wards = () => {
         const d = new Date(e.date);
         return d >= tomorrow && d < new Date(tomorrow.getTime() + 86400000);
       });
-    } else if (activeFilter === "weekend") {
-      result = result.filter((e) => {
-        const d = new Date(e.date);
-        return d >= weekendStart;
-      });
     } else if (activeFilter === "free") {
       result = result.filter((e) => e.is_free);
     } else if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
 
-  // Sort by distance then date
-  if (sortBy === "free") {
-    result = result.filter((e) => e.is_free);
-  }
-
-  if (sortBy === "free") {
-    result = result.filter((e) => e.is_free);
-  }
-
-  result.sort((a, b) => {
-    if (locationLat && locationLng && a.lat && b.lat) {
-      const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
-      const distB = getDistance(locationLat, locationLng, b.lat, b.lng!);
-      if (Math.abs(distA - distB) > 5) return distA - distB;
+    if (sortBy === "free") {
+      result = result.filter((e) => e.is_free);
     }
-    return new Date(a.date).getTime() - new Date(b.date).getTime();
-  });
 
-  return result;
-}, [events, activeFilter, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
+    result.sort((a, b) => {
+      if (locationLat && locationLng && a.lat && b.lat) {
+        const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
+        const distB = getDistance(locationLat, locationLng, b.lat, b.lng!);
+        if (Math.abs(distA - distB) > 5) return distA - distB;
+      }
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+
+    return result;
+  }, [events, activeFilter, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
@@ -180,43 +164,43 @@ const Wards = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
-      {/* Header */}
-      <div className="px-5 py-3">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">Ward Activities</h1>
-          <LocationSelector value={location} onChange={setLocation} />
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+        {/* Header */}
+        <div className="px-5 py-3">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold">Ward Activities</h1>
+            <LocationSelector value={location} onChange={setLocation} />
+          </div>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="pb-3">
+        <div className="max-w-4xl mx-auto px-5 md:px-0">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mr-5 pr-10 md:mr-0 md:pr-0">
+              {filterChips.map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveFilter(chip.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeFilter === chip.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-accent text-accent-foreground hover:bg-accent/80"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-  
-      {/* Filter Chips */}
-<div className="px-5 pb-3">
-  <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-    {filterChips.map((chip) => (
-      <button
-        key={chip.id}
-        onClick={() => setActiveFilter(chip.id)}
-        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-          activeFilter === chip.id
-            ? "bg-primary text-primary-foreground"
-            : "bg-accent text-accent-foreground hover:bg-accent/80"
-        }`}
-      >
-        {chip.label}
-      </button>
-    ))}
-  </div>
-</div>
-</div>
-<main className="flex-1 px-5 py-4">
+
+      <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-4">
-          
-        
 
           <div className="flex justify-end relative">
             <button
               onClick={() => setSortOpen(!sortOpen)}
-
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Sort: {sortOptions.find(s => s.id === sortBy)?.label}
@@ -266,26 +250,26 @@ const Wards = () => {
                       </button>
                     </div>
                     <div className="p-3 space-y-2">
-                    <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <CalendarDays className="h-3 w-3 flex-shrink-0" />
-                      <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+                      <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                        <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="line-clamp-1">{event.location}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          {event.attendees ?? 0} going
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+                          {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="line-clamp-1">{event.location}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        {event.attendees ?? 0} going
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-                        {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
-                      </span>
-                    </div>
-                  </div>
                   </div>
                 ))}
               </div>

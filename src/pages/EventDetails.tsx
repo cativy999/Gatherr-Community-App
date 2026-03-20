@@ -29,6 +29,7 @@ const EventDetails = () => {
 
   const [goingCount, setGoingCount] = useState(0);
   const [interestedCount, setInterestedCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(0);
 
   const [shareOpen, setShareOpen] = useState(false);
   const [goingList, setGoingList] = useState<any[]>([]);
@@ -113,35 +114,48 @@ const EventDetails = () => {
     fetchUserStatus();
   }, [id, userId]);
 
-  // Fetch comments
-useEffect(() => {
-  if (!id) return;
-  const fetchComments = async () => {
-    const { data } = await supabase
-      .from("comments")
-      .select("id, content, created_at, user_id")
-      .eq("event_id", id)
-      .order("created_at", { ascending: false });
+  // ── Fetch like count ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    const fetchLikes = async () => {
+      const { count } = await supabase
+        .from("liked_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", id);
+      setLikeCount(count ?? 0);
+    };
+    fetchLikes();
+  }, [id]);
 
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((c: any) => c.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, name, avatar_url")
-        .in("user_id", userIds);
+  // ── Fetch comments ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    const fetchComments = async () => {
+      const { data } = await supabase
+        .from("comments")
+        .select("id, content, created_at, user_id")
+        .eq("event_id", id)
+        .order("created_at", { ascending: false });
 
-      const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
-      setComments(data.map((c: any) => ({
-        ...c,
-        author: profileMap[c.user_id]?.name || "Anonymous",
-        avatar: profileMap[c.user_id]?.avatar_url || null,
-      })));
-    } else {
-      setComments([]);
-    }
-  };
-  fetchComments();
-}, [id]);
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((c: any) => c.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, name, avatar_url")
+          .in("user_id", userIds);
+
+        const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
+        setComments(data.map((c: any) => ({
+          ...c,
+          author: profileMap[c.user_id]?.name || "Anonymous",
+          avatar: profileMap[c.user_id]?.avatar_url || null,
+        })));
+      } else {
+        setComments([]);
+      }
+    };
+    fetchComments();
+  }, [id]);
 
   // ── Fetch going list ───────────────────────────────────────────────────────
   const fetchGoingList = async () => {
@@ -213,21 +227,27 @@ useEffect(() => {
     }
   };
 
-  // ── Handle Save (heart) ───────────────────────────────────────────────────
+  // ── Handle Save + Like (heart) ────────────────────────────────────────────
   const handleSave = async () => {
-    if (!userId) { toast.error("Please log in to save events"); return; }
+    if (!userId) { toast.error("Please log in to like events"); return; }
     setSaveLoading(true);
 
     try {
       if (isSaved) {
         await supabase.from("saved_events").delete()
           .eq("event_id", id).eq("user_id", userId);
+        await supabase.from("liked_events").delete()
+          .eq("event_id", id).eq("user_id", userId);
         setIsSaved(false);
+        setLikeCount((prev) => Math.max(0, prev - 1));
         toast.success("Removed from saved");
       } else {
         await supabase.from("saved_events")
           .insert({ event_id: id, user_id: userId });
+        await supabase.from("liked_events")
+          .insert({ event_id: id, user_id: userId });
         setIsSaved(true);
+        setLikeCount((prev) => prev + 1);
         toast.success("Event saved!");
       }
     } catch (err) {
@@ -240,21 +260,21 @@ useEffect(() => {
   const handleSubmitComment = async () => {
     if (!comment.trim()) return;
     if (!userId) { toast.error("Please log in to comment"); return; }
-  
+
     const { data, error } = await supabase
       .from("comments")
       .insert({ event_id: id, user_id: userId, content: comment.trim().charAt(0).toUpperCase() + comment.trim().slice(1) })
       .select("id, content, created_at, user_id")
       .single();
-  
+
     if (error) { toast.error("Failed to post comment"); return; }
-  
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("name, avatar_url")
       .eq("user_id", userId)
       .single();
-  
+
     setComments([{
       ...data,
       author: profile?.name || "Anonymous",
@@ -271,7 +291,7 @@ useEffect(() => {
     setComments(comments.filter((c) => c.id !== commentId));
     toast.success("Comment deleted");
   };
-  
+
   const shareOptions = [
     {
       icon: Copy, label: "Copy Link",
@@ -306,7 +326,7 @@ useEffect(() => {
     const days = Math.floor(hrs / 24);
     return `${days}d ago`;
   };
-  
+
   const renderDescription = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
@@ -368,10 +388,6 @@ useEffect(() => {
             <h1 className="text-3xl font-bold">{event.title}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Heart className="h-4 w-4" />
-                <span>0 likes</span>
-              </div>
-              <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 <span>
                   {new Date(event.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
@@ -383,8 +399,6 @@ useEffect(() => {
                 <span>{event.location}</span>
               </div>
             </div>
-
-         
           </div>
 
           {/* Event Image */}
@@ -454,11 +468,11 @@ useEffect(() => {
             </DialogContent>
           </Dialog>
 
-          {/* Going / Interested counts */}
-          <div className="flex gap-3">
+          {/* Going / Interested / Liked counts */}
+          <div className="flex gap-4">
             <button
               onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
-              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors"
             >
               <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F7BE' }}>
                 <ThumbsUp className="w-4 h-4 text-black" />
@@ -467,42 +481,48 @@ useEffect(() => {
             </button>
             <button
               onClick={() => {}}
-              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors"
             >
               <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#BFE2F5' }}>
                 <Smile className="w-4 h-4 text-black" />
               </div>
               <span className="font-bold">{interestedCount}</span> Interested
             </button>
+            <div className="flex items-center gap-2 py-2 text-sm font-semibold">
+              <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFD6D6' }}>
+                <Heart className={`w-4 h-4 ${isSaved ? 'text-red-500 fill-current' : 'text-black'}`} />
+              </div>
+              <span className="font-bold">{likeCount}</span> Liked
+            </div>
           </div>
 
-        {/* Description */}
-        <p className="text-base leading-relaxed whitespace-pre-wrap">{renderDescription(event.description)}</p>
+          {/* Description */}
+          <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description)}</p>
 
-{/* Posted by */}
-{creatorName && (
-  <div className="flex items-center gap-2 pt-1">
-    {creatorAvatar ? (
-      <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-    ) : (
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-        <User className="h-4 w-4 text-primary" />
-      </div>
-    )}
-    <div>
-      <span className="text-sm text-muted-foreground">
-        Posted by <span className="font-semibold text-foreground">{creatorName}</span>
-      </span>
-      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
-    </div>
-  </div>
-)}
+          {/* Posted by */}
+          {creatorName && (
+            <div className="flex items-center gap-2 pt-1">
+              {creatorAvatar ? (
+                <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <div>
+                <span className="text-sm text-muted-foreground">
+                  Posted by <span className="font-semibold text-foreground">{creatorName}</span>
+                </span>
+                <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
+              </div>
+            </div>
+          )}
 
-{/* Dashed divider */}
-<div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }}/>
+          {/* Dashed divider */}
+          <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
 
-{/* Event Location */}
-{event.address && (
+          {/* Event Location */}
+          {event.address && (
             <div className="space-y-3">
               <h2 className="text-lg font-bold">Event Location</h2>
               <div className="flex items-start gap-3">
@@ -519,24 +539,24 @@ useEffect(() => {
 
           {/* Comments */}
           <div className="space-y-6 pt-4">
-          <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
-          <h2 className="text-lg font-bold" >Comments</h2>
-          <div className="space-y-3">
-  <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
-  <div className="flex gap-2">
-    {["📣", "🎉", "❤️", "😢", "😮"].map((emoji) => (
-      <button
-        key={emoji}
-        type="button"
-        onClick={() => setComment((prev) => prev + emoji)}
-        className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors"
-      >
-        {emoji}
-      </button>
-    ))}
-  </div>
-  <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
-</div>
+            <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
+            <h2 className="text-lg font-bold">Comments</h2>
+            <div className="space-y-3">
+              <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
+              <div className="flex gap-2">
+                {["📣", "🎉", "❤️", "😢", "😮"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setComment((prev) => prev + emoji)}
+                    className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
+            </div>
             <div className="space-y-4">
               {comments.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
@@ -554,9 +574,7 @@ useEffect(() => {
                       <div className="flex items-center justify-between mb-1">
                         <p className="font-semibold text-sm">{c.author}</p>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
-                          {timeAgo(c.created_at)}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
                           {c.user_id === userId && (
                             <button
                               onClick={() => handleDeleteComment(c.id, c.user_id)}

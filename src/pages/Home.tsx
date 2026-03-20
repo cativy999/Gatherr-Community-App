@@ -148,29 +148,31 @@ const Home = () => {
             <LocationSelector value={location} onChange={setLocation} />
           </div>
         </div>
-        <div className="px-5 pb-3">
-          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-            {timeFilters.map((chip) => (
+        <div className="pb-3">
+          <div className="max-w-4xl mx-auto px-5 md:px-0">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mr-5 pr-10 md:mr-0 md:pr-0">
+              {timeFilters.map((chip) => (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveTimeFilter(activeTimeFilter === chip.id ? null : chip.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeTimeFilter === chip.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-accent text-accent-foreground hover:bg-accent/80"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
               <button
-                key={chip.id}
-                onClick={() => setActiveTimeFilter(activeTimeFilter === chip.id ? null : chip.id)}
+                onClick={() => setFreeOnly(!freeOnly)}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeTimeFilter === chip.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-accent text-accent-foreground hover:bg-accent/80"
+                  freeOnly ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80"
                 }`}
               >
-                {chip.label}
+                Free
               </button>
-            ))}
-            <button
-              onClick={() => setFreeOnly(!freeOnly)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                freeOnly ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground hover:bg-accent/80"
-              }`}
-            >
-              Free
-            </button>
+            </div>
           </div>
         </div>
         <div className="border-b border-border" />

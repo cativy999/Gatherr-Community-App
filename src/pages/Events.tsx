@@ -13,6 +13,27 @@ const tabs = [
   { id: "past", label: "Past" },
 ];
 
+const groupEventsByTime = (events: any[]) => {
+  const now = new Date();
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+  const endOfNextWeek = new Date(endOfWeek);
+  endOfNextWeek.setDate(endOfWeek.getDate() + 7);
+
+  const thisWeek: any[] = [];
+  const nextWeek: any[] = [];
+  const later: any[] = [];
+
+  events.forEach((event) => {
+    const eventDate = new Date(event.date);
+    if (eventDate <= endOfWeek) thisWeek.push(event);
+    else if (eventDate <= endOfNextWeek) nextWeek.push(event);
+    else later.push(event);
+  });
+
+  return { thisWeek, nextWeek, later };
+};
+
 const Events = () => {
   const [activeTab, setActiveTab] = useState("going");
   const [events, setEvents] = useState<any[]>([]);
@@ -135,41 +156,60 @@ const Events = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  onClick={() => navigate(`/event/${event.id}`)}
-                  className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
-                >
-                  <div className="relative">
-                    {event.image_url ? (
-                      <img src={event.image_url} alt={event.title} className="w-full h-28 object-cover" />
-                    ) : (
-                      <div className="w-full h-28 bg-secondary flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">No image</span>
+            <div className="space-y-6">
+              {(() => {
+                const { thisWeek, nextWeek, later } = groupEventsByTime(events);
+                return [
+                  { label: "This Week", events: thisWeek },
+                  { label: "Next Week", events: nextWeek },
+                  { label: "Later", events: later },
+                ].map(({ label, events }) =>
+                  events.length > 0 ? (
+                    <div key={label} className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-muted-foreground">{label}</span>
+                        <div className="flex-1 h-px bg-border" />
                       </div>
-                    )}
-                    <button
-                      onClick={(e) => toggleSaved(event.id, e)}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
-                    >
-                      <Heart className={`h-4 w-4 ${savedIds.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
-                    </button>
-                  </div>
-                  <div className="p-3 space-y-1">
-                    <h3 className="font-semibold text-base leading-tight line-clamp-2">{event.title}</h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <CalendarDays className="h-3 w-3 flex-shrink-0" />
-                      <span>{formatDate(event.date)}</span>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {events.map((event) => (
+                          <div
+                            key={event.id}
+                            onClick={() => navigate(`/event/${event.id}`)}
+                            className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
+                          >
+                            <div className="relative">
+                              {event.image_url ? (
+                                <img src={event.image_url} alt={event.title} className="w-full h-28 object-cover" />
+                              ) : (
+                                <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                                  <span className="text-xs text-muted-foreground">No image</span>
+                                </div>
+                              )}
+                              <button
+                                onClick={(e) => toggleSaved(event.id, e)}
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
+                              >
+                                <Heart className={`h-4 w-4 ${savedIds.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
+                              </button>
+                            </div>
+                            <div className="p-3 space-y-1">
+                              <h3 className="font-semibold text-base leading-tight line-clamp-2">{event.title}</h3>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                                <span>{formatDate(event.date)}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                <span className="line-clamp-1">{event.location}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="line-clamp-1">{event.location}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  ) : null
+                );
+              })()}
             </div>
           )}
         </div>
