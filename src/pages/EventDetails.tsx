@@ -35,6 +35,7 @@ const EventDetails = () => {
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
   const [goingListLoading, setGoingListLoading] = useState(false);
+  const [reactions, setReactions] = useState<Record<string, any[]>>({});
 
   // ── Fetch event + creator ──────────────────────────────────────────────────
   useEffect(() => {
@@ -145,11 +146,13 @@ const EventDetails = () => {
           .in("user_id", userIds);
 
         const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
-        setComments(data.map((c: any) => ({
+        const mapped = data.map((c: any) => ({
           ...c,
           author: profileMap[c.user_id]?.name || "Anonymous",
           avatar: profileMap[c.user_id]?.avatar_url || null,
-        })));
+        }));
+        setComments(mapped);
+        fetchReactions(mapped.map((c: any) => c.id));
       } else {
         setComments([]);
       }
@@ -158,6 +161,20 @@ const EventDetails = () => {
   }, [id]);
 
   // ── Fetch going list ───────────────────────────────────────────────────────
+  const fetchReactions = async (commentIds: string[]) => {
+    if (commentIds.length === 0) return;
+    const { data } = await supabase
+      .from("comment_reactions")
+      .select("*")
+      .in("comment_id", commentIds);
+    
+    const grouped: Record<string, any[]> = {};
+    (data ?? []).forEach((r: any) => {
+      if (!grouped[r.comment_id]) grouped[r.comment_id] = [];
+      grouped[r.comment_id].push(r);
+    });
+    setReactions(grouped);
+  };
   const fetchGoingList = async () => {
     setGoingListLoading(true);
     const { data } = await supabase
@@ -284,6 +301,37 @@ const EventDetails = () => {
     toast.success("Comment posted!");
   };
 
+  const handleReaction = async (commentId: string, emoji: string) => {
+    if (!userId) { toast.error("Please log in to react"); return; }
+
+    const anyExisting = reactions[commentId]?.find((r) => r.user_id === userId);
+    const clickedSame = anyExisting?.emoji === emoji;
+
+    // Remove existing reaction if any
+    if (anyExisting) {
+      await supabase.from("comment_reactions").delete().eq("id", anyExisting.id);
+      setReactions((prev) => ({
+        ...prev,
+        [commentId]: (prev[commentId] || []).filter((r) => r.id !== anyExisting.id),
+      }));
+    }
+
+    // If clicked same emoji → just toggle off, done
+    if (clickedSame) return;
+
+    // Add new reaction
+    const { data } = await supabase
+      .from("comment_reactions")
+      .insert({ comment_id: commentId, user_id: userId, emoji })
+      .select()
+      .single();
+    if (data) {
+      setReactions((prev) => ({
+        ...prev,
+        [commentId]: [...(prev[commentId] || []), data],
+      }));
+    }
+  };
   const handleDeleteComment = async (commentId: string, commentUserId: string) => {
     if (commentUserId !== userId) return;
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
@@ -586,6 +634,29 @@ const EventDetails = () => {
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">{c.content}</p>
+                      {/* Reactions */}
+                      <div className="flex gap-1 mt-2 flex-wrap">
+                        {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => {
+                          const emojiReactions = (reactions[c.id] || []).filter((r) => r.emoji === emoji);
+                          const hasReacted = emojiReactions.some((r) => r.user_id === userId);
+                          return (
+                            <button
+                              key={emoji}
+                              onClick={() => handleReaction(c.id, emoji)}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${
+                                hasReacted
+                                  ? "bg-primary/10 border-primary/30 font-semibold"
+                                  : "bg-accent/50 border-transparent hover:bg-accent"
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              {emojiReactions.length > 0 && (
+                                <span className="text-muted-foreground">{emojiReactions.length}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ))

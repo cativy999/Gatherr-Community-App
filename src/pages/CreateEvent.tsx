@@ -28,7 +28,6 @@ const CreateEvent = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [ageRange, setAgeRange] = useState<[number, number]>([25, 35]);
-  const [existingStatus, setExistingStatus] = useState<string>("draft");
   const [locationSearch, setLocationSearch] = useState("");
   const [locationResults, setLocationResults] = useState<{ display: string; city: string; lat: number; lng: number }[]>([]);
   const [locationSearching, setLocationSearching] = useState(false);
@@ -59,7 +58,6 @@ const CreateEvent = () => {
       setLocation(data.location ?? "");
       setImagePreview(data.image_url ?? null);
       setAgeRange([data.age_min ?? 25, data.age_max ?? 35]);
-      setExistingStatus(data.status ?? "draft");
       setTime(data.time ?? "");
       setAddress(data.address ?? "");
       setLocationSearch(data.address ?? "");
@@ -141,7 +139,7 @@ const CreateEvent = () => {
     else { navigate("/post"); }
   };
 
-  const handleSubmit = async (isDraft = false) => {
+  const handleSubmit = async () => {
     if (!title || !date || !address || !category) {
       alert("Please fill in title, date, location and category!");
       return;
@@ -174,8 +172,8 @@ const CreateEvent = () => {
       date,
       location: location || address,
       image_url: imageUrl,
-      status: isDraft ? "draft" : "published",
-      age_min: ageRange[0],
+      status: "published",     
+       age_min: ageRange[0],
       age_max: ageRange[1],
       time,
       address,
@@ -500,21 +498,11 @@ const CreateEvent = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-3">
-            {(!isEditing || existingStatus === "draft") && (
-              <Button
-                size="lg"
-                variant="outline"
-                className="flex-1 h-14 text-base font-semibold"
-                onClick={() => handleSubmit(true)}
-                disabled={loading || sessionLoading}
-              >
-                Save as Draft
-              </Button>
-            )}
+          
             <Button
               size="lg"
               className="flex-1 h-14 text-base font-semibold"
-              onClick={() => handleSubmit(false)}
+              onClick={() => handleSubmit()}
               disabled={loading || sessionLoading}
             >
               {loading ? "Saving..." : "Publish"}
