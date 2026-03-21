@@ -49,7 +49,8 @@ const Profile = () => {
         .from("profiles")
         .select("name, location, ward, preferred_age_min, preferred_age_max, avatar_url")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+
   
       if (data) {
         setName(data.name || user.user_metadata?.full_name || user.email || "");
@@ -60,16 +61,8 @@ const Profile = () => {
         setAgeRange([min, max]);
         setTempRange([min, max]);
   
-        if (!data.avatar_url || !data.name) {
-          await supabase.from("profiles").upsert(
-            { 
-              user_id: user.id, 
-              avatar_url: user.user_metadata?.avatar_url || data.avatar_url,
-              name: data.name || user.user_metadata?.full_name || "",
-            },
-            { onConflict: "user_id" }
-          );
-        }
+      
+        
       }
     };
     fetchProfile();

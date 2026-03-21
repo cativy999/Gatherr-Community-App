@@ -11,7 +11,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
 import OnboardingAge from "./pages/OnboardingAge";
-import OnboardingPreferences from "./pages/OnboardingPreferences";
 import OnboardingWard from "./pages/OnboardingWard";
 import Home from "./pages/Home";
 import Wards from "./pages/Wards";
@@ -22,6 +21,7 @@ import EventDetails from "./pages/EventDetails";
 import MyEvents from "./pages/MyEvents";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
+import OnboardingName from "./pages/OnboardingName";
 
 const queryClient = new QueryClient();
 
@@ -45,8 +45,7 @@ const AuthListener = () => {
         if (profile) {
           navigate("/home");
         } else {
-          navigate("/onboarding/age");
-        }
+          navigate("/onboarding/name");        }
       });
   }, [session, loading]);
 
@@ -65,8 +64,8 @@ const App = () => (
               <AuthListener />
               <Routes>
                 <Route path="/" element={<Welcome />} />
+                <Route path="/onboarding/name" element={<OnboardingName />} />
                 <Route path="/onboarding/age" element={<OnboardingAge />} />
-                <Route path="/onboarding/preferences" element={<OnboardingPreferences />} />
                 <Route path="/onboarding/ward" element={<OnboardingWard />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/wards" element={<Wards />} />
