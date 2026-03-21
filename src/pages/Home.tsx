@@ -26,6 +26,7 @@ type Event = {
 };
 
 const timeFilters = [
+  { id: "all", label: "All" },
   { id: "today", label: "Today" },
   { id: "tomorrow", label: "Tomorrow" },
   { id: "weekend", label: "This Weekend" },
@@ -36,13 +37,57 @@ const sortOptions = [
   { id: "free", label: "Free" },
 ];
 
+const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: any) => (
+  <div
+    onClick={() => navigate(`/event/${event.id}`)}
+    className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
+  >
+    <div className="relative">
+      {event.image_url ? (
+        <img src={event.image_url} alt={event.title} className="w-full h-36 object-cover" />
+      ) : (
+        <div className="w-full h-36 bg-secondary flex items-center justify-center">
+          <span className="text-xs text-muted-foreground">No image</span>
+        </div>
+      )}
+      <button
+        onClick={(e) => toggleSaved(event.id, e)}
+        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
+      >
+        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
+      </button>
+    </div>
+    <div className="p-3 space-y-2">
+      <h3 className="font-semibold text-base leading-tight">{event.title}</h3>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <CalendarDays className="h-3 w-3 flex-shrink-0" />
+        <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+      </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <MapPin className="h-3 w-3 flex-shrink-0" />
+        <span className="line-clamp-1">{event.location}</span>
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {event.attendees ?? 0} going
+        </span>
+        <span className="flex items-center gap-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
 const Home = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTimeFilter, setActiveTimeFilter] = useState<string | null>(null);
+  const [activeTimeFilter, setActiveTimeFilter] = useState<string>("all");
   const [freeOnly, setFreeOnly] = useState(false);
   const [sortBy, setSortBy] = useState("latest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -131,6 +176,22 @@ const Home = () => {
     return result;
   }, [events, activeTimeFilter, freeOnly, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
 
+  const groupEventsByTime = (evts: Event[]) => {
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const startOfNextWeek = new Date(startOfToday); startOfNextWeek.setDate(startOfToday.getDate() + 7);
+    const startOfLater = new Date(startOfToday); startOfLater.setDate(startOfToday.getDate() + 14);
+    const thisWeek: Event[] = [];
+    const nextWeek: Event[] = [];
+    const later: Event[] = [];
+    evts.forEach((e) => {
+      const d = new Date(e.date);
+      if (d < startOfNextWeek) thisWeek.push(e);
+      else if (d < startOfLater) nextWeek.push(e);
+      else later.push(e);
+    });
+    return { thisWeek, nextWeek, later };
+  };
+
   const currentSort = sortOptions.find((s) => s.id === sortBy);
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
@@ -154,7 +215,7 @@ const Home = () => {
               {timeFilters.map((chip) => (
                 <button
                   key={chip.id}
-                  onClick={() => setActiveTimeFilter(activeTimeFilter === chip.id ? null : chip.id)}
+                  onClick={() => setActiveTimeFilter(chip.id)}
                   className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeTimeFilter === chip.id
                       ? "bg-primary text-primary-foreground"
@@ -208,52 +269,57 @@ const Home = () => {
 
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
+          ) : activeTimeFilter === "all" ? (
+            <div className="space-y-8">
+              {(() => {
+                const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
+                return (
+                  <>
+                    {thisWeek.length > 0 && (
+                      <div className="space-y-3">
+                        <h2 className="text-base font-bold">This Week</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {thisWeek.map((event) => (
+                            <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {nextWeek.length > 0 && (
+                      <div className="space-y-3">
+                        <h2 className="text-base font-bold">Next Week</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {nextWeek.map((event) => (
+                            <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {later.length > 0 && (
+                      <div className="space-y-3">
+                        <h2 className="text-base font-bold">Later</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {later.map((event) => (
+                            <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {filteredEvents.length === 0 && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <p className="text-lg font-medium">No events found</p>
+                        <p className="text-sm mt-1">Try a different filter</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {filteredEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => navigate(`/event/${event.id}`)}
-                    className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
-                  >
-                    <div className="relative">
-                      {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="w-full h-36 object-cover" />
-                      ) : (
-                        <div className="w-full h-36 bg-secondary flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">No image</span>
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => toggleSaved(event.id, e)}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
-                      >
-                        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
-                      </button>
-                    </div>
-                    <div className="p-3 space-y-2">
-                      <h3 className="font-semibold text-base leading-tight">{event.title}</h3>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <CalendarDays className="h-3 w-3 flex-shrink-0" />
-                        <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="line-clamp-1">{event.location}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                          {event.attendees ?? 0} going
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-                          {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
                 ))}
               </div>
               {filteredEvents.length === 0 && (
