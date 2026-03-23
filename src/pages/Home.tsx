@@ -99,27 +99,73 @@ const routerLocation = useRouterLocation(); // 👈 add here
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
   const fetchEvents = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("events")
-      .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
-      .eq("status", "published")
-      .eq("category", "community")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching events:", error);
-    } else {
-      setEvents(data ?? []);
-    }
-    setLoading(false);
+    const today = new Date().toISOString().split("T")[0]; // "2026-03-23"
+
+    const { data, error } = await supabase
+  .from("events")
+  .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
+  .eq("status", "published")
+  .eq("category", "community")
+  .gte("date", today)
+  .order("created_at", { ascending: false });
+
+if (error) {
+  console.error("Error fetching events:", error);
+  setLoading(false);
+  return;
+}
+
+const ids = (data ?? []).map((e: any) => e.id);
+const { data: rsvpCounts } = await supabase
+  .from("rsvps")
+  .select("event_id")
+  .in("event_id", ids)
+  .eq("status", "going");
+
+const countMap: Record<string, number> = {};
+(rsvpCounts ?? []).forEach((r: any) => {
+  countMap[r.event_id] = (countMap[r.event_id] ?? 0) + 1;
+});
+
+setEvents((data ?? []).map((e: any) => ({
+  ...e,
+  attendees: countMap[e.id] ?? 0,
+})));
+setLoading(false);
   }, []);
 
   
 
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents, routerLocation]);
+  }, [fetchEvents, routerLocation.pathname]);
 
+useEffect(() => {
+  window.addEventListener("focus", fetchEvents);
+  return () => window.removeEventListener("focus", fetchEvents);
+}, [fetchEvents]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("events-attendees")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "events" },
+        (payload) => {
+          setEvents((prev) =>
+            prev.map((e) =>
+              e.id === payload.new.id ? { ...e, attendees: payload.new.attendees } : e
+            )
+          );
+        }
+      )
+      .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }, []);
+
+  
   useEffect(() => {
     if (!userId) return;
     const fetchSaved = async () => {
