@@ -22,7 +22,8 @@ const OnboardingAge = () => {
 
   const handleAgeNext = () => {
     if (!isAgeValid) return;
-    sessionStorage.setItem("onboarding_age", age);
+    localStorage.setItem("onboarding_age", age);
+    console.log("Saved age:", localStorage.getItem("onboarding_age"));
     setShowPreferences(true); // ageRange will be set by the useEffect below
   };
 
@@ -52,8 +53,9 @@ const OnboardingAge = () => {
   }, [ageRange]);
 
   const handleFinish = () => {
-    sessionStorage.setItem("onboarding_age_min", String(ageRange[0]));
-    sessionStorage.setItem("onboarding_age_max", String(ageRange[1]));
+    localStorage.setItem("onboarding_age_min", String(ageRange[0]));
+    localStorage.setItem("onboarding_age_max", String(ageRange[1]));
+    console.log("Saved age range:", ageRange[0], ageRange[1]);
     navigate("/onboarding/ward");
   };
 

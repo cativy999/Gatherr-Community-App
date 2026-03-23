@@ -246,7 +246,7 @@ const Wards = () => {
                         onClick={(e) => toggleSaved(event.id, e)}
                         className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
                       >
-                        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
+                        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-[rgb(172,42,42)] fill-current" : "text-foreground"}`} />
                       </button>
                     </div>
                     <div className="p-3 space-y-2">

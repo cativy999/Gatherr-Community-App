@@ -29,6 +29,8 @@ const Profile = () => {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [ward, setWard] = useState("");
+  const [age, setAge] = useState<string>("");
+  const [tempAge, setTempAge] = useState<string>("");
   const [ageRange, setAgeRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
 
   const [editing, setEditing] = useState<string | null>(null);
@@ -47,22 +49,19 @@ const Profile = () => {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("name, location, ward, preferred_age_min, preferred_age_max, avatar_url")
+        .select("name, location, ward, preferred_age_min, preferred_age_max, avatar_url, age")
         .eq("user_id", user.id)
         .maybeSingle();
 
-  
       if (data) {
-        setName(data.name || user.user_metadata?.full_name || user.email || "");
+        setName(data.name ?? "");
         setLocation(data.location || "");
         setWard(data.ward || "");
+        setAge(data.age ? String(data.age) : "");
         const min = data.preferred_age_min ?? preferredAgeMin;
         const max = data.preferred_age_max ?? preferredAgeMax;
         setAgeRange([min, max]);
         setTempRange([min, max]);
-  
-      
-        
       }
     };
     fetchProfile();
@@ -104,6 +103,8 @@ const Profile = () => {
       setTempValue(name);
     } else if (field === "ward") {
       setTempValue(ward);
+    } else if (field === "age") {
+      setTempAge(age);
     }
     setEditing(field);
   };
@@ -122,6 +123,10 @@ const Profile = () => {
         await supabase.from("profiles").upsert({ user_id: user.id, ward: tempValue }, { onConflict: "user_id" });
         setWard(tempValue);
         toast.success("Ward updated!");
+      } else if (field === "age") {
+        await supabase.from("profiles").upsert({ user_id: user.id, age: parseInt(tempAge) }, { onConflict: "user_id" });
+        setAge(tempAge);
+        toast.success("Age updated!");
       } else if (field === "ageRange") {
         await supabase.from("profiles").upsert({
           user_id: user.id,
@@ -163,6 +168,7 @@ const Profile = () => {
 
   const fields = [
     { key: "name", label: "Name", value: name },
+    { key: "age", label: "Age", value: age },
     { key: "location", label: "Location", value: location },
     { key: "ward", label: "LDS Ward", value: ward },
     { key: "ageRange", label: "Age Range", value: `${ageRange[0]}–${ageRange[1]}` },
@@ -182,7 +188,7 @@ const Profile = () => {
           {/* Avatar + Name */}
           <div className="flex flex-col items-center space-y-4 text-center">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={avatar} />
+              <AvatarImage src={avatar} referrerPolicy="no-referrer" />
               <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
             </Avatar>
             <div>
@@ -206,7 +212,7 @@ const Profile = () => {
 
                     {key === "ageRange" && (
                       <div className="space-y-3">
-                       <div className="relative flex justify-between mb-2" style={{
+                        <div className="relative flex justify-between mb-2" style={{
                           paddingLeft: `${((tempRange[0] - 18) / 62) * 100}%`,
                           paddingRight: `${((80 - tempRange[1]) / 62) * 100}%`,
                         }}>
@@ -251,6 +257,19 @@ const Profile = () => {
                         value={tempValue}
                         onChange={(e) => setTempValue(e.target.value)}
                         className="h-10 text-sm"
+                        autoFocus
+                      />
+                    )}
+
+                    {key === "age" && (
+                      <Input
+                        type="number"
+                        value={tempAge}
+                        onChange={(e) => setTempAge(e.target.value)}
+                        placeholder="Enter your age"
+                        className="h-10 text-sm"
+                        min={13}
+                        max={120}
                         autoFocus
                       />
                     )}

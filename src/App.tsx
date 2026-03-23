@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
+import ResetPassword from "./pages/ResetPassword";
 import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingWard from "./pages/OnboardingWard";
 import Home from "./pages/Home";
@@ -33,8 +34,15 @@ const AuthListener = () => {
   useEffect(() => {
     if (loading) return;
     if (hasNavigated.current) return;
+  
+    // Don't redirect if we're on reset-password page (with or without hash)
+    const isResetPage = window.location.pathname === "/reset-password" ||
+      window.location.hash.includes("type=recovery"); // ✅ catches the hash too
+  
+    if (isResetPage) return;
+  
     if (!session) return;
-
+  
     hasNavigated.current = true;
     supabase
       .from("profiles")
@@ -45,7 +53,8 @@ const AuthListener = () => {
         if (profile) {
           navigate("/home");
         } else {
-          navigate("/onboarding/name");        }
+          navigate("/onboarding/name");
+        }
       });
   }, [session, loading]);
 
@@ -77,6 +86,9 @@ const App = () => (
                 <Route path="/my-events" element={<MyEvents />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="*" element={<NotFound />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                
+
               </Routes>
             </BrowserRouter>
           </UserProfileProvider>

@@ -1,22 +1,91 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Users, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useState } from "react";
+
+type Step = "home" | "email" | "password" | "signup";
 
 const Welcome = () => {
-  const navigate = useNavigate();
+  const [step, setStep] = useState<Step>("home");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: "http://localhost:8080",
+        queryParams: { prompt: "select_account" },
       },
     });
     if (error) console.error("Google login error:", error.message);
   };
 
-  return (
+  const handleEmailContinue = async () => {
+    if (!email.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      // Check if user exists by trying to sign in with a dummy password
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: "check_only_dummy_12345",
+      });
+      // If error says "Invalid login credentials" → user exists, show password screen
+      // If error says "Email not confirmed" → user exists
+      // If no user → show signup screen
+      if (error?.message?.includes("Invalid login credentials") ||
+          error?.message?.includes("Email not confirmed")) {
+        setStep("password");
+      } else {
+        setStep("signup");
+      }
+    } catch {
+      setStep("signup");
+    }
+    setLoading(false);
+  };
+
+  const handleSignIn = async () => {
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setError("Incorrect password. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const handleSignUp = async () => {
+    setLoading(true);
+    setError("");
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: "http://localhost:8080" },
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setError("Check your email for a confirmation link!");
+    }
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    setLoading(true);
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "http://localhost:8080",
+    });
+    setError("Password reset email sent!");
+    setLoading(false);
+  };
+
+  // HOME SCREEN
+  if (step === "home") return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-md space-y-8">
         <div className="flex justify-center">
@@ -24,23 +93,12 @@ const Welcome = () => {
             <Users className="h-12 w-12 text-primary" strokeWidth={2} />
           </div>
         </div>
-
         <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Welcome to Local Connect
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Find and create local activities with your community.
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">Welcome to Gatherr</h1>
+          <p className="text-lg text-muted-foreground">Find and create local activities with your community.</p>
         </div>
-
         <div className="space-y-4 pt-8">
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full h-14 text-base border-2 bg-card hover:bg-accent"
-            onClick={handleGoogleLogin}
-          >
+          <Button variant="outline" size="lg" className="w-full h-14 text-base border-2 bg-card hover:bg-accent" onClick={handleGoogleLogin}>
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
               <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -49,25 +107,122 @@ const Welcome = () => {
             </svg>
             Continue with Gmail
           </Button>
-
-          <Button
-            size="lg"
-            className="w-full h-14 text-base font-semibold"
-            onClick={() => navigate("/onboarding/age")}
-          >
+          <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={() => setStep("email")}>
             Sign In with Email
           </Button>
         </div>
-
         <p className="text-center text-sm text-muted-foreground pt-4">
-          By continuing, you agree to our{" "}
-          <a href="#" className="underline">Terms of Service</a>{" "}
-          and{" "}
-          <a href="#" className="underline">Privacy Policy</a>.
+          By continuing, you agree to our <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
         </p>
       </div>
     </div>
   );
+
+  // EMAIL SCREEN
+  if (step === "email") return (
+    <div className="flex min-h-screen flex-col bg-background px-6 py-12">
+      <div className="w-full max-w-md mx-auto space-y-8">
+        <button onClick={() => setStep("home")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Enter your email</h1>
+          <p className="text-muted-foreground">We'll check if you have an account, or help you create one.</p>
+        </div>
+        <div className="space-y-4">
+          <Input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleEmailContinue()}
+            className="h-14 text-base"
+            autoFocus
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleEmailContinue} disabled={!email.trim() || loading}>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // PASSWORD / SIGN IN SCREEN
+  if (step === "password") return (
+    <div className="flex min-h-screen flex-col bg-background px-6 py-12">
+      <div className="w-full max-w-md mx-auto space-y-8">
+        <button onClick={() => { setStep("email"); setError(""); setPassword(""); }} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Welcome back</h1>
+          <p className="text-muted-foreground text-sm">Enter your password for <span className="font-medium text-foreground">{email}</span></p>
+        </div>
+        <div className="space-y-4">
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
+            className="h-14 text-base"
+            autoFocus
+          />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleSignIn} disabled={!password || loading}>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
+          </Button>
+          <div className="flex items-center justify-between text-sm">
+            <button onClick={handleForgotPassword} className="text-muted-foreground hover:text-foreground transition-colors">
+              Forgot password?
+            </button>
+            <button onClick={() => { setStep("signup"); setError(""); setPassword(""); }} className="text-muted-foreground hover:text-foreground transition-colors">
+              Don't have an account? <span className="underline font-medium text-foreground">Sign up</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // SIGN UP SCREEN
+  if (step === "signup") return (
+    <div className="flex min-h-screen flex-col bg-background px-6 py-12">
+      <div className="w-full max-w-md mx-auto space-y-8">
+        <button onClick={() => { setStep("email"); setError(""); setPassword(""); }} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Create account</h1>
+          <p className="text-muted-foreground text-sm">Set a password for <span className="font-medium text-foreground">{email}</span></p>
+        </div>
+        <div className="space-y-4">
+          <Input
+            type="password"
+            placeholder="Create a password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
+            className="h-14 text-base"
+            autoFocus
+          />
+          {error && <p className={`text-sm ${error.includes("Check your email") ? "text-green-600" : "text-destructive"}`}>{error}</p>}
+          <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleSignUp} disabled={!password || loading}>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Account"}
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button onClick={() => { setStep("password"); setError(""); setPassword(""); }} className="underline font-medium text-foreground">
+              Sign in
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  return null;
 };
 
 export default Welcome;

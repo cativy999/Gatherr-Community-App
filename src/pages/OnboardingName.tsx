@@ -11,7 +11,8 @@ const OnboardingName = () => {
   const handleNext = () => {
     if (firstName.trim()) {
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      sessionStorage.setItem("onboarding_name", fullName);
+      localStorage.setItem("onboarding_name", fullName);
+      console.log("Saved name:", localStorage.getItem("onboarding_name"));
       navigate("/onboarding/age");
     }
   };

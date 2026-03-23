@@ -10,12 +10,10 @@ const AuthContext = createContext<{ session: Session | null; loading: boolean }>
 const saveProfileFromSession = async (session: Session | null) => {
   if (!session?.user) return;
   const avatarUrl = session.user.user_metadata?.avatar_url;
-  const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
-  if (avatarUrl || name) {
+  if (avatarUrl) {
     await supabase.from("profiles").upsert({
       user_id: session.user.id,
-      ...(avatarUrl && { avatar_url: avatarUrl }),
-      ...(name && { name }),
+      avatar_url: avatarUrl,
     }, { onConflict: "user_id" });
   }
 };

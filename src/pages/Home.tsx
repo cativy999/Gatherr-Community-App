@@ -1,6 +1,5 @@
 import { Users, Heart, CalendarDays, ChevronDown, MapPin } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 import { useLocation } from "@/contexts/LocationContext";
@@ -8,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
+import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
+
 
 type Event = {
   id: string;
@@ -24,6 +25,7 @@ type Event = {
   lat: number | null;
   lng: number | null;
 };
+
 
 const timeFilters = [
   { id: "all", label: "All" },
@@ -54,7 +56,7 @@ const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: an
         onClick={(e) => toggleSaved(event.id, e)}
         className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
       >
-        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-red-500 fill-current" : "text-foreground"}`} />
+        <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-[rgb(172,42,42)] fill-current" : "text-foreground"}`} />
       </button>
     </div>
     <div className="p-3 space-y-2">
@@ -83,6 +85,7 @@ const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: an
 
 const Home = () => {
   const navigate = useNavigate();
+const routerLocation = useRouterLocation(); // 👈 add here
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [events, setEvents] = useState<Event[]>([]);
@@ -95,20 +98,27 @@ const Home = () => {
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
+  const fetchEvents = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
+      .eq("status", "published")
+      .eq("category", "community")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching events:", error);
+    } else {
+      setEvents(data ?? []);
+    }
+    setLoading(false);
+  }, []);
+
+  
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
-        .eq("status", "published")
-        .eq("category", "community")
-        .order("created_at", { ascending: false });
-      if (error) { console.error("Error fetching events:", error); }
-      else { setEvents(data ?? []); }
-      setLoading(false);
-    };
     fetchEvents();
-  }, [location]);
+  }, [fetchEvents, routerLocation]);
 
   useEffect(() => {
     if (!userId) return;

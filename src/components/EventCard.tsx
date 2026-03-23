@@ -70,7 +70,7 @@ const EventCard = ({ event }: EventCardProps) => {
             <Button
               variant="ghost"
               size="sm"
-              className={`ml-auto -mr-2 ${isSaved ? 'text-red-500' : 'text-muted-foreground'}`}
+              className={`ml-auto -mr-2 ${isSaved ? 'text-[rgb(172,42,42)]' : 'text-muted-foreground'}`}
               onClick={handleSaveClick}
             >
               <Heart className={`h-5 w-5 ${isSaved ? 'fill-current' : ''}`} />

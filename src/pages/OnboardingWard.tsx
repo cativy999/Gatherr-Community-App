@@ -14,10 +14,11 @@ const OnboardingWard = () => {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      const age = sessionStorage.getItem("onboarding_age");
-      const preferred_age_min = sessionStorage.getItem("onboarding_age_min");
-      const preferred_age_max = sessionStorage.getItem("onboarding_age_max");
-      const name = sessionStorage.getItem("onboarding_name");
+      const age = localStorage.getItem("onboarding_age");
+const preferred_age_min = localStorage.getItem("onboarding_age_min");
+const preferred_age_max = localStorage.getItem("onboarding_age_max");
+const name = localStorage.getItem("onboarding_name");
+console.log("Onboarding data:", { name, age, preferred_age_min, preferred_age_max });
 
       const { data, error } = await supabase.from("profiles").upsert({
         user_id: user.id,
@@ -29,7 +30,10 @@ const OnboardingWard = () => {
       }, { onConflict: 'user_id' });
 
       console.log("Supabase result:", data, error);
-      sessionStorage.clear();
+      localStorage.removeItem("onboarding_name");
+localStorage.removeItem("onboarding_age");
+localStorage.removeItem("onboarding_age_min");
+localStorage.removeItem("onboarding_age_max");
     }
 
     setLoading(false);
@@ -65,7 +69,7 @@ const OnboardingWard = () => {
         >
           {loading ? "Saving..." : "Get Started"}
         </Button>
-        <Button variant="ghost" size="lg" className="w-full h-14 text-base" onClick={() => navigate("/home")}>
+        <Button variant="ghost" size="lg" className="w-full h-14 text-base" onClick={handleNext}>
           Skip
         </Button>
       </div>

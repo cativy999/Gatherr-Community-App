@@ -401,7 +401,7 @@ const EventDetails = () => {
           <Button
             variant="ghost"
             size="icon"
-            className={isSaved ? "text-red-500" : ""}
+            className={isSaved ? "text-[rgb(172,42,42)]" : ""}
             onClick={handleSave}
             disabled={saveLoading}
           >
@@ -538,7 +538,7 @@ const EventDetails = () => {
             </button>
             <div className="flex items-center gap-2 py-2 text-sm font-semibold">
               <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFD6D6' }}>
-                <Heart className={`w-4 h-4 ${isSaved ? 'text-red-500 fill-current' : 'text-black'}`} />
+                <Heart className={`w-4 h-4 ${isSaved ? 'text-[rgb(172,42,42)] fill-current' : 'text-black'}`} />
               </div>
               <span className="font-bold">{likeCount}</span> Liked
             </div>
@@ -626,7 +626,7 @@ const EventDetails = () => {
                           {c.user_id === userId && (
                             <button
                               onClick={() => handleDeleteComment(c.id, c.user_id)}
-                              className="text-muted-foreground hover:text-red-500 transition-colors"
+                              className="text-muted-foreground hover:rgb(172 42 42) transition-colors"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
