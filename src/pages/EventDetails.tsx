@@ -572,19 +572,19 @@ const EventDetails = () => {
 
           {/* Event Location */}
           {event.address && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-bold">Event Location</h2>
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 p-2 rounded-full bg-secondary">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{event.location}</p>
-                  <p className="text-sm text-muted-foreground">{event.address}</p>
-                </div>
-              </div>
-            </div>
-          )}
+  <div className="space-y-3">
+    <h2 className="text-lg font-bold">Event Location</h2>
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 p-2 rounded-full bg-secondary">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-sm font-medium">{event.location}</p>
+        <p className="text-sm text-muted-foreground">{event.address}</p>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Comments */}
           <div className="space-y-6 pt-4">
