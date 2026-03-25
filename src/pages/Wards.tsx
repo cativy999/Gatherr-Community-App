@@ -52,6 +52,8 @@ const Wards = () => {
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
+  const cityName = location.split(",")[0].trim();
+
   useEffect(() => {
     const fetchEvents = async () => {
       const today = new Date().toISOString().split("T")[0];
@@ -105,7 +107,6 @@ const Wards = () => {
     if (!userId) { toast.error("Please log in to save events"); return; }
 
     const isSaved = savedEvents.has(id);
-
     if (isSaved) {
       await supabase.from("saved_events").delete()
         .eq("event_id", id).eq("user_id", userId);
@@ -131,19 +132,30 @@ const Wards = () => {
   const filteredEvents = useMemo(() => {
     let result = [...events];
 
+    // 1. Filter by city
+    if (location !== "Everywhere" && cityName) {
+      result = result.filter((e) =>
+        e.location?.toLowerCase().includes(cityName.toLowerCase())
+      );
+    }
+
+    // 2. Filter by age preference
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
 
+    // 3. Filter by ward type
     if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
 
+    // 4. Filter free
     if (sortBy === "free") {
       result = result.filter((e) => e.is_free);
     }
 
+    // 5. Sort
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
         const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
@@ -157,7 +169,7 @@ const Wards = () => {
     });
 
     return result;
-  }, [events, activeFilter, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
+  }, [events, activeFilter, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
 
   const groupEventsByTime = (evts: Event[]) => {
     const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
@@ -178,6 +190,17 @@ const Wards = () => {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
   };
+
+  const EmptySection = ({ label, isThisWeek, nextWeekHasEvents }: { label: string; isThisWeek?: boolean; nextWeekHasEvents?: boolean }) => (
+    <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center space-y-1">
+      <p className="text-sm font-medium text-muted-foreground">
+        No events in {location === "Everywhere" ? "your area" : cityName} {label.toLowerCase()}
+      </p>
+      {isThisWeek && nextWeekHasEvents && (
+        <p className="text-xs text-muted-foreground">Check out upcoming events below ↓</p>
+      )}
+    </div>
+  );
 
   const EventCard = ({ event }: { event: Event }) => (
     <div
@@ -201,9 +224,12 @@ const Wards = () => {
       </div>
       <div className="p-3 space-y-2">
         <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <CalendarDays className="h-3 w-3 flex-shrink-0" />
-          <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
+        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+          <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
+          <span>
+            {new Date(event.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+            {event.time ? ` • ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+          </span>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3 flex-shrink-0" />
@@ -222,6 +248,8 @@ const Wards = () => {
       </div>
     </div>
   );
+
+  const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
@@ -285,43 +313,40 @@ const Wards = () => {
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
           ) : (
-            (() => {
-              const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
-              return (
-                <div className="space-y-8">
-                  {thisWeek.length > 0 && (
-                    <div className="space-y-3">
-                      <h2 className="text-base font-bold">This Week</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {thisWeek.map((event) => <EventCard key={event.id} event={event} />)}
-                      </div>
-                    </div>
-                  )}
-                  {nextWeek.length > 0 && (
-                    <div className="space-y-3">
-                      <h2 className="text-base font-bold">Next Week</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {nextWeek.map((event) => <EventCard key={event.id} event={event} />)}
-                      </div>
-                    </div>
-                  )}
-                  {later.length > 0 && (
-                    <div className="space-y-3">
-                      <h2 className="text-base font-bold">Later</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {later.map((event) => <EventCard key={event.id} event={event} />)}
-                      </div>
-                    </div>
-                  )}
-                  {filteredEvents.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <p className="text-lg font-medium">No activities found</p>
-                      <p className="text-sm mt-1">Try a different filter</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })()
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <h2 className="text-base font-bold">This Week</h2>
+                {thisWeek.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {thisWeek.map((event) => <EventCard key={event.id} event={event} />)}
+                  </div>
+                ) : (
+                  <EmptySection label="This Week" isThisWeek nextWeekHasEvents={nextWeek.length > 0} />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-base font-bold">Next Week</h2>
+                {nextWeek.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {nextWeek.map((event) => <EventCard key={event.id} event={event} />)}
+                  </div>
+                ) : (
+                  <EmptySection label="Next Week" />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-base font-bold">Later</h2>
+                {later.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {later.map((event) => <EventCard key={event.id} event={event} />)}
+                  </div>
+                ) : (
+                  <EmptySection label="Later" />
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>

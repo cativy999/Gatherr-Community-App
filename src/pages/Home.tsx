@@ -9,7 +9,6 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
 import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
-
 type Event = {
   id: string;
   title: string;
@@ -25,7 +24,6 @@ type Event = {
   lat: number | null;
   lng: number | null;
 };
-
 
 const timeFilters = [
   { id: "all", label: "All" },
@@ -61,10 +59,14 @@ const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: an
     </div>
     <div className="p-3 space-y-2">
       <h3 className="font-semibold text-base leading-tight">{event.title}</h3>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <CalendarDays className="h-3 w-3 flex-shrink-0" />
-        <span>{formatDate(event.date)}{event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</span>
-      </div>
+      <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+  <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
+  <span>
+    {new Date(event.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+    {event.time ? ` • ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+  </span>
+</div>
+
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
         <MapPin className="h-3 w-3 flex-shrink-0" />
         <span className="line-clamp-1">{event.location}</span>
@@ -83,9 +85,18 @@ const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: an
   </div>
 );
 
+const EmptySection = ({ label, city, isThisWeek, nextWeekHasEvents }: { label: string; city: string; isThisWeek?: boolean; nextWeekHasEvents?: boolean }) => (
+  <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center space-y-1">
+    <p className="text-sm font-medium text-muted-foreground">No events in {city} {label.toLowerCase()}</p>
+    {isThisWeek && nextWeekHasEvents && (
+      <p className="text-xs text-muted-foreground">Check out upcoming events below ↓</p>
+    )}
+  </div>
+);
+
 const Home = () => {
   const navigate = useNavigate();
-const routerLocation = useRouterLocation(); // 👈 add here
+  const routerLocation = useRouterLocation();
   const { session } = useAuth();
   const userId = session?.user?.id;
   const [events, setEvents] = useState<Event[]>([]);
@@ -98,74 +109,57 @@ const routerLocation = useRouterLocation(); // 👈 add here
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
+  // Extract city name from location string (e.g. "Torrance, California" → "Torrance")
+  const cityName = location.split(",")[0].trim();
+
   const fetchEvents = useCallback(async () => {
-
-    const today = new Date().toISOString().split("T")[0]; // "2026-03-23"
-
+    const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
-  .from("events")
-  .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
-  .eq("status", "published")
-  .eq("category", "community")
-  .gte("date", today)
-  .order("created_at", { ascending: false });
+      .from("events")
+      .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng")
+      .eq("status", "published")
+      .eq("category", "community")
+      .gte("date", today)
+      .order("created_at", { ascending: false });
 
-if (error) {
-  console.error("Error fetching events:", error);
-  setLoading(false);
-  return;
-}
+    if (error) {
+      console.error("Error fetching events:", error);
+      setLoading(false);
+      return;
+    }
 
-const ids = (data ?? []).map((e: any) => e.id);
-const { data: rsvpCounts } = await supabase
-  .from("rsvps")
-  .select("event_id")
-  .in("event_id", ids)
-  .eq("status", "going");
+    const ids = (data ?? []).map((e: any) => e.id);
+    const { data: rsvpCounts } = await supabase
+      .from("rsvps")
+      .select("event_id")
+      .in("event_id", ids)
+      .eq("status", "going");
 
-const countMap: Record<string, number> = {};
-(rsvpCounts ?? []).forEach((r: any) => {
-  countMap[r.event_id] = (countMap[r.event_id] ?? 0) + 1;
-});
+    const countMap: Record<string, number> = {};
+    (rsvpCounts ?? []).forEach((r: any) => {
+      countMap[r.event_id] = (countMap[r.event_id] ?? 0) + 1;
+    });
 
-setEvents((data ?? []).map((e: any) => ({
-  ...e,
-  attendees: countMap[e.id] ?? 0,
-})));
-setLoading(false);
+    setEvents((data ?? []).map((e: any) => ({ ...e, attendees: countMap[e.id] ?? 0 })));
+    setLoading(false);
   }, []);
 
-  
-
+  useEffect(() => { fetchEvents(); }, [fetchEvents, routerLocation.pathname]);
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents, routerLocation.pathname]);
-
-useEffect(() => {
-  window.addEventListener("focus", fetchEvents);
-  return () => window.removeEventListener("focus", fetchEvents);
-}, [fetchEvents]);
+    window.addEventListener("focus", fetchEvents);
+    return () => window.removeEventListener("focus", fetchEvents);
+  }, [fetchEvents]);
 
   useEffect(() => {
     const channel = supabase
       .channel("events-attendees")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "events" },
-        (payload) => {
-          setEvents((prev) =>
-            prev.map((e) =>
-              e.id === payload.new.id ? { ...e, attendees: payload.new.attendees } : e
-            )
-          );
-        }
-      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "events" }, (payload) => {
+        setEvents((prev) => prev.map((e) => e.id === payload.new.id ? { ...e, attendees: payload.new.attendees } : e));
+      })
       .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
-      return () => { supabase.removeChannel(channel); };
-    }, []);
-
-  
   useEffect(() => {
     if (!userId) return;
     const fetchSaved = async () => {
@@ -194,21 +188,32 @@ useEffect(() => {
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng/2) * Math.sin(dLng/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
   const filteredEvents = useMemo(() => {
     let result = [...events];
+
+   // 1. Filter by city
+if (location !== "Everywhere" && cityName) {
+  result = result.filter((e) =>
+    e.location?.toLowerCase().includes(cityName.toLowerCase())
+  );
+}
+    // 2. Filter by age preference
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
+
+    // 3. Filter by time
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     const weekendStart = new Date(today); weekendStart.setDate(today.getDate() + (6 - today.getDay()));
+
     if (activeTimeFilter === "today") {
       result = result.filter((e) => { const d = new Date(e.date); return d >= today && d < tomorrow; });
     } else if (activeTimeFilter === "tomorrow") {
@@ -216,7 +221,11 @@ useEffect(() => {
     } else if (activeTimeFilter === "weekend") {
       result = result.filter((e) => { const d = new Date(e.date); return d >= weekendStart; });
     }
+
+    // 4. Filter free
     if (freeOnly) result = result.filter((e) => e.is_free);
+
+    // 5. Sort
     if (sortBy === "latest") {
       result.sort((a, b) => {
         if (locationLat && locationLng && a.lat && b.lat) {
@@ -229,8 +238,9 @@ useEffect(() => {
     } else if (sortBy === "free") {
       result = result.filter((e) => e.is_free);
     }
+
     return result;
-  }, [events, activeTimeFilter, freeOnly, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax]);
+  }, [events, activeTimeFilter, freeOnly, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax, cityName]);
 
   const groupEventsByTime = (evts: Event[]) => {
     const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
@@ -331,42 +341,47 @@ useEffect(() => {
                 const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
                 return (
                   <>
-                    {thisWeek.length > 0 && (
-                      <div className="space-y-3">
-                        <h2 className="text-base font-bold">This Week</h2>
+                    {/* This Week */}
+                    <div className="space-y-3">
+                      <h2 className="text-base font-bold">This Week</h2>
+                      {thisWeek.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {thisWeek.map((event) => (
                             <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
                           ))}
                         </div>
-                      </div>
-                    )}
-                    {nextWeek.length > 0 && (
-                      <div className="space-y-3">
-                        <h2 className="text-base font-bold">Next Week</h2>
+                      ) : (
+                        <EmptySection label="This Week" city={cityName} isThisWeek nextWeekHasEvents={nextWeek.length > 0} />
+                      )}
+                    </div>
+
+                    {/* Next Week */}
+                    <div className="space-y-3">
+                      <h2 className="text-base font-bold">Next Week</h2>
+                      {nextWeek.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {nextWeek.map((event) => (
                             <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
                           ))}
                         </div>
-                      </div>
-                    )}
-                    {later.length > 0 && (
-                      <div className="space-y-3">
-                        <h2 className="text-base font-bold">Later</h2>
+                      ) : (
+                        <EmptySection label="Next Week" city={cityName} />
+                      )}
+                    </div>
+
+                    {/* Later */}
+                    <div className="space-y-3">
+                      <h2 className="text-base font-bold">Later</h2>
+                      {later.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {later.map((event) => (
                             <EventCard key={event.id} event={event} savedEvents={savedEvents} toggleSaved={toggleSaved} navigate={navigate} formatDate={formatDate} />
                           ))}
                         </div>
-                      </div>
-                    )}
-                    {filteredEvents.length === 0 && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <p className="text-lg font-medium">No events found</p>
-                        <p className="text-sm mt-1">Try a different filter</p>
-                      </div>
-                    )}
+                      ) : (
+                        <EmptySection label="Later" city={cityName} />
+                      )}
+                    </div>
                   </>
                 );
               })()}
@@ -380,8 +395,8 @@ useEffect(() => {
               </div>
               {filteredEvents.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                  <p className="text-lg font-medium">No events found</p>
-                  <p className="text-sm mt-1">Try a different filter</p>
+                  <p className="text-lg font-medium">No events in {cityName}</p>
+                  <p className="text-sm mt-1">Try a different filter or city</p>
                 </div>
               )}
             </>

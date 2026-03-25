@@ -68,7 +68,7 @@ const App = () => (
         <LocationProvider>
           <UserProfileProvider>
             <Toaster />
-            <Sonner />
+            <Sonner duration={1400} />
             <BrowserRouter>
               <AuthListener />
               <Routes>

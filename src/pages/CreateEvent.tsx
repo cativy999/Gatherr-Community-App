@@ -456,7 +456,7 @@ const CreateEvent = () => {
                 </label>
                 <Input
                   type="date"
-                  className="h-12 text-base"
+                  className="h-12 text-base w-full block"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />

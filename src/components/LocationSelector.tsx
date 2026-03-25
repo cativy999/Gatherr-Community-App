@@ -1,4 +1,4 @@
-import { MapPin, Search, X, Loader2 } from "lucide-react";
+import { MapPin, Search, X, Loader2, Globe } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "@/contexts/LocationContext";
 
@@ -8,7 +8,8 @@ interface LocationSelectorProps {
 }
 
 const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
-  const { setLocationCoords, userGpsLat, userGpsLng } = useLocation();
+  const { setLocationCoords, clearLocation } = useLocation();
+const isEverywhere = value === "Everywhere";
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
@@ -16,6 +17,27 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleEverywhere = () => {
+    clearLocation();
+    onChange("Everywhere");
+    setIsOpen(false);
+    setSearch("");
+    setResults([]);
+  };
+
+  const preventZoom = () => {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0');
+    }
+  };
+  
+  const resetZoom = () => {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes');
+    }
+  };
 
   useEffect(() => {
     if (isOpen && inputRef.current) inputRef.current.focus();
@@ -40,11 +62,8 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const biasParams = userGpsLat && userGpsLng
-          ? `&viewbox=${userGpsLng - 5},${userGpsLat + 5},${userGpsLng + 5},${userGpsLat - 5}&bounded=0`
-          : "";
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6${biasParams}`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6`,
           { headers: { "Accept-Language": "en" } }
         );
         const data = await res.json();
@@ -74,12 +93,25 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors text-sm font-medium"
-      >
-        <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-        <span className="truncate max-w-[120px]">{value}</span>
+     <button
+  onClick={() => {
+    preventZoom(); // 👈 add this BEFORE setIsOpen
+    setIsOpen(!isOpen);
+  }}
+  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors text-sm font-medium"
+>
+{isEverywhere ? (
+  <Globe className="h-4 w-4 text-primary flex-shrink-0" />
+) : (
+  <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+)}
+<span className="truncate max-w-[120px]">{value}</span>
+{!isEverywhere && (
+  <X
+    className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
+    onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
+  />
+)}
       </button>
 
       {isOpen && (
@@ -93,7 +125,10 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
                 placeholder="Search any city..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-accent text-sm outline-none placeholder:text-muted-foreground"
+                onFocus={preventZoom}
+                onBlur={resetZoom}
+                style={{ fontSize: '16px' }}
+                className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-accent text-base outline-none placeholder:text-muted-foreground"
               />
               {search && (
                 <button onClick={() => { setSearch(""); setResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -104,15 +139,7 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
           </div>
 
           <div className="max-h-48 overflow-y-auto">
-            {searching && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {!searching && search && results.length === 0 && (
-              <div className="px-4 py-3 text-sm text-muted-foreground text-center">No locations found</div>
-            )}
-            {!searching && !search && (
+               {searching && (
               <div className="px-4 py-3 text-sm text-muted-foreground text-center">Type to search any city</div>
             )}
             {!searching && results.map((loc) => (
@@ -133,6 +160,17 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
                 {loc.label}
               </button>
             ))}
+
+            {/* Everywhere pinned at bottom */}
+            <button
+              onClick={handleEverywhere}
+              className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-t border-border ${
+                isEverywhere ? "text-primary font-semibold" : "text-foreground"
+              }`}
+            >
+              <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              Everywhere
+            </button>
           </div>
         </div>
       )}

@@ -36,6 +36,8 @@ const EventDetails = () => {
   const [goingListOpen, setGoingListOpen] = useState(false);
   const [goingListLoading, setGoingListLoading] = useState(false);
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
+  const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
+
 
   // ── Fetch event + creator ──────────────────────────────────────────────────
   useEffect(() => {
@@ -545,8 +547,7 @@ const EventDetails = () => {
           </div>
 
           {/* Description */}
-          <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description)}</p>
-
+          <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
           {/* Posted by */}
           {creatorName && (
             <div className="flex items-center gap-2 pt-1">
@@ -619,45 +620,69 @@ const EventDetails = () => {
                       </div>
                     )}
                     <div className="flex-1 bg-card rounded-2xl p-3 border border-border">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-sm">{c.author}</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
-                          {c.user_id === userId && (
-                            <button
-                              onClick={() => handleDeleteComment(c.id, c.user_id)}
-                              className="text-muted-foreground hover:rgb(172 42 42) transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{c.content}</p>
-                      {/* Reactions */}
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => {
-                          const emojiReactions = (reactions[c.id] || []).filter((r) => r.emoji === emoji);
-                          const hasReacted = emojiReactions.some((r) => r.user_id === userId);
-                          return (
-                            <button
-                              key={emoji}
-                              onClick={() => handleReaction(c.id, emoji)}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${
-                                hasReacted
-                                  ? "bg-primary/10 border-primary/30 font-semibold"
-                                  : "bg-accent/50 border-transparent hover:bg-accent"
-                              }`}
-                            >
-                              <span>{emoji}</span>
-                              {emojiReactions.length > 0 && (
-                                <span className="text-muted-foreground">{emojiReactions.length}</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+  <div className="flex items-center justify-between mb-0.5">
+    <p className="font-semibold text-sm">{c.author}</p>
+    <div className="flex items-center gap-2">
+      <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
+      {c.user_id === userId && (
+        <button
+          onClick={() => handleDeleteComment(c.id, c.user_id)}
+          className="text-muted-foreground transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  </div>
+  <p className="text-sm text-muted-foreground leading-snug">{c.content}</p>
+
+  {/* Reactions */}
+  <div className="flex items-center gap-1 mt-2 flex-wrap">
+    {/* Active reactions */}
+    {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => {
+      const emojiReactions = (reactions[c.id] || []).filter((r) => r.emoji === emoji);
+      if (emojiReactions.length === 0) return null;
+      const hasReacted = emojiReactions.some((r) => r.user_id === userId);
+      return (
+        <button
+          key={emoji}
+          onClick={() => handleReaction(c.id, emoji)}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${
+            hasReacted
+              ? "bg-primary/10 border-primary/30 font-semibold"
+              : "bg-accent/50 border-transparent hover:bg-accent"
+          }`}
+        >
+          <span>{emoji}</span>
+          <span className="text-muted-foreground">{emojiReactions.length}</span>
+        </button>
+      );
+    })}
+
+    {/* Smiley picker trigger */}
+    <div className="relative">
+      <button
+        onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)}
+        className="p-1 rounded-full hover:bg-accent transition-colors"
+      >
+        <Smile className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {openEmojiPicker === c.id && (
+        <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
+          {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }}
+              className="text-lg hover:scale-125 transition-transform"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
                   </div>
                 ))
               )}

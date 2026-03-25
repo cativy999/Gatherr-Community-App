@@ -68,4 +68,14 @@
     @apply bg-background text-foreground;
     font-family: 'Space Grotesk', sans-serif;
   }
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1rem) !important;
+  }
+  input[type="date"] {
+    color: inherit;
+    display: block;
+    width: 100%;
+  }
 }

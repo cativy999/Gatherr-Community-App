@@ -6,12 +6,13 @@ interface LocationContextType {
   locationLat: number | null;
   locationLng: number | null;
   setLocationCoords: (lat: number, lng: number) => void;
+  clearLocation: () => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 export const LocationProvider = ({ children }: { children: ReactNode }) => {
-  const [location, setLocation] = useState("San Diego, CA");
+  const [location, setLocation] = useState("Everywhere");
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
 
@@ -20,8 +21,13 @@ export const LocationProvider = ({ children }: { children: ReactNode }) => {
     setLocationLng(lng);
   };
 
+  const clearLocation = () => {
+    setLocation("Everywhere");
+    setLocationLat(null);
+    setLocationLng(null);
+  };
   return (
-    <LocationContext.Provider value={{ location, setLocation, locationLat, locationLng, setLocationCoords }}>
+    <LocationContext.Provider value={{ location, setLocation, locationLat, locationLng, setLocationCoords, clearLocation }}>
       {children}
     </LocationContext.Provider>
   );
