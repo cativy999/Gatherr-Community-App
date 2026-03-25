@@ -580,7 +580,7 @@ const EventDetails = () => {
       </div>
       <div className="space-y-0.5">
         <p className="text-sm font-medium">{event.location}</p>
-        <p className="text-sm text-muted-foreground">{event.address}</p>
+        <a href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">{event.address}</a>
       </div>
     </div>
   </div>
