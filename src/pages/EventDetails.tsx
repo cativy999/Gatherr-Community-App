@@ -439,10 +439,7 @@ const EventDetails = () => {
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span>
-                  {new Date(event.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  {event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })}` : ""}
-                </span>
+                <span>{(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); })()}</span>
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
