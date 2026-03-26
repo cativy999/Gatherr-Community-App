@@ -38,8 +38,7 @@ const EventDetails = () => {
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
 
-
-  // ── Fetch event + creator ──────────────────────────────────────────────────
+  // ── Fetch event + creator
   useEffect(() => {
     const fetchEvent = async () => {
       const { data, error } = await supabase
@@ -70,7 +69,7 @@ const EventDetails = () => {
     fetchEvent();
   }, [id]);
 
-  // ── Fetch RSVP counts ──────────────────────────────────────────────────────
+  // ── Fetch RSVP counts
   useEffect(() => {
     if (!id) return;
     const fetchCounts = async () => {
@@ -92,7 +91,7 @@ const EventDetails = () => {
     fetchCounts();
   }, [id]);
 
-  // ── Fetch current user's RSVP + saved status ──────────────────────────────
+  // ── Fetch current user's RSVP + saved status
   useEffect(() => {
     if (!id || !userId) return;
 
@@ -117,7 +116,7 @@ const EventDetails = () => {
     fetchUserStatus();
   }, [id, userId]);
 
-  // ── Fetch like count ───────────────────────────────────────────────────────
+  // ── Fetch like count
   useEffect(() => {
     if (!id) return;
     const fetchLikes = async () => {
@@ -130,7 +129,7 @@ const EventDetails = () => {
     fetchLikes();
   }, [id]);
 
-  // ── Fetch comments ─────────────────────────────────────────────────────────
+  // ── Fetch comments
   useEffect(() => {
     if (!id) return;
     const fetchComments = async () => {
@@ -162,14 +161,13 @@ const EventDetails = () => {
     fetchComments();
   }, [id]);
 
-  // ── Fetch going list ───────────────────────────────────────────────────────
   const fetchReactions = async (commentIds: string[]) => {
     if (commentIds.length === 0) return;
     const { data } = await supabase
       .from("comment_reactions")
       .select("*")
       .in("comment_id", commentIds);
-    
+
     const grouped: Record<string, any[]> = {};
     (data ?? []).forEach((r: any) => {
       if (!grouped[r.comment_id]) grouped[r.comment_id] = [];
@@ -177,6 +175,7 @@ const EventDetails = () => {
     });
     setReactions(grouped);
   };
+
   const fetchGoingList = async () => {
     setGoingListLoading(true);
     const { data } = await supabase
@@ -198,7 +197,6 @@ const EventDetails = () => {
     setGoingListLoading(false);
   };
 
-  // ── Sync going count ───────────────────────────────────────────────────────
   const syncGoingCount = async () => {
     const { count } = await supabase
       .from("rsvps")
@@ -212,7 +210,6 @@ const EventDetails = () => {
       .eq("id", id);
   };
 
-  // ── Handle RSVP ───────────────────────────────────────────────────────────
   const handleRsvp = async (status: "going" | "interested") => {
     if (!userId) { toast.error("Please log in to RSVP"); return; }
     setRsvpLoading(status);
@@ -246,7 +243,6 @@ const EventDetails = () => {
     }
   };
 
-  // ── Handle Save + Like (heart) ────────────────────────────────────────────
   const handleSave = async () => {
     if (!userId) { toast.error("Please log in to like events"); return; }
     setSaveLoading(true);
@@ -309,7 +305,6 @@ const EventDetails = () => {
     const anyExisting = reactions[commentId]?.find((r) => r.user_id === userId);
     const clickedSame = anyExisting?.emoji === emoji;
 
-    // Remove existing reaction if any
     if (anyExisting) {
       await supabase.from("comment_reactions").delete().eq("id", anyExisting.id);
       setReactions((prev) => ({
@@ -318,10 +313,8 @@ const EventDetails = () => {
       }));
     }
 
-    // If clicked same emoji → just toggle off, done
     if (clickedSame) return;
 
-    // Add new reaction
     const { data } = await supabase
       .from("comment_reactions")
       .insert({ comment_id: commentId, user_id: userId, emoji })
@@ -334,6 +327,7 @@ const EventDetails = () => {
       }));
     }
   };
+
   const handleDeleteComment = async (commentId: string, commentUserId: string) => {
     if (commentUserId !== userId) return;
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
@@ -545,6 +539,7 @@ const EventDetails = () => {
 
           {/* Description */}
           <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
+
           {/* Posted by */}
           {creatorName && (
             <div className="flex items-center gap-2 pt-1">
@@ -567,21 +562,62 @@ const EventDetails = () => {
           {/* Dashed divider */}
           <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
 
-          {/* Event Location */}
+          {/* ── Event Location ── */}
           {event.address && (
-  <div className="space-y-3">
-    <h2 className="text-lg font-bold">Event Location</h2>
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 p-2 rounded-full bg-secondary">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">{event.location}</p>
-        <a href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">{event.address}</a>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="space-y-3">
+              <h2 className="text-lg font-bold">Event Location</h2>
+
+              {event.lat && event.lng ? (
+                /* Entire card is a link to Google Maps */
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-2xl overflow-hidden border border-border relative"
+                >
+                  {/* Address pill overlay */}
+                  <div className="absolute top-3 left-3 right-3 z-10 bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate leading-tight">
+                        {event.address.split(",")[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {event.address.split(",").slice(1).join(",").trim()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Map — pointer-events none so clicks go to the <a> */}
+                  <iframe
+                    width="100%"
+                    height="220"
+                    style={{ border: 0, display: "block", pointerEvents: "none" }}
+                    loading="lazy"
+                    src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=16&output=embed`}
+                  />
+                </a>
+              ) : (
+                /* Fallback for older events without lat/lng */
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 p-2 rounded-full bg-secondary">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{event.location}</p>
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary underline"
+                    >
+                      {event.address}
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Comments */}
           <div className="space-y-6 pt-4">
@@ -617,69 +653,67 @@ const EventDetails = () => {
                       </div>
                     )}
                     <div className="flex-1 bg-card rounded-2xl p-3 border border-border">
-  <div className="flex items-center justify-between mb-0.5">
-    <p className="font-semibold text-sm">{c.author}</p>
-    <div className="flex items-center gap-2">
-      <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
-      {c.user_id === userId && (
-        <button
-          onClick={() => handleDeleteComment(c.id, c.user_id)}
-          className="text-muted-foreground transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  </div>
-  <p className="text-sm text-muted-foreground leading-snug">{c.content}</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="font-semibold text-sm">{c.author}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
+                          {c.user_id === userId && (
+                            <button
+                              onClick={() => handleDeleteComment(c.id, c.user_id)}
+                              className="text-muted-foreground transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-snug">{c.content}</p>
 
-  {/* Reactions */}
-  <div className="flex items-center gap-1 mt-2 flex-wrap">
-    {/* Active reactions */}
-    {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => {
-      const emojiReactions = (reactions[c.id] || []).filter((r) => r.emoji === emoji);
-      if (emojiReactions.length === 0) return null;
-      const hasReacted = emojiReactions.some((r) => r.user_id === userId);
-      return (
-        <button
-          key={emoji}
-          onClick={() => handleReaction(c.id, emoji)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${
-            hasReacted
-              ? "bg-primary/10 border-primary/30 font-semibold"
-              : "bg-accent/50 border-transparent hover:bg-accent"
-          }`}
-        >
-          <span>{emoji}</span>
-          <span className="text-muted-foreground">{emojiReactions.length}</span>
-        </button>
-      );
-    })}
+                      {/* Reactions */}
+                      <div className="flex items-center gap-1 mt-2 flex-wrap">
+                        {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => {
+                          const emojiReactions = (reactions[c.id] || []).filter((r) => r.emoji === emoji);
+                          if (emojiReactions.length === 0) return null;
+                          const hasReacted = emojiReactions.some((r) => r.user_id === userId);
+                          return (
+                            <button
+                              key={emoji}
+                              onClick={() => handleReaction(c.id, emoji)}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${
+                                hasReacted
+                                  ? "bg-primary/10 border-primary/30 font-semibold"
+                                  : "bg-accent/50 border-transparent hover:bg-accent"
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-muted-foreground">{emojiReactions.length}</span>
+                            </button>
+                          );
+                        })}
 
-    {/* Smiley picker trigger */}
-    <div className="relative">
-      <button
-        onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)}
-        className="p-1 rounded-full hover:bg-accent transition-colors"
-      >
-        <Smile className="h-4 w-4 text-muted-foreground" />
-      </button>
-      {openEmojiPicker === c.id && (
-        <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
-          {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }}
-              className="text-lg hover:scale-125 transition-transform"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-</div>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)}
+                            className="p-1 rounded-full hover:bg-accent transition-colors"
+                          >
+                            <Smile className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                          {openEmojiPicker === c.id && (
+                            <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
+                              {["❤️", "😢", "😮", "😂", "👍"].map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }}
+                                  className="text-lg hover:scale-125 transition-transform"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

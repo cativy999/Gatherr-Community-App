@@ -268,55 +268,92 @@ const CreateEvent = () => {
   </div>
             </div>
 
+    
             {/* Address */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Address
-                <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
-              </label>
+<div className="space-y-2">
+  <label className="text-sm font-medium flex items-center gap-2">
+    <MapPin className="h-4 w-4" />
+    Address
+    <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
+  </label>
+  <div className="relative" ref={locationRef}>
+    <Input
+      placeholder="Search for an address..."
+      className="h-12 text-base"
+      value={locationSearch}
+      onChange={(e) => {
+        setLocationSearch(e.target.value);
+        setLocation(e.target.value);
+        setAddress(e.target.value);
+        setLat(null); // clear map when typing
+        setLng(null);
+      }}
+      onFocus={() => setLocationOpen(true)}
+    />
+    {locationOpen && locationResults.length > 0 && (
+      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+        {locationSearching && (
+          <div className="flex items-center justify-center py-3">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {locationResults.map((result) => (
+          <button
+            key={result.display}
+            type="button"
+            onClick={() => {
+              setLocation(result.city);
+              setAddress(result.display);
+              setLocationSearch(result.display);
+              setLat(result.lat);
+              setLng(result.lng);
+              setLocationOpen(false);
+            }}
+            className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+          >
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            {result.display}
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
 
-              <div className="relative" ref={locationRef}>
-                <Input
-                  placeholder="Search for an address..."
-                  className="h-12 text-base"
-                  value={locationSearch}
-                  onChange={(e) => {
-                    setLocationSearch(e.target.value);
-                    setLocation(e.target.value);
-                    setAddress(e.target.value);
-                  }}
-                  onFocus={() => setLocationOpen(true)}
-                />
-                {locationOpen && locationResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                    {locationSearching && (
-                      <div className="flex items-center justify-center py-3">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                    {locationResults.map((result) => (
-                      <button
-                        key={result.display}
-                        type="button"
-                        onClick={() => {
-                          setLocation(result.city);
-                          setAddress(result.display);
-                          setLocationSearch(result.display);
-                          setLat(result.lat);
-                          setLng(result.lng);
-                          setLocationOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
-                      >
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                        {result.display}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+  {/* Map preview — shows after address is selected */}
+  {lat && lng && (
+    <div className="rounded-2xl overflow-hidden border border-border mt-2 relative">
+      {/* Address pill overlay */}
+      <div className="absolute top-3 left-3 right-10 z-10 bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold truncate leading-tight">
+            {address.split(",")[0]}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {address.split(",").slice(1).join(",").trim()}
+          </p>
+        </div>
+      </div>
+      {/* X to clear */}
+      <button
+        type="button"
+        onClick={() => { setLat(null); setLng(null); setAddress(""); setLocationSearch(""); setLocation(""); }}
+        className="absolute top-3 right-3 z-10 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition-colors"
+      >
+        <span className="text-gray-500 text-sm font-medium leading-none">✕</span>
+      </button>
+      {/* Google Maps iframe */}
+      <iframe
+        width="100%"
+        height="200"
+        style={{ border: 0, display: "block" }}
+        loading="lazy"
+        allowFullScreen
+        src={`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`}
+      />
+    </div>
+  )}
+</div>
 
             {/* Description */}
             <div className="space-y-2">
