@@ -13,6 +13,7 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const isGuest = !session;
 
   const [event, setEvent] = useState<any>(null);
   const [creatorName, setCreatorName] = useState<string | null>(null);
@@ -391,24 +392,36 @@ const EventDetails = () => {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-accent rounded-full transition-colors">
+        <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/home"); } }} className="p-2 hover:bg-accent rounded-full transition-colors">
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={isSaved ? "text-[rgb(172,42,42)]" : ""}
-            onClick={handleSave}
-            disabled={saveLoading}
-          >
-            <Heart className={`h-6 w-6 ${isSaved ? "fill-current" : ""}`} />
-          </Button>
+          {!isGuest && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={isSaved ? "text-[rgb(172,42,42)]" : ""}
+              onClick={handleSave}
+              disabled={saveLoading}
+            >
+              <Heart className={`h-6 w-6 ${isSaved ? "fill-current" : ""}`} />
+            </Button>
+          )}
         </div>
       </header>
 
       <main className="flex-1 px-6 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
 
+
+            {/* Guest banner */}
+            {isGuest && (
+            <div className="flex items-center justify-between bg-primary/10 px-4 py-3 rounded-2xl">
+              <p className="text-sm font-medium text-primary">👋 Join to RSVP and connect with others!</p>
+              <Button size="sm" className="rounded-full text-xs" onClick={() => navigate("/")}>
+                Log in
+              </Button>
+            </div>
+          )}
           {/* RSVP Status Banner */}
           {rsvpStatus && (
             <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-3 rounded-2xl">
@@ -623,22 +636,31 @@ const EventDetails = () => {
           <div className="space-y-6 pt-4">
             <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
             <h2 className="text-lg font-bold">Comments</h2>
-            <div className="space-y-3">
-              <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
-              <div className="flex gap-2">
-                {["📣", "🎉", "❤️", "😢", "😮"].map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setComment((prev) => prev + emoji)}
-                    className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors"
-                  >
-                    {emoji}
-                  </button>
-                ))}
+            {!isGuest ? (
+              <div className="space-y-3">
+                <Textarea placeholder="Write a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
+                <div className="flex gap-2">
+                  {["📣", "🎉", "❤️", "😢", "😮"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setComment((prev) => prev + emoji)}
+                      className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
               </div>
-              <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
-            </div>
+            ) : (
+              <button
+                onClick={() => navigate("/")}
+                className="w-full py-3 px-4 rounded-2xl border border-dashed border-border text-sm text-muted-foreground hover:bg-accent transition-colors text-center"
+              >
+                🔒 Log in to leave a comment
+              </button>
+            )}
             <div className="space-y-4">
               {comments.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
@@ -723,27 +745,35 @@ const EventDetails = () => {
         </div>
       </main>
 
-      {/* Sticky RSVP Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-10">
-        <div className="grid grid-cols-2 gap-3 max-w-4xl mx-auto">
-          <Button
-            variant={rsvpStatus === "going" ? "default" : "outline"}
-            size="lg"
-            className="rounded-full"
-            disabled={!!rsvpLoading}
-            onClick={() => handleRsvp("going")}
-          >
-            {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Going"}
-          </Button>
-          <Button
-            variant={rsvpStatus === "interested" ? "default" : "outline"}
-            size="lg"
-            className="rounded-full"
-            disabled={!!rsvpLoading}
-            onClick={() => handleRsvp("interested")}
-          >
-            {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
-          </Button>
+     {/* Sticky RSVP Bar */}
+     <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-10">
+        <div className="max-w-4xl mx-auto">
+          {isGuest ? (
+            <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
+              Log in to RSVP & join the fun 🎉
+            </Button>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={rsvpStatus === "going" ? "default" : "outline"}
+                size="lg"
+                className="rounded-full"
+                disabled={!!rsvpLoading}
+                onClick={() => handleRsvp("going")}
+              >
+                {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Going"}
+              </Button>
+              <Button
+                variant={rsvpStatus === "interested" ? "default" : "outline"}
+                size="lg"
+                className="rounded-full"
+                disabled={!!rsvpLoading}
+                onClick={() => handleRsvp("interested")}
+              >
+                {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

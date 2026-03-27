@@ -32,8 +32,8 @@ const AuthListener = () => {
   const hasNavigated = useRef(false);
 
   useEffect(() => {
+    console.log("AuthListener fired:", { loading, session: !!session, hasNavigated: hasNavigated.current });
     if (loading) return;
-    if (hasNavigated.current) return;
   
     // Don't redirect if we're on reset-password page (with or without hash)
     const isResetPage = window.location.pathname === "/reset-password" ||
@@ -42,6 +42,8 @@ const AuthListener = () => {
     if (isResetPage) return;
   
     if (!session) return;
+    if (hasNavigated.current) return;
+
   
     hasNavigated.current = true;
     supabase
@@ -49,8 +51,11 @@ const AuthListener = () => {
       .select("user_id")
       .eq("user_id", session.user.id)
       .single()
-      .then(({ data: profile }) => {
+      .then(({ data: profile, error }) => {
+        console.log("Profile check:", { profile, error }); // 👈 add this line
         if (profile) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== "/") return; // already on the right page
           navigate("/home");
         } else {
           navigate("/onboarding/name");

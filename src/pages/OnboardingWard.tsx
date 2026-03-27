@@ -27,6 +27,7 @@ console.log("Onboarding data:", { name, age, preferred_age_min, preferred_age_ma
         preferred_age_min: preferred_age_min ? parseInt(preferred_age_min) : null,
         preferred_age_max: preferred_age_max ? parseInt(preferred_age_max) : null,
         ward: ward.trim() || null,
+        avatar_url: user.user_metadata?.avatar_url || null, //
       }, { onConflict: 'user_id' });
 
       console.log("Supabase result:", data, error);

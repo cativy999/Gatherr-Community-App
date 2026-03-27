@@ -8,8 +8,8 @@ type Step = "home" | "email" | "sent";
 
 const Welcome = () => {
   const [step, setStep] = useState<Step>("home");
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState(localStorage.getItem("last_used_email") || "");
+    const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleGoogleLogin = async () => {
@@ -34,6 +34,7 @@ const Welcome = () => {
     if (error) {
       setError(error.message);
     } else {
+      localStorage.setItem("last_used_email", email);
       setStep("sent");
     }
     setLoading(false);
@@ -100,6 +101,7 @@ const Welcome = () => {
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMagicLink()}
             className="h-14 text-base"
+            autoComplete="email" 
             autoFocus
           />
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -129,7 +131,7 @@ const Welcome = () => {
           <h1 className="text-3xl font-bold">Check your email</h1>
           <p className="text-muted-foreground">We sent a magic link to</p>
           <p className="font-semibold text-foreground">{email}</p>
-          <p className="text-sm text-muted-foreground pt-2">Click the link in the email to sign in. It may take a few seconds to arrive.</p>
+          <p className="text-sm text-muted-foreground pt-2">Click the link in the email to sign in. If you don't see it, check your spam or junk folder📬.</p>
         </div>
         <button
           onClick={() => { setStep("email"); setError(""); }}

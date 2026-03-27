@@ -62,9 +62,9 @@ const EventCard = ({ event, savedEvents, toggleSaved, navigate, formatDate }: an
       <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
   <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
   <span>
-    {new Date(event.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-    {event.time ? ` • ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
-  </span>
+  {(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); })()}
+  {event.time ? ` • ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+</span>
 </div>
 
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -259,8 +259,10 @@ if (location !== "Everywhere" && cityName) {
   };
 
   const currentSort = sortOptions.find((s) => s.id === sortBy);
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
-
+  const formatDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  };
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
 

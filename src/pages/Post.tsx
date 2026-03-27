@@ -31,7 +31,8 @@ const groupEventsByTime = (events: Event[]) => {
   const later: Event[] = [];
 
   events.forEach((event) => {
-    const eventDate = new Date(event.date);
+    const [y,m,d] = event.date.split("-").map(Number);
+const eventDate = new Date(y, m-1, d);
     if (eventDate <= endOfWeek) thisWeek.push(event);
     else if (eventDate <= endOfNextWeek) nextWeek.push(event);
     else later.push(event);
@@ -69,7 +70,8 @@ const Post = () => {
   }, [session]);
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+    const [y,m,d] = dateStr.split("-").map(Number);
+    return new Date(y, m-1, d).toLocaleDateString("en-US", { month: "long", day: "numeric" });
   };
 
   const EventCard = ({ event }: { event: Event }) => (

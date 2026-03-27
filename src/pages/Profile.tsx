@@ -62,6 +62,12 @@ const Profile = () => {
         const max = data.preferred_age_max ?? preferredAgeMax;
         setAgeRange([min, max]);
         setTempRange([min, max]);
+        // 👇 Auto-save Google avatar if missing
+      if (!data.avatar_url && user.user_metadata?.avatar_url) {
+        await supabase.from("profiles")
+          .update({ avatar_url: user.user_metadata.avatar_url })
+          .eq("user_id", user.id);
+      }
       }
     };
     fetchProfile();
