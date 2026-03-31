@@ -25,7 +25,8 @@ const groupEventsByTime = (events: any[]) => {
   const later: any[] = [];
 
   events.forEach((event) => {
-    const eventDate = new Date(event.date);
+    const [y,m,d] = event.date.split("-").map(Number);
+const eventDate = new Date(y, m-1, d);
     if (eventDate <= endOfWeek) thisWeek.push(event);
     else if (eventDate <= endOfNextWeek) nextWeek.push(event);
     else later.push(event);

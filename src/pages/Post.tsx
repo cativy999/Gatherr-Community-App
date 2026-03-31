@@ -1,10 +1,11 @@
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, PenLine, CheckCircle2, PlusCircle } from "lucide-react";
+import { CalendarDays, PenLine, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 type Event = {
   id: string;
@@ -126,21 +127,49 @@ const Post = () => {
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-6">
 
-          <Button
-            size="lg"
-            className="w-full h-14 text-base font-semibold rounded-2xl"
-            onClick={() => navigate("/create-event")}
-          >
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Create New Event
-          </Button>
+        <div className="space-y-2">
+  <h2 className="text-lg font-bold">Create Events</h2>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    {/* Single Event */}
+    <button
+      onClick={() => navigate("/create-event")}
+      className="bg-card border border-border rounded-3xl p-6 flex flex-col items-center gap-3 hover:shadow-lg hover:border-primary/30 transition-all"
+    >
+      <img src="/Single event.jpg" alt="Single Event" className="w-20 h-20 object-contain" />
+      <div className="text-center space-y-0.5">
+        <p className="font-bold text-sm">Single Event</p>
+        <p className="text-xs text-muted-foreground">Movie night, beach walk</p>
+      </div>
+    </button>
+
+    {/* Series of Events */}
+    <button
+      onClick={() => toast.info("Series of events coming soon!")}
+      className="bg-card border border-border rounded-3xl p-6 flex flex-col items-center gap-3 hover:shadow-lg hover:border-primary/30 transition-all opacity-70"
+    >
+      <img src="/series of event.jpg" alt="Series of Events" className="w-20 h-20 object-contain" />
+      <div className="text-center space-y-0.5">
+        <p className="font-bold text-sm">Series of Events</p>
+        <p className="text-xs text-muted-foreground">Conference, weekly workshop</p>
+      </div>
+    </button>
+  </div>
+</div>
 
           {loading ? (
             <p className="text-center text-muted-foreground">Loading...</p>
           ) : (
             <>
-              <div className="flex gap-2">
-                {(["all", "ward", "community"] as const).map((f) => (
+
+
+              <div className="space-y-3 pt-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold">Published</h2>
+                  <span className="text-sm text-muted-foreground">({filtered.length})</span>
+                </div>
+
+                <div className=" flex gap-2">
+{(["all", "ward", "community"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setCategoryFilter(f)}
@@ -154,12 +183,6 @@ const Post = () => {
                   </button>
                 ))}
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold">Published</h2>
-                  <span className="text-sm text-muted-foreground">({filtered.length})</span>
-                </div>
 
                 {filtered.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No published events yet</p>

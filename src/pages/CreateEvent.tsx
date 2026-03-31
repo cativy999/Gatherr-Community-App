@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -225,159 +225,150 @@ const CreateEvent = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">{isEditing ? "Edit Event" : "Create Event"}</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/post")}>
-              Cancel
-            </Button>
-            {isEditing && (
-              <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={handleDelete} disabled={loading}>
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            )}
-          </div>
-        </div>
+      <div className="flex items-center justify-between max-w-4xl mx-auto">
+  <div className="flex items-center gap-3">
+    <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
+      <ArrowLeft className="h-5 w-5" />
+    </button>
+    <h1 className="text-2xl font-bold">{isEditing ? "Edit Event" : "Create Single Event"}</h1>
+  </div>
+  {isEditing && (
+    <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={handleDelete} disabled={loading}>
+      <Trash2 className="h-5 w-5" />
+    </Button>
+  )}
+</div>
       </header>
 
-      <main className="flex-1 px-6 py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <main className="flex-1 px-4 py-6">
+      <div className="max-w-2xl mx-auto space-y-6">
 
-          {/* Image Upload */}
-          <div className="relative">
-            <div
-              className="flex items-center justify-center w-full h-48 bg-secondary rounded-2xl border-2 border-dashed border-border hover:bg-accent transition-colors cursor-pointer overflow-hidden"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
-              ) : (
-                <div className="text-center space-y-2">
-                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Tap to upload event image</p>
-                </div>
-              )}
-            </div>
-            {imagePreview && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-background/80 backdrop-blur-sm rounded-full text-xs font-semibold border border-border hover:bg-background transition-colors"
-              >
-                Change Image
-              </button>
-            )}
-          </div>
+ {/* Top section — image + title/address side by side */}
+ <div className="flex flex-col md:flex-row gap-4 items-stretch">
 
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
-
-          <div className="space-y-4">
-
-            {/* Event Title */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Event Title</label>
-              <Input
-                placeholder="e.g., Community Picnic"
-                className="h-12 text-base"
-                value={title}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setTitle(val.charAt(0).toUpperCase() + val.slice(1));
-                }}
-
-                maxLength={80}
-              />
-               <div className="text-sm text-gray-500 text-right">
-    {title.length}/80
+{/* Image Upload */}
+<div className="relative w-full md:w-44 flex-shrink-0">
+  <div
+    className="relative flex items-center justify-center w-full h-48 md:h-56 bg-secondary rounded-2xl border border-gray-400 hover:bg-accent transition-colors cursor-pointer overflow-hidden"
+    onClick={() => fileInputRef.current?.click()}
+  >
+    {imagePreview ? (
+      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+    ) : (
+      <div className="text-center space-y-2">
+        <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Tap to upload event image</p>
+      </div>
+    )}
+    {imagePreview && (
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+        <span className="px-4 py-1.5 bg-black/50 text-white backdrop-blur-sm rounded-full text-xs font-semibold">
+          Change Image
+        </span>
+      </div>
+    )}
   </div>
-            </div>
+  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+</div>
+{/* Right column — title + address */}
+<div className="flex-1 space-y-4">
 
-    
-            {/* Address */}
-<div className="space-y-2">
-  <label className="text-sm font-medium flex items-center gap-2">
-    <MapPin className="h-4 w-4" />
-    Address
-    <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
-  </label>
-  <div className="relative" ref={locationRef}>
+  {/* Event Title */}
+  <div className="space-y-2">
+    <label className="text-sm font-medium">Event Title</label>
     <Input
-      placeholder="Search for an address..."
+      placeholder="e.g., Community Picnic"
       className="h-12 text-base"
-      value={locationSearch}
+      value={title}
       onChange={(e) => {
-        setLocationSearch(e.target.value);
-        setLocation(e.target.value);
-        setAddress(e.target.value);
-        setLat(null); // clear map when typing
-        setLng(null);
+        const val = e.target.value;
+        setTitle(val.charAt(0).toUpperCase() + val.slice(1));
       }}
-      onFocus={() => setLocationOpen(true)}
+      maxLength={80}
     />
-    {locationOpen && locationResults.length > 0 && (
-      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-        {locationSearching && (
-          <div className="flex items-center justify-center py-3">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+    <div className="text-sm text-gray-500 text-right">{title.length}/80</div>
+  </div>
+
+  {/* Address */}
+  <div className="space-y-2">
+    <label className="text-sm font-medium flex items-center gap-2">
+      <MapPin className="h-4 w-4" />
+      Address
+      <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
+    </label>
+    <div className="relative" ref={locationRef}>
+      <Input
+        placeholder="Search for an address..."
+        className="h-12 text-base"
+        value={locationSearch}
+        onChange={(e) => {
+          setLocationSearch(e.target.value);
+          setLocation(e.target.value);
+          setAddress(e.target.value);
+          setLat(null);
+          setLng(null);
+        }}
+        onFocus={() => setLocationOpen(true)}
+      />
+      {locationOpen && locationResults.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+          {locationSearching && (
+            <div className="flex items-center justify-center py-3">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {locationResults.map((result) => (
+            <button
+              key={result.display}
+              type="button"
+              onClick={() => {
+                setLocation(result.city);
+                setAddress(result.display);
+                setLocationSearch(result.display);
+                setLat(result.lat);
+                setLng(result.lng);
+                setLocationOpen(false);
+              }}
+              className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+            >
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              {result.display}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* Map preview */}
+    {lat && lng && (
+      <div className="rounded-2xl overflow-hidden border border-border mt-2 relative">
+        <div className="absolute top-3 left-3 right-10 z-10 bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate leading-tight">{address.split(",")[0]}</p>
+            <p className="text-xs text-muted-foreground truncate">{address.split(",").slice(1).join(",").trim()}</p>
           </div>
-        )}
-        {locationResults.map((result) => (
-          <button
-            key={result.display}
-            type="button"
-            onClick={() => {
-              setLocation(result.city);
-              setAddress(result.display);
-              setLocationSearch(result.display);
-              setLat(result.lat);
-              setLng(result.lng);
-              setLocationOpen(false);
-            }}
-            className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
-          >
-            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            {result.display}
-          </button>
-        ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => { setLat(null); setLng(null); setAddress(""); setLocationSearch(""); setLocation(""); }}
+          className="absolute top-3 right-3 z-10 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition-colors"
+        >
+          <span className="text-gray-500 text-sm font-medium leading-none">✕</span>
+        </button>
+        <iframe
+          width="100%"
+          height="200"
+          style={{ border: 0, display: "block" }}
+          loading="lazy"
+          allowFullScreen
+          src={`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`}
+        />
       </div>
     )}
   </div>
 
-  {/* Map preview — shows after address is selected */}
-  {lat && lng && (
-    <div className="rounded-2xl overflow-hidden border border-border mt-2 relative">
-      {/* Address pill overlay */}
-      <div className="absolute top-3 left-3 right-10 z-10 bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold truncate leading-tight">
-            {address.split(",")[0]}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {address.split(",").slice(1).join(",").trim()}
-          </p>
-        </div>
-      </div>
-      {/* X to clear */}
-      <button
-        type="button"
-        onClick={() => { setLat(null); setLng(null); setAddress(""); setLocationSearch(""); setLocation(""); }}
-        className="absolute top-3 right-3 z-10 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition-colors"
-      >
-        <span className="text-gray-500 text-sm font-medium leading-none">✕</span>
-      </button>
-      {/* Google Maps iframe */}
-      <iframe
-        width="100%"
-        height="200"
-        style={{ border: 0, display: "block" }}
-        loading="lazy"
-        allowFullScreen
-        src={`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`}
-      />
-    </div>
-  )}
-</div>
+
 
             {/* Description */}
             <div className="space-y-2">
@@ -552,11 +543,12 @@ const CreateEvent = () => {
                   })}
                 </select>
               </div>
-            </div>
+            
 
 
           </div>
-
+</div> {/* closes right column */}
+</div> {/* closes top flex row */}
           {/* Action Buttons */}
           <div className="flex gap-3">
           
