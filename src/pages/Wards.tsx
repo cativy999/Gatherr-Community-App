@@ -24,6 +24,7 @@ type Event = {
   lat: number | null;
   lng: number | null;
   ward_type: string | null;
+  user_id: string;
 };
 
 const sortOptions = [
@@ -51,6 +52,7 @@ const Wards = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
+  const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
 
   const cityName = location.split(",")[0].trim();
 
@@ -60,7 +62,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type")
+        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id")
         .eq("status", "published")
         .eq("category", "ward")
         .gte("date", today)
@@ -84,6 +86,18 @@ const Wards = () => {
         ...e,
         attendees: countMap[e.id] ?? 0,
       })));
+
+
+const userIds = [...new Set((data ?? []).map((e: any) => e.user_id).filter(Boolean))];
+if (userIds.length > 0) {
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, ward")
+    .in("user_id", userIds);
+  const wardMap: Record<string, string> = {};
+  (profiles ?? []).forEach((p: any) => { if (p.ward) wardMap[p.user_id] = p.ward; });
+  setCreatorWards(wardMap);
+}
       setLoading(false);
     };
 
@@ -224,7 +238,12 @@ const Wards = () => {
         </button>
       </div>
       <div className="p-3 space-y-2">
-        <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
+      <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
+{creatorWards[event.user_id] && (
+  <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+    {creatorWards[event.user_id]}
+  </span>
+)}
         <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
           <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
           <span>

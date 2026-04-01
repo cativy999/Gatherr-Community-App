@@ -19,6 +19,7 @@ const Events = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -27,6 +28,19 @@ const Events = () => {
     if (!userId) { setLoading(false); return; }
     fetchEvents();
   }, [activeTab, userId]);
+
+  const fetchCreatorWards = async (events: any[]) => {
+    const userIds = [...new Set(events.map((e: any) => e.user_id).filter(Boolean))];
+    if (userIds.length === 0) return;
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, ward")
+      .in("user_id", userIds);
+    const wardMap: Record<string, string> = {};
+    (profiles ?? []).forEach((p: any) => { if (p.ward) wardMap[p.user_id] = p.ward; });
+    setCreatorWards(wardMap);
+  };
+
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -41,11 +55,13 @@ const Events = () => {
         if (error) throw error;
         const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
         setEvents(upcoming);
+        await fetchCreatorWards(upcoming);
       } else if (activeTab === "saved") {
         const { data, error } = await supabase.from("saved_events").select("events(*)").eq("user_id", userId);
         if (error) throw error;
         const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
         setEvents(upcoming);
+        await fetchCreatorWards(upcoming);
       } else if (activeTab === "past") {
         const [rsvpRes, savedRes] = await Promise.all([
           supabase.from("rsvps").select("events(*)").eq("user_id", userId),
@@ -56,7 +72,9 @@ const Events = () => {
           ...(savedRes.data ?? []).map((r: any) => r.events),
         ].filter((e: any) => e && new Date(e.date) < new Date());
         const seen = new Set();
-        setEvents(allEvents.filter((e: any) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; }));
+        const unique = allEvents.filter((e: any) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+        setEvents(unique);
+        await fetchCreatorWards(unique);
       }
       const { data: savedData } = await supabase.from("saved_events").select("event_id").eq("user_id", userId);
       setSavedIds(new Set((savedData ?? []).map((s: any) => s.event_id)));
@@ -180,6 +198,11 @@ const Events = () => {
                           <p className="text-sm font-medium text-foreground">{formatTime(event.time)}</p>
                         )}
                         <h3 className="text-sm font-semibold leading-tight line-clamp-2">{event.title}</h3>
+{creatorWards[event.user_id] && (
+  <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+    {creatorWards[event.user_id]}
+  </span>
+)}
                         {event.location && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin className="h-3 w-3 flex-shrink-0" />

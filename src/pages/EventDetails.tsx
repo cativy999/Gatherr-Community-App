@@ -38,6 +38,7 @@ const EventDetails = () => {
   const [goingListLoading, setGoingListLoading] = useState(false);
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
+  const [creatorWard, setCreatorWard] = useState<string | null>(null);
 
   // ── Fetch event + creator
   useEffect(() => {
@@ -57,11 +58,12 @@ const EventDetails = () => {
         if (data.user_id) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("name, avatar_url")
+            .select("name, avatar_url, ward")
             .eq("user_id", data.user_id)
             .single();
           setCreatorName(profile?.name || "Anonymous");
           if (profile?.avatar_url) setCreatorAvatar(profile.avatar_url);
+          if (profile?.ward) setCreatorWard(profile.ward);
         }
       }
       setLoading(false);
@@ -458,12 +460,13 @@ const EventDetails = () => {
                 <span className="text-muted-foreground">No image</span>
               </div>
             )}
-            <button
-              onClick={() => setShareOpen(true)}
-              className="absolute bottom-3 right-3 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors shadow-md"
-            >
-              <Share2 className="h-5 w-5 text-foreground" />
-            </button>
+<button
+  onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
+  className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 hover:opacity-90 text-white rounded-xl transition-colors shadow-md"
+  style={{ backgroundColor: 'rgba(144, 144, 144, 0.5)' }}>
+  <Copy className="h-3.5 w-3.5" />
+  <span className="text-xs font-medium">Copy Link</span>
+</button>
           </div>
 
           {/* Share Dialog */}
@@ -561,6 +564,9 @@ const EventDetails = () => {
                 <span className="text-sm text-muted-foreground">
                   Posted by <span className="font-semibold text-foreground">{creatorName}</span>
                 </span>
+                {creatorWard && (
+    <p className="text-xs text-muted-foreground">{creatorWard}</p>
+  )}
                 <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
               </div>
             </div>
