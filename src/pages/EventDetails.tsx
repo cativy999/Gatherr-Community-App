@@ -422,13 +422,7 @@ const EventDetails = () => {
               </Button>
             </div>
           )}
-          {/* RSVP Status Banner */}
-          {rsvpStatus && (
-            <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-3 rounded-2xl">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm font-semibold">{rsvpLabels[rsvpStatus]}</span>
-            </div>
-          )}
+
 
           {/* Category + Age + Title + Meta */}
           <div className="space-y-2">
@@ -761,7 +755,7 @@ const EventDetails = () => {
                 disabled={!!rsvpLoading}
                 onClick={() => handleRsvp("going")}
               >
-                {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Going"}
+               {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "👍 You're Going!" : "Going"}
               </Button>
               <Button
                 variant={rsvpStatus === "interested" ? "default" : "outline"}

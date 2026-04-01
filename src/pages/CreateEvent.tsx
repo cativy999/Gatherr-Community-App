@@ -30,6 +30,11 @@ const CreateEvent = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [ageRange, setAgeRange] = useState<[number, number]>([25, 35]);
   const [locationSearch, setLocationSearch] = useState("");
+const [savedAddresses, setSavedAddresses] = useState<{display: string, city: string, lat: number, lng: number, count: number}[]>(() => {
+  try {
+    return JSON.parse(localStorage.getItem("address_history") || "[]");
+  } catch { return []; }
+});
   const [locationResults, setLocationResults] = useState<{ display: string; city: string; lat: number; lng: number }[]>([]);
   const [locationSearching, setLocationSearching] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -243,13 +248,12 @@ const CreateEvent = () => {
       <main className="flex-1 px-4 py-6">
       <div className="max-w-2xl mx-auto space-y-6">
 
- {/* Top section — image + title/address side by side */}
- <div className="flex flex-col md:flex-row gap-4 items-stretch">
+<div className="flex flex-col gap-4">
 
 {/* Image Upload */}
-<div className="relative w-full md:w-44 flex-shrink-0">
+<div className="relative w-full flex-shrink-0">
   <div
-    className="relative flex items-center justify-center w-full h-48 md:h-56 bg-secondary rounded-2xl border border-gray-400 hover:bg-accent transition-colors cursor-pointer overflow-hidden"
+    className="relative flex items-center justify-center w-full h-56 bg-secondary rounded-2xl border border-gray-400"
     onClick={() => fileInputRef.current?.click()}
   >
     {imagePreview ? (
@@ -310,13 +314,38 @@ const CreateEvent = () => {
         }}
         onFocus={() => setLocationOpen(true)}
       />
-      {locationOpen && locationResults.length > 0 && (
+      {locationOpen && (locationResults.length > 0 || (locationSearch === "" && savedAddresses.length > 0)) && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
           {locationSearching && (
             <div className="flex items-center justify-center py-3">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
+
+{locationSearch === "" && savedAddresses.length > 0 && (
+  <>
+    <div className="px-4 py-2 text-xs text-muted-foreground font-medium">Recent</div>
+    {savedAddresses.slice(0, 3).map((result) => (
+      <button
+        key={result.display}
+        type="button"
+        onClick={() => {
+          setLocation(result.city);
+          setAddress(result.display);
+          setLocationSearch(result.display);
+          setLat(result.lat);
+          setLng(result.lng);
+          setLocationOpen(false);
+        }}
+        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
+      >
+        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        {result.display}
+      </button>
+    ))}
+    <div className="border-t border-border mx-4" />
+  </>
+)}
           {locationResults.map((result) => (
             <button
               key={result.display}
@@ -328,6 +357,18 @@ const CreateEvent = () => {
                 setLat(result.lat);
                 setLng(result.lng);
                 setLocationOpen(false);
+              
+                // Save to address history
+                const history = JSON.parse(localStorage.getItem("address_history") || "[]");
+                const existing = history.find((a: any) => a.display === result.display);
+                if (existing) {
+                  existing.count += 1;
+                } else {
+                  history.push({ display: result.display, city: result.city, lat: result.lat, lng: result.lng, count: 1 });
+                }
+                history.sort((a: any, b: any) => b.count - a.count);
+                localStorage.setItem("address_history", JSON.stringify(history.slice(0, 10)));
+                setSavedAddresses(history.slice(0, 3));
               }}
               className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2"
             >
