@@ -253,17 +253,31 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
 {/* Image Upload */}
 <div className="relative w-full flex-shrink-0">
   <div
-    className="relative flex items-center justify-center w-full h-56 bg-secondary rounded-2xl border border-gray-400"
+    className="relative flex items-center justify-center w-full h-56 bg-secondary rounded-2xl border border-gray-400 overflow-hidden"
     onClick={() => fileInputRef.current?.click()}
   >
-    {imagePreview ? (
-      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-    ) : (
-      <div className="text-center space-y-2">
-        <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Tap to upload event image</p>
+    {/* Background image — uploaded preview or default */}
+    <img
+      src={imagePreview || "/Peoplebeach.png"}
+      alt="Event image"
+      className="w-full h-full object-cover"
+    />
+
+    {/* Transparent overlay button — only shown in empty state */}
+    {!imagePreview && (
+      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+        <button
+  type="button"
+  className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-full border border-white/60 transition-all hover:brightness-110"
+  style={{ backgroundColor: "rgba(144, 144, 144, 0.5)" }}
+>
+  <ImageIcon className="h-4 w-4" />
+  Tap to upload event image
+</button>
       </div>
     )}
+
+    {/* Change image pill — shown after upload */}
     {imagePreview && (
       <div className="absolute bottom-3 left-0 right-0 flex justify-center">
         <span className="px-4 py-1.5 bg-black/50 text-white backdrop-blur-sm rounded-full text-xs font-semibold">
@@ -272,7 +286,14 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
       </div>
     )}
   </div>
-  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={handleImagePick}
+  />
 </div>
 {/* Right column — title + address */}
 <div className="flex-1 space-y-4">
