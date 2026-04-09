@@ -103,7 +103,15 @@ const Events = () => {
   // Group events by date
   const groupByDate = (events: any[]) => {
     const groups: Record<string, any[]> = {};
-    const sorted = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sorted = [...events].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      // Same date — sort by time
+      const timeA = a.time ?? "00:00";
+      const timeB = b.time ?? "00:00";
+      return timeA.localeCompare(timeB);
+    });
     sorted.forEach((event) => {
       const [y, m, d] = event.date.split("-").map(Number);
       const dateKey = new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "long", day: "numeric", weekday: "long" });

@@ -60,7 +60,7 @@ const OnboardingWard = () => {
       localStorage.removeItem("onboarding_age_max");
     }
     setLoading(false);
-    navigate("/home");
+    navigate("/wards");
   };
 
   return (

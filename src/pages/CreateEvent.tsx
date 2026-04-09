@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -45,6 +45,8 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [wardType, setWardType] = useState<string | null>(null);
+  const [isVirtual, setIsVirtual] = useState(false);
+const [virtualLink, setVirtualLink] = useState("");
   const [foodProvided, setFoodProvided] = useState(false);
 const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
 const [duration, setDuration] = useState("");
@@ -90,6 +92,8 @@ const foodOptions = [
       setLocationSearch(data.address ?? "");
       setWardType(data.ward_type ?? null);
       setWardType(data.ward_type ?? null);
+      setIsVirtual(!!data.virtual_link);
+setVirtualLink(data.virtual_link ?? "");
 setSelectedFoods(data.food ?? []);
 setFoodProvided((data.food ?? []).length > 0);
 setDuration(data.duration ?? "");
@@ -171,7 +175,7 @@ setDuration(data.duration ?? "");
   };
 
   const handleSubmit = async () => {
-    if (!title || !date || !address) {
+    if (!title || !date || (!address && !virtualLink)) {
       alert("Please fill in title, date and location!");
       return;
     }
@@ -213,6 +217,7 @@ setDuration(data.duration ?? "");
       ward_type: category === "ward" ? wardType : null,
       food: selectedFoods,
       duration,
+      virtual_link: virtualLink || null,
     };
 
     let error;
@@ -342,12 +347,57 @@ setDuration(data.duration ?? "");
   </div>
 
   {/* Address */}
-  <div className="space-y-2">
-    <label className="text-sm font-medium flex items-center gap-2">
-      <MapPin className="h-4 w-4" />
-      Address
-      <span className="text-xs text-muted-foreground font-normal">— Type to search and select from the list</span>
-    </label>
+  {/* Event Location */}
+<div className="space-y-3">
+  <label className="text-sm font-medium flex items-center gap-2">
+    <MapPin className="h-4 w-4" />
+    Event Location
+  </label>
+
+  {/* Toggle */}
+  <div className="grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      onClick={() => { setIsVirtual(false); setVirtualLink(""); }}
+      className={`h-12 rounded-xl text-sm font-semibold transition-all border ${
+        !isVirtual ? "border-[2px] border-primary bg-primary/5" : "border-black"
+      }`}
+    >
+      📍 In Person
+    </button>
+    <button
+      type="button"
+      onClick={() => { setIsVirtual(true); setLat(null); setLng(null); setAddress(""); setLocationSearch(""); setLocation(""); }}
+      className={`h-12 rounded-xl text-sm font-semibold transition-all border ${
+        isVirtual ? "border-[2px] border-primary bg-primary/5" : "border-black"
+      }`}
+    >
+      🔗 Virtual / Online
+    </button>
+  </div>
+
+  {/* Virtual link input */}
+  {isVirtual ? (
+    <div className="space-y-2">
+      <Input
+        placeholder="Paste Zoom, Google Meet, or any link..."
+        className="h-12 text-base"
+        value={virtualLink}
+        onChange={(e) => setVirtualLink(e.target.value)}
+      />
+      {virtualLink && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-xl">
+          <Link className="h-4 w-4 text-primary flex-shrink-0" />
+          <a href={virtualLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline truncate">
+            {virtualLink}
+          </a>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="space-y-2">
+    <label className="text-xs text-muted-foreground">Type to search and select from the list</label>
+    
     <div className="relative" ref={locationRef}>
       <Input
         placeholder="Search for an address..."
@@ -456,7 +506,8 @@ setDuration(data.duration ?? "");
       </div>
     )}
   </div>
-
+    )}
+</div>
 
 
             {/* Description */}

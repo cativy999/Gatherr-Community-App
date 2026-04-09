@@ -1,4 +1,4 @@
-import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter } from "lucide-react";
+import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -20,6 +20,7 @@ interface EventCardProps {
     user_id: string;
     food?: string[];
     duration?: string;
+    virtual_link?: string | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -109,7 +110,13 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
 
       {/* Content */}
       <div className="px-0 pt-2 space-y-1.5">
-        <h3 className="font-bold text-sm leading-tight text-foreground">{event.title}</h3>
+      <h3 className="font-bold text-sm leading-tight text-foreground">{event.title}</h3>
+        {event.virtual_link && (
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Video className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-xs">Virtual Event</span>
+          </div>
+        )}
 
         <p className="text-xs text-foreground font-medium">
           {(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); })()}

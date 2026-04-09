@@ -63,7 +63,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id,  food, duration")
+        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
         .eq("status", "published")
         .eq("category", "ward")
         .gte("date", today)
