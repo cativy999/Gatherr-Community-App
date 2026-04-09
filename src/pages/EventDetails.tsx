@@ -394,7 +394,7 @@ const EventDetails = () => {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-        <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/home"); } }} className="p-2 hover:bg-accent rounded-full transition-colors">
+        <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }} className="p-2 hover:bg-accent rounded-full transition-colors">
             <ArrowLeft className="h-6 w-6" />
           </button>
           {!isGuest && (

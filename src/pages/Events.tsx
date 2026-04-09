@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Users } from "lucide-react";
+import { MapPin, Users, Loader2, ThumbsUp, Smile, Heart, Clock } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 const tabs = [
-  { id: "going", label: "Going" },
-  { id: "interested", label: "Interests" },
-  { id: "saved", label: "Saved" },
-  { id: "past", label: "Past" },
+  { id: "going", label: "Going", icon: ThumbsUp },
+  { id: "interested", label: "Interests", icon: Smile },
+  { id: "saved", label: "Saved", icon: Heart },
+  { id: "past", label: "Past", icon: Clock },
 ];
 
 const Events = () => {
@@ -184,14 +183,14 @@ const Events = () => {
                     <span className="text-sm text-muted-foreground">{weekday}</span>
                   </div>
 
-                  {/* Event cards */}
-                  {dayEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      onClick={() => navigate(`/event/${event.id}`)}
-                      className="flex items-center gap-3 bg-card rounded-2xl border cursor-pointer hover:shadow-sm transition-all p-3"
-                      style={{ borderWidth: '1px', borderColor: 'hsl(0deg 0% 70%)' }}
-                    >
+               {/* Event cards */}
+{dayEvents.map((event) => (
+  <div
+    key={event.id}
+    onClick={() => navigate(`/event/${event.id}`)}
+    className="flex items-center gap-3 bg-card rounded-2xl border cursor-pointer p-3 select-none"
+    style={{ borderWidth: '1px', borderColor: 'hsl(0deg 0% 70%)', WebkitTapHighlightColor: 'transparent' }}
+  >
                       {/* Left — time + details */}
                       <div className="flex-1 space-y-1 min-w-0">
                         {event.time && (
@@ -253,24 +252,29 @@ const Events = () => {
             <h1 className="text-2xl font-bold">Events</h1>
           </div>
         </div>
-        <div className="px-5 pb-3">
-          <div className="max-w-4xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-accent text-accent-foreground hover:bg-accent/80"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="pb-3">
+        <div className="max-w-4xl mx-auto px-5 md:px-0 flex gap-2 overflow-x-auto md:pr-0"
+ style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {tabs.map((tab) => {
+  const Icon = tab.icon;
+  return (
+    <button
+      key={tab.id}
+      onClick={() => setActiveTab(tab.id)}
+      className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+        activeTab === tab.id
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-white text-foreground border-[#BBBBBB] hover:bg-gray-50"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {tab.label}
+    </button>
+  );
+})}
           </div>
         </div>
-        <div className="border-b border-border" />
+
       </div>
 
       <main className="flex-1 px-5 py-4">

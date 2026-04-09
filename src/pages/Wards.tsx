@@ -1,6 +1,4 @@
-import { Heart, CalendarDays, MapPin, ChevronDown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { Heart, CalendarDays, MapPin, ChevronDown, Navigation, Balloon, Church, HeartHandshake, Sparkles } from "lucide-react";import { useState, useEffect, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 import { useLocation } from "@/contexts/LocationContext";
@@ -8,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
+import EventCard from "@/components/EventCard";
+import { useNavigate } from "react-router-dom";
 
 type Event = {
   id: string;
@@ -25,6 +25,8 @@ type Event = {
   lng: number | null;
   ward_type: string | null;
   user_id: string;
+  food?: string[];
+  duration?: string;
 };
 
 const sortOptions = [
@@ -33,10 +35,11 @@ const sortOptions = [
 ];
 
 const filterChips = [
-  { id: "all", label: "All" },
-  { id: "spiritual", label: "Spiritual" },
-  { id: "fhe", label: "FHE" },
-  { id: "service", label: "Service" },
+  { id: "all", label: "All", icon: null },
+  { id: "fhe", label: "FHE", icon: Balloon },
+  { id: "spiritual", label: "Spiritual", icon: Church },
+  { id: "popular", label: "Popular", icon: Sparkles },
+  { id: "service", label: "Service", icon: HeartHandshake },
 ];
 
 const Wards = () => {
@@ -48,8 +51,6 @@ const Wards = () => {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState("latest");
-  const [sortOpen, setSortOpen] = useState(false);
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
   const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
@@ -62,7 +63,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id")
+        .select("id, title, image_url, date, time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id,  food, duration")
         .eq("status", "published")
         .eq("category", "ward")
         .gte("date", today)
@@ -164,10 +165,7 @@ if (userIds.length > 0) {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
 
-    // 4. Filter free
-    if (sortBy === "free") {
-      result = result.filter((e) => e.is_free);
-    }
+
 
     // 5. Sort
     result.sort((a, b) => {
@@ -183,7 +181,7 @@ if (userIds.length > 0) {
     });
 
     return result;
-  }, [events, activeFilter, sortBy, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
+  }, [events, activeFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
 
   const groupEventsByTime = (evts: Event[]) => {
     const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
@@ -217,86 +215,39 @@ if (userIds.length > 0) {
     </div>
   );
 
-  const EventCard = ({ event }: { event: Event }) => (
-    <div
-      onClick={() => navigate(`/event/${event.id}`)}
-      className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
-    >
-      <div className="relative">
-        {event.image_url ? (
-          <img src={event.image_url} alt={event.title} className="w-full h-36 object-cover" />
-        ) : (
-          <div className="w-full h-36 bg-secondary flex items-center justify-center">
-            <span className="text-xs text-muted-foreground">No image</span>
-          </div>
-        )}
-        <button
-          onClick={(e) => toggleSaved(event.id, e)}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 backdrop-blur-sm hover:bg-background/80 transition-colors"
-        >
-          <Heart className={`h-4 w-4 ${savedEvents.has(event.id) ? "text-[rgb(172,42,42)] fill-current" : "text-foreground"}`} />
-        </button>
-      </div>
-      <div className="p-3 space-y-2">
-      <h3 className="font-semibold text-sm leading-tight">{event.title}</h3>
-{creatorWards[event.user_id] && (
-  <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-    {creatorWards[event.user_id]}
-  </span>
-)}
-        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
-          <CalendarDays className="h-3 w-3 flex-shrink-0" strokeWidth={2.5} />
-          <span>
-          {(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); })()}
-          {event.time ? ` • ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
-        </span>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 flex-shrink-0" />
-          <span className="line-clamp-1">{event.location}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            {event.attendees ?? 0} going
-          </span>
-          <span className="flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-            {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  
 
   const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="px-5 py-3">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold">Ward Activities</h1>
-            <LocationSelector value={location} onChange={setLocation} />
-          </div>
-        </div>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm ">
+      <div className="px-5 py-3">
+  <div className="flex justify-center max-w-4xl mx-auto">
+    <LocationSelector value={location} onChange={setLocation} />
+  </div>
+</div>
 
         <div className="pb-3">
           <div className="max-w-4xl mx-auto px-5 md:px-0">
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mr-5 pr-10 md:mr-0 md:pr-0">
-              {filterChips.map((chip) => (
-                <button
-                  key={chip.id}
-                  onClick={() => setActiveFilter(chip.id)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    activeFilter === chip.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-accent text-accent-foreground hover:bg-accent/80"
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              ))}
+          <div className="flex md:justify-center gap-2 overflow-x-auto -mr-5 pr-10 md:mr-0 md:pr-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {filterChips.map((chip) => {
+  const Icon = chip.icon;
+  return (
+    <button
+      key={chip.id}
+      onClick={() => setActiveFilter(chip.id)}
+      className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+        activeFilter === chip.id
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-white text-foreground border-[#BBBBBB] hover:bg-gray-50"
+      }`}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5" />}
+      {chip.label}
+    </button>
+  );
+})}
             </div>
           </div>
         </div>
@@ -305,30 +256,7 @@ if (userIds.length > 0) {
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-4">
 
-          <div className="flex justify-end relative">
-            <button
-              onClick={() => setSortOpen(!sortOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Sort: {sortOptions.find(s => s.id === sortBy)?.label}
-              <ChevronDown className={`h-4 w-4 transition-transform ${sortOpen ? "rotate-180" : ""}`} />
-            </button>
-            {sortOpen && (
-              <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 overflow-hidden min-w-[140px]">
-                {sortOptions.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => { setSortBy(opt.id); setSortOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors ${
-                      sortBy === opt.id ? "text-primary font-semibold" : "text-foreground"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          
 
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
@@ -337,8 +265,16 @@ if (userIds.length > 0) {
               <div className="space-y-3">
                 <h2 className="text-base font-bold">This Week</h2>
                 {thisWeek.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {thisWeek.map((event) => <EventCard key={event.id} event={event} />)}
+                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {thisWeek.map((event) => (
+    <EventCard
+      key={event.id}
+      event={event}
+      creatorWard={creatorWards[event.user_id]}
+      isSaved={savedEvents.has(event.id)}
+      onToggleSave={toggleSaved}
+    />
+  ))}
                   </div>
                 ) : (
                   <EmptySection label="This Week" isThisWeek nextWeekHasEvents={nextWeek.length > 0} />
@@ -348,8 +284,16 @@ if (userIds.length > 0) {
               <div className="space-y-3">
                 <h2 className="text-base font-bold">Next Week</h2>
                 {nextWeek.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {nextWeek.map((event) => <EventCard key={event.id} event={event} />)}
+                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {nextWeek.map((event) => (
+    <EventCard
+      key={event.id}
+      event={event}
+      creatorWard={creatorWards[event.user_id]}
+      isSaved={savedEvents.has(event.id)}
+      onToggleSave={toggleSaved}
+    />
+  ))}
                   </div>
                 ) : (
                   <EmptySection label="Next Week" />
@@ -359,8 +303,16 @@ if (userIds.length > 0) {
               <div className="space-y-3">
                 <h2 className="text-base font-bold">Later</h2>
                 {later.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {later.map((event) => <EventCard key={event.id} event={event} />)}
+                 <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {later.map((event) => (
+    <EventCard
+      key={event.id}
+      event={event}
+      creatorWard={creatorWards[event.user_id]}
+      isSaved={savedEvents.has(event.id)}
+      onToggleSave={toggleSaved}
+    />
+  ))}
                   </div>
                 ) : (
                   <EmptySection label="Later" />

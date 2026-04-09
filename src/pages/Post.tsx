@@ -45,7 +45,6 @@ const eventDate = new Date(y, m-1, d);
 const Post = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "ward" | "community">("all");
   const [published, setPublished] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,8 +107,8 @@ const Post = () => {
     </div>
   );
 
-  const filtered = published.filter(e => categoryFilter === "all" || e.category === categoryFilter);
-  const { thisWeek, nextWeek, later } = groupEventsByTime(filtered);
+  const filtered = published;
+    const { thisWeek, nextWeek, later } = groupEventsByTime(filtered);
   const groups = [
     { label: "This Week", events: thisWeek },
     { label: "Next Week", events: nextWeek },
@@ -118,9 +117,9 @@ const Post = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-3">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm  border-border px-5 py-3">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">Post</h1>
+          <h1 className="text-2xl font-bold">Create Event</h1>
         </div>
       </header>
 
@@ -128,7 +127,7 @@ const Post = () => {
         <div className="max-w-4xl mx-auto space-y-6">
 
         <div className="space-y-2">
-  <h2 className="text-lg font-bold">Create Events</h2>
+
   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
     {/* Single Event */}
     <button
@@ -165,24 +164,10 @@ const Post = () => {
               <div className="space-y-3 pt-4">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold">Published</h2>
-                  <span className="text-sm text-muted-foreground">({filtered.length})</span>
+                  <span className="text-sm text-muted-foreground">({published.length})</span>
                 </div>
 
-                <div className=" flex gap-2">
-{(["all", "ward", "community"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setCategoryFilter(f)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      categoryFilter === f
-                        ? "bg-primary text-white"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    {f === "all" ? "All" : f === "ward" ? "Ward" : "Community"}
-                  </button>
-                ))}
-              </div>
+
 
                 {filtered.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No published events yet</p>

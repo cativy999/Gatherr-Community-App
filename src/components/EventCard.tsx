@@ -1,91 +1,138 @@
-import { MessageCircle, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface EventCardProps {
   event: {
-    id: number;
-    category: string;
+    id: string;
     title: string;
-    description: string;
-    image: string;
+    image_url: string | null;
     date: string;
-    hasComment?: boolean;
-    attendees?: number;
+    time: string | null;
+    attendees: number;
+    is_free: boolean;
+    age_min: number;
+    age_max: number;
+    ward_type: string | null;
+    user_id: string;
+    food?: string[];
+    duration?: string;
   };
+  creatorWard?: string;
+  isSaved?: boolean;
+  onToggleSave?: (id: string, e: React.MouseEvent) => void;
 }
 
-const EventCard = ({ event }: EventCardProps) => {
+const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventCardProps) => {
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(false);
+  const [attendeeAvatars, setAttendeeAvatars] = useState<string[]>([]);
 
-  const handleCardClick = () => {
-    navigate(`/event/${event.id}`);
+  const foodIconMap: Record<string, any> = {
+    pizza: Pizza,
+    drinks: CupSoda,
+    cookies: Cookie,
+    burgers: Hamburger,
+    icecream: IceCreamCone,
+    salad: Salad,
+    catered: HandPlatter,
   };
 
-  const handleSaveClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsSaved(!isSaved);
-  };
+  useEffect(() => {
+    const fetchAvatars = async () => {
+      const { data } = await supabase
+        .from("rsvps")
+        .select("user_id")
+        .eq("event_id", event.id)
+        .eq("status", "going")
+        .limit(3);
+      if (data && data.length > 0) {
+        const userIds = data.map((r: any) => r.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, avatar_url")
+          .in("user_id", userIds);
+        setAttendeeAvatars((profiles ?? []).map((p: any) => p.avatar_url).filter(Boolean));
+      }
+    };
+    fetchAvatars();
+  }, [event.id]);
 
   return (
-    <div 
-      onClick={handleCardClick}
-      className="bg-card rounded-3xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer"
+    <div
+      onClick={() => navigate(`/event/${event.id}`)}
+      className="bg-card rounded-2xl cursor-pointer flex-shrink-0 w-[65vw] md:w-full select-none"
+      style={{ WebkitTapHighlightColor: 'transparent', fontFamily: 'Inter, sans-serif' }}
     >
-      <div className="flex gap-4 p-4">
-        {/* Content */}
-        <div className="flex-1 space-y-3">
-          <div>
-            <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-              {event.category}
-            </p>
-            <h3 className="text-xl font-bold mt-1">{event.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{event.date}</p>
+      {/* Image */}
+      <div className="relative">
+        {event.image_url ? (
+          <img src={event.image_url} alt={event.title} className="w-full h-44 object-cover rounded-2xl" />
+        ) : (
+          <div className="w-full h-44 bg-secondary rounded-2xl flex items-center justify-center">
+            <span className="text-xs text-muted-foreground">No image</span>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {event.description}
-          </p>
-          {event.attendees && (
-            <p className="text-sm font-semibold text-primary">
-              {event.attendees} people going
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            {event.hasComment && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-primary hover:text-primary hover:bg-accent -ml-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/event/${event.id}`);
-                }}
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Comment
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`ml-auto -mr-2 ${isSaved ? 'text-[rgb(172,42,42)]' : 'text-muted-foreground'}`}
-              onClick={handleSaveClick}
-            >
-              <Heart className={`h-5 w-5 ${isSaved ? 'fill-current' : ''}`} />
-            </Button>
-          </div>
-        </div>
+        )}
 
-        {/* Image */}
-        <div className="flex-shrink-0">
-          <img
-            src={event.image}
-            alt={event.title}
-            className="w-28 h-28 object-cover rounded-2xl"
-          />
-        </div>
+        {/* Attendee avatars top left */}
+        {event.attendees > 0 && (
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm rounded-full px-2 py-1">
+            <div className="flex -space-x-1.5">
+              {attendeeAvatars.slice(0, 3).map((avatar, i) => (
+                <img
+                  key={i}
+                  src={avatar}
+                  className="w-5 h-5 rounded-full border border-white object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ))}
+              {attendeeAvatars.length === 0 && (
+                <div className="w-5 h-5 rounded-full border border-white bg-gray-400" />
+              )}
+            </div>
+            <span className="text-gray-800 text-xs font-medium">
+              {event.attendees > 3 ? `+${event.attendees - 3} people` : `${event.attendees} going`}
+            </span>
+          </div>
+        )}
+
+        {/* Heart top right */}
+        <button
+          onClick={(e) => onToggleSave?.(event.id, e)}
+          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors"
+        >
+          <Heart className={`h-4 w-4 ${isSaved ? "text-[rgb(172,42,42)] fill-current" : "text-gray-600"}`} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="px-0 pt-2 space-y-1.5">
+        <h3 className="font-bold text-sm leading-tight text-foreground">{event.title}</h3>
+
+        <p className="text-xs text-foreground font-medium">
+          {(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); })()}
+          {event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+        </p>
+
+        {creatorWard && (
+          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
+            {creatorWard} 🏳️
+          </span>
+        )}
+      {((event.food && event.food.length > 0) || event.duration) && (
+  <div className="flex items-center gap-2 pt-1">
+    {event.food?.map((f) => {
+      const Icon = foodIconMap[f];
+      return Icon ? <Icon key={f} className="h-4 w-4 text-muted-foreground" /> : null;
+    })}
+    {event.duration && (
+      <span className="text-xs text-muted-foreground">{event.duration}</span>
+    )}
+  </div>
+)}
+        
       </div>
     </div>
   );

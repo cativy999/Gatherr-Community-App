@@ -13,7 +13,6 @@ import Welcome from "./pages/Welcome";
 import ResetPassword from "./pages/ResetPassword";
 import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingWard from "./pages/OnboardingWard";
-import Home from "./pages/Home";
 import Wards from "./pages/Wards";
 import CreateEvent from "./pages/CreateEvent";
 import Post from "./pages/Post";
@@ -56,7 +55,7 @@ const AuthListener = () => {
         if (profile) {
           const currentPath = window.location.pathname;
           if (currentPath !== "/") return; // already on the right page
-          navigate("/home");
+          navigate("/wards");
         } else {
           navigate("/onboarding/name");
         }
@@ -81,7 +80,6 @@ const App = () => (
                 <Route path="/onboarding/name" element={<OnboardingName />} />
                 <Route path="/onboarding/age" element={<OnboardingAge />} />
                 <Route path="/onboarding/ward" element={<OnboardingWard />} />
-                <Route path="/home" element={<Home />} />
                 <Route path="/wards" element={<Wards />} />
                 <Route path="/post" element={<Post />} />
                 <Route path="/create-event" element={<CreateEvent />} />

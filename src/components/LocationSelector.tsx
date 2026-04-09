@@ -1,4 +1,4 @@
-import { MapPin, Search, X, Loader2, Globe } from "lucide-react";
+import { MapPin, Search, X, Loader2, Globe, Navigation, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "@/contexts/LocationContext";
 
@@ -93,26 +93,28 @@ const isEverywhere = value === "Everywhere";
 
   return (
     <div className="relative" ref={containerRef}>
-     <button
+  <button
   onClick={() => {
-    preventZoom(); // 👈 add this BEFORE setIsOpen
+    preventZoom();
     setIsOpen(!isOpen);
   }}
-  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors text-sm font-medium"
+  className="flex flex-col items-center"
 >
-{isEverywhere ? (
-  <Globe className="h-4 w-4 text-primary flex-shrink-0" />
-) : (
-  <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-)}
-<span className="truncate max-w-[120px]">{value}</span>
-{!isEverywhere && (
-  <X
-    className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
-    onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
-  />
-)}
-      </button>
+  <span className="text-xs text-muted-foreground font-medium">Location</span>
+  <div className="flex items-center gap-1.5 mt-0.5">
+    <Navigation className="h-4 w-4 text-foreground" />
+    <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {value}
+    </span>
+    <ChevronDown className="h-4 w-4 text-foreground" />
+    {!isEverywhere && (
+      <X
+        className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
+        onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
+      />
+    )}
+  </div>
+</button>
 
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-2xl shadow-lg z-30 overflow-hidden">

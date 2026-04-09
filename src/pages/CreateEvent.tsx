@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -18,7 +18,7 @@ const CreateEvent = () => {
   const isEditing = !!id;
   const { session, loading: sessionLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [category, setCategory] = useState<"ward" | "community" | null>(null);
+  const [category, setCategory] = useState<"ward" | "community" | null>("ward");
   const [isFree, setIsFree] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -45,6 +45,27 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [wardType, setWardType] = useState<string | null>(null);
+  const [foodProvided, setFoodProvided] = useState(false);
+const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
+const [duration, setDuration] = useState("");
+
+const toggleFood = (id: string) => {
+  setSelectedFoods(prev => 
+    prev.includes(id) 
+      ? prev.filter(f => f !== id)
+      : prev.length < 2 ? [...prev, id] : prev
+  );
+};
+
+const foodOptions = [
+  { id: "pizza", icon: Pizza },
+  { id: "drinks",  icon: CupSoda },
+  { id: "cookies",  icon: Cookie },
+  { id: "burgers",  icon: Hamburger },
+  { id: "icecream",  icon: IceCreamCone },
+  { id: "salad", icon: Salad },
+  { id: "catered",  icon: HandPlatter },
+];
 
   // Load existing event data if editing
   useEffect(() => {
@@ -68,6 +89,10 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
       setAddress(data.address ?? "");
       setLocationSearch(data.address ?? "");
       setWardType(data.ward_type ?? null);
+      setWardType(data.ward_type ?? null);
+setSelectedFoods(data.food ?? []);
+setFoodProvided((data.food ?? []).length > 0);
+setDuration(data.duration ?? "");
     };
     fetchEvent();
   }, [id]);
@@ -146,8 +171,8 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
   };
 
   const handleSubmit = async () => {
-    if (!title || !date || !address || !category) {
-      alert("Please fill in title, date, location and category!");
+    if (!title || !date || !address) {
+      alert("Please fill in title, date and location!");
       return;
     }
     if (sessionLoading) { alert("Still loading, please wait a moment!"); return; }
@@ -178,14 +203,16 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
       date,
       location: location || address,
       image_url: imageUrl,
-      status: "published",     
-       age_min: ageRange[0],
+      status: "published",
+      age_min: ageRange[0],
       age_max: ageRange[1],
       time,
       address,
       lat,
       lng,
       ward_type: category === "ward" ? wardType : null,
+      food: selectedFoods,
+      duration,
     };
 
     let error;
@@ -450,34 +477,11 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
   </div>
             </div>
 
-           {/* Category */}
-<div className="space-y-2">
-  <label className="text-sm font-medium">Activity Category</label>
-  <div className="grid grid-cols-2 gap-3">
-    <Button
-      type="button"
-      variant={category === "ward" ? "default" : "outline"}
-      size="lg"
-      className="rounded-full h-12 text-base"
-      onClick={() => setCategory("ward")}
-    >
-      Ward Activity
-    </Button>
-    <Button
-      type="button"
-      variant={category === "community" ? "default" : "outline"}
-      size="lg"
-      className="rounded-full h-12 text-base"
-      onClick={() => setCategory("community")}
-    >
-      Community Activity
-    </Button>
-  </div>
-</div>
+ 
 
 {/* Ward Type — only show when Ward is selected */}
-{category === "ward" && (
-  <div className="space-y-3 pb-12">
+<div className="space-y-3 pb-12">
+
     <label className="text-sm font-medium">Type</label>
     <div className="grid grid-cols-2 gap-3 mb-12">
       {[
@@ -490,10 +494,10 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
   key={type.id}
   type="button"
   onClick={() => setWardType(type.id)}
-  className={`rounded-2xl text-left transition-all overflow-hidden ${
+  className={`rounded-xl text-left transition-all overflow-hidden ${
     wardType === type.id
       ? "border-[2px] border-primary"
-      : "border-[1px] border-border/20 hover:border-primary/10"
+      : "border-[1px] border-black hover:border-primary/10"
   }`}
 >
   {wardType === type.id ? (
@@ -519,10 +523,58 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
       ))}
     </div>
   </div>
-)}
+
+{/* Food Provided */}
+<div className="space-y-3 pb-12">
+  <label className="text-sm font-medium">Food Provided?</label>
+  <div className="grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      onClick={() => { setFoodProvided(false); setSelectedFoods([]); }}
+      className={`h-12 rounded-xl text-sm font-semibold transition-all border-[1px] ${
+        !foodProvided ? "border-[2px] border-primary bg-primary/5" : "border-black"
+      }`}
+    >
+      No
+    </button>
+    <button
+      type="button"
+      onClick={() => setFoodProvided(true)}
+      className={`h-12 rounded-xl text-sm font-semibold transition-all border-[1px] ${
+        foodProvided ? "border-[2px] border-primary bg-primary/5" : "border-black"
+      }`}
+    >
+      Yes 🍽️
+    </button>
+  </div>
+
+  {foodProvided && (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">Pick up to 2</p>
+      <div className="flex flex-wrap gap-2">
+      {foodOptions.map(({ id, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => toggleFood(id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border ${
+              selectedFoods.includes(id)
+                ? "border-[2px] border-primary bg-primary/5"
+                :  "border-transparent bg-secondary"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
+
+
 
             {/* Age Range */}
-            <div className="space-y-3 rounded-xl border border-border p-4">
+            <div className="space-y-3 pb-12">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Age Range</label>
                 <span className="text-sm font-bold text-primary">{ageRange[0]}–{ageRange[1]}</span>
@@ -546,23 +598,9 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
               </div>
             </div>
 
-            {/* Free Toggle */}
-            <div className="flex items-center justify-between rounded-xl border border-border p-4">
-              <div className="space-y-0.5">
-                <label className="text-sm font-medium">Free Event</label>
-                <p className="text-xs text-muted-foreground">
-                  {isFree ? "This event is free" : "Attendees need to pay"}
-                </p>
-              </div>
-              <Switch
-                checked={isFree}
-                onCheckedChange={setIsFree}
-                className="data-[state=checked]:bg-green-500"
-              />
-            </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 pb-12">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -581,34 +619,75 @@ const [savedAddresses, setSavedAddresses] = useState<{display: string, city: str
                   Time
                 </label>
                 <select
-                  className="w-full h-12 px-3 text-base rounded-md border border-input bg-background"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                >
-                 <option value="">Select a time...</option>
-                  {/* 6 AM – 11:30 PM */}
-                  {Array.from({ length: 36 }, (_, i) => {
-                    const hour = Math.floor(i / 2) + 6;
-                    const min = i % 2 === 0 ? "00" : "30";
-                    const val = `${String(hour).padStart(2, "0")}:${min}`;
-                    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-                    return <option key={val} value={val}>{label}</option>;
-                  })}
-                  {/* Late Night (12 AM – 5:30 AM) */}
-                  <option disabled>── Late Night ──</option>
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const hour = Math.floor(i / 2);
-                    const min = i % 2 === 0 ? "00" : "30";
-                    const val = `${String(hour).padStart(2, "0")}:${min}`;
-                    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-                    return <option key={`late-${val}`} value={val}>{label}</option>;
-                  })}
-                </select>
+  className="w-full h-12 px-3 text-base rounded-md border border-input bg-background"
+  value={time}
+  onChange={(e) => setTime(e.target.value)}
+>
+  <option value="">Select a time...</option>
+  <option disabled>── Morning ──</option>
+  {Array.from({ length: 12 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 6;
+    const min = i % 2 === 0 ? "00" : "30";
+    const val = `${String(hour).padStart(2, "0")}:${min}`;
+    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return <option key={val} value={val}>{label}</option>;
+  })}
+  <option disabled>── Afternoon ──</option>
+  {Array.from({ length: 12 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 12;
+    const min = i % 2 === 0 ? "00" : "30";
+    const val = `${String(hour).padStart(2, "0")}:${min}`;
+    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return <option key={val} value={val}>{label}</option>;
+  })}
+  <option disabled>── Evening ──</option>
+  {Array.from({ length: 12 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 18;
+    const min = i % 2 === 0 ? "00" : "30";
+    const val = `${String(hour).padStart(2, "0")}:${min}`;
+    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return <option key={val} value={val}>{label}</option>;
+  })}
+  <option disabled>── Late Night ──</option>
+  {Array.from({ length: 12 }, (_, i) => {
+    const hour = Math.floor(i / 2);
+    const min = i % 2 === 0 ? "00" : "30";
+    const val = `${String(hour).padStart(2, "0")}:${min}`;
+    const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return <option key={`late-${val}`} value={val}>{label}</option>;
+  })}
+</select>
               </div>
             
 
 
           </div>
+
+{/* Duration */}
+<div className="space-y-3 pb-12">
+  <label className="text-sm font-medium flex items-center gap-2">
+    <Clock className="h-4 w-4" />
+    Duration
+  </label>
+  <div className="flex flex-wrap gap-2">
+    {["1 hr", "1.5 hrs", "2 hrs", "3 hrs", "4 hrs", "Half day", "Full day"].map((d) => (
+      <button
+        key={d}
+        type="button"
+        onClick={() => setDuration(d)}
+        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+          duration === d
+            ? "border-[2px] border-primary bg-primary/5"
+            : "border-black"
+        }`}
+      >
+        {d}
+      </button>
+    ))}
+  </div>
+</div>
+
+          
 </div> {/* closes right column */}
 </div> {/* closes top flex row */}
           {/* Action Buttons */}
