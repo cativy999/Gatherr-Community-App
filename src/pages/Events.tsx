@@ -157,7 +157,7 @@ const Events = () => {
       <div className="space-y-4">
         {/* Week label */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-muted-foreground">{label}</span>
+          <span className="text-sm font-semibold text-muted-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{label}</span>
           <span className="text-muted-foreground">·</span>
         </div>
 
@@ -204,7 +204,7 @@ const Events = () => {
                         {event.time && (
                           <p className="text-sm font-medium text-foreground">{formatTime(event.time)}</p>
                         )}
-                        <h3 className="text-sm font-semibold leading-tight line-clamp-2">{event.title}</h3>
+                        <h3 className="text-sm font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
 {creatorWards[event.user_id] && (
   <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
     {creatorWards[event.user_id]}
@@ -257,7 +257,7 @@ const Events = () => {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <div className="px-5 py-3">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold">Events</h1>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Events</h1>
           </div>
         </div>
         <div className="pb-3">

@@ -93,7 +93,7 @@ const Post = () => {
       </div>
       <div className="p-3 flex flex-col justify-between flex-1">
                 <div className="space-y-1">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-2">{event.title}</h3>
+          <h3 className="font-semibold text-sm leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <CalendarDays className="h-3 w-3" />
             <span>{formatDate(event.date)}</span>
@@ -119,7 +119,7 @@ const Post = () => {
     <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm  border-border px-5 py-3">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">Create Event</h1>
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Create Event</h1>
         </div>
       </header>
 
@@ -163,7 +163,7 @@ const Post = () => {
 
               <div className="space-y-3 pt-4">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold">Published</h2>
+                  <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Published</h2>
                   <span className="text-sm text-muted-foreground">({published.length})</span>
                 </div>
 

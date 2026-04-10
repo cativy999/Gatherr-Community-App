@@ -184,7 +184,7 @@ const Profile = () => {
     <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm  border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold">Profile</h1>
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Profile</h1>
         </div>
       </header>
 

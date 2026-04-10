@@ -2,8 +2,6 @@ import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlat
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 interface EventCardProps {
   event: {
@@ -61,11 +59,27 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
     fetchAvatars();
   }, [event.id]);
 
+  const [y, m, d] = event.date.split("-").map(Number);
+  const dateLine = new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const timePart = event.time
+    ? new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }).toLowerCase()
+    : "";
+  const durationPart =
+    typeof event.duration === "string" ? event.duration.trim() : event.duration != null ? String(event.duration).trim() : "";
+  const timeAndDuration = [timePart, durationPart].filter(Boolean).join(" · ");
+
   return (
     <div
       onClick={() => navigate(`/event/${event.id}`)}
-      className="bg-card rounded-2xl cursor-pointer flex-shrink-0 w-[65vw] md:w-full select-none"
-      style={{ WebkitTapHighlightColor: 'transparent', fontFamily: 'Inter, sans-serif' }}
+      className="bg-card rounded-2xl cursor-pointer flex-shrink-0 min-w-0 w-[65vw] md:w-full select-none"
+      style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {/* Image */}
       <div className="relative">
@@ -109,8 +123,8 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
       </div>
 
       {/* Content */}
-      <div className="px-0 pt-2 space-y-1.5">
-      <h3 className="font-bold text-sm leading-tight text-foreground">{event.title}</h3>
+      <div className="min-w-0 px-1 pt-2 space-y-1.5">
+      <h3 className="font-bold text-sm leading-tight text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
         {event.virtual_link && (
           <div className="flex items-center gap-1 text-muted-foreground">
             <Video className="h-3.5 w-3.5 flex-shrink-0" />
@@ -118,27 +132,26 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
           </div>
         )}
 
-        <p className="text-xs text-foreground font-medium">
-          {(() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); })()}
-          {event.time ? ` · ${new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
-        </p>
+        <div className="text-xs text-foreground font-medium space-y-0.5 min-w-0">
+          <p>{dateLine}</p>
+          {timeAndDuration && (
+            <p className="leading-snug">{timeAndDuration}</p>
+          )}
+        </div>
 
         {creatorWard && (
           <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
             {creatorWard} 🏳️
           </span>
         )}
-      {((event.food && event.food.length > 0) || event.duration) && (
-  <div className="flex items-center gap-2 pt-1">
-    {event.food?.map((f) => {
-      const Icon = foodIconMap[f];
-      return Icon ? <Icon key={f} className="h-4 w-4 text-muted-foreground" /> : null;
-    })}
-    {event.duration && (
-      <span className="text-xs text-muted-foreground">{event.duration}</span>
-    )}
-  </div>
-)}
+        {event.food && event.food.length > 0 && (
+          <div className="flex items-center gap-2 pt-1">
+            {event.food.map((f) => {
+              const Icon = foodIconMap[f];
+              return Icon ? <Icon key={f} className="h-4 w-4 text-muted-foreground" /> : null;
+            })}
+          </div>
+        )}
         
       </div>
     </div>

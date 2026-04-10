@@ -18,7 +18,7 @@ export default {
         md: ["1rem", { lineHeight: "1.5rem" }],
       },
       fontFamily: {
-        sans: ['Space Grotesk', 'ui-sans-serif', 'system-ui'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
         serif: ['Lora', 'ui-serif', 'Georgia'],
         mono: ['Space Mono', 'ui-monospace'],
       },

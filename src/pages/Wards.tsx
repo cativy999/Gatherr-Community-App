@@ -263,7 +263,7 @@ if (userIds.length > 0) {
           ) : (
             <div className="space-y-8">
               <div className="space-y-3">
-                <h2 className="text-base font-bold">This Week</h2>
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
                 {thisWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {thisWeek.map((event) => (
@@ -282,7 +282,7 @@ if (userIds.length > 0) {
               </div>
 
               <div className="space-y-3">
-                <h2 className="text-base font-bold">Next Week</h2>
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
                 {nextWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {nextWeek.map((event) => (
@@ -301,7 +301,7 @@ if (userIds.length > 0) {
               </div>
 
               <div className="space-y-3">
-                <h2 className="text-base font-bold">Later</h2>
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
                 {later.length > 0 ? (
                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {later.map((event) => (

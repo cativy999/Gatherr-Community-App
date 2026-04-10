@@ -103,7 +103,7 @@ const isEverywhere = value === "Everywhere";
   <span className="text-xs text-muted-foreground font-medium">Location</span>
   <div className="flex items-center gap-1.5 mt-0.5">
     <Navigation className="h-4 w-4 text-foreground" />
-    <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
       {value}
     </span>
     <ChevronDown className="h-4 w-4 text-foreground" />
