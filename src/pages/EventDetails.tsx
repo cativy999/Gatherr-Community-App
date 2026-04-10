@@ -404,7 +404,7 @@ const EventDetails = () => {
 
           {/* Category + Age + Title */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold">{event.title}</h1>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h1>
             {event.age_min && event.age_max && (
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-secondary text-foreground w-fit">
                 Ages {event.age_min}–{event.age_max}
@@ -416,21 +416,21 @@ const EventDetails = () => {
           <div className="rounded-2xl overflow-hidden">
 
             {/* Date row */}
-            <div className="flex items-center gap-4 px-4 py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
+            <div className="flex items-center gap-4  py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
               <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
-                <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(83, 83, 83)' }}>
-                  <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none">
+                <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(0, 0, 0)' }}>
+                  <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                     {eventDate.toLocaleDateString("en-US", { month: "short" })}
                   </span>
                 </div>
                 <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
-                  <span className="text-lg font-bold leading-none text-foreground">
+                  <span className="text-lg font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                     {eventDate.getDate()}
                   </span>
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-semibold">
+                <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                   {eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </p>
                 {event.time && (
@@ -450,13 +450,13 @@ const EventDetails = () => {
                 href={event.virtual_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-4 px-4 py-3 hover:bg-accent transition-colors"
+                className="flex items-center gap-4 py-3 hover:bg-accent transition-colors" 
               >
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0" style={{ border: '1px solid #D9D9D9' }}>
                   <Video className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">Virtual Event</p>
+                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Virtual Event</p>
                   <p className="text-xs text-primary underline truncate max-w-[220px]">{event.virtual_link}</p>
                 </div>
               </a>
@@ -559,47 +559,56 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Going / Interested / Liked counts */}
-          <div className="flex gap-4">
-            <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
-              <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F7BE' }}>
-                <ThumbsUp className="w-4 h-4 text-black" />
+          {/* About */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold font-display">About</h2>
+            <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
+          </div>
+
+          {/* Attendees */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold font-display">Attendees</h2>
+            <div className="flex gap-4">
+              <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
+                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F7BE' }}>
+                  <ThumbsUp className="w-4 h-4 text-black" />
+                </div>
+                <span className="font-bold">{goingCount}</span> Going
+              </button>
+              <button onClick={() => {}} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
+                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#BFE2F5' }}>
+                  <Smile className="w-4 h-4 text-black" />
+                </div>
+                <span className="font-bold">{interestedCount}</span> Interested
+              </button>
+              <div className="flex items-center gap-2 py-2 text-sm font-semibold">
+                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFD6D6' }}>
+                  <Heart className={`w-4 h-4 ${isSaved ? 'text-[rgb(172,42,42)] fill-current' : 'text-black'}`} />
+                </div>
+                <span className="font-bold">{likeCount}</span> Liked
               </div>
-              <span className="font-bold">{goingCount}</span> Going
-            </button>
-            <button onClick={() => {}} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
-              <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#BFE2F5' }}>
-                <Smile className="w-4 h-4 text-black" />
-              </div>
-              <span className="font-bold">{interestedCount}</span> Interested
-            </button>
-            <div className="flex items-center gap-2 py-2 text-sm font-semibold">
-              <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFD6D6' }}>
-                <Heart className={`w-4 h-4 ${isSaved ? 'text-[rgb(172,42,42)] fill-current' : 'text-black'}`} />
-              </div>
-              <span className="font-bold">{likeCount}</span> Liked
             </div>
           </div>
 
-          {/* Description */}
-          <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
-
-          {/* Posted by */}
+          {/* Host */}
           {creatorName && (
-            <div className="flex items-center gap-2 pt-1">
-              {creatorAvatar ? (
-                <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
+            <div className="space-y-3">
+              <h2 className="text-lg font-bold font-display">Host</h2>
+              <div className="flex items-center gap-2">
+                {creatorAvatar ? (
+                  <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <span className="text-sm text-muted-foreground">
+                    Posted by <span className="font-semibold text-foreground">{creatorName}</span>
+                  </span>
+                  {creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
+                  <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
                 </div>
-              )}
-              <div>
-                <span className="text-sm text-muted-foreground">
-                  Posted by <span className="font-semibold text-foreground">{creatorName}</span>
-                </span>
-                {creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
-                <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
               </div>
             </div>
           )}
