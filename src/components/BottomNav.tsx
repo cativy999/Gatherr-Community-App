@@ -33,7 +33,7 @@ const BottomNav = ({ currentPage }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-center justify-around max-w-4xl mx-auto px-4" style={{ height: '64px' }}>
         {navItems.map((item) => {
           const Icon = item.icon;
