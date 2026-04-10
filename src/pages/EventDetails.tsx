@@ -561,13 +561,13 @@ const EventDetails = () => {
 
           {/* About */}
           <div className="space-y-3">
-            <h2 className="text-lg font-bold font-display">About</h2>
+            <h2 className="text-md font-bold font-display">About</h2>
             <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
           </div>
 
           {/* Attendees */}
           <div className="space-y-3">
-            <h2 className="text-lg font-bold font-display">Attendees</h2>
+            <h2 className="text-md font-bold font-display">Attendees</h2>
             <div className="flex gap-4">
               <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
                 <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F7BE' }}>
@@ -593,7 +593,7 @@ const EventDetails = () => {
           {/* Host */}
           {creatorName && (
             <div className="space-y-3">
-              <h2 className="text-lg font-bold font-display">Host</h2>
+              <h2 className="text-md font-bold font-display">Host</h2>
               <div className="flex items-center gap-2">
                 {creatorAvatar ? (
                   <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -616,7 +616,7 @@ const EventDetails = () => {
           {/* Comments */}
           <div className="space-y-6 pt-4">
             <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
-            <h2 className="text-lg font-bold">Comments</h2>
+            <h2 className="text-md font-bold font-display">Comments</h2>
             {!isGuest ? (
               <div className="space-y-3">
                 <Textarea placeholder="Write a comment..." value={comment} onChange={e => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />

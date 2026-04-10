@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        // Enables `text-md` (not in default Tailwind; between sm and lg)
+        md: ["1rem", { lineHeight: "1.5rem" }],
+      },
       fontFamily: {
         sans: ['Space Grotesk', 'ui-sans-serif', 'system-ui'],
         serif: ['Lora', 'ui-serif', 'Georgia'],
