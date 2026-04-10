@@ -132,12 +132,10 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
           </div>
         )}
 
-        <div className="text-xs text-foreground font-medium space-y-0.5 min-w-0">
-          <p>{dateLine}</p>
-          {timeAndDuration && (
-            <p className="leading-snug">{timeAndDuration}</p>
-          )}
-        </div>
+        <p className="text-xs font-medium min-w-0 leading-snug">
+          <span className="text-foreground">{dateLine}{timePart ? `  ·  ${timePart}` : ""}</span>
+          {durationPart && <span className="text-muted-foreground"> · {durationPart}</span>}
+        </p>
 
         {creatorWard && (
           <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
