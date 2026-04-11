@@ -479,7 +479,7 @@ const EventDetails = () => {
                 </div>
               </a>
             ) : event.address ? (
-              <div className="flex items-center gap-4 px-4 py-3">
+              <div className="flex items-center gap-4 pr-4 py-3">
                 {event.lat && event.lng ? (
                   <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
                     <iframe

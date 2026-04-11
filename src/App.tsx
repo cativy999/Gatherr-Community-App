@@ -22,6 +22,7 @@ import MyEvents from "./pages/MyEvents";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 import OnboardingName from "./pages/OnboardingName";
+import WardProfile from "./pages/WardProfile";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="/event/:id" element={<EventDetails />} />
                 <Route path="/my-events" element={<MyEvents />} />
                 <Route path="/events" element={<Events />} />
+                <Route path="/ward/:slug" element={<WardProfile />} />
                 <Route path="*" element={<NotFound />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 
