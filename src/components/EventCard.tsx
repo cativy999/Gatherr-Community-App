@@ -113,6 +113,13 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
           </div>
         )}
 
+        {/* Don't miss this banner */}
+        {event.attendees >= 2 && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2">
+            <span className="text-white text-xs font-bold tracking-wide">🔥 Don't miss this!</span>
+          </div>
+        )}
+
         {/* Heart top right */}
         <button
           onClick={(e) => onToggleSave?.(event.id, e)}

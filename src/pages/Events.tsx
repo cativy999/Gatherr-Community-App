@@ -52,13 +52,17 @@ const Events = () => {
           .eq("user_id", userId)
           .eq("status", activeTab === "interested" ? "interested" : "going");
         if (error) throw error;
-        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const toLocal = (d: string) => { const [y,m,day] = d.split("-").map(Number); return new Date(y, m-1, day); };
+        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && toLocal(e.date) >= today);
         setEvents(upcoming);
         await fetchCreatorWards(upcoming);
       } else if (activeTab === "saved") {
         const { data, error } = await supabase.from("saved_events").select("events(*)").eq("user_id", userId);
         if (error) throw error;
-        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && new Date(e.date) >= new Date());
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const toLocal = (d: string) => { const [y,m,day] = d.split("-").map(Number); return new Date(y, m-1, day); };
+        const upcoming = (data ?? []).map((r: any) => r.events).filter((e: any) => e && toLocal(e.date) >= today);
         setEvents(upcoming);
         await fetchCreatorWards(upcoming);
       } else if (activeTab === "past") {
@@ -66,10 +70,12 @@ const Events = () => {
           supabase.from("rsvps").select("events(*)").eq("user_id", userId),
           supabase.from("saved_events").select("events(*)").eq("user_id", userId),
         ]);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const toLocal = (d: string) => { const [y,m,day] = d.split("-").map(Number); return new Date(y, m-1, day); };
         const allEvents = [
           ...(rsvpRes.data ?? []).map((r: any) => r.events),
           ...(savedRes.data ?? []).map((r: any) => r.events),
-        ].filter((e: any) => e && new Date(e.date) < new Date());
+        ].filter((e: any) => e && toLocal(e.date) < today);
         const seen = new Set();
         const unique = allEvents.filter((e: any) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
         setEvents(unique);
