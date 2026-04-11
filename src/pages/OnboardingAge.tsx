@@ -6,7 +6,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 const MIN_AGE = 18;
 const MAX_AGE = 65;
-const MAX_SPAN = 10;
+const MAX_SPAN = 15;
 
 const OnboardingAge = () => {
   const navigate = useNavigate();
@@ -31,8 +31,8 @@ const OnboardingAge = () => {
     if (!showPreferences) return;
     const num = parseInt(age);
     if (!isNaN(num)) {
-      const low = Math.max(MIN_AGE, num - 5);
-      const high = Math.min(MAX_AGE, low + 10);
+      const low = Math.max(MIN_AGE, num - 7);
+      const high = Math.min(MAX_AGE, low + 15);
       setAgeRange([low, high]);
     }
   }, [showPreferences]);
@@ -97,7 +97,7 @@ const OnboardingAge = () => {
           <div ref={prefsRef} className="pt-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-1 text-center">
               <p className="text-base font-semibold">Who do you want to do activities with?</p>
-              <p className="text-sm text-muted-foreground">Select an age range (max 10 year span)</p>
+              <p className="text-sm text-muted-foreground">Select an age range (max 15 year span)</p>
             </div>
 
             <div className="flex items-center justify-center gap-4">
