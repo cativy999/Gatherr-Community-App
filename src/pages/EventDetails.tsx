@@ -436,7 +436,7 @@ const EventDetails = () => {
             {/* Date row */}
             <div className="flex items-center gap-4  py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
               <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
-                <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(0, 0, 0)' }}>
+                <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
                   <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                     {eventDate.toLocaleDateString("en-US", { month: "short" })}
                   </span>
