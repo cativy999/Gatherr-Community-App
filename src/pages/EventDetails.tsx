@@ -2,7 +2,7 @@ import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2,
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -33,6 +33,8 @@ const EventDetails = () => {
   const [likeCount, setLikeCount] = useState(0);
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [showTitleInHeader, setShowTitleInHeader] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
   const [goingListLoading, setGoingListLoading] = useState(false);
@@ -313,6 +315,17 @@ const EventDetails = () => {
     },
   ];
 
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowTitleInHeader(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -360,12 +373,17 @@ const EventDetails = () => {
 
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }} className="p-2 hover:bg-accent rounded-full transition-colors">
+        <div className="flex items-center justify-between max-w-4xl mx-auto gap-3">
+          <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }} className="p-2 hover:bg-accent rounded-full transition-colors flex-shrink-0">
             <ArrowLeft className="h-6 w-6" />
           </button>
+          {showTitleInHeader && (
+            <span className="font-semibold truncate flex-1 text-center" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '17px' }}>
+              {event.title}
+            </span>
+          )}
           {!isGuest && (
-            <Button variant="ghost" size="icon" className={isSaved ? "text-[rgb(172,42,42)]" : ""} onClick={handleSave} disabled={saveLoading}>
+            <Button variant="ghost" size="icon" className={`flex-shrink-0 ${isSaved ? "text-[rgb(172,42,42)]" : ""}`} onClick={handleSave} disabled={saveLoading}>
               <Heart className={`h-6 w-6 ${isSaved ? "fill-current" : ""}`} />
             </Button>
           )}
@@ -404,7 +422,7 @@ const EventDetails = () => {
 
           {/* Category + Age + Title */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h1>
+            <h1 ref={titleRef} className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h1>
             {event.age_min && event.age_max && (
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-secondary text-foreground w-fit">
                 Ages {event.age_min}–{event.age_max}
