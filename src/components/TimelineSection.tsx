@@ -51,12 +51,18 @@ interface TimelineSectionProps {
   label: string;
   events: any[];
   creatorWards?: Record<string, string>;
+  onEventClick?: (eventId: string) => void;
 }
 
-const TimelineSection = ({ label, events, creatorWards = {} }: TimelineSectionProps) => {
+const TimelineSection = ({ label, events, creatorWards = {}, onEventClick }: TimelineSectionProps) => {
   const navigate = useNavigate();
   if (events.length === 0) return null;
   const grouped = groupByDate(events);
+
+  const handleClick = (eventId: string) => {
+    if (onEventClick) onEventClick(eventId);
+    else navigate(`/event/${eventId}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -92,7 +98,7 @@ const TimelineSection = ({ label, events, creatorWards = {} }: TimelineSectionPr
                 {dayEvents.map((event) => (
                   <div
                     key={event.id}
-                    onClick={() => navigate(`/event/${event.id}`)}
+                    onClick={() => handleClick(event.id)}
                     className="flex items-center gap-3 bg-card rounded-2xl border cursor-pointer p-3 select-none"
                     style={{ borderWidth: '1px', borderColor: 'hsl(0deg 0% 70%)', WebkitTapHighlightColor: 'transparent' }}
                   >
