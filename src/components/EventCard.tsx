@@ -19,6 +19,7 @@ interface EventCardProps {
     food?: string[];
     duration?: string;
     virtual_link?: string | null;
+    created_at?: string;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -58,6 +59,10 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
     };
     fetchAvatars();
   }, [event.id]);
+
+  const isNew = event.created_at
+    ? (Date.now() - new Date(event.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7
+    : false;
 
   const [y, m, d] = event.date.split("-").map(Number);
   const dateLine = new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -117,6 +122,13 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
         {event.attendees >= 2 && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2">
             <span className="text-white text-xs font-bold tracking-wide">🔥 Don't miss this!</span>
+          </div>
+        )}
+
+        {/* New badge */}
+        {isNew && (
+          <div className="absolute top-2 right-10 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold tracking-wide">
+            NEW
           </div>
         )}
 

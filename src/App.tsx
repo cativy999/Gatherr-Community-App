@@ -23,6 +23,10 @@ import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 import OnboardingName from "./pages/OnboardingName";
 import WardProfile from "./pages/WardProfile";
+import Search from "./pages/Search";
+import PublishedEventsPage from "./pages/PublishedEventsPage";
+import CreateGroup from "./pages/CreateGroup";
+import Community from "./pages/Community";
 
 const queryClient = new QueryClient();
 
@@ -90,10 +94,12 @@ const App = () => (
                 <Route path="/my-events" element={<MyEvents />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/ward/:slug" element={<WardProfile />} />
+                <Route path="/search" element={<Search />} />
                 <Route path="*" element={<NotFound />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                
-
+                <Route path="/my-published-events" element={<PublishedEventsPage />} />
+                <Route path="/create-group" element={<CreateGroup />} />
+                <Route path="/community" element={<Community />} />
               </Routes>
             </BrowserRouter>
           </UserProfileProvider>

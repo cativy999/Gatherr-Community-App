@@ -122,7 +122,7 @@ const Events = () => {
           </div>
         </div>
         <div className="pb-3">
-        <div className="max-w-4xl mx-auto px-5 md:px-0 flex gap-2 overflow-x-auto md:pr-0"
+        <div className="max-w-4xl mx-auto px-5 md:px-0 flex md:justify-center gap-2 overflow-x-auto md:pr-0"
  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {tabs.map((tab) => {
   const Icon = tab.icon;

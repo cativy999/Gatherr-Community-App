@@ -264,7 +264,7 @@ const Post = () => {
         </div>
       </main>
 
-      <BottomNav currentPage="post" />
+      <BottomNav currentPage="wards" />
     </div>
   );
 };

@@ -1,6 +1,10 @@
-import { Heart, CalendarDays, MapPin, ChevronDown, Navigation, Balloon, Church, HeartHandshake, Sparkles } from "lucide-react";import { useState, useEffect, useMemo } from "react";
+import {
+  Balloon, Church, HeartHandshake, Sparkles, Search,
+} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
+
 import { useLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,11 +32,6 @@ type Event = {
   food?: string[];
   duration?: string;
 };
-
-const sortOptions = [
-  { id: "latest", label: "Latest" },
-  { id: "free", label: "Free" },
-];
 
 const filterChips = [
   { id: "all", label: "All", icon: null },
@@ -84,22 +83,18 @@ const Wards = () => {
         countMap[r.event_id] = (countMap[r.event_id] ?? 0) + 1;
       });
 
-      setEvents((data ?? []).map((e: any) => ({
-        ...e,
-        attendees: countMap[e.id] ?? 0,
-      })));
+      setEvents((data ?? []).map((e: any) => ({ ...e, attendees: countMap[e.id] ?? 0 })));
 
-
-const userIds = [...new Set((data ?? []).map((e: any) => e.user_id).filter(Boolean))];
-if (userIds.length > 0) {
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, ward")
-    .in("user_id", userIds);
-  const wardMap: Record<string, string> = {};
-  (profiles ?? []).forEach((p: any) => { if (p.ward) wardMap[p.user_id] = p.ward; });
-  setCreatorWards(wardMap);
-}
+      const userIds = [...new Set((data ?? []).map((e: any) => e.user_id).filter(Boolean))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, ward")
+          .in("user_id", userIds);
+        const wardMap: Record<string, string> = {};
+        (profiles ?? []).forEach((p: any) => { if (p.ward) wardMap[p.user_id] = p.ward; });
+        setCreatorWards(wardMap);
+      }
       setLoading(false);
     };
 
@@ -108,24 +103,21 @@ if (userIds.length > 0) {
 
   useEffect(() => {
     if (!userId) return;
-    const fetchSaved = async () => {
-      const { data } = await supabase
-        .from("saved_events")
-        .select("event_id")
-        .eq("user_id", userId);
-      if (data) setSavedEvents(new Set(data.map((s: any) => s.event_id)));
-    };
-    fetchSaved();
+    supabase
+      .from("saved_events")
+      .select("event_id")
+      .eq("user_id", userId)
+      .then(({ data }) => {
+        if (data) setSavedEvents(new Set(data.map((s: any) => s.event_id)));
+      });
   }, [userId]);
 
   const toggleSaved = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!userId) { toast.error("Please log in to save events"); return; }
-
     const isSaved = savedEvents.has(id);
     if (isSaved) {
-      await supabase.from("saved_events").delete()
-        .eq("event_id", id).eq("user_id", userId);
+      await supabase.from("saved_events").delete().eq("event_id", id).eq("user_id", userId);
       setSavedEvents((prev) => { const n = new Set(prev); n.delete(id); return n; });
       toast.success("Removed from saved");
     } else {
@@ -139,48 +131,32 @@ if (userIds.length > 0) {
     const R = 3958.8;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng/2) * Math.sin(dLng/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
   const filteredEvents = useMemo(() => {
     let result = [...events];
-
-    // 1. Filter by city
     if (location !== "Everywhere" && cityName) {
-      result = result.filter((e) =>
-        e.location?.toLowerCase().includes(cityName.toLowerCase())
-      );
+      result = result.filter((e) => e.location?.toLowerCase().includes(cityName.toLowerCase()));
     }
-
-    // 2. Filter by age preference
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
-
-    // 3. Filter by ward type
     if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
-
-
-
-    // 5. Sort
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
         const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
         const distB = getDistance(locationLat, locationLng, b.lat, b.lng!);
-        if (Math.abs(distA - distB) <= 20) {
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        }
+        if (Math.abs(distA - distB) <= 20) return new Date(a.date).getTime() - new Date(b.date).getTime();
         return distA - distB;
       }
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
-
     return result;
   }, [events, activeFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
 
@@ -200,15 +176,10 @@ if (userIds.length > 0) {
     return { thisWeek, nextWeek, later };
   };
 
-  const formatDate = (dateStr: string) => {
-    const [year, month, day] = dateStr.split("-").map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  };
-
   const EmptySection = ({ label, isThisWeek, nextWeekHasEvents }: { label: string; isThisWeek?: boolean; nextWeekHasEvents?: boolean }) => (
     <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center space-y-1">
       <p className="text-sm font-medium text-muted-foreground">
-        No events in {location === "Everywhere" ? "your area" : cityName} {label.toLowerCase()}
+        No events {location === "Everywhere" ? "" : `in ${cityName}`} {label.toLowerCase()}
       </p>
       {isThisWeek && nextWeekHasEvents && (
         <p className="text-xs text-muted-foreground">Check out upcoming events below ↓</p>
@@ -216,117 +187,83 @@ if (userIds.length > 0) {
     </div>
   );
 
-  
-
   const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm ">
-      <div className="px-5 py-3">
-  <div className="flex justify-center max-w-4xl mx-auto">
-    <LocationSelector value={location} onChange={setLocation} />
-  </div>
-</div>
 
+      {/* ── Sticky header ── */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="px-5 py-3">
+          <div className="flex items-center justify-center max-w-4xl mx-auto relative">
+            <LocationSelector value={location} onChange={setLocation} />
+            <button
+              onClick={() => navigate("/search")}
+              className="absolute right-0 p-2 hover:bg-accent rounded-full transition-colors"
+            >
+              <Search className="h-5 w-5 text-foreground" />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter chips */}
         <div className="pb-3">
           <div className="max-w-4xl mx-auto px-5 md:px-0">
-          <div className="flex md:justify-center gap-2 overflow-x-auto -mr-5 pr-10 md:mr-0 md:pr-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {filterChips.map((chip) => {
-  const Icon = chip.icon;
-  return (
-    <button
-      key={chip.id}
-      onClick={() => setActiveFilter(chip.id)}
-      className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-        activeFilter === chip.id
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-white text-foreground border-[#BBBBBB] hover:bg-gray-50"
-      }`}
-    >
-      {Icon && <Icon className="h-3.5 w-3.5" />}
-      {chip.label}
-    </button>
-  );
-})}
+            <div
+              className="flex md:justify-center gap-2 overflow-x-auto -mr-5 pr-10 md:mr-0 md:pr-0"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {filterChips.map((chip) => {
+                const Icon = chip.icon;
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => setActiveFilter(chip.id)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                      activeFilter === chip.id
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-white text-foreground border-[#BBBBBB] hover:bg-gray-50"
+                    }`}
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── Main content ── */}
       <main className="flex-1 px-5 py-4">
-        <div className="max-w-4xl mx-auto space-y-4">
-
-          
+        <div className="max-w-4xl mx-auto space-y-8">
 
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
           ) : (
-            <div className="space-y-8">
+            <>
+              {/* This Week */}
               <div className="space-y-3">
                 <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
                 {thisWeek.length > 0 ? (
-                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
-    <EventCard
-      key={event.id}
-      event={event}
-      creatorWard={creatorWards[event.user_id]}
-      isSaved={savedEvents.has(event.id)}
-      onToggleSave={toggleSaved}
-    />
-  ))}
+                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                    ))}
                   </div>
                 ) : (
                   <EmptySection label="This Week" isThisWeek nextWeekHasEvents={nextWeek.length > 0} />
                 )}
               </div>
 
-              <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
-                {nextWeek.length > 0 ? (
-                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {nextWeek.map((event) => (
-    <EventCard
-      key={event.id}
-      event={event}
-      creatorWard={creatorWards[event.user_id]}
-      isSaved={savedEvents.has(event.id)}
-      onToggleSave={toggleSaved}
-    />
-  ))}
-                  </div>
-                ) : (
-                  <EmptySection label="Next Week" />
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
-                {later.length > 0 ? (
-                 <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {later.map((event) => (
-    <EventCard
-      key={event.id}
-      event={event}
-      creatorWard={creatorWards[event.user_id]}
-      isSaved={savedEvents.has(event.id)}
-      onToggleSave={toggleSaved}
-    />
-  ))}
-                  </div>
-                ) : (
-                  <EmptySection label="Later" />
-                )}
-              </div>
-
               {/* Wards Near You */}
               <div className="space-y-3">
                 <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Wards Near You</h2>
-                <div className="flex gap-4 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <div className="flex gap-4 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                   <div
                     onClick={() => navigate("/ward/santa-monica")}
-                    className="flex-shrink-0 w-44 bg-card rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                    className="flex-shrink-0 w-44 bg-card rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow border border-border"
                   >
                     <div className="w-full h-24 bg-secondary" />
                     <div className="p-3 space-y-1">
@@ -336,12 +273,43 @@ if (userIds.length > 0) {
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Next Week */}
+              <div className="space-y-3">
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
+                {nextWeek.length > 0 ? (
+                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                    {nextWeek.map((event) => (
+                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptySection label="Next Week" />
+                )}
+              </div>
+
+              {/* Later */}
+              <div className="space-y-3">
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
+                {later.length > 0 ? (
+                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                    {later.map((event) => (
+                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptySection label="Later" />
+                )}
+              </div>
+            </>
           )}
         </div>
       </main>
 
       <BottomNav currentPage="wards" />
+
+
+
     </div>
   );
 };
