@@ -1,4 +1,3 @@
-import BottomNav from "@/components/BottomNav";
 import { CalendarDays, CheckCircle2, Copy, MoreHorizontal, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
@@ -264,7 +263,6 @@ const Post = () => {
         </div>
       </main>
 
-      <BottomNav currentPage="wards" />
     </div>
   );
 };

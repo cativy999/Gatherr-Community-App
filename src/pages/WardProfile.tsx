@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
-import BottomNav from "@/components/BottomNav";
 
 const WARD = {
   name: "Santa Monica Ward",
@@ -125,7 +124,6 @@ const WardProfile = () => {
 
       </main>
 
-      <BottomNav currentPage="wards" />
     </div>
   );
 };

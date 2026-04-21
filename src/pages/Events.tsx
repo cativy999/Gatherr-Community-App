@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, ThumbsUp, Smile, Heart, Clock } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -174,7 +173,6 @@ const Events = () => {
         </div>
       </main>
 
-      <BottomNav currentPage="events" />
     </div>
   );
 };

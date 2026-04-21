@@ -2,7 +2,6 @@ import {
   Balloon, Church, HeartHandshake, Sparkles, Search,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import BottomNav from "@/components/BottomNav";
 import LocationSelector from "@/components/LocationSelector";
 
 import { useLocation } from "@/contexts/LocationContext";
@@ -175,6 +174,17 @@ const Wards = () => {
     });
     return { thisWeek, nextWeek, later };
   };
+  
+  const groupByMonth = (evts: Event[]) => {
+    const map: Record<string, Event[]> = {};
+    evts.forEach((e) => {
+      const d = new Date(e.date);
+      const key = d.toLocaleString("default", { month: "long", year: "numeric" });
+      if (!map[key]) map[key] = [];
+      map[key].push(e);
+    });
+    return map;
+  };
 
   const EmptySection = ({ label, isThisWeek, nextWeekHasEvents }: { label: string; isThisWeek?: boolean; nextWeekHasEvents?: boolean }) => (
     <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center space-y-1">
@@ -275,38 +285,63 @@ const Wards = () => {
               </div>
 
               {/* Next Week */}
-              <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
-                {nextWeek.length > 0 ? (
-                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                    {nextWeek.map((event) => (
-                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptySection label="Next Week" />
-                )}
+<div className="space-y-3">
+  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
+  {nextWeek.length > 0 ? (
+    (() => {
+      const grouped = groupByMonth(nextWeek);
+      const keys = Object.keys(grouped);
+      return keys.length > 1 ? (
+        <div className="space-y-6">
+          {keys.map((month) => (
+            <div key={month} className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
+              <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                {grouped[month].map((event) => (
+                  <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                ))}
               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          {nextWeek.map((event) => (
+            <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+          ))}
+        </div>
+      );
+    })()
+  ) : (
+    <EmptySection label="Next Week" />
+  )}
+</div>
 
               {/* Later */}
-              <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
-                {later.length > 0 ? (
-                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                    {later.map((event) => (
-                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptySection label="Later" />
-                )}
-              </div>
+<div className="space-y-3">
+  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
+  {later.length > 0 ? (
+    <div className="space-y-6">
+      {Object.entries(groupByMonth(later)).map(([month, evts]) => (
+        <div key={month} className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
+          <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+            {evts.map((event) => (
+              <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <EmptySection label="Later" />
+  )}
+</div>
             </>
           )}
         </div>
       </main>
 
-      <BottomNav currentPage="wards" />
 
 
 

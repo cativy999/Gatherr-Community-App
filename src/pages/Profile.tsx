@@ -1,4 +1,3 @@
-import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -346,7 +345,6 @@ const Profile = () => {
         </div>
       </main>
 
-      <BottomNav currentPage="profile" />
     </div>
   );
 };

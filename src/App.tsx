@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
@@ -10,7 +11,6 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
-import ResetPassword from "./pages/ResetPassword";
 import OnboardingAge from "./pages/OnboardingAge";
 import OnboardingWard from "./pages/OnboardingWard";
 import Wards from "./pages/Wards";
@@ -18,7 +18,6 @@ import CreateEvent from "./pages/CreateEvent";
 import Post from "./pages/Post";
 import Profile from "./pages/Profile";
 import EventDetails from "./pages/EventDetails";
-import MyEvents from "./pages/MyEvents";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 import OnboardingName from "./pages/OnboardingName";
@@ -27,6 +26,8 @@ import Search from "./pages/Search";
 import PublishedEventsPage from "./pages/PublishedEventsPage";
 import CreateGroup from "./pages/CreateGroup";
 import Community from "./pages/Community";
+import GroupProfile from "./pages/GroupProfile";
+
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,17 @@ const AuthListener = () => {
   return null;
 };
 
+const AppLayout = () => {
+  const { session } = useAuth();
+  const { pathname } = useLocation();
+  
+  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward"];
+  
+  if (!session || hideNavPaths.includes(pathname)) return null;
+  
+  return <BottomNav />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -91,16 +103,16 @@ const App = () => (
                 <Route path="/create-event/:id" element={<CreateEvent />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/event/:id" element={<EventDetails />} />
-                <Route path="/my-events" element={<MyEvents />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/ward/:slug" element={<WardProfile />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="*" element={<NotFound />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/my-published-events" element={<PublishedEventsPage />} />
                 <Route path="/create-group" element={<CreateGroup />} />
                 <Route path="/community" element={<Community />} />
+                <Route path="/group/:id" element={<GroupProfile />} />
               </Routes>
+              <AppLayout />
             </BrowserRouter>
           </UserProfileProvider>
         </LocationProvider>

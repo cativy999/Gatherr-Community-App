@@ -95,20 +95,20 @@ const EventDetails = () => {
     if (!id || !userId) return;
     const fetchUserStatus = async () => {
       const { data: rsvp } = await supabase
-        .from("rsvps")
-        .select("status")
-        .eq("event_id", id)
-        .eq("user_id", userId)
-        .single();
-      if (rsvp) setRsvpStatus(rsvp.status as "going" | "interested");
-
-      const { data: saved } = await supabase
-        .from("saved_events")
-        .select("id")
-        .eq("event_id", id)
-        .eq("user_id", userId)
-        .single();
-      if (saved) setIsSaved(true);
+      .from("rsvps")
+      .select("status")
+      .eq("event_id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (rsvp) setRsvpStatus(rsvp.status as "going" | "interested");
+    
+    const { data: saved } = await supabase
+      .from("saved_events")
+      .select("id")
+      .eq("event_id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (saved) setIsSaved(true);
     };
     fetchUserStatus();
   }, [id, userId]);
@@ -481,10 +481,10 @@ const EventDetails = () => {
             ) : event.address ? (
               <div className="flex items-center gap-4 pr-4 py-3">
                 {event.lat && event.lng ? (
-                  <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-                    <iframe
-                      width="80"
-                      height="80"
+                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                 <iframe
+                   width="48"
+                   height="48"
                       style={{ border: 0, display: "block", pointerEvents: "none" }}
                       loading="lazy"
                       src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`}
@@ -720,7 +720,7 @@ const EventDetails = () => {
       </main>
 
       {/* Sticky RSVP Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-50">
         <div className="max-w-4xl mx-auto">
           {isGuest ? (
             <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
