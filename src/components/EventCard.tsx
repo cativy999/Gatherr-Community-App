@@ -98,7 +98,7 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
 
         {/* Attendee avatars top left */}
         {event.attendees > 0 && (
-          <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm rounded-full px-2 py-1">
+          <div className="absolute top-2 left-0 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm rounded-tr-full rounded-br-full px-2 py-1">
             <div className="flex -space-x-1.5">
               {attendeeAvatars.slice(0, 3).map((avatar, i) => (
                 <img
@@ -120,7 +120,7 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
 
         {/* Don't miss this banner */}
         {event.attendees >= 2 && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2 flex justify-center">
             <span className="text-white text-xs font-bold tracking-wide">🔥 Don't miss this!</span>
           </div>
         )}
