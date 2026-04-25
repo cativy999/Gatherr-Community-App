@@ -41,6 +41,8 @@ const EventDetails = () => {
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
   const [creatorWard, setCreatorWard] = useState<string | null>(null);
+  const [linksExpanded, setLinksExpanded] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -348,6 +350,16 @@ const EventDetails = () => {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
+  const truncateUrl = (url: string) => {
+    try {
+      const u = new URL(url);
+      const display = u.hostname.replace(/^www\./, "") + u.pathname + u.search;
+      return display.length > 45 ? display.slice(0, 45) + "…" : display;
+    } catch {
+      return url.length > 45 ? url.slice(0, 45) + "…" : url;
+    }
+  };
+
   const renderDescription = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
@@ -580,8 +592,41 @@ const EventDetails = () => {
           {/* About */}
           <div className="space-y-3">
             <h2 className="text-md font-bold font-display">About</h2>
-            <p className="text-base leading-snug whitespace-pre-wrap">{renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}</p>
+            <p className={`text-base leading-snug whitespace-pre-wrap ${!descExpanded ? "line-clamp-4" : ""}`}>
+              {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}
+            </p>
+            {event.description?.length > 200 && (
+              <button onClick={() => setDescExpanded(e => !e)} className="text-sm font-medium text-primary">
+                {descExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
           </div>
+
+          {/* Social Links */}
+          {event.social_links?.filter(Boolean).length > 0 && (() => {
+            const links = event.social_links.filter(Boolean);
+            const visible = linksExpanded ? links : links.slice(0, 2);
+            return (
+              <div className="space-y-2">
+                <h2 className="text-md font-bold font-display">Links</h2>
+                <div className="space-y-2">
+                  {visible.map((link: string, i: number) => (
+                    <a key={i} href={link} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-primary text-sm">
+                      <Link className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="underline truncate">{truncateUrl(link)}</span>
+                    </a>
+                  ))}
+                  {links.length > 2 && (
+                    <button onClick={() => setLinksExpanded(e => !e)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                      {linksExpanded ? "Show less" : `Show ${links.length - 2} more`}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Attendees */}
           <div className="space-y-3">

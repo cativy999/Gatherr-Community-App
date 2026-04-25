@@ -45,6 +45,7 @@ const CreateEvent = () => {
   const [wardType, setWardType] = useState<string | null>(null);
   const [isVirtual, setIsVirtual] = useState(false);
   const [virtualLink, setVirtualLink] = useState("");
+  const [socialLinks, setSocialLinks] = useState<string[]>([""]);
   const [foodProvided, setFoodProvided] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [duration, setDuration] = useState("");
@@ -84,6 +85,7 @@ const CreateEvent = () => {
       setWardType(data.ward_type ?? null);
       setIsVirtual(!!data.virtual_link);
       setVirtualLink(data.virtual_link ?? "");
+      setSocialLinks(data.social_links?.length ? data.social_links : [""]);
       setSelectedFoods(data.food ?? []);
       setFoodProvided((data.food ?? []).length > 0);
       setDuration(data.duration ?? "");
@@ -179,6 +181,7 @@ const CreateEvent = () => {
       age_min: ageRange[0], age_max: ageRange[1], time, address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
       food: selectedFoods, duration, virtual_link: virtualLink || null,
+      social_links: socialLinks.filter(Boolean).length > 0 ? socialLinks.filter(Boolean) : null,
     };
     let error;
     if (isEditing) {
@@ -348,6 +351,41 @@ const CreateEvent = () => {
                 <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base" value={description}
                   onChange={(e) => { const val = e.target.value; setDescription(val.charAt(0).toUpperCase() + val.slice(1)); }} maxLength={2000} />
                 <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
+              </div>
+
+              {/* Social Links */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  Social Links
+                </label>
+                <p className="text-xs text-muted-foreground">Paste links to your event page, Instagram, Facebook, etc.</p>
+                <div className="space-y-2">
+                  {socialLinks.map((link, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        placeholder="https://..."
+                        className="h-12 text-base flex-1"
+                        value={link}
+                        onChange={(e) => {
+                          const updated = [...socialLinks];
+                          updated[i] = e.target.value;
+                          setSocialLinks(updated);
+                        }}
+                      />
+                      {socialLinks.length > 1 && (
+                        <button type="button" onClick={() => setSocialLinks(socialLinks.filter((_, idx) => idx !== i))}
+                          className="text-muted-foreground hover:text-foreground px-1">✕</button>
+                      )}
+                    </div>
+                  ))}
+                  {socialLinks.length < 5 && (
+                    <button type="button" onClick={() => setSocialLinks([...socialLinks, ""])}
+                      className="text-sm text-primary font-medium flex items-center gap-1 mt-1">
+                      + Add another link
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Type */}
