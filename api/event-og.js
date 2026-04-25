@@ -19,7 +19,8 @@ export default async function handler(req, res) {
   }
 
   const title = event.title ?? "Gatherrr Event";
-  const description = event.description?.slice(0, 150) ?? "Join us for this event!";
+  const dateFormatted = event.date ? new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "";
+const description = dateFormatted ? `${dateFormatted} · ${event.description?.slice(0, 100) ?? ""}` : event.description?.slice(0, 150) ?? "Join us for this event!";
   const image = event.image_url ?? "https://gatherr-one.vercel.app/og-default.png";
   const url = `https://gatherr-one.vercel.app/event/${id}`;
 
