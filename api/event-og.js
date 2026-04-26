@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.VITE_SUPABASE_ANON_KEY
@@ -26,7 +27,9 @@ export default async function handler(req, res) {
     return res.status(404).send("Event not found");
   }
 
-  const title = event.title ?? "Gatherrr Event";
+  const eventDateObj = event.date ? (() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d); })() : null;
+const datePrefix = eventDateObj ? eventDateObj.toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" }) : "";
+const title = datePrefix ? `${datePrefix} · ${event.title ?? "Gatherrr Event"}` : event.title ?? "Gatherrr Event";
   const dateFormatted = event.date
     ? new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : "";
