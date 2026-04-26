@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -310,6 +310,39 @@ const EventDetails = () => {
     toast.success("Comment deleted");
   };
 
+  const handleAddToCalendar = (type: "google" | "ics") => {
+    const [y, m, d] = event.date.split("-").map(Number);
+    const parseTime = (timeStr: string) => {
+      const [time, period] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+      return { hours, minutes: minutes || 0 };
+    };
+    const parseDuration = (dur: string) => {
+      if (!dur || dur === "Full day") return 480;
+      if (dur === "Half day") return 240;
+      return parseFloat(dur) * 60;
+    };
+    const { hours, minutes } = event.time ? parseTime(event.time) : { hours: 12, minutes: 0 };
+    const durationMins = parseDuration(event.duration);
+    const start = new Date(y, m - 1, d, hours, minutes);
+    const end = new Date(start.getTime() + durationMins * 60000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const fmt = (dt: Date) => `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+    if (type === "google") {
+      const params = new URLSearchParams({ action: "TEMPLATE", text: event.title, dates: `${fmt(start)}/${fmt(end)}`, details: event.description ?? "", location: event.address ?? "" });
+      window.open(`https://calendar.google.com/calendar/render?${params}`, "_blank");
+    } else {
+      const ics = ["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",`SUMMARY:${event.title}`,`DTSTART:${fmt(start)}`,`DTEND:${fmt(end)}`,`LOCATION:${event.address ?? ""}`, "END:VEVENT","END:VCALENDAR"].join("\r\n");
+      const blob = new Blob([ics], { type: "text/calendar" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${event.title}.ics`; a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const shareOptions = [
     {
       icon: Copy, label: "Copy Link",
@@ -588,6 +621,19 @@ const EventDetails = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Add to Calendar */}
+          <div className="space-y-2">
+            <h2 className="text-md font-bold font-display">Add to Calendar</h2>
+            <div className="flex gap-2">
+              <button onClick={() => handleAddToCalendar("google")} className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm font-semibold hover:bg-accent transition-colors">
+                <CalendarPlus className="h-4 w-4" />Google Calendar
+              </button>
+              <button onClick={() => handleAddToCalendar("ics")} className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm font-semibold hover:bg-accent transition-colors">
+                <CalendarPlus className="h-4 w-4" />Apple / Outlook
+              </button>
+            </div>
+          </div>
 
           {/* About */}
           <div className="space-y-3">
