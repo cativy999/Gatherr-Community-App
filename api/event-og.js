@@ -26,19 +26,22 @@ const description = dateFormatted ? `${dateFormatted} · ${event.description?.sl
 
   res.setHeader("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta property="og:title" content="${title}" />
-    <meta property="og:description" content="${description}" />
-    <meta property="og:image" content="${image}" />
-    <meta property="og:url" content="${url}" />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${title}" />
-    <meta name="twitter:description" content="${description}" />
-    <meta name="twitter:image" content="${image}" />
-    <meta http-equiv="refresh" content="0;url=${url}" />
-  </head>
-  <body>Redirecting...</body>
-</html>`);
+  <html>
+    <head>
+      <meta property="og:title" content="${title}" />
+      <meta property="og:description" content="${description}" />
+      <meta property="og:image" content="${image}" />
+      <meta property="og:url" content="${url}" />
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="Gatherrr" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${title}" />
+      <meta name="twitter:description" content="${description}" />
+      <meta name="twitter:image" content="${image}" />
+    </head>
+    <body>
+      <script>window.location.replace("${url}");</script>
+      <noscript><a href="${url}">Click here to view the event</a></noscript>
+    </body>
+  </html>`);
 }
