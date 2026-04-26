@@ -1,12 +1,13 @@
 {
   "rewrites": [
     {
-      "source": "/event/:id",
-      "destination": "/api/event-og?id=:id"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/event-og.js": {
+      "maxDuration": 10
+    }
+  }
 }
