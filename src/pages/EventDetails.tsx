@@ -33,6 +33,7 @@ const EventDetails = () => {
   const [likeCount, setLikeCount] = useState(0);
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [goingList, setGoingList] = useState<any[]>([]);
@@ -455,6 +456,7 @@ const EventDetails = () => {
                 <span className="text-muted-foreground">No image</span>
               </div>
             )}
+            {/* Copy Link */}
             <button
               onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
               className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 hover:opacity-90 text-white rounded-xl transition-colors shadow-md"
@@ -479,7 +481,7 @@ const EventDetails = () => {
           <div className="rounded-2xl overflow-hidden">
 
             {/* Date row */}
-            <div className="flex items-center gap-4  py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
+            <div className="relative flex items-center gap-4 py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
               <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
                 <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
                   <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
@@ -492,7 +494,7 @@ const EventDetails = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 flex-1">
                 <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                   {eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </p>
@@ -503,6 +505,39 @@ const EventDetails = () => {
                       {event.time}{event.duration ? ` · ${event.duration}` : ""}
                     </span>
                   </div>
+                )}
+              </div>
+
+              {/* Add to Calendar button */}
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={() => setCalendarOpen(!calendarOpen)}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-secondary hover:bg-accent transition-colors"
+                >
+                  <CalendarPlus className="h-5 w-5 text-foreground" />
+                </button>
+
+                {/* Calendar picker popup */}
+                {calendarOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setCalendarOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-30 w-44">
+                      <button
+                        onClick={() => { handleAddToCalendar("google"); setCalendarOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      >
+                        <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        Google
+                      </button>
+                      <button
+                        onClick={() => { handleAddToCalendar("ics"); setCalendarOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+                      >
+                        <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        Apple / Outlook
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -622,18 +657,6 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Add to Calendar */}
-          <div className="space-y-2">
-            <h2 className="text-md font-bold font-display">Add to Calendar</h2>
-            <div className="flex gap-2">
-              <button onClick={() => handleAddToCalendar("google")} className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm font-semibold hover:bg-accent transition-colors">
-                <CalendarPlus className="h-4 w-4" />Google Calendar
-              </button>
-              <button onClick={() => handleAddToCalendar("ics")} className="flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm font-semibold hover:bg-accent transition-colors">
-                <CalendarPlus className="h-4 w-4" />Apple / Outlook
-              </button>
-            </div>
-          </div>
 
           {/* About */}
           <div className="space-y-3">
@@ -829,6 +852,20 @@ const EventDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Floating edit button — only visible to the event creator */}
+      {userId && event && userId === event.user_id && (
+        <div className="fixed bottom-24 left-0 right-0 flex justify-center z-40 pointer-events-none">
+          <button
+            onClick={() => navigate(`/create-event/${id}`)}
+            className="pointer-events-auto flex items-center gap-2 px-5 py-3 bg-black text-white text-sm font-medium rounded-full shadow-lg hover:bg-gray-800 active:scale-95 transition-all"
+          >
+            <span>✏️</span>
+            Need to edit this post? Click here
+          </button>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -2,8 +2,21 @@ import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe } from "lucide-react";
+
+const FacebookIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -27,7 +40,10 @@ const CreateEvent = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [ageRange, setAgeRange] = useState<[number, number]>([25, 35]);
+  const [minAge, setMinAge] = useState<string>("");
+  const [maxAge, setMaxAge] = useState<string>("");
+  const [minAgeOpen, setMinAgeOpen] = useState(false);
+  const [maxAgeOpen, setMaxAgeOpen] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
   const [savedAddresses, setSavedAddresses] = useState<{display: string, city: string, lat: number, lng: number, count: number}[]>(() => {
     try { return JSON.parse(localStorage.getItem("address_history") || "[]"); }
@@ -38,17 +54,22 @@ const CreateEvent = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
   const locationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [time, setTime] = useState("");
+  const dateRef = useRef<HTMLInputElement>(null);
+  const startTimeRef = useRef<HTMLInputElement>(null);
+  const endTimeRef = useRef<HTMLInputElement>(null);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [wardType, setWardType] = useState<string | null>(null);
   const [isVirtual, setIsVirtual] = useState(false);
   const [virtualLink, setVirtualLink] = useState("");
-  const [socialLinks, setSocialLinks] = useState<string[]>([""]);
+  const [facebookLink, setFacebookLink] = useState("");
+  const [instagramLink, setInstagramLink] = useState("");
+  const [websiteLink, setWebsiteLink] = useState("");
   const [foodProvided, setFoodProvided] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
-  const [duration, setDuration] = useState("");
 
   const toggleFood = (id: string) => {
     setSelectedFoods(prev =>
@@ -78,17 +99,20 @@ const CreateEvent = () => {
       setDate(data.date ?? "");
       setLocation(data.location ?? "");
       setImagePreview(data.image_url ?? null);
-      setAgeRange([data.age_min ?? 25, data.age_max ?? 35]);
-      setTime(data.time ?? "");
+      setMinAge(data.age_min ? String(data.age_min) : "");
+      setMaxAge(data.age_max ? String(data.age_max) : "+");
+      setStartTime(data.start_time ?? "");
+      setEndTime(data.end_time ?? "");
       setAddress(data.address ?? "");
       setLocationSearch(data.address ?? "");
       setWardType(data.ward_type ?? null);
       setIsVirtual(!!data.virtual_link);
       setVirtualLink(data.virtual_link ?? "");
-      setSocialLinks(data.social_links?.length ? data.social_links : [""]);
+      setFacebookLink(data.social_links?.[0] ?? "");
+      setInstagramLink(data.social_links?.[1] ?? "");
+      setWebsiteLink(data.social_links?.[2] ?? "");
       setSelectedFoods(data.food ?? []);
       setFoodProvided((data.food ?? []).length > 0);
-      setDuration(data.duration ?? "");
     };
     fetchEvent();
   }, [id]);
@@ -178,10 +202,10 @@ const CreateEvent = () => {
     const eventData = {
       user_id: session.user.id, title, description, category, is_free: isFree, date,
       location: location || address, image_url: imageUrl, status: "published",
-      age_min: ageRange[0], age_max: ageRange[1], time, address, lat, lng,
+      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
-      food: selectedFoods, duration, virtual_link: virtualLink || null,
-      social_links: socialLinks.filter(Boolean).length > 0 ? socialLinks.filter(Boolean) : null,
+      food: selectedFoods, virtual_link: virtualLink || null,
+      social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
     };
     let error;
     if (isEditing) {
@@ -254,6 +278,48 @@ const CreateEvent = () => {
                 <div className="text-sm text-gray-500 text-right">{title.length}/80</div>
               </div>
 
+              {/* Date, Start time → End time */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4">
+                {/* Date picker — full width on mobile, flex-1 on desktop */}
+                <div className="relative w-full sm:flex-1 cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
+                  <input ref={dateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    value={date} onChange={(e) => setDate(e.target.value)} />
+                  <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                    <span className={`text-sm ${date ? "text-black" : "text-muted-foreground"}`}>
+                      {date ? new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "mm/dd/yyyy"}
+                    </span>
+                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                </div>
+
+                {/* Start time + To + End time — own row on mobile */}
+                <div className="flex items-center gap-3 sm:contents">
+                  <div className="relative flex-1 sm:w-[140px] sm:flex-none cursor-pointer" onClick={() => startTimeRef.current?.showPicker()}>
+                    <input ref={startTimeRef} type="time" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                      <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
+                        {startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "Start time"}
+                      </span>
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                  </div>
+
+                  <span className="text-sm font-medium shrink-0">To</span>
+
+                  <div className="relative flex-1 sm:w-[140px] sm:flex-none cursor-pointer" onClick={() => endTimeRef.current?.showPicker()}>
+                    <input ref={endTimeRef} type="time" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                      <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
+                        {endTime ? new Date(`2000-01-01T${endTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "End time"}
+                      </span>
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Event Location */}
               <div className="space-y-3">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -261,7 +327,6 @@ const CreateEvent = () => {
                   Event Location
                 </label>
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Enter a physical address or a virtual link (Zoom, Google Meet, etc.)</p>
                   <div className="relative" ref={locationRef}>
                     <Input
                       placeholder="Address or virtual link..."
@@ -354,66 +419,61 @@ const CreateEvent = () => {
               </div>
 
               {/* Social Links */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Link className="h-4 w-4" />
+                  <FacebookIcon className="h-4 w-4" />
+                  <InstagramIcon className="h-4 w-4" />
+                  <Globe className="h-4 w-4" />
                   Social Links
                 </label>
-                <p className="text-xs text-muted-foreground">Paste links to your event page, Instagram, Facebook, etc.</p>
                 <div className="space-y-2">
-                  {socialLinks.map((link, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Input
-                        placeholder="https://..."
-                        className="h-12 text-base flex-1"
-                        value={link}
-                        onChange={(e) => {
-                          const updated = [...socialLinks];
-                          updated[i] = e.target.value;
-                          setSocialLinks(updated);
-                        }}
-                      />
-                      {socialLinks.length > 1 && (
-                        <button type="button" onClick={() => setSocialLinks(socialLinks.filter((_, idx) => idx !== i))}
-                          className="text-muted-foreground hover:text-foreground px-1">✕</button>
-                      )}
-                    </div>
-                  ))}
-                  {socialLinks.length < 5 && (
-                    <button type="button" onClick={() => setSocialLinks([...socialLinks, ""])}
-                      className="text-sm text-primary font-medium flex items-center gap-1 mt-1">
-                      + Add another link
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
+                    <FacebookIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input
+                      type="url"
+                      placeholder="Facebook URL"
+                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                      value={facebookLink}
+                      onChange={(e) => setFacebookLink(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
+                    <InstagramIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input
+                      type="url"
+                      placeholder="Instagram URL"
+                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                      value={instagramLink}
+                      onChange={(e) => setInstagramLink(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <input
+                      type="url"
+                      placeholder="Website URL"
+                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                      value={websiteLink}
+                      onChange={(e) => setWebsiteLink(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Type */}
               <div className="space-y-3 pb-12">
-                <label className="text-sm font-medium">Type</label>
-                <div className="grid grid-cols-2 gap-3 mb-12">
+                <label className="text-sm font-medium">Choose a category</label>
+                <div className="flex gap-3">
                   {[
-                    { id: "spiritual", label: "Spiritual", desc: "Temple, study, devotionals", icon: <SunMedium className="h-4 w-4" /> },
-                    { id: "fhe", label: "FHE", desc: "Family Home Evening activities", icon: <LandPlot className="h-4 w-4" /> },
-                    { id: "service", label: "Service", desc: "Volunteering, charity work", icon: <HandPlatter className="h-4 w-4" /> },
-                    { id: "general", label: "General", desc: "Social gatherings & other", icon: <Rainbow className="h-4 w-4" /> },
+                    { id: "spiritual", label: "Spiritual", icon: <SunMedium className="h-4 w-4" /> },
+                    { id: "fhe", label: "FHE", icon: <LandPlot className="h-4 w-4" /> },
+                    { id: "service", label: "Service", icon: <HandPlatter className="h-4 w-4" /> },
+                    { id: "general", label: "General", icon: <Rainbow className="h-4 w-4" /> },
                   ].map((type) => (
                     <button key={type.id} type="button" onClick={() => setWardType(type.id)}
-                      className={`rounded-xl text-left transition-all overflow-hidden ${wardType === type.id ? "border-[2px] border-primary" : "border-[1px] border-black"}`}>
-                      {wardType === type.id ? (
-                        <>
-                          <div className="bg-primary px-3 py-2 flex items-center gap-1.5">
-                            <span className="text-white">{type.icon}</span>
-                            <p className="font-semibold text-sm text-white">{type.label}</p>
-                          </div>
-                          <div className="px-3 py-2"><p className="text-xs text-black">{type.desc}</p></div>
-                        </>
-                      ) : (
-                        <div className="p-3">
-                          <div className="flex items-center gap-1.5 mb-0.5">{type.icon}<p className="font-semibold text-sm">{type.label}</p></div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{type.desc}</p>
-                        </div>
-                      )}
+                      className={`flex-1 rounded-xl transition-all overflow-hidden p-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
+                      {type.icon}
+                      <p className="font-semibold text-sm">{type.label}</p>
                     </button>
                   ))}
                 </div>
@@ -445,51 +505,66 @@ const CreateEvent = () => {
 
               {/* Age Range */}
               <div className="space-y-3 pb-12">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Age Range</label>
-                  <span className="text-sm font-bold text-primary">{ageRange[0]}–{ageRange[1]}</span>
-                </div>
-                <div className="relative">
-                  <div className="relative flex justify-between mb-2" style={{ paddingLeft: `${((ageRange[0] - 18) / 62) * 100}%`, paddingRight: `${((80 - ageRange[1]) / 62) * 100}%` }}>
-                    <span className="text-xs font-semibold text-primary">{ageRange[0]}</span>
-                    <span className="text-xs font-semibold text-primary">{ageRange[1]}</span>
+                <label className="text-sm font-medium">Age Range</label>
+                <div className="flex items-center gap-3">
+
+                  {/* Min age */}
+                  <div className="relative flex-1">
+                    <div
+                      className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                      onClick={() => { setMinAgeOpen(!minAgeOpen); setMaxAgeOpen(false); }}>
+                      <span className={`text-sm ${minAge ? "text-black" : "text-muted-foreground"}`}>
+                        {minAge || "Min"}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${minAgeOpen ? "rotate-180" : ""}`} />
+                    </div>
+                    {minAgeOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                        {[18, 25, 30, 35, 40, 45, 50, 55, 60].map(age => (
+                          <button key={age} type="button"
+                            className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${minAge === String(age) ? "font-bold" : ""}`}
+                            onClick={() => { setMinAge(String(age)); setMinAgeOpen(false); }}>
+                            {age}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Slider min={18} max={80} step={1} value={ageRange} onValueChange={(val) => setAgeRange(val as [number, number])} className="w-full" />
+
+                  <span className="text-sm font-medium shrink-0">To</span>
+
+                  {/* Max age */}
+                  <div className="relative flex-1">
+                    <div
+                      className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                      onClick={() => { setMaxAgeOpen(!maxAgeOpen); setMinAgeOpen(false); }}>
+                      <span className={`text-sm ${maxAge ? "text-black" : "text-muted-foreground"}`}>
+                        {maxAge || "Max"}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${maxAgeOpen ? "rotate-180" : ""}`} />
+                    </div>
+                    {maxAgeOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                        <button type="button"
+                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${maxAge === "+" ? "font-bold" : ""}`}
+                          onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}>
+                          <p className="text-sm">+</p>
+                          <p className="text-xs text-muted-foreground">(above)</p>
+                        </button>
+                        {[25, 30, 35, 40, 45, 50, 55, 60].map(opt => (
+                          <button key={opt} type="button"
+                            className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${maxAge === String(opt) ? "font-bold" : ""}`}
+                            onClick={() => { setMaxAge(String(opt)); setMaxAgeOpen(false); }}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               </div>
 
-              {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-4 pb-12">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4" />Date</label>
-                  <Input type="date" className="h-12 text-base w-full block" value={date} onChange={(e) => setDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4" />Time</label>
-                  <select className="w-full h-12 px-3 text-base rounded-md border border-input bg-background" value={time} onChange={(e) => setTime(e.target.value)}>
-                    <option value="">Select a time...</option>
-                    <option disabled>── Morning ──</option>
-                    {Array.from({ length: 12 }, (_, i) => { const hour = Math.floor(i / 2) + 6; const min = i % 2 === 0 ? "00" : "30"; const val = `${String(hour).padStart(2, "0")}:${min}`; const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); return <option key={val} value={val}>{label}</option>; })}
-                    <option disabled>── Afternoon ──</option>
-                    {Array.from({ length: 12 }, (_, i) => { const hour = Math.floor(i / 2) + 12; const min = i % 2 === 0 ? "00" : "30"; const val = `${String(hour).padStart(2, "0")}:${min}`; const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); return <option key={val} value={val}>{label}</option>; })}
-                    <option disabled>── Evening ──</option>
-                    {Array.from({ length: 12 }, (_, i) => { const hour = Math.floor(i / 2) + 18; const min = i % 2 === 0 ? "00" : "30"; const val = `${String(hour).padStart(2, "0")}:${min}`; const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); return <option key={val} value={val}>{label}</option>; })}
-                    <option disabled>── Late Night ──</option>
-                    {Array.from({ length: 12 }, (_, i) => { const hour = Math.floor(i / 2); const min = i % 2 === 0 ? "00" : "30"; const val = `${String(hour).padStart(2, "0")}:${min}`; const label = new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); return <option key={`late-${val}`} value={val}>{label}</option>; })}
-                  </select>
-                </div>
-              </div>
-
-              {/* Duration */}
-              <div className="space-y-3 pb-12">
-                <label className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4" />Duration</label>
-                <div className="flex flex-wrap gap-2">
-                  {["1 hr", "1.5 hrs", "2 hrs", "3 hrs", "4 hrs", "Half day", "Full day"].map((d) => (
-                    <button key={d} type="button" onClick={() => setDuration(d)}
-                      className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${duration === d ? "border-[2px] border-primary bg-primary/5" : "border-black"}`}>{d}</button>
-                  ))}
-                </div>
-              </div>
 
             </div>
           </div>
