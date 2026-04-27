@@ -314,24 +314,41 @@ const EventDetails = () => {
 
   const handleAddToCalendar = (type: "google" | "ics") => {
     const [y, m, d] = event.date.split("-").map(Number);
-    const parseTime = (timeStr: string) => {
-      const [time, period] = timeStr.split(" ");
-      let [hours, minutes] = time.split(":").map(Number);
-      if (period === "PM" && hours !== 12) hours += 12;
-      if (period === "AM" && hours === 12) hours = 0;
-      return { hours, minutes: minutes || 0 };
-    };
-    const parseDuration = (dur: string) => {
-      if (!dur || dur === "Full day") return 480;
-      if (dur === "Half day") return 240;
-      return parseFloat(dur) * 60;
-    };
-    const { hours, minutes } = event.time ? parseTime(event.time) : { hours: 12, minutes: 0 };
-    const durationMins = parseDuration(event.duration);
-    const start = new Date(y, m - 1, d, hours, minutes);
-    const end = new Date(start.getTime() + durationMins * 60000);
     const pad = (n: number) => String(n).padStart(2, "0");
     const fmt = (dt: Date) => `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+
+    let start: Date;
+    let end: Date;
+
+    if (event.start_time) {
+      // New events: start_time and end_time are in 24hr "HH:MM" format
+      const [sh, sm] = event.start_time.split(":").map(Number);
+      start = new Date(y, m - 1, d, sh, sm);
+      if (event.end_time) {
+        const [eh, em] = event.end_time.split(":").map(Number);
+        end = new Date(y, m - 1, d, eh, em);
+      } else {
+        end = new Date(start.getTime() + 60 * 60000); // default 1hr if no end time
+      }
+    } else if (event.time) {
+      // Legacy events: time is "7:30 PM" format + duration
+      const [timePart, period] = event.time.split(" ");
+      let [hours, minutes] = timePart.split(":").map(Number);
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+      start = new Date(y, m - 1, d, hours, minutes || 0);
+      const parseDuration = (dur: string) => {
+        if (!dur || dur === "Full day") return 480;
+        if (dur === "Half day") return 240;
+        return parseFloat(dur) * 60;
+      };
+      end = new Date(start.getTime() + parseDuration(event.duration) * 60000);
+    } else {
+      // No time info at all
+      start = new Date(y, m - 1, d, 12, 0);
+      end = new Date(y, m - 1, d, 13, 0);
+    }
+
     if (type === "google") {
       const params = new URLSearchParams({ action: "TEMPLATE", text: event.title, dates: `${fmt(start)}/${fmt(end)}`, details: event.description ?? "", location: event.address ?? "" });
       window.open(`https://calendar.google.com/calendar/render?${params}`, "_blank");
