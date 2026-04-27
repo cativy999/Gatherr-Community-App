@@ -20,6 +20,8 @@ interface EventCardProps {
     duration?: string;
     virtual_link?: string | null;
     created_at?: string;
+    start_time?: string | null;
+    end_time?: string | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -70,7 +72,18 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
     month: "short",
     day: "numeric",
   });
-  const timePart = event.time
+
+  const formatTime = (t: string) =>
+    new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).toLowerCase();
+
+  const timePart = event.start_time
+    ? event.end_time
+      ? `${formatTime(event.start_time)} – ${formatTime(event.end_time)}`
+      : formatTime(event.start_time)
+    : event.time
     ? new Date(`2000-01-01T${event.time}`).toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",

@@ -459,11 +459,10 @@ const EventDetails = () => {
             {/* Copy Link */}
             <button
               onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
-              className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 hover:opacity-90 text-white rounded-xl transition-colors shadow-md"
-              style={{ backgroundColor: 'rgba(144, 144, 144, 0.5)' }}
+              className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
             >
               <Copy className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">Copy Link</span>
+              <span className="text-xs font-semibold">Copy Link</span>
             </button>
           </div>
 
@@ -498,11 +497,15 @@ const EventDetails = () => {
                 <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                   {eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </p>
-                {event.time && (
+                {(event.start_time || event.time) && (
                   <div className="flex items-center gap-1.5 text-foreground">
                     <Clock className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-xs font-medium">
-                      {event.time}{event.duration ? ` · ${event.duration}` : ""}
+                      {event.start_time
+                        ? event.end_time
+                          ? `${new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()} – ${new Date(`2000-01-01T${event.end_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()}`
+                          : new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()
+                        : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`}
                     </span>
                   </div>
                 )}
