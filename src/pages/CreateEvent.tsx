@@ -1,4 +1,3 @@
-import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -229,7 +228,7 @@ const CreateEvent = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <div className="flex min-h-screen flex-col bg-background pb-28">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
@@ -628,12 +627,6 @@ const CreateEvent = () => {
             </div>
           </div>
 
-          {/* Publish Button */}
-          <div className="flex gap-3">
-            <Button size="lg" className="flex-1 h-14 text-base font-semibold" onClick={handleSubmit} disabled={loading || sessionLoading}>
-              {loading ? "Saving..." : "Publish"}
-            </Button>
-          </div>
 
           {/* Delete Dialog */}
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -650,7 +643,17 @@ const CreateEvent = () => {
         </div>
       </main>
 
-      <BottomNav />
+      {/* Floating Publish Button */}
+      <div className="fixed bottom-0 left-0 right-0 px-5 py-4 bg-background/95 backdrop-blur-sm border-t border-border z-50">
+        <Button
+          size="lg"
+          className="w-full h-14 text-base font-semibold rounded-2xl"
+          onClick={handleSubmit}
+          disabled={loading || sessionLoading}
+        >
+          {loading ? "Saving..." : isEditing ? "Save Changes" : "Publish Event"}
+        </Button>
+      </div>
 
     </div>
   );

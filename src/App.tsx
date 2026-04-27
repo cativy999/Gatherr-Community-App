@@ -77,8 +77,9 @@ const AppLayout = () => {
   const { pathname } = useLocation();
   
   const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward"];
-  
-  if (!session || hideNavPaths.includes(pathname)) return null;
+  const hideNavPatterns = ["/create-event"];
+
+  if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
   
   return <BottomNav />;
 };
