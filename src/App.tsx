@@ -27,6 +27,7 @@ import PublishedEventsPage from "./pages/PublishedEventsPage";
 import CreateGroup from "./pages/CreateGroup";
 import Community from "./pages/Community";
 import GroupProfile from "./pages/GroupProfile";
+import FeedbackButton from "@/components/FeedbackButton";
 
 
 const queryClient = new QueryClient();
@@ -113,6 +114,7 @@ const App = () => (
                 <Route path="/group/:id" element={<GroupProfile />} />
               </Routes>
               <AppLayout />
+              <FeedbackButton />
             </BrowserRouter>
           </UserProfileProvider>
         </LocationProvider>

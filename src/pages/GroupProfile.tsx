@@ -27,7 +27,7 @@ const GroupProfile = () => {
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const { data } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
         .eq("status", "published")
         .gte("date", today)
         .order("date", { ascending: true });

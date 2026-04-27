@@ -324,11 +324,20 @@ const EventDetails = () => {
       // New events: start_time and end_time are in 24hr "HH:MM" format
       const [sh, sm] = event.start_time.split(":").map(Number);
       start = new Date(y, m - 1, d, sh, sm);
-      if (event.end_time) {
-        const [eh, em] = event.end_time.split(":").map(Number);
-        end = new Date(y, m - 1, d, eh, em);
+      if (event.end_date && event.end_time) {
+        // Multi-day: end date + end time
+        const [ey, em2, ed] = event.end_date.split("-").map(Number);
+        const [eh, emin] = event.end_time.split(":").map(Number);
+        end = new Date(ey, em2 - 1, ed, eh, emin);
+      } else if (event.end_date) {
+        // Multi-day, no end time: end at midnight of end date
+        const [ey, em2, ed] = event.end_date.split("-").map(Number);
+        end = new Date(ey, em2 - 1, ed, 23, 59);
+      } else if (event.end_time) {
+        const [eh, em2] = event.end_time.split(":").map(Number);
+        end = new Date(y, m - 1, d, eh, em2);
       } else {
-        end = new Date(start.getTime() + 60 * 60000); // default 1hr if no end time
+        end = new Date(start.getTime() + 60 * 60000);
       }
     } else if (event.time) {
       // Legacy events: time is "7:30 PM" format + duration
@@ -456,7 +465,7 @@ const EventDetails = () => {
 
       <main className="flex-1 px-6 py-8">
         <div className="max-w-5xl mx-auto">
-        <div className="md:grid md:grid-cols-[1fr,420px] md:gap-10 md:items-start">
+        <div className="md:grid md:grid-cols-[1fr,420px] md:gap-16 md:items-start">
 
         {/* LEFT COLUMN */}
         <div className="space-y-6">
@@ -518,10 +527,14 @@ const EventDetails = () => {
 
           {/* Category + Age + Title */}
           <div className="space-y-2">
-            <h1 ref={titleRef} className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h1>
-            {event.age_min && event.age_max && (
+            <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
+            {(event.age_min || event.age_max) && (
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-secondary text-foreground w-fit">
-                Ages {event.age_min}–{event.age_max}
+                {event.age_min && event.age_max
+                  ? `Ages ${event.age_min}–${event.age_max}`
+                  : event.age_min
+                  ? `Ages ${event.age_min}+`
+                  : `Ages up to ${event.age_max}`}
               </span>
             )}
           </div>
@@ -545,7 +558,13 @@ const EventDetails = () => {
               </div>
               <div className="flex flex-col gap-1.5 flex-1">
                 <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  {eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                  {event.end_date
+                    ? (() => {
+                        const [ey, em, ed] = event.end_date.split("-").map(Number);
+                        const endDateObj = new Date(ey, em - 1, ed);
+                        return `${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${endDateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+                      })()
+                    : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </p>
                 {(event.start_time || event.time) && (
                   <div className="flex items-center gap-1.5 text-foreground">

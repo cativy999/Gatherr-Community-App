@@ -170,8 +170,8 @@ const PublishedEventsPage = () => {
           <CalendarDays className="h-3 w-3" />
           <span>{formatDate(event.date)}</span>
         </div>
-        {event.age_min && event.age_max && (
-          <p className="text-xs text-muted-foreground">Ages {event.age_min}–{event.age_max}</p>
+        {event.age_min && (
+          <p className="text-xs text-muted-foreground">Ages {event.age_min}{event.age_max ? `–${event.age_max}` : "+"}</p>
         )}
       </div>
     </div>

@@ -62,7 +62,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
         .eq("status", "published")
         .eq("category", "ward")
         .gte("date", today)
@@ -137,8 +137,21 @@ const Wards = () => {
 
   const filteredEvents = useMemo(() => {
     let result = [...events];
-    if (location !== "Everywhere" && cityName) {
-      result = result.filter((e) => e.location?.toLowerCase().includes(cityName.toLowerCase()));
+    if (location !== "Everywhere") {
+      // Extract state from user location string e.g. "Torrance, CA" or "Torrance, California"
+      const locationParts = location.split(",").map(s => s.trim());
+      const userState = locationParts.length > 1 ? locationParts[locationParts.length - 1].toLowerCase() : null;
+
+      result = result.filter((e) => {
+        // Best case: both have coordinates — use 50 mile radius
+        if (locationLat && locationLng && e.lat && e.lng) {
+          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 50;
+        }
+        // Fallback: match state so nearby cities still show up
+        const eventLoc = e.location?.toLowerCase() ?? "";
+        if (userState) return eventLoc.includes(userState);
+        return cityName ? eventLoc.includes(cityName.toLowerCase()) : true;
+      });
     }
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;

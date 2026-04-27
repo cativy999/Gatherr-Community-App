@@ -130,8 +130,8 @@ const TimelineSection = ({ label, events, creatorWards = {}, onEventClick }: Tim
                       ) : (
                         <div className="w-16 h-16 md:w-24 md:h-24 rounded-xl bg-secondary" />
                       )}
-                      {event.age_min && event.age_max && (
-                        <span className="text-xs text-muted-foreground mt-1">Ages {event.age_min}–{event.age_max}</span>
+                      {event.age_min && (
+                        <span className="text-xs text-muted-foreground mt-1">Ages {event.age_min}{event.age_max ? `–${event.age_max}` : "+"}</span>
                       )}
                     </div>
                   </div>

@@ -22,6 +22,7 @@ interface EventCardProps {
     created_at?: string;
     start_time?: string | null;
     end_time?: string | null;
+    end_date?: string | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -67,11 +68,16 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
     : false;
 
   const [y, m, d] = event.date.split("-").map(Number);
-  const dateLine = new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const startDateObj = new Date(y, m - 1, d);
+  const dateLine = event.end_date
+    ? (() => {
+        const [ey, em, ed] = event.end_date.split("-").map(Number);
+        const endDateObj = new Date(ey, em - 1, ed);
+        const startStr = startDateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const endStr = endDateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return `${startStr} – ${endStr}`;
+      })()
+    : startDateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
   const formatTime = (t: string) =>
     new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", {

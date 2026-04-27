@@ -55,9 +55,11 @@ const CreateEvent = () => {
   const locationRef = useRef<HTMLDivElement>(null);
   const locationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
-  const startTimeRef = useRef<HTMLInputElement>(null);
-  const endTimeRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+  const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [startTimeOpen, setStartTimeOpen] = useState(false);
+  const [endTimeOpen, setEndTimeOpen] = useState(false);
   const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState<number | null>(null);
@@ -103,6 +105,7 @@ const CreateEvent = () => {
       setMaxAge(data.age_max ? String(data.age_max) : "+");
       setStartTime(data.start_time ?? "");
       setEndTime(data.end_time ?? "");
+      setEndDate(data.end_date ?? "");
       setAddress(data.address ?? "");
       setLocationSearch(data.address ?? "");
       setWardType(data.ward_type ?? null);
@@ -202,7 +205,7 @@ const CreateEvent = () => {
     const eventData = {
       user_id: session.user.id, title, description, category, is_free: isFree, date,
       location: location || address, image_url: imageUrl, status: "published",
-      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, address, lat, lng,
+      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: endDate || null, address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
       food: selectedFoods, virtual_link: virtualLink || null,
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
@@ -280,44 +283,100 @@ const CreateEvent = () => {
 
               {/* Date, Start time → End time */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4">
-                {/* Date picker — full width on mobile, flex-1 on desktop */}
-                <div className="relative w-full sm:flex-1 cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
-                  <input ref={dateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                    value={date} onChange={(e) => setDate(e.target.value)} />
-                  <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                    <span className={`text-sm ${date ? "text-black" : "text-muted-foreground"}`}>
-                      {date ? new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "mm/dd/yyyy"}
-                    </span>
-                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                {/* Start date → End date */}
+                <div className="flex items-center gap-2 w-full sm:flex-1">
+                  {/* Start date */}
+                  <div className="relative flex-1 cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
+                    <input ref={dateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      value={date} onChange={(e) => setDate(e.target.value)} />
+                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                      <span className={`text-sm ${date ? "text-black" : "text-muted-foreground"}`}>
+                        {date ? new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Start date"}
+                      </span>
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                  </div>
+
+                  <span className="text-sm font-medium shrink-0 text-muted-foreground">–</span>
+
+                  {/* End date (optional) */}
+                  <div className="relative flex-1 cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
+                    <input ref={endDateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                      min={date || undefined} />
+                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                      <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
+                        {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
+                      </span>
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
                   </div>
                 </div>
 
                 {/* Start time + To + End time — own row on mobile */}
-                <div className="flex items-center gap-3 sm:contents">
-                  <div className="relative flex-1 sm:w-[140px] sm:flex-none cursor-pointer" onClick={() => startTimeRef.current?.showPicker()}>
-                    <input ref={startTimeRef} type="time" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                      <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
-                        {startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "Start time"}
-                      </span>
-                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </div>
-                  </div>
+                {(() => {
+                  const timeOptions = Array.from({ length: 48 }, (_, i) => {
+                    const hours = Math.floor(i / 2);
+                    const mins = i % 2 === 0 ? "00" : "30";
+                    const period = hours < 12 ? "AM" : "PM";
+                    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                    return {
+                      label: `${displayHours}:${mins} ${period}`,
+                      value: `${String(hours).padStart(2, "0")}:${mins}`,
+                    };
+                  });
+                  const formatTime = (val: string) =>
+                    new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                  return (
+                    <div className="flex items-center gap-3 sm:contents">
+                      {/* Start time */}
+                      <div className="relative flex-1 sm:w-[140px] sm:flex-none">
+                        <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                          onClick={() => { setStartTimeOpen(!startTimeOpen); setEndTimeOpen(false); }}>
+                          <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
+                            {startTime ? formatTime(startTime) : "Start time"}
+                          </span>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${startTimeOpen ? "rotate-180" : ""}`} />
+                        </div>
+                        {startTimeOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                            {timeOptions.map(opt => (
+                              <button key={opt.value} type="button"
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${startTime === opt.value ? "font-bold" : ""}`}
+                                onClick={() => { setStartTime(opt.value); setStartTimeOpen(false); }}>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                  <span className="text-sm font-medium shrink-0">To</span>
+                      <span className="text-sm font-medium shrink-0">To</span>
 
-                  <div className="relative flex-1 sm:w-[140px] sm:flex-none cursor-pointer" onClick={() => endTimeRef.current?.showPicker()}>
-                    <input ref={endTimeRef} type="time" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                      <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
-                        {endTime ? new Date(`2000-01-01T${endTime}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "End time"}
-                      </span>
-                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      {/* End time */}
+                      <div className="relative flex-1 sm:w-[140px] sm:flex-none">
+                        <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                          onClick={() => { setEndTimeOpen(!endTimeOpen); setStartTimeOpen(false); }}>
+                          <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
+                            {endTime ? formatTime(endTime) : "End time"}
+                          </span>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${endTimeOpen ? "rotate-180" : ""}`} />
+                        </div>
+                        {endTimeOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                            {timeOptions.map(opt => (
+                              <button key={opt.value} type="button"
+                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${endTime === opt.value ? "font-bold" : ""}`}
+                                onClick={() => { setEndTime(opt.value); setEndTimeOpen(false); }}>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Event Location */}

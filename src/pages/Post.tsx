@@ -176,7 +176,7 @@ const Post = () => {
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-          <span>{event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : "All ages"}</span>
+          <span>{event.age_min ? `Ages ${event.age_min}${event.age_max ? `–${event.age_max}` : "+"}` : "All ages"}</span>
         </div>
       </div>
     </div>
