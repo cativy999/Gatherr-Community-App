@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,7 @@ const EventDetails = () => {
 
   const [shareOpen, setShareOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [goingList, setGoingList] = useState<any[]>([]);
@@ -437,7 +438,11 @@ const EventDetails = () => {
       </header>
 
       <main className="flex-1 px-6 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-5xl mx-auto">
+        <div className="md:grid md:grid-cols-[1fr,420px] md:gap-10 md:items-start">
+
+        {/* LEFT COLUMN */}
+        <div className="space-y-6">
 
           {/* Guest banner */}
           {isGuest && (
@@ -447,8 +452,8 @@ const EventDetails = () => {
             </div>
           )}
 
-          {/* Event Image */}
-          <div className="relative">
+          {/* Event Image — mobile only */}
+          <div className="relative md:hidden">
             {event.image_url ? (
               <img src={event.image_url} alt={event.title} className="w-full h-56 object-cover rounded-2xl" />
             ) : (
@@ -456,15 +461,43 @@ const EventDetails = () => {
                 <span className="text-muted-foreground">No image</span>
               </div>
             )}
-            {/* Copy Link */}
+            {/* Expand icon */}
+            {event.image_url && (
+              <button
+                onClick={() => setImageExpanded(true)}
+                className="absolute top-3 left-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors"
+              >
+                <Expand className="h-4 w-4 text-gray-700" />
+              </button>
+            )}
             <button
               onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
-              className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
+              className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
             >
               <Copy className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">Copy Link</span>
+              <span className="text-xs font-semibold">Copy & Share</span>
             </button>
           </div>
+
+          {/* Lightbox overlay */}
+          {imageExpanded && event.image_url && (
+            <div
+              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+              onClick={() => setImageExpanded(false)}
+            >
+              <img
+                src={event.image_url}
+                alt={event.title}
+                className="max-w-full max-h-full rounded-2xl object-contain"
+              />
+              <button
+                className="absolute top-5 right-5 p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                onClick={() => setImageExpanded(false)}
+              >
+                <span className="text-white text-lg leading-none">✕</span>
+              </button>
+            </div>
+          )}
 
           {/* Category + Age + Title */}
           <div className="space-y-2">
@@ -833,7 +866,30 @@ const EventDetails = () => {
             </div>
           </div>
 
+        </div>{/* end left column */}
+
+        {/* RIGHT COLUMN — sticky image, desktop only */}
+        <div className="hidden md:block sticky top-20 self-start">
+          <div className="relative">
+            {event.image_url ? (
+              <img src={event.image_url} alt={event.title} className="w-full rounded-2xl object-cover" />
+            ) : (
+              <div className="w-full aspect-video bg-secondary rounded-2xl flex items-center justify-center">
+                <span className="text-muted-foreground">No image</span>
+              </div>
+            )}
+            <button
+              onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
+              className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold">Copy & Share</span>
+            </button>
+          </div>
         </div>
+
+        </div>{/* end grid */}
+        </div>{/* end max-w */}
       </main>
 
       {/* Sticky RSVP Bar */}

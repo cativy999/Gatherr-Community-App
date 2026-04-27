@@ -267,22 +267,7 @@ const Wards = () => {
                 )}
               </div>
 
-              {/* Wards Near You */}
-              <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Wards Near You</h2>
-                <div className="flex gap-4 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                  <div
-                    onClick={() => navigate("/ward/santa-monica")}
-                    className="flex-shrink-0 w-44 bg-card rounded-2xl overflow-hidden cursor-pointer hover:shadow-md transition-shadow border border-border"
-                  >
-                    <div className="w-full h-24 bg-secondary" />
-                    <div className="p-3 space-y-1">
-                      <p className="text-sm font-semibold leading-tight" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Santa Monica Ward</p>
-                      <p className="text-xs text-muted-foreground">3400 Sawtelle Blvd</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Wards Near You — hidden for now */}
 
               {/* Next Week */}
 <div className="space-y-3">
