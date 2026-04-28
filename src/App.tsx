@@ -36,6 +36,13 @@ const AuthListener = () => {
   const navigate = useNavigate();
   const { session, loading } = useAuth();
   const hasNavigated = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    if (redirect) {
+      navigate(redirect);
+    }
+  }, []);
 
   useEffect(() => {
     console.log("AuthListener fired:", { loading, session: !!session, hasNavigated: hasNavigated.current });

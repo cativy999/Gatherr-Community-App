@@ -14,10 +14,7 @@ export default async function handler(req, res) {
   const url = `https://gatherr-one.vercel.app/event/${id}`;
 
   if (!isBot) {
-    const fs = require('fs');
-    const html = fs.readFileSync(require('path').join(process.cwd(), 'index.html'), 'utf8');
-    res.setHeader("Content-Type", "text/html");
-    return res.send(html);
+    return res.redirect(302, `https://gatherr-one.vercel.app/?redirect=/event/${id}`);
   }
   
 
