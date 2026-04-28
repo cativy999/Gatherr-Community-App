@@ -470,13 +470,6 @@ const EventDetails = () => {
         {/* LEFT COLUMN */}
         <div className="space-y-6">
 
-          {/* Guest banner */}
-          {isGuest && (
-            <div className="flex items-center justify-between bg-primary/10 px-4 py-3 rounded-2xl">
-              <p className="text-sm font-medium text-primary">👋 Join to RSVP and connect with others!</p>
-              <Button size="sm" className="rounded-full text-xs" onClick={() => navigate("/")}>Log in</Button>
-            </div>
-          )}
 
           {/* Event Image — mobile only */}
           <div className="relative md:hidden">

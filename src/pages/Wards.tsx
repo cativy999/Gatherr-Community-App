@@ -268,7 +268,28 @@ const Wards = () => {
             <>
               {/* This Week */}
               <div className="space-y-3">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
+                  {session && (
+                    <button
+                      onClick={() => {
+                        const url = window.location.href;
+                        const text = "Check out these LDS singles events on Gatherr! 🎉";
+                        if (navigator.share) {
+                          navigator.share({ title: "Gatherr Events", text, url }).catch(() => {});
+                        } else {
+                          navigator.clipboard.writeText(url);
+                          toast.success("Link copied!");
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-all active:scale-95"
+                      style={{ background: "linear-gradient(135deg, #FF3FA5 0%, #FF8C42 100%)" }}
+                    >
+                      <span>🎉</span>
+                      Invite friends
+                    </button>
+                  )}
+                </div>
                 {thisWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
@@ -281,6 +302,12 @@ const Wards = () => {
               </div>
 
               {/* Wards Near You — hidden for now */}
+
+              {/* Next Week + Later — soft gated for guests */}
+              <div className={!session ? "relative -mx-5 md:mx-0" : ""}>
+
+              {/* Blurred content for guests */}
+              <div className={!session ? "pointer-events-none select-none blur-sm px-5 md:px-0" : ""}>
 
               {/* Next Week */}
 <div className="space-y-3">
@@ -335,13 +362,39 @@ const Wards = () => {
     <EmptySection label="Later" />
   )}
 </div>
+
+              {/* End blurred content */}
+              </div>
+
+              {/* Gradient fade for guests */}
+              {!session && (
+                <div className="absolute -top-8 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent via-white/90 to-white pointer-events-none" />
+              )}
+
+              {/* End soft gate wrapper */}
+              </div>
+
             </>
           )}
         </div>
       </main>
 
-
-
+      {/* Floating sign-in card for guests — fixed so it stays visible while scrolling */}
+      {!session && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50 pointer-events-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 text-center space-y-3 max-w-sm w-full border border-gray-100">
+            <p className="font-bold text-lg" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>See what's coming up 👀</p>
+            <img src="/Nonlogginpopup.png" alt="Upcoming events preview" className="w-full rounded-xl object-cover" />
+            <p className="text-sm text-muted-foreground">Sign in to see all events, RSVP, and connect with your community</p>
+            <button
+              onClick={() => navigate("/")}
+              className="w-full py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
