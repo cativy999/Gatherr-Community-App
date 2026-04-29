@@ -209,11 +209,13 @@ const CreateEvent = () => {
       food: selectedFoods, virtual_link: virtualLink || null,
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
     };
-    let error;
+    let error; let savedId = id;
     if (isEditing) {
       ({ error } = await supabase.from("events").update(eventData).eq("id", id));
     } else {
-      ({ error } = await supabase.from("events").insert(eventData));
+      const { data: inserted, error: insertError } = await supabase.from("events").insert(eventData).select("id").single();
+      error = insertError;
+      if (inserted) savedId = inserted.id;
     }
     if (error) { console.error("Error saving event:", JSON.stringify(error)); alert(JSON.stringify(error)); }
     else {
@@ -222,7 +224,7 @@ const CreateEvent = () => {
         confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#a855f7", "#ec4899", "#f97316"] });
         confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#facc15", "#4ade80", "#60a5fa"] });
       }, 200);
-      setTimeout(() => navigate("/post"), 2200);
+      setTimeout(() => navigate("/wards", { state: { scrollToEventId: savedId } }), 2200);
     }
     setLoading(false);
   };

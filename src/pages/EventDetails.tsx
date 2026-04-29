@@ -624,48 +624,38 @@ const EventDetails = () => {
                 </div>
               </a>
             ) : event.address ? (
-              <div className="flex items-center gap-4 pr-4 py-3">
+              <div
+                className="flex items-center gap-4 py-3"
+                onContextMenu={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }}
+                onTouchStart={(e) => {
+                  const t = setTimeout(() => { navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }, 600);
+                  const cancel = () => clearTimeout(t);
+                  e.currentTarget.addEventListener("touchend", cancel, { once: true });
+                  e.currentTarget.addEventListener("touchmove", cancel, { once: true });
+                }}
+              >
                 {event.lat && event.lng ? (
-                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-                 <iframe
-                   width="48"
-                   height="48"
-                      style={{ border: 0, display: "block", pointerEvents: "none" }}
-                      loading="lazy"
-                      src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`}
-                    />
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                    <iframe width="48" height="48" style={{ border: 0, display: "block", pointerEvents: "none" }} loading="lazy"
+                      src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`} />
                   </div>
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
                     <MapPin className="h-5 w-5 text-foreground" />
                   </div>
                 )}
-                <div className="min-w-0 flex-1 space-y-2">
-                  <p className="text-sm font-semibold leading-snug">
-                    {event.address.split(",").slice(0, 2).join(",").trim()}
-                  </p>
-                  {event.address.split(",").slice(2).join(",").trim() && (
-                    <p className="text-xs text-muted-foreground leading-snug">
-                      {event.address.split(",").slice(2).join(",").trim()}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background border border-border text-xs font-semibold hover:bg-accent transition-colors"
-                    >
-                      <Navigation className="h-3 w-3" />
-                      Get Directions
-                    </a>
-                    <button
-                      onClick={() => { navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }}
-                      className="p-1.5 rounded-full bg-background border border-border hover:bg-accent transition-colors"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </button>
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.address}</p>
+                </div>
+                <div className="relative flex-shrink-0">
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-secondary hover:bg-accent transition-colors"
+                  >
+                    <Navigation className="h-5 w-5 text-foreground" />
+                  </a>
                 </div>
               </div>
             ) : null}

@@ -1,7 +1,6 @@
 import {
-  Balloon, Church, HeartHandshake, Sparkles, Search,
-} from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+  Balloon, Church, HeartHandshake, Sparkles, Search,  PizzaIcon} from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 
 import { useLocation } from "@/contexts/LocationContext";
@@ -10,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
 import EventCard from "@/components/EventCard";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
 type Event = {
   id: string;
@@ -36,8 +35,10 @@ const filterChips = [
   { id: "all", label: "All", icon: null },
   { id: "fhe", label: "FHE", icon: Balloon },
   { id: "spiritual", label: "Spiritual", icon: Church },
+  { id: "food", label: "Provide Food", icon: PizzaIcon },
   { id: "popular", label: "Popular", icon: Sparkles },
   { id: "service", label: "Service", icon: HeartHandshake },
+
 ];
 
 const Wards = () => {
@@ -52,6 +53,12 @@ const Wards = () => {
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
   const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
+
+  const routerLocation = useRouterLocation();
+  const thisWeekRef = useRef<HTMLDivElement>(null);
+  const nextWeekRef = useRef<HTMLDivElement>(null);
+  const laterRef = useRef<HTMLDivElement>(null);
+  const monthRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const cityName = location.split(",")[0].trim();
 
@@ -99,6 +106,17 @@ const Wards = () => {
 
     fetchEvents();
   }, [location]);
+
+  // Scroll to the specific event card after publishing/editing
+  useEffect(() => {
+    const scrollToEventId = (routerLocation.state as any)?.scrollToEventId;
+    if (!scrollToEventId || loading) return;
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-event-id="${scrollToEventId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 500);
+  }, [loading, routerLocation.state]);
 
   useEffect(() => {
     if (!userId) return;
@@ -159,6 +177,9 @@ const Wards = () => {
     });
     if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
       result = result.filter((e) => e.ward_type === activeFilter);
+    }
+    if (activeFilter === "food") {
+      result = result.filter((e) => e.food && e.food.length > 0);
     }
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
@@ -267,7 +288,7 @@ const Wards = () => {
           ) : (
             <>
               {/* This Week */}
-              <div className="space-y-3">
+              <div className="space-y-3" ref={thisWeekRef}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
                   {session && (
@@ -293,7 +314,7 @@ const Wards = () => {
                 {thisWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
-                      <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                      <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
                     ))}
                   </div>
                 ) : (
@@ -310,7 +331,7 @@ const Wards = () => {
               <div className={!session ? "pointer-events-none select-none blur-sm px-5 md:px-0" : ""}>
 
               {/* Next Week */}
-<div className="space-y-3">
+<div className="space-y-3" ref={nextWeekRef}>
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
   {nextWeek.length > 0 ? (
     (() => {
@@ -323,7 +344,7 @@ const Wards = () => {
               <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
               <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                 {grouped[month].map((event) => (
-                  <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+                  <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
                 ))}
               </div>
             </div>
@@ -332,7 +353,7 @@ const Wards = () => {
       ) : (
         <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {nextWeek.map((event) => (
-            <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+            <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
           ))}
         </div>
       );
@@ -343,16 +364,16 @@ const Wards = () => {
 </div>
 
               {/* Later */}
-<div className="space-y-3">
+<div className="space-y-3" ref={laterRef}>
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
   {later.length > 0 ? (
     <div className="space-y-6">
       {Object.entries(groupByMonth(later)).map(([month, evts]) => (
-        <div key={month} className="space-y-3">
+        <div key={month} className="space-y-3" ref={(el) => { monthRefs.current[month] = el; }}>
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {evts.map((event) => (
-              <EventCard key={event.id} event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} />
+              <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
             ))}
           </div>
         </div>
