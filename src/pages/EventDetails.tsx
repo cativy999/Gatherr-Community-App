@@ -40,6 +40,7 @@ const EventDetails = () => {
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
   const [goingListLoading, setGoingListLoading] = useState(false);
+  const [previewAvatars, setPreviewAvatars] = useState<string[]>([]);
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
   const [creatorWard, setCreatorWard] = useState<string | null>(null);
@@ -91,6 +92,22 @@ const EventDetails = () => {
         .eq("status", "interested");
       setGoingCount(gCount ?? 0);
       setInterestedCount(iCount ?? 0);
+
+      // Fetch up to 8 avatars for preview
+      const { data: rsvpRows } = await supabase
+        .from("rsvps")
+        .select("user_id")
+        .eq("event_id", id)
+        .eq("status", "going")
+        .limit(8);
+      if (rsvpRows && rsvpRows.length > 0) {
+        const uids = rsvpRows.map((r: any) => r.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .in("user_id", uids);
+        setPreviewAvatars((profiles ?? []).map((p: any) => p.avatar_url).filter(Boolean));
+      }
     };
     fetchCounts();
   }, [id]);
@@ -729,52 +746,68 @@ const EventDetails = () => {
           {/* Social Links */}
           {event.social_links?.filter(Boolean).length > 0 && (() => {
             const links = event.social_links.filter(Boolean);
-            const visible = linksExpanded ? links : links.slice(0, 2);
+            const getPlatform = (url: string) => {
+              if (/facebook\.com/i.test(url)) return "facebook";
+              if (/instagram\.com/i.test(url)) return "instagram";
+              return "link";
+            };
             return (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <h2 className="text-md font-bold font-display">Links</h2>
                 <div className="space-y-2">
-                  {visible.map((link: string, i: number) => (
-                    <a key={i} href={link} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-primary text-sm">
-                      <Link className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="underline truncate">{truncateUrl(link)}</span>
-                    </a>
-                  ))}
-                  {links.length > 2 && (
-                    <button onClick={() => setLinksExpanded(e => !e)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      {linksExpanded ? "Show less" : `Show ${links.length - 2} more`}
-                    </button>
-                  )}
+                  {links.map((link: string, i: number) => {
+                    const platform = getPlatform(link);
+                    return (
+                      <a
+                        key={i}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-4 py-3 border border-[#e7e7e7] rounded-xl hover:bg-accent transition-colors md:max-w-[360px]"
+                      >
+                        {platform === "facebook" && (
+                          <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                          </svg>
+                        )}
+                        {platform === "instagram" && (
+                          <img src="/icons/instagram.png" alt="Instagram" className="h-5 w-5 flex-shrink-0 object-contain" />
+                        )}
+                        {platform === "link" && (
+                          <Link className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="text-sm text-[#323232] truncate">{link}</span>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             );
           })()}
 
-          {/* Attendees */}
-          <div className="space-y-3">
-            <h2 className="text-md font-bold font-display">Attendees</h2>
-            <div className="flex gap-4">
-              <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
-                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D8F7BE' }}>
-                  <ThumbsUp className="w-4 h-4 text-black" />
+          {/* Attendees — mobile only, left-aligned */}
+          <div className="md:hidden">
+            <button
+              onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
+              className="flex flex-col gap-2 text-left"
+            >
+              <p className="text-sm font-semibold text-muted-foreground">
+                <span className="text-foreground font-bold">{goingCount}</span> Going · <span className="text-foreground font-bold">{likeCount}</span> Liked · <span className="text-foreground font-bold">{interestedCount}</span> Interested
+              </p>
+              {previewAvatars.length > 0 && (
+                <div className="flex">
+                  {previewAvatars.slice(0, 8).map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      referrerPolicy="no-referrer"
+                      className="w-9 h-9 rounded-full object-cover border-2 border-white"
+                      style={{ marginLeft: i === 0 ? 0 : -10 }}
+                    />
+                  ))}
                 </div>
-                <span className="font-bold">{goingCount}</span> Going
-              </button>
-              <button onClick={() => {}} className="flex items-center gap-2 py-2 rounded-full text-sm font-semibold transition-colors">
-                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#BFE2F5' }}>
-                  <Smile className="w-4 h-4 text-black" />
-                </div>
-                <span className="font-bold">{interestedCount}</span> Interested
-              </button>
-              <div className="flex items-center gap-2 py-2 text-sm font-semibold">
-                <div className="rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFD6D6' }}>
-                  <Heart className={`w-4 h-4 ${isSaved ? 'text-[rgb(172,42,42)] fill-current' : 'text-black'}`} />
-                </div>
-                <span className="font-bold">{likeCount}</span> Liked
-              </div>
-            </div>
+              )}
+            </button>
           </div>
 
           {/* Host */}
@@ -887,8 +920,8 @@ const EventDetails = () => {
 
         </div>{/* end left column */}
 
-        {/* RIGHT COLUMN — sticky image, desktop only */}
-        <div className="hidden md:block sticky top-20 self-start">
+        {/* RIGHT COLUMN — sticky image + attendees, desktop only */}
+        <div className="hidden md:block sticky top-20 self-start space-y-4">
           <div className="relative">
             {event.image_url ? (
               <img src={event.image_url} alt={event.title} className="w-full rounded-2xl object-cover" />
@@ -905,6 +938,31 @@ const EventDetails = () => {
               <span className="text-xs font-semibold">Copy & Share</span>
             </button>
           </div>
+
+          {/* Attendees — desktop, centered under image */}
+          {(goingCount > 0 || likeCount > 0 || interestedCount > 0) && (
+            <button
+              onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
+              className="w-full flex flex-col items-center gap-2 text-center"
+            >
+              <p className="text-sm font-semibold text-muted-foreground">
+                <span className="text-foreground font-bold">{goingCount}</span> Going · <span className="text-foreground font-bold">{likeCount}</span> Liked · <span className="text-foreground font-bold">{interestedCount}</span> Interested
+              </p>
+              {previewAvatars.length > 0 && (
+                <div className="flex justify-center">
+                  {previewAvatars.slice(0, 8).map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      referrerPolicy="no-referrer"
+                      className="w-9 h-9 rounded-full object-cover border-2 border-white"
+                      style={{ marginLeft: i === 0 ? 0 : -10 }}
+                    />
+                  ))}
+                </div>
+              )}
+            </button>
+          )}
         </div>
 
         </div>{/* end grid */}
