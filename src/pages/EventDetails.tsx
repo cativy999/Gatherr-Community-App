@@ -44,6 +44,7 @@ const EventDetails = () => {
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
   const [creatorWard, setCreatorWard] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [linksExpanded, setLinksExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -130,6 +131,13 @@ const EventDetails = () => {
       .eq("user_id", userId)
       .maybeSingle();
     if (saved) setIsSaved(true);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .single();
+    if (profile?.avatar_url) setUserAvatar(profile.avatar_url);
     };
     fetchUserStatus();
   }, [id, userId]);
@@ -489,9 +497,9 @@ const EventDetails = () => {
 
 
           {/* Event Image — mobile only */}
-          <div className="relative md:hidden">
+          <div className="relative md:hidden" style={{ filter: 'drop-shadow(0px 4px 24px rgba(0,0,0,0.15))' }}>
             {event.image_url ? (
-              <img src={event.image_url} alt={event.title} className="w-full h-56 object-cover rounded-2xl" />
+              <img src={event.image_url} alt={event.title} className="w-full h-56 object-cover rounded-2xl" style={{ boxShadow: '0px 4px 20px 6px rgba(0,0,0,0.08)' }} />
             ) : (
               <div className="w-full h-56 bg-secondary rounded-2xl flex items-center justify-center">
                 <span className="text-muted-foreground">No image</span>
@@ -506,13 +514,6 @@ const EventDetails = () => {
                 <Expand className="h-4 w-4 text-gray-700" />
               </button>
             )}
-            <button
-              onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
-              className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">Copy & Share</span>
-            </button>
           </div>
 
           {/* Lightbox overlay */}
@@ -537,7 +538,24 @@ const EventDetails = () => {
 
           {/* Category + Age + Title */}
           <div className="space-y-2">
-            <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: event.title, url: window.location.href }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied!");
+                  }
+                }}
+                className="flex-shrink-0 mt-1 hover:opacity-70 transition-opacity"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                </svg>
+              </button>
+            </div>
             {(event.age_min || event.age_max) && (
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-secondary text-foreground w-fit">
                 {event.age_min && event.age_max
@@ -553,7 +571,7 @@ const EventDetails = () => {
           <div className="rounded-2xl overflow-hidden">
 
             {/* Date row */}
-            <div className="relative flex items-center gap-4 py-3 border-b" style={{ borderColor: 'hsl(0deg 0% 90%)' }}>
+            <div className="relative flex items-center gap-4 py-3">
               <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
                 <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
                   <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
@@ -594,9 +612,9 @@ const EventDetails = () => {
               <div className="relative flex-shrink-0">
                 <button
                   onClick={() => setCalendarOpen(!calendarOpen)}
-                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-secondary hover:bg-accent transition-colors"
+                  className="flex items-center justify-center hover:opacity-70 transition-opacity"
                 >
-                  <CalendarPlus className="h-5 w-5 text-foreground" />
+                  <CalendarPlus className="h-6 w-6 text-foreground" />
                 </button>
 
                 {/* Calendar picker popup */}
@@ -669,9 +687,9 @@ const EventDetails = () => {
                     href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-secondary hover:bg-accent transition-colors"
+                    className="flex items-center justify-center hover:opacity-70 transition-opacity"
                   >
-                    <Navigation className="h-5 w-5 text-foreground" />
+                    <Navigation className="h-6 w-6 text-foreground" />
                   </a>
                 </div>
               </div>
@@ -730,20 +748,20 @@ const EventDetails = () => {
           </Dialog>
 
 
-          {/* About */}
+{/* About */}
           <div className="space-y-3">
-            <h2 className="text-md font-bold font-display">About</h2>
+            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>About</h2>
             <p className={`text-base leading-snug whitespace-pre-wrap ${!descExpanded ? "line-clamp-4" : ""}`}>
               {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}
             </p>
             {event.description?.length > 200 && (
-              <button onClick={() => setDescExpanded(e => !e)} className="text-sm font-medium text-primary">
-                {descExpanded ? "Show less" : "Show more"}
+              <button onClick={() => setDescExpanded(e => !e)} className="w-full text-right text-sm font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#424242' }}>
+                {descExpanded ? "Show less" : "Show more >"}
               </button>
             )}
           </div>
 
-          {/* Social Links */}
+{/* Social Links */}
           {event.social_links?.filter(Boolean).length > 0 && (() => {
             const links = event.social_links.filter(Boolean);
             const getPlatform = (url: string) => {
@@ -753,7 +771,7 @@ const EventDetails = () => {
             };
             return (
               <div className="space-y-3">
-                <h2 className="text-md font-bold font-display">Links</h2>
+                <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Links</h2>
                 <div className="space-y-2">
                   {links.map((link: string, i: number) => {
                     const platform = getPlatform(link);
@@ -763,7 +781,7 @@ const EventDetails = () => {
                         href={link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-4 py-3 border border-[#e7e7e7] rounded-xl hover:bg-accent transition-colors md:max-w-[360px]"
+                        className="flex items-center gap-3 py-2 hover:opacity-70 transition-opacity md:max-w-[360px]"
                       >
                         {platform === "facebook" && (
                           <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
@@ -776,7 +794,7 @@ const EventDetails = () => {
                         {platform === "link" && (
                           <Link className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                         )}
-                        <span className="text-sm text-[#323232] truncate">{link}</span>
+                        <span className="text-sm truncate" style={{ color: platform === "facebook" ? "#1877F2" : platform === "instagram" ? "#E1306C" : "#3771c8" }}>{link}</span>
                       </a>
                     );
                   })}
@@ -785,8 +803,9 @@ const EventDetails = () => {
             );
           })()}
 
-          {/* Attendees — mobile only, left-aligned */}
-          <div className="md:hidden">
+{/* Attendees — mobile only, left-aligned */}
+          <div className="md:hidden space-y-3">
+            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Attendees</h2>
             <button
               onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
               className="flex flex-col gap-2 text-left"
@@ -810,10 +829,10 @@ const EventDetails = () => {
             </button>
           </div>
 
-          {/* Host */}
+{/* Host */}
           {creatorName && (
             <div className="space-y-3">
-              <h2 className="text-md font-bold font-display">Host</h2>
+              <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Host</h2>
               <div className="flex items-center gap-2">
                 {creatorAvatar ? (
                   <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -833,53 +852,76 @@ const EventDetails = () => {
             </div>
           )}
 
-          {/* Comments */}
+{/* Comments */}
           <div className="space-y-6 pt-4">
-            <div className="border-t border-dashed" style={{ borderColor: 'hsl(0deg 0% 84.3%)' }} />
-            <h2 className="text-md font-bold font-display">Comments</h2>
+            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Comments</h2>
             {!isGuest ? (
               <div className="space-y-3">
-                <Textarea placeholder="Write a comment..." value={comment} onChange={e => setComment(e.target.value)} className="resize-none rounded-2xl" rows={3} />
-                <div className="flex gap-2">
-                  {["📣", "🎉", "❤️", "😢", "😮"].map(emoji => (
-                    <button key={emoji} type="button" onClick={() => setComment(prev => prev + emoji)} className="text-xl px-2 py-1 rounded-xl hover:bg-accent transition-colors">
-                      {emoji}
-                    </button>
-                  ))}
+                {/* Input row */}
+                <div className="flex items-start gap-3">
+                  {userAvatar ? (
+                    <img src={userAvatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <textarea
+                    placeholder="Write a comment..."
+                    value={comment}
+                    onChange={e => setComment(e.target.value)}
+                    rows={2}
+                    className="flex-1 resize-none rounded-[22px] border border-[#3a3a3a] px-4 py-3 text-sm outline-none focus:border-gray-500 transition-colors"
+                  />
                 </div>
-                <Button onClick={handleSubmitComment} className="rounded-full">Post Comment</Button>
+                {/* Emojis + Post button */}
+                <div className="flex items-center justify-between pl-[52px]">
+                  <div className="flex gap-1">
+                    {["📣", "🎉", "❤️", "😢", "😮"].map(emoji => (
+                      <button key={emoji} type="button" onClick={() => setComment(prev => prev + emoji)} className="text-lg px-1.5 py-1 rounded-xl hover:bg-accent transition-colors">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleSubmitComment}
+                    className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors"
+                  >
+                    Post Comment
+                  </button>
+                </div>
               </div>
             ) : (
-              <button onClick={() => navigate("/")} className="w-full py-3 px-4 rounded-2xl border border-dashed border-border text-sm text-muted-foreground hover:bg-accent transition-colors text-center">
+              <button onClick={() => navigate("/")} className="w-full py-3 px-4 rounded-2xl border border-border text-sm text-muted-foreground hover:bg-accent transition-colors text-center">
                 🔒 Log in to leave a comment
               </button>
             )}
-            <div className="space-y-4">
+            <div className="space-y-5">
               {comments.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
               ) : (
                 comments.map(c => (
                   <div key={c.id} className="flex gap-3">
                     {c.avatar ? (
-                      <img src={c.avatar} alt={c.author} className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                      <img src={c.avatar} alt={c.author} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-primary" />
+                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
-                    <div className="flex-1 bg-card rounded-2xl p-3 border border-border">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <p className="font-semibold text-sm">{c.author}</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
-                          {c.user_id === userId && (
-                            <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="text-muted-foreground transition-colors">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-bold text-sm text-[#383838]">{c.author}</p>
+                          <p className="text-xs text-[#949494]">{timeAgo(c.created_at)}</p>
                         </div>
+                        {c.user_id === userId && (
+                          <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-snug">{c.content}</p>
+                      <p className="text-sm text-foreground leading-snug mt-1">{c.content}</p>
                       <div className="flex items-center gap-1 mt-2 flex-wrap">
                         {["❤️", "😢", "😮", "😂", "👍"].map(emoji => {
                           const emojiReactions = (reactions[c.id] || []).filter(r => r.emoji === emoji);
@@ -930,13 +972,6 @@ const EventDetails = () => {
                 <span className="text-muted-foreground">No image</span>
               </div>
             )}
-            <button
-              onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
-              className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-2 bg-white text-gray-800 rounded-full shadow-md hover:bg-gray-50 transition-colors"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">Copy & Share</span>
-            </button>
           </div>
 
           {/* Attendees — desktop, centered under image */}
