@@ -33,6 +33,7 @@ const EventDetails = () => {
   const [likeCount, setLikeCount] = useState(0);
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
@@ -496,6 +497,18 @@ const EventDetails = () => {
         <div className="space-y-6">
 
 
+          {/* Edit Post button — creator only, above image */}
+          {userId === event?.user_id && (
+            <div className="md:hidden flex justify-end">
+              <button
+                onClick={() => navigate(`/create-event/${id}`)}
+                className="px-4 py-2 text-sm font-semibold rounded-full bg-white border border-black text-black hover:bg-gray-50 transition-colors"
+              >
+                Edit Post
+              </button>
+            </div>
+          )}
+
           {/* Event Image — mobile only */}
           <div className="relative md:hidden" style={{ filter: 'drop-shadow(0px 4px 24px rgba(0,0,0,0.15))' }}>
             {event.image_url ? (
@@ -683,19 +696,77 @@ const EventDetails = () => {
                   <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.address}</p>
                 </div>
                 <div className="relative flex-shrink-0">
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(event.address)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => setMapPickerOpen(true)}
                     className="flex items-center justify-center hover:opacity-70 transition-opacity"
                   >
                     <Navigation className="h-6 w-6 text-foreground" />
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : null}
 
           </div>
+
+          {/* Map Picker Dialog */}
+          <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
+              <DialogHeader className="p-5 pb-3">
+                <DialogTitle className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Open in Maps</DialogTitle>
+              </DialogHeader>
+              <div className="px-5 pb-5 space-y-1">
+                {/* Google Maps */}
+                <button
+                  onClick={() => { window.open(`https://maps.google.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
+                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M24 4C15.16 4 8 11.16 8 20c0 11.87 14.29 23.45 15 24l1 .87 1-.87C25.71 43.45 40 31.87 40 20c0-8.84-7.16-16-16-16z" fill="#EA4335"/>
+                      <circle cx="24" cy="20" r="6" fill="white"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Google Maps</span>
+                </button>
+                {/* Apple Maps */}
+                <button
+                  onClick={() => { window.open(`https://maps.apple.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
+                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="48" height="48" rx="10" fill="url(#appleGrad)"/>
+                      <path d="M24 10l3.5 7 7.5 1.1-5.5 5.3 1.3 7.6L24 27.5l-6.8 3.5 1.3-7.6L13 18.1l7.5-1.1L24 10z" fill="white"/>
+                      <defs>
+                        <linearGradient id="appleGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#4CD964"/>
+                          <stop offset="1" stopColor="#007AFF"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Apple Maps</span>
+                </button>
+                {/* Waze */}
+                <button
+                  onClick={() => { window.open(`https://waze.com/ul?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
+                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                    <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <ellipse cx="24" cy="22" rx="16" ry="14" fill="#33CCFF"/>
+                      <ellipse cx="24" cy="22" rx="16" ry="14" fill="#05C8F0"/>
+                      <circle cx="19" cy="20" r="2.5" fill="#1A1A1A"/>
+                      <circle cx="29" cy="20" r="2.5" fill="#1A1A1A"/>
+                      <path d="M19 26c1.2 2 8.8 2 10 0" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round"/>
+                      <ellipse cx="34" cy="30" rx="5" ry="4" fill="#FFCC00"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Waze</span>
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Share Dialog */}
           <Dialog open={shareOpen} onOpenChange={setShareOpen}>
@@ -874,15 +945,8 @@ const EventDetails = () => {
                     className="flex-1 resize-none rounded-[22px] border border-[#3a3a3a] px-4 py-3 text-sm outline-none focus:border-gray-500 transition-colors"
                   />
                 </div>
-                {/* Emojis + Post button */}
-                <div className="flex items-center justify-between pl-[52px]">
-                  <div className="flex gap-1">
-                    {["📣", "🎉", "❤️", "😢", "😮"].map(emoji => (
-                      <button key={emoji} type="button" onClick={() => setComment(prev => prev + emoji)} className="text-lg px-1.5 py-1 rounded-xl hover:bg-accent transition-colors">
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
+                {/* Post button */}
+                <div className="flex justify-end pl-[52px]">
                   <button
                     onClick={handleSubmitComment}
                     className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors"
@@ -964,6 +1028,16 @@ const EventDetails = () => {
 
         {/* RIGHT COLUMN — sticky image + attendees, desktop only */}
         <div className="hidden md:block sticky top-20 self-start space-y-4">
+          {userId === event?.user_id && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => navigate(`/create-event/${id}`)}
+                className="px-4 py-2 text-sm font-semibold rounded-full bg-white border border-black text-black hover:bg-gray-50 transition-colors"
+              >
+                Edit Post
+              </button>
+            </div>
+          )}
           <div className="relative">
             {event.image_url ? (
               <img src={event.image_url} alt={event.title} className="w-full rounded-2xl object-cover" />
@@ -1024,18 +1098,6 @@ const EventDetails = () => {
         </div>
       </div>
 
-      {/* Floating edit button — only visible to the event creator */}
-      {userId && event && userId === event.user_id && (
-        <div className="fixed bottom-24 left-0 right-0 flex justify-center z-40 pointer-events-none">
-          <button
-            onClick={() => navigate(`/create-event/${id}`)}
-            className="pointer-events-auto flex items-center gap-2 px-5 py-3 bg-black text-white text-sm font-medium rounded-full shadow-lg hover:bg-gray-800 active:scale-95 transition-all"
-          >
-            <span>✏️</span>
-            Need to edit this post? Click here
-          </button>
-        </div>
-      )}
 
     </div>
   );
