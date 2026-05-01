@@ -479,11 +479,6 @@ const EventDetails = () => {
           >
             <ArrowLeft className="h-6 w-6" />
           </button>
-          {showTitleInHeader && (
-            <span className="font-semibold truncate flex-1 text-center" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '17px' }}>
-              {event.title}
-            </span>
-          )}
           {!isGuest && (
             <button
               onClick={handleSave}
