@@ -37,6 +37,7 @@ const EventDetails = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
+  const [ambientColor, setAmbientColor] = useState<[number, number, number] | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
@@ -468,7 +469,15 @@ const EventDetails = () => {
   })();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-24" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div
+      className="flex min-h-screen flex-col pb-24 transition-colors duration-700"
+      style={{
+        fontFamily: "'Inter', sans-serif",
+        background: ambientColor
+          ? `linear-gradient(180deg, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.22) 0%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.10) 40%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.03) 70%, white 100%)`
+          : 'white',
+      }}
+    >
 
       {/* Header */}
       <header className="sticky top-0 z-10 px-4 py-3 bg-transparent">
@@ -514,7 +523,62 @@ const EventDetails = () => {
           {/* Event Image — mobile only */}
           <div className="relative md:hidden" style={{ filter: 'drop-shadow(0px 4px 24px rgba(0,0,0,0.15))' }}>
             {event.image_url ? (
-              <img src={event.image_url} alt={event.title} className="w-full h-56 object-cover rounded-2xl" style={{ boxShadow: '0px 4px 20px 6px rgba(0,0,0,0.08)' }} />
+              <img
+                src={event.image_url}
+                alt={event.title}
+                className="w-full h-56 object-cover rounded-2xl"
+                style={{ boxShadow: '0px 4px 20px 6px rgba(0,0,0,0.08)' }}
+                onLoad={() => {
+                  if (!event.image_url) return;
+                  const img = new Image();
+                  img.crossOrigin = "anonymous";
+                  img.onload = () => {
+                    try {
+                      const canvas = document.createElement("canvas");
+                      canvas.width = 10;
+                      canvas.height = 10;
+                      const ctx = canvas.getContext("2d");
+                      if (!ctx) return;
+                      ctx.drawImage(img, 0, 0, 10, 10);
+                      const data = ctx.getImageData(0, 0, 10, 10).data;
+                      // Find most vibrant pixel
+                      let best: [number,number,number] = [128,128,128];
+                      let bestSat = -1;
+                      for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i], g = data[i+1], b = data[i+2];
+                        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+                        const sat = max === 0 ? 0 : (max - min) / max;
+                        if (sat > bestSat) { bestSat = sat; best = [r,g,b]; }
+                      }
+                      // Boost: convert to HSL, pump saturation & lightness, back to RGB
+                      const [r,g,b] = best.map(v => v/255);
+                      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+                      let h = 0, s = 0, l = (max+min)/2;
+                      if (max !== min) {
+                        const d = max - min;
+                        s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+                        if (max===r) h = ((g-b)/d + (g<b?6:0))/6;
+                        else if (max===g) h = ((b-r)/d + 2)/6;
+                        else h = ((r-g)/d + 4)/6;
+                      }
+                      s = Math.min(1, s * 1.2);   // subtle saturation boost
+                      l = Math.min(0.88, Math.max(0.72, l * 1.6)); // keep very light/pastel
+                      const hue2rgb = (p:number,q:number,t:number) => {
+                        if(t<0)t+=1; if(t>1)t-=1;
+                        if(t<1/6)return p+(q-p)*6*t;
+                        if(t<1/2)return q;
+                        if(t<2/3)return p+(q-p)*(2/3-t)*6;
+                        return p;
+                      };
+                      const q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+                      const fr = hue2rgb(p,q,h+1/3), fg = hue2rgb(p,q,h), fb = hue2rgb(p,q,h-1/3);
+                      setAmbientColor([Math.round(fr*255), Math.round(fg*255), Math.round(fb*255)]);
+                    } catch {}
+                  };
+                  img.onerror = () => {};
+                  img.src = event.image_url + "?color=1";
+                }}
+              />
             ) : (
               <div className="w-full h-56 bg-secondary rounded-2xl flex items-center justify-center">
                 <span className="text-muted-foreground">No image</span>
