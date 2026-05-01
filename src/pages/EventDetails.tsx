@@ -471,9 +471,12 @@ const EventDetails = () => {
     <div className="flex min-h-screen flex-col bg-background pb-24" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
+      <header className="sticky top-0 z-10 px-4 py-3 bg-transparent">
         <div className="flex items-center justify-between max-w-4xl mx-auto gap-3">
-          <button onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }} className="p-2 hover:bg-accent rounded-full transition-colors flex-shrink-0">
+          <button
+            onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }}
+            className="p-2.5 rounded-full transition-colors flex-shrink-0 bg-white/30 backdrop-blur-md hover:bg-white/50"
+          >
             <ArrowLeft className="h-6 w-6" />
           </button>
           {showTitleInHeader && (
@@ -482,9 +485,13 @@ const EventDetails = () => {
             </span>
           )}
           {!isGuest && (
-            <Button variant="ghost" size="icon" className={`flex-shrink-0 ${isSaved ? "text-[rgb(172,42,42)]" : ""}`} onClick={handleSave} disabled={saveLoading}>
+            <button
+              onClick={handleSave}
+              disabled={saveLoading}
+              className={`p-2.5 rounded-full transition-colors flex-shrink-0 bg-white/30 backdrop-blur-md hover:bg-white/50 ${isSaved ? "text-[rgb(172,42,42)]" : ""}`}
+            >
               <Heart className={`h-6 w-6 ${isSaved ? "fill-current" : ""}`} />
-            </Button>
+            </button>
           )}
         </div>
       </header>
@@ -586,20 +593,37 @@ const EventDetails = () => {
             {/* Date row */}
             <div className="relative flex items-center gap-4 py-3">
               <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
-                <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
-                  <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                    {eventDate.toLocaleDateString("en-US", { month: "short" })}
-                  </span>
-                </div>
-                <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
-                  <span className="text-lg font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                    {eventDate.getDate()}
-                  </span>
-                </div>
+                {event.is_recurring ? (
+                  <>
+                    <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
+                      <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                        {event.recurring_day ? event.recurring_day.slice(0, 3).toUpperCase() : "WKL"}
+                      </span>
+                    </div>
+                    <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
+                      <span className="text-base font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>🔁</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
+                      <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                        {eventDate.toLocaleDateString("en-US", { weekday: "short" })}
+                      </span>
+                    </div>
+                    <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
+                      <span className="text-lg font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                        {eventDate.getDate()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex flex-col gap-1.5 flex-1">
                 <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  {event.end_date
+                  {event.is_recurring
+                    ? `Every ${event.recurring_day}`
+                    : event.end_date
                     ? (() => {
                         const [ey, em, ed] = event.end_date.split("-").map(Number);
                         const endDateObj = new Date(ey, em - 1, ed);

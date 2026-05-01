@@ -23,6 +23,8 @@ interface EventCardProps {
     start_time?: string | null;
     end_time?: string | null;
     end_date?: string | null;
+    is_recurring?: boolean;
+    recurring_day?: string | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -69,7 +71,9 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
 
   const [y, m, d] = event.date.split("-").map(Number);
   const startDateObj = new Date(y, m - 1, d);
-  const dateLine = event.end_date
+  const dateLine = event.is_recurring
+    ? `Every ${event.recurring_day}`
+    : event.end_date
     ? (() => {
         const [ey, em, ed] = event.end_date.split("-").map(Number);
         const endDateObj = new Date(ey, em - 1, ed);

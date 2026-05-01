@@ -1,5 +1,5 @@
 import {
-  Balloon, Church, HeartHandshake, Sparkles, Search,  PizzaIcon} from "lucide-react";
+  Balloon, Church, HeartHandshake, Sparkles, Search, PizzaIcon, Video } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 
@@ -29,6 +29,8 @@ type Event = {
   user_id: string;
   food?: string[];
   duration?: string;
+  is_recurring?: boolean;
+  recurring_day?: string | null;
 };
 
 const filterChips = [
@@ -38,6 +40,7 @@ const filterChips = [
   { id: "food", label: "Provide Food", icon: PizzaIcon },
   { id: "popular", label: "Popular", icon: Sparkles },
   { id: "service", label: "Service", icon: HeartHandshake },
+  { id: "virtual", label: "Virtual", icon: Video },
 
 ];
 
@@ -69,7 +72,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day")
         .eq("status", "published")
         .eq("category", "ward")
         .gte("date", today)
@@ -181,6 +184,9 @@ const Wards = () => {
     if (activeFilter === "food") {
       result = result.filter((e) => e.food && e.food.length > 0);
     }
+    if (activeFilter === "virtual") {
+      result = result.filter((e) => e.virtual_link);
+    }
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
         const distA = getDistance(locationLat, locationLng, a.lat, a.lng!);
@@ -201,6 +207,7 @@ const Wards = () => {
     const nextWeek: Event[] = [];
     const later: Event[] = [];
     evts.forEach((e) => {
+      if (e.is_recurring) { thisWeek.push(e); return; }
       const d = new Date(e.date);
       if (d < startOfNextWeek) thisWeek.push(e);
       else if (d < startOfLater) nextWeek.push(e);

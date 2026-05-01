@@ -71,6 +71,8 @@ const CreateEvent = () => {
   const [websiteLink, setWebsiteLink] = useState("");
   const [foodProvided, setFoodProvided] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState("Sunday");
 
   const toggleFood = (id: string) => {
     setSelectedFoods(prev =>
@@ -115,6 +117,8 @@ const CreateEvent = () => {
       setWebsiteLink(data.social_links?.[2] ?? "");
       setSelectedFoods(data.food ?? []);
       setFoodProvided((data.food ?? []).length > 0);
+      setIsRecurring(data.is_recurring ?? false);
+      setRecurringDay(data.recurring_day ?? "Sunday");
     };
     fetchEvent();
   }, [id]);
@@ -184,7 +188,7 @@ const CreateEvent = () => {
   };
 
   const handleSubmit = async () => {
-    if (!title || !date || (!address && !virtualLink)) {
+    if (!title || (!isRecurring && !date) || (!address && !virtualLink)) {
       alert("Please fill in title, date and location!");
       return;
     }
@@ -202,12 +206,15 @@ const CreateEvent = () => {
       }
     }
     const eventData = {
-      user_id: session.user.id, title, description, category, is_free: isFree, date,
+      user_id: session.user.id, title, description, category, is_free: isFree,
+      date: isRecurring ? "2099-12-31" : date,
       location: location || address, image_url: imageUrl, status: "published",
-      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: endDate || null, address, lat, lng,
+      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
       food: selectedFoods, virtual_link: virtualLink || null,
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
+      is_recurring: isRecurring,
+      recurring_day: isRecurring ? recurringDay : null,
     };
     let error; let savedId = id;
     if (isEditing) {
@@ -283,7 +290,7 @@ const CreateEvent = () => {
               </div>
 
               {/* Date, Start time → End time */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4">
+              <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 ${isRecurring ? "opacity-40 pointer-events-none" : ""}`}>
                 {/* Start date → End date */}
                 <div className="flex items-center gap-2 w-full sm:flex-1">
                   {/* Start date */}
@@ -379,6 +386,39 @@ const CreateEvent = () => {
                   );
                 })()}
               </div>
+
+              {/* Recurring toggle */}
+              <div className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-sm font-medium">Recurring event 🔁</p>
+                  {isRecurring && <p className="text-xs text-muted-foreground mt-0.5">Appears every week in "This Week"</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRecurring(!isRecurring)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isRecurring ? "bg-black" : "bg-gray-300"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isRecurring ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+
+              {/* Day of week picker — shown when recurring */}
+              {isRecurring && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Repeats every</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => {
+                      const full = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" }[d]!;
+                      return (
+                        <button key={d} type="button" onClick={() => setRecurringDay(full)}
+                          className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${recurringDay === full ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Event Location */}
               <div className="space-y-3">
