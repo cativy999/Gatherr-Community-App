@@ -500,25 +500,13 @@ const EventDetails = () => {
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-8">
+      <main className="flex-1 px-6 py-4">
         <div className="max-w-5xl mx-auto">
         <div className="md:grid md:grid-cols-[1fr,420px] md:gap-16 md:items-start">
 
         {/* LEFT COLUMN */}
         <div className="space-y-6">
 
-
-          {/* Edit Post button — creator only, above image */}
-          {userId === event?.user_id && (
-            <div className="md:hidden flex justify-end">
-              <button
-                onClick={() => navigate(`/create-event/${id}`)}
-                className="px-4 py-2 text-sm font-semibold rounded-full bg-white border border-black text-black hover:bg-gray-50 transition-colors"
-              >
-                Edit Post
-              </button>
-            </div>
-          )}
 
           {/* Event Image — mobile only */}
           <div className="relative md:hidden" style={{ filter: 'drop-shadow(0px 4px 24px rgba(0,0,0,0.15))' }}>
@@ -593,6 +581,17 @@ const EventDetails = () => {
                 <Expand className="h-4 w-4 text-gray-700" />
               </button>
             )}
+            {/* Edit pencil — mobile, creator only */}
+            {userId === event?.user_id && (
+              <button
+                onClick={() => navigate(`/create-event/${id}`)}
+                className="absolute bottom-3 right-3 p-2 bg-white/30 backdrop-blur-md rounded-full hover:bg-white/50 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Lightbox overlay */}
@@ -636,7 +635,7 @@ const EventDetails = () => {
               </button>
             </div>
             {(event.age_min || event.age_max) && (
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-secondary text-foreground w-fit">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-black/8 text-foreground w-fit" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
                 {event.age_min && event.age_max
                   ? `Ages ${event.age_min}–${event.age_max}`
                   : event.age_min
@@ -746,7 +745,7 @@ const EventDetails = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 py-3 hover:bg-accent transition-colors" 
               >
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0" style={{ border: '1px solid #D9D9D9' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ border: '1px solid #D9D9D9', backgroundColor: 'rgba(0,0,0,0.04)' }}>
                   <Video className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="min-w-0">
@@ -771,7 +770,7 @@ const EventDetails = () => {
                       src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`} />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
                     <MapPin className="h-5 w-5 text-foreground" />
                   </div>
                 )}
@@ -1162,7 +1161,14 @@ const EventDetails = () => {
       </main>
 
       {/* Sticky RSVP Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-6 py-4 z-50">
+      <div
+        className="fixed bottom-0 left-0 right-0 backdrop-blur-md border-t border-white/40 px-6 py-4 z-50"
+        style={{
+          background: ambientColor
+            ? `rgb(${Math.round(255*0.78 + ambientColor[0]*0.22)},${Math.round(255*0.78 + ambientColor[1]*0.22)},${Math.round(255*0.78 + ambientColor[2]*0.22)})`
+            : 'white',
+        }}
+      >
         <div className="max-w-4xl mx-auto">
           {isGuest ? (
             <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
