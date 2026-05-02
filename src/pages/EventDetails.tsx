@@ -8,6 +8,40 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
+const STATE_ABBR: Record<string, string> = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+  'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+  'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+  'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+  'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+  'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+};
+
+const formatAddress = (addr: string): string => {
+  if (!addr) return addr;
+  const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+  const filtered = parts.filter(p => p !== 'United States' && !p.includes('County'));
+  const zipIdx = filtered.findIndex(p => /^\d{5}$/.test(p));
+  const zip = zipIdx !== -1 ? filtered[zipIdx] : '';
+  const stateIdx = filtered.findIndex(p => STATE_ABBR[p]);
+  const state = stateIdx !== -1 ? STATE_ABBR[filtered[stateIdx]] : '';
+  const remaining = filtered.filter((_, i) => i !== zipIdx && i !== stateIdx);
+  let street = '';
+  let city = '';
+  if (remaining.length >= 2) {
+    street = /^\d+$/.test(remaining[0]) ? `${remaining[0]} ${remaining[1]}` : remaining[0];
+    city = remaining[remaining.length - 1] === street.split(' ')[0] ? remaining[1] : remaining[remaining.length - 1];
+  } else {
+    street = remaining[0] || '';
+    city = '';
+  }
+  return [street, city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+};
+
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -49,6 +83,8 @@ const EventDetails = () => {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [linksExpanded, setLinksExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [similarEvents, setSimilarEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -79,6 +115,49 @@ const EventDetails = () => {
     };
     fetchEvent();
   }, [id]);
+
+  // Fetch similar events after main event loads
+  useEffect(() => {
+    if (!event) return;
+    const fetchSimilar = async () => {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const isVirtualEvent = !!event.virtual_link;
+
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, image_url, date, start_time, location, lat, lng, virtual_link")
+        .eq("status", "published")
+        .eq("category", "ward")
+        .gte("date", today)
+        .neq("id", id)
+        .order("date", { ascending: true })
+        .limit(20);
+      if (!data) return;
+
+      const city = (event.location || "").split(",")[0].trim().toLowerCase();
+      const sorted = [...data].sort((a, b) => {
+        if (isVirtualEvent) {
+          const aOnline = !!a.virtual_link;
+          const bOnline = !!b.virtual_link;
+          if (aOnline !== bOnline) return aOnline ? -1 : 1;
+          const aDate = new Date(a.date);
+          const bDate = new Date(b.date);
+          const aSameMonth = aDate.getMonth() === currentMonth && aDate.getFullYear() === currentYear ? 0 : 1;
+          const bSameMonth = bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear ? 0 : 1;
+          return aSameMonth - bSameMonth;
+        } else {
+          const aMatch = (a.location || "").toLowerCase().includes(city) ? 0 : 1;
+          const bMatch = (b.location || "").toLowerCase().includes(city) ? 0 : 1;
+          return aMatch - bMatch;
+        }
+      });
+      setSimilarEvents(sorted.slice(0, 6));
+    };
+    fetchSimilar();
+  }, [event, id]);
 
   useEffect(() => {
     if (!id) return;
@@ -775,7 +854,7 @@ const EventDetails = () => {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.address}</p>
+                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{formatAddress(event.address)}</p>
                 </div>
                 <div className="relative flex-shrink-0">
                   <button
@@ -1005,9 +1084,41 @@ const EventDetails = () => {
             </div>
           )}
 
+{/* Location */}
+          {(event.address || event.lat) && !event.virtual_link && (
+            <div className="space-y-3">
+              <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Location</h2>
+              {event.address && (
+                <p className="text-sm text-muted-foreground">{formatAddress(event.address)}</p>
+              )}
+              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200 }} onClick={() => setMapPickerOpen(true)}>
+                <iframe
+                  width="100%"
+                  height="200"
+                  style={{ border: 0, display: 'block', pointerEvents: 'none' }}
+                  loading="lazy"
+                  src={
+                    event.lat && event.lng
+                      ? `https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`
+                      : `https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&z=15&output=embed`
+                  }
+                />
+                {/* Tap overlay */}
+                <div className="absolute inset-0 flex items-end justify-end p-3">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-semibold text-gray-700">
+                    <Navigation className="h-3.5 w-3.5" />
+                    Open in Maps
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
 {/* Comments */}
           <div className="space-y-6 pt-4">
-            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Comments</h2>
+            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>
+              {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
+            </h2>
             {!isGuest ? (
               <div className="space-y-3">
                 {/* Input row */}
@@ -1046,7 +1157,7 @@ const EventDetails = () => {
               {comments.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
               ) : (
-                comments.map(c => (
+                (showAllComments ? comments : comments.slice(0, 3)).map(c => (
                   <div key={c.id} className="flex gap-3">
                     {c.avatar ? (
                       <img src={c.avatar} alt={c.author} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
@@ -1103,8 +1214,57 @@ const EventDetails = () => {
                   </div>
                 ))
               )}
+              {/* Show more / less */}
+              {comments.length > 3 && (
+                <button
+                  onClick={() => setShowAllComments(!showAllComments)}
+                  className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showAllComments ? "Show less" : `Show ${comments.length - 3} more comment${comments.length - 3 > 1 ? 's' : ''}`}
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Similar Events */}
+          {similarEvents.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                <h2 className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Similar Events</h2>
+                <button onClick={() => navigate("/wards")} className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                  See all →
+                </button>
+              </div>
+              <div className="flex gap-3 overflow-x-auto -mx-6 px-6 pb-2" style={{ scrollbarWidth: 'none' }}>
+                {similarEvents.map((e) => {
+                  const [y, m, d] = e.date.split("-").map(Number);
+                  const dateObj = new Date(y, m - 1, d);
+                  const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  return (
+                    <div
+                      key={e.id}
+                      onClick={() => navigate(`/event/${e.id}`)}
+                      className="flex-shrink-0 w-36 cursor-pointer"
+                    >
+                      <div className="relative w-36 h-24 rounded-xl overflow-hidden bg-secondary mb-1.5">
+                        {e.image_url
+                          ? <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
+                          : <div className="w-full h-full bg-secondary" />}
+                        {e.virtual_link && (
+                          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5">
+                            <Video className="h-2.5 w-2.5 text-white" />
+                            <span className="text-[9px] font-semibold text-white">Online</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{e.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{dateStr}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         </div>{/* end left column */}
 

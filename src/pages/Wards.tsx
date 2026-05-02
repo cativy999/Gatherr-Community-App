@@ -110,7 +110,7 @@ const Wards = () => {
     fetchEvents();
   }, [location]);
 
-  // Scroll to the specific event card after publishing/editing
+  // Scroll to the specific event card after publishing/editing — only once
   useEffect(() => {
     const scrollToEventId = (routerLocation.state as any)?.scrollToEventId;
     if (!scrollToEventId || loading) return;
@@ -119,6 +119,9 @@ const Wards = () => {
       const el = document.querySelector(`[data-event-id="${scrollToEventId}"]`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 500);
+
+    // Clear the state so back navigation doesn't re-trigger the scroll
+    navigate(routerLocation.pathname, { replace: true, state: {} });
   }, [loading, routerLocation.state]);
 
   useEffect(() => {
