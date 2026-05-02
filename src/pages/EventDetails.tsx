@@ -1122,24 +1122,17 @@ const EventDetails = () => {
             {!isGuest ? (
               <div className="space-y-3">
                 {/* Input row */}
-                <div className="flex items-start gap-3">
-                  {userAvatar ? (
-                    <img src={userAvatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
+                <div className="flex items-start">
                   <textarea
                     placeholder="Write a comment..."
                     value={comment}
                     onChange={e => setComment(e.target.value)}
                     rows={2}
-                    className="flex-1 resize-none rounded-[22px] border border-[#3a3a3a] px-4 py-3 text-sm outline-none focus:border-gray-500 transition-colors"
+                    className="flex-1 resize-none rounded-[22px] border border-[#3a3a3a] px-4 py-3 text-sm outline-none focus:border-gray-500 transition-colors w-full"
                   />
                 </div>
                 {/* Post button */}
-                <div className="flex justify-end pl-[52px]">
+                <div className="flex justify-end">
                   <button
                     onClick={handleSubmitComment}
                     className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors"
@@ -1243,10 +1236,10 @@ const EventDetails = () => {
                   return (
                     <div
                       key={e.id}
-                      onClick={() => navigate(`/event/${e.id}`)}
-                      className="flex-shrink-0 w-36 cursor-pointer"
+                      onClick={() => { navigate(`/event/${e.id}`); window.scrollTo(0, 0); }}
+                      className="flex-shrink-0 w-52 cursor-pointer"
                     >
-                      <div className="relative w-36 h-24 rounded-xl overflow-hidden bg-secondary mb-1.5">
+                      <div className="relative w-52 h-36 rounded-xl overflow-hidden bg-secondary mb-1.5">
                         {e.image_url
                           ? <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
                           : <div className="w-full h-full bg-secondary" />}
