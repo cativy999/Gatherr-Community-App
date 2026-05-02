@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -73,6 +73,17 @@ const CreateEvent = () => {
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringDay, setRecurringDay] = useState("Sunday");
+  const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
+
+  const INFO_ICONS = [
+    { key: "calendar", Icon: Calendar },
+    { key: "star",     Icon: Star },
+    { key: "circle",   Icon: Circle },
+    { key: "check",    Icon: CheckCircle2 },
+    { key: "note",     Icon: FileText },
+    { key: "car",      Icon: Car },
+    { key: "pin",      Icon: MapPin },
+  ];
 
   const toggleFood = (id: string) => {
     setSelectedFoods(prev =>
@@ -119,6 +130,7 @@ const CreateEvent = () => {
       setFoodProvided((data.food ?? []).length > 0);
       setIsRecurring(data.is_recurring ?? false);
       setRecurringDay(data.recurring_day ?? "Sunday");
+      setAdditionalInfo(data.additional_info ?? []);
     };
     fetchEvent();
   }, [id]);
@@ -215,6 +227,9 @@ const CreateEvent = () => {
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
       is_recurring: isRecurring,
       recurring_day: isRecurring ? recurringDay : null,
+      additional_info: additionalInfo.filter(item => item.title.trim()).length > 0
+        ? additionalInfo.filter(item => item.title.trim())
+        : null,
     };
     let error; let savedId = id;
     if (isEditing) {
@@ -518,6 +533,96 @@ const CreateEvent = () => {
                 <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
               </div>
 
+              {/* Additional Info */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Additional Info</label>
+                {additionalInfo.map((item, idx) => (
+                  <div key={idx} className="rounded-xl border border-black bg-white p-3 space-y-2.5">
+                    {/* Title row */}
+                    <div className="flex items-center gap-2">
+                      {/* Show selected icon preview */}
+                      {item.icon && (() => {
+                        const found = INFO_ICONS.find(i => i.key === item.icon);
+                        return found ? <found.Icon className="h-4 w-4 flex-shrink-0 text-gray-500" /> : null;
+                      })()}
+                      <input
+                        type="text"
+                        placeholder="Section title (e.g. What to Bring)"
+                        className="flex-1 text-sm font-semibold outline-none bg-transparent placeholder:font-normal placeholder:text-muted-foreground"
+                        value={item.title}
+                        onChange={(e) => {
+                          const next = [...additionalInfo];
+                          next[idx] = { ...next[idx], title: e.target.value };
+                          setAdditionalInfo(next);
+                        }}
+                        maxLength={60}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx))}
+                        className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6 6 18M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Icon picker */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {INFO_ICONS.map(({ key, Icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            const next = [...additionalInfo];
+                            next[idx] = { ...next[idx], icon: key };
+                            setAdditionalInfo(next);
+                          }}
+                          className={`p-3 rounded-xl border transition-all ${
+                            item.icon === key
+                              ? "bg-black border-black text-white"
+                              : "bg-white border-gray-300 text-gray-500 hover:border-gray-500"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Description */}
+                    <div style={{ borderLeft: '2px solid rgba(0,0,0,0.09)' }} className="pl-3">
+                      <textarea
+                        placeholder="Description..."
+                        rows={2}
+                        className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground"
+                        value={item.description}
+                        onChange={(e) => {
+                          const next = [...additionalInfo];
+                          next[idx] = { ...next[idx], description: e.target.value };
+                          setAdditionalInfo(next);
+                        }}
+                        maxLength={500}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setAdditionalInfo([...additionalInfo, { title: "", description: "", icon: "check" }])}
+                  className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-1"
+                >
+                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: 'rgba(0,0,0,0.3)' }}>
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                      <path d="M5 1v8M1 5h8" stroke="rgba(0,0,0,0.4)" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  Add section
+                </button>
+              </div>
+
+              <div className="pt-4" />
+
               {/* Social Links */}
               <div className="space-y-3">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -619,7 +724,7 @@ const CreateEvent = () => {
                       <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${minAgeOpen ? "rotate-180" : ""}`} />
                     </div>
                     {minAgeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                      <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
                         {[18, 25, 30, 35, 40, 45, 50, 55, 60].map(age => (
                           <button key={age} type="button"
                             className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${minAge === String(age) ? "font-bold" : ""}`}
@@ -644,7 +749,7 @@ const CreateEvent = () => {
                       <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${maxAgeOpen ? "rotate-180" : ""}`} />
                     </div>
                     {maxAgeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                      <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
                         <button type="button"
                           className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${maxAge === "+" ? "font-bold" : ""}`}
                           onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}>

@@ -1,8 +1,8 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -40,6 +40,16 @@ const formatAddress = (addr: string): string => {
     city = '';
   }
   return [street, city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+};
+
+const INFO_ICON_MAP: Record<string, React.ElementType> = {
+  calendar: Calendar,
+  star:     Star,
+  circle:   Circle,
+  check:    CheckCircle2,
+  note:     FileText,
+  car:      Car,
+  pin:      MapPin,
 };
 
 const EventDetails = () => {
@@ -85,6 +95,8 @@ const EventDetails = () => {
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
   const [similarEvents, setSimilarEvents] = useState<any[]>([]);
+  const [expandedInfoItems, setExpandedInfoItems] = useState<Set<number>>(new Set());
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -584,7 +596,7 @@ const EventDetails = () => {
         <div className="md:grid md:grid-cols-[1fr,420px] md:gap-16 md:items-start">
 
         {/* LEFT COLUMN */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
 
 
           {/* Event Image — mobile only */}
@@ -992,6 +1004,102 @@ const EventDetails = () => {
               </button>
             )}
           </div>
+
+{/* Additional Details */}
+          {event.additional_info && event.additional_info.length > 0 && (
+            <div className="space-y-1">
+              {/* Section header — toggle button */}
+              <button
+                onClick={() => setShowAdditionalDetails(v => !v)}
+                className="w-full flex items-center justify-between pb-2 border-b"
+                style={{ borderColor: 'rgba(0,0,0,0.1)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <Balloon className="h-[18px] w-[18px] flex-shrink-0" />
+                  <span className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                    Additional Details ({event.additional_info.length})
+                  </span>
+                </div>
+                {/* Plus / Minus */}
+                {showAdditionalDetails ? (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14"/>
+                  </svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5v14"/><path d="M5 12h14"/>
+                  </svg>
+                )}
+              </button>
+
+              {/* Accordion items — animated slide in/out */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateRows: showAdditionalDetails ? '1fr' : '0fr',
+                  transition: 'grid-template-rows 0.35s ease',
+                }}
+              >
+                <div style={{ overflow: 'hidden', minHeight: 0 }}>
+                  <div className="flex flex-col pl-4 pb-6">
+                    {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
+                      const isOpen = expandedInfoItems.has(idx);
+                      return (
+                        <div key={idx}>
+                          {/* Row button */}
+                          <button
+                            onClick={() => {
+                              const next = new Set(expandedInfoItems);
+                              if (next.has(idx)) next.delete(idx); else next.add(idx);
+                              setExpandedInfoItems(next);
+                            }}
+                            className="w-full flex items-center gap-[15px] h-[56px] text-left"
+                          >
+                            {(() => {
+                              const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
+                              return IconComp ? <IconComp className="flex-shrink-0 h-5 w-5" /> : null;
+                            })()}
+                            <span className="flex-1 font-bold text-black min-w-0" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                              {item.title}
+                            </span>
+                            <svg
+                              width="24" height="24" viewBox="0 0 24 24"
+                              fill="none" stroke="currentColor" strokeWidth="2"
+                              strokeLinecap="round" strokeLinejoin="round"
+                              className="flex-shrink-0"
+                              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
+                            >
+                              <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                          </button>
+
+                          {/* Description — animated slide */}
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateRows: isOpen ? '1fr' : '0fr',
+                              transition: 'grid-template-rows 0.3s ease',
+                            }}
+                          >
+                            <div style={{ overflow: 'hidden', minHeight: 0 }}>
+                              <div className="w-full pl-[26px] pb-2">
+                                <div
+                                  className="pl-6 pb-4 pr-2 text-sm font-semibold leading-relaxed whitespace-pre-wrap text-left"
+                                  style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: 'rgba(0,0,0,0.5)' }}
+                                >
+                                  {item.description}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
 {/* Social Links */}
           {event.social_links?.filter(Boolean).length > 0 && (() => {
