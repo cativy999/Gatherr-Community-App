@@ -42,6 +42,18 @@ const formatAddress = (addr: string): string => {
   return [street, city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 };
 
+const getInitialColor = (name: string) => {
+  const l = (name || '?').charAt(0).toUpperCase();
+  if ('ABCD'.includes(l)) return '#F97066';
+  if ('EFGH'.includes(l)) return '#38BDF8';
+  if ('IJKL'.includes(l)) return '#A78BFA';
+  if ('MNOP'.includes(l)) return '#4ADE80';
+  if ('QRST'.includes(l)) return '#FB923C';
+  if ('UVWX'.includes(l)) return '#F472B6';
+  if ('YZ'.includes(l))   return '#2DD4BF';
+  return '#94A3B8';
+};
+
 const INFO_ICON_MAP: Record<string, React.ElementType> = {
   calendar: Calendar,
   star:     Star,
@@ -86,7 +98,7 @@ const EventDetails = () => {
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
   const [goingListLoading, setGoingListLoading] = useState(false);
-  const [previewAvatars, setPreviewAvatars] = useState<string[]>([]);
+  const [previewAvatars, setPreviewAvatars] = useState<{url: string | null; name: string}[]>([]);
   const [reactions, setReactions] = useState<Record<string, any[]>>({});
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
   const [creatorWard, setCreatorWard] = useState<string | null>(null);
@@ -198,9 +210,9 @@ const EventDetails = () => {
         const uids = rsvpRows.map((r: any) => r.user_id);
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("avatar_url")
+          .select("avatar_url, name")
           .in("user_id", uids);
-        setPreviewAvatars((profiles ?? []).map((p: any) => p.avatar_url).filter(Boolean));
+        setPreviewAvatars((profiles ?? []).map((p: any) => ({ url: p.avatar_url || null, name: p.name || '?' })));
       }
     };
     fetchCounts();
@@ -977,10 +989,10 @@ const EventDetails = () => {
                   goingList.map(person => (
                     <div key={person.user_id} className="flex items-center gap-3">
                       {person.avatar_url ? (
-                        <img src={person.avatar_url} alt={person.name} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                        <img src={person.avatar_url} alt={person.name} referrerPolicy="no-referrer" style={{ width: 48, height: 48, minWidth: 48, borderRadius: '50%', objectFit: 'cover' }} />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <User className="h-5 w-5 text-primary" />
+                        <div style={{ width: 48, height: 48, minWidth: 48, borderRadius: '50%', backgroundColor: getInitialColor(person.name), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 22, fontWeight: 700 }}>
+                          {(person.name || '?').charAt(0).toUpperCase()}
                         </div>
                       )}
                       <span className="text-sm font-medium">{person.name || "Anonymous"}</span>
@@ -1155,14 +1167,12 @@ const EventDetails = () => {
               </p>
               {previewAvatars.length > 0 && (
                 <div className="flex">
-                  {previewAvatars.slice(0, 8).map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      referrerPolicy="no-referrer"
-                      className="w-9 h-9 rounded-full object-cover border-2 border-white"
-                      style={{ marginLeft: i === 0 ? 0 : -10 }}
-                    />
+                  {previewAvatars.slice(0, 8).map((p, i) => (
+                    p.url
+                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover border-2 border-white" style={{ marginLeft: i === 0 ? 0 : -10 }} />
+                      : <div key={i} className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ marginLeft: i === 0 ? 0 : -10, backgroundColor: getInitialColor(p.name) }}>
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
                   ))}
                 </div>
               )}
@@ -1402,14 +1412,12 @@ const EventDetails = () => {
               </p>
               {previewAvatars.length > 0 && (
                 <div className="flex justify-center">
-                  {previewAvatars.slice(0, 8).map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      referrerPolicy="no-referrer"
-                      className="w-9 h-9 rounded-full object-cover border-2 border-white"
-                      style={{ marginLeft: i === 0 ? 0 : -10 }}
-                    />
+                  {previewAvatars.slice(0, 8).map((p, i) => (
+                    p.url
+                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover border-2 border-white" style={{ marginLeft: i === 0 ? 0 : -10 }} />
+                      : <div key={i} className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ marginLeft: i === 0 ? 0 : -10, backgroundColor: getInitialColor(p.name) }}>
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
                   ))}
                 </div>
               )}

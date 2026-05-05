@@ -31,9 +31,21 @@ interface EventCardProps {
   onToggleSave?: (id: string, e: React.MouseEvent) => void;
 }
 
+const getInitialColor = (name: string) => {
+  const l = (name || '?').charAt(0).toUpperCase();
+  if ('ABCD'.includes(l)) return '#F97066';
+  if ('EFGH'.includes(l)) return '#38BDF8';
+  if ('IJKL'.includes(l)) return '#A78BFA';
+  if ('MNOP'.includes(l)) return '#4ADE80';
+  if ('QRST'.includes(l)) return '#FB923C';
+  if ('UVWX'.includes(l)) return '#F472B6';
+  if ('YZ'.includes(l))   return '#2DD4BF';
+  return '#94A3B8';
+};
+
 const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventCardProps) => {
   const navigate = useNavigate();
-  const [attendeeAvatars, setAttendeeAvatars] = useState<string[]>([]);
+  const [attendeeAvatars, setAttendeeAvatars] = useState<{url: string | null; name: string}[]>([]);
 
   const foodIconMap: Record<string, any> = {
     pizza: Pizza,
@@ -57,9 +69,9 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
         const userIds = data.map((r: any) => r.user_id);
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, avatar_url")
+          .select("user_id, avatar_url, name")
           .in("user_id", userIds);
-        setAttendeeAvatars((profiles ?? []).map((p: any) => p.avatar_url).filter(Boolean));
+        setAttendeeAvatars((profiles ?? []).map((p: any) => ({ url: p.avatar_url ?? null, name: p.name || '?' })));
       }
     };
     fetchAvatars();
@@ -123,13 +135,10 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
         {event.attendees > 0 && (
           <div className="absolute top-2 left-0 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm rounded-tr-full rounded-br-full px-2 py-1">
             <div className="flex -space-x-1.5">
-              {attendeeAvatars.slice(0, 3).map((avatar, i) => (
-                <img
-                  key={i}
-                  src={avatar}
-                  className="w-5 h-5 rounded-full border border-white object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              {attendeeAvatars.slice(0, 3).map((p, i) => (
+                p.url
+                  ? <img key={i} src={p.url} className="w-5 h-5 rounded-full border border-white object-cover" referrerPolicy="no-referrer" />
+                  : <div key={i} className="w-5 h-5 rounded-full border border-white flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: getInitialColor(p.name), fontSize: 8, fontWeight: 700 }}>{p.name.charAt(0).toUpperCase()}</div>
               ))}
               {attendeeAvatars.length === 0 && (
                 <div className="w-5 h-5 rounded-full border border-white bg-gray-400" />
