@@ -47,14 +47,32 @@ export const groupByWeek = (events: any[]) => {
   return { thisWeek, nextWeek, later };
 };
 
+interface CreatorProfile {
+  name: string;
+  avatar_url: string | null;
+}
+
 interface TimelineSectionProps {
   label: string;
   events: any[];
   creatorWards?: Record<string, string>;
+  creatorProfiles?: Record<string, CreatorProfile>;
   onEventClick?: (eventId: string) => void;
 }
 
-const TimelineSection = ({ label, events, creatorWards = {}, onEventClick }: TimelineSectionProps) => {
+const getInitialColor = (name: string) => {
+  const l = (name || '?').charAt(0).toUpperCase();
+  if ('ABCD'.includes(l)) return '#F97066';
+  if ('EFGH'.includes(l)) return '#38BDF8';
+  if ('IJKL'.includes(l)) return '#A78BFA';
+  if ('MNOP'.includes(l)) return '#4ADE80';
+  if ('QRST'.includes(l)) return '#FB923C';
+  if ('UVWX'.includes(l)) return '#F472B6';
+  if ('YZ'.includes(l))   return '#2DD4BF';
+  return '#94A3B8';
+};
+
+const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {}, onEventClick }: TimelineSectionProps) => {
   const navigate = useNavigate();
   if (events.length === 0) return null;
   const grouped = groupByDate(events);
@@ -122,6 +140,27 @@ const TimelineSection = ({ label, events, creatorWards = {}, onEventClick }: Tim
                         <Users className="h-3 w-3" />
                         <span>{event.attendees ?? 0} going</span>
                       </div>
+                      {creatorProfiles[event.user_id] && (
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {creatorProfiles[event.user_id].avatar_url ? (
+                            <img
+                              src={creatorProfiles[event.user_id].avatar_url!}
+                              className="w-4 h-4 rounded-full object-cover flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div
+                              className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white"
+                              style={{ backgroundColor: getInitialColor(creatorProfiles[event.user_id].name), fontSize: 8, fontWeight: 700 }}
+                            >
+                              {creatorProfiles[event.user_id].name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            Posted by <span className="font-medium text-foreground">{creatorProfiles[event.user_id].name}</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end justify-between flex-shrink-0 self-stretch">

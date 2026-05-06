@@ -24,6 +24,7 @@ import OnboardingName from "./pages/OnboardingName";
 import WardProfile from "./pages/WardProfile";
 import Search from "./pages/Search";
 import PublishedEventsPage from "./pages/PublishedEventsPage";
+import PublishedGroupsPage from "./pages/PublishedGroupsPage";
 import CreateGroup from "./pages/CreateGroup";
 import Community from "./pages/Community";
 import GroupProfile from "./pages/GroupProfile";
@@ -118,6 +119,8 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
                 <Route path="/my-published-events" element={<PublishedEventsPage />} />
                 <Route path="/create-group" element={<CreateGroup />} />
+                <Route path="/create-group/:id" element={<CreateGroup />} />
+                <Route path="/my-published-groups" element={<PublishedGroupsPage />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/group/:id" element={<GroupProfile />} />
               </Routes>

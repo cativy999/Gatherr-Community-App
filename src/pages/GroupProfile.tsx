@@ -1,14 +1,18 @@
-import { ArrowLeft, MapPin, Globe, Link, Link2 } from "lucide-react";
+import { ArrowLeft, MapPin, Globe, Link, Link2, Pencil } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
 
 const GroupProfile = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { session } = useAuth();
   const [group, setGroup] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [creatorProfiles, setCreatorProfiles] = useState<Record<string, { name: string; avatar_url: string | null }>>({});
+  const [groupCreator, setGroupCreator] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,22 +22,68 @@ const GroupProfile = () => {
       .select("*")
       .eq("id", id)
       .single()
-      .then(({ data }) => {
-        setGroup(data);
+      .then(async ({ data: groupData }) => {
+        setGroup(groupData);
         setLoading(false);
+        if (!groupData) return;
+
+        // Fetch group creator profile
+        if (groupData.user_id) {
+          const { data: creatorData } = await supabase
+            .from("profiles")
+            .select("name, avatar_url")
+            .eq("user_id", groupData.user_id)
+            .maybeSingle();
+          if (creatorData) setGroupCreator({ name: creatorData.name, avatar_url: creatorData.avatar_url ?? null });
+        }
+
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+        // 1. Find ward members (profiles whose ward matches this group's name)
+        const { data: wardProfiles } = await supabase
+          .from("profiles")
+          .select("user_id, name, avatar_url")
+          .eq("ward", groupData.name);
+
+        // 2. Fetch events — filtered by ward members if found, otherwise all
+        let eventsData: any[] = [];
+        if (wardProfiles && wardProfiles.length > 0) {
+          const wardUserIds = wardProfiles.map((p: any) => p.user_id);
+          const { data } = await supabase
+            .from("events")
+            .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+            .eq("status", "published")
+            .in("user_id", wardUserIds)
+            .gte("date", today)
+            .order("date", { ascending: true });
+          eventsData = data ?? [];
+        } else {
+          const { data } = await supabase
+            .from("events")
+            .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+            .eq("status", "published")
+            .gte("date", today)
+            .order("date", { ascending: true });
+          eventsData = data ?? [];
+        }
+        setEvents(eventsData);
+
+        // 3. Fetch creator profiles for ALL events (regardless of ward matching)
+        if (eventsData.length > 0) {
+          const uniqueUserIds = [...new Set(eventsData.map((e: any) => e.user_id))];
+          const { data: creatorData } = await supabase
+            .from("profiles")
+            .select("user_id, name, avatar_url")
+            .in("user_id", uniqueUserIds);
+
+          const profileMap: Record<string, { name: string; avatar_url: string | null }> = {};
+          (creatorData ?? []).forEach((p: any) => {
+            profileMap[p.user_id] = { name: p.name, avatar_url: p.avatar_url ?? null };
+          });
+          setCreatorProfiles(profileMap);
+        }
       });
-    const fetchEvents = async () => {
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const { data } = await supabase
-        .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
-        .eq("status", "published")
-        .gte("date", today)
-        .order("date", { ascending: true });
-      setEvents(data ?? []);
-    };
-    fetchEvents();
   }, [id]);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading...</div>;
@@ -50,6 +100,14 @@ const GroupProfile = () => {
         <button onClick={() => navigate(-1)} className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors">
           <ArrowLeft className="h-5 w-5 text-white" />
         </button>
+        {session?.user?.id === group?.user_id && (
+          <button
+            onClick={() => navigate(`/create-group/${id}`)}
+            className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors text-white text-sm font-medium"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+        )}
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
           <div className="w-20 h-20 rounded-full bg-muted border-4 border-background overflow-hidden flex items-center justify-center">
             {group.avatar_url ? <img src={group.avatar_url} className="w-full h-full object-cover" /> : <span className="text-2xl">👥</span>}
@@ -64,6 +122,21 @@ const GroupProfile = () => {
             <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
             {group.address}
           </a>
+        )}
+        {groupCreator && (
+          <div className="flex items-center gap-2 pt-1">
+            {groupCreator.avatar_url ? (
+              <img src={groupCreator.avatar_url} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
+            ) : (
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                style={{ backgroundColor: '#94A3B8', fontSize: 9, fontWeight: 700 }}>
+                {groupCreator.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Created by <span className="font-semibold text-foreground">{groupCreator.name}</span>
+            </span>
+          </div>
         )}
       </div>
 
@@ -104,9 +177,9 @@ const GroupProfile = () => {
           <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Events</h2>
           {events.length > 0 ? (
             <div className="space-y-8">
-              <TimelineSection label="This Week" events={thisWeek} />
-              <TimelineSection label="Next Week" events={nextWeek} />
-              <TimelineSection label="Later" events={later} />
+              <TimelineSection label="This Week" events={thisWeek} creatorProfiles={creatorProfiles} />
+              <TimelineSection label="Next Week" events={nextWeek} creatorProfiles={creatorProfiles} />
+              <TimelineSection label="Later" events={later} creatorProfiles={creatorProfiles} />
             </div>
           ) : (
             <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center">

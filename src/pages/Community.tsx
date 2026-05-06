@@ -44,29 +44,35 @@ const Community = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {groups.map((group) => (
                 <div
                   key={group.id}
                   onClick={() => navigate(`/group/${group.id}`)}
-                  className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card cursor-pointer hover:shadow-md transition-shadow"
+                  className="bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all cursor-pointer flex flex-col"
                 >
-                  <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary flex-shrink-0 flex items-center justify-center">
-                    {group.avatar_url ? (
-                      <img src={group.avatar_url} className="w-full h-full object-cover" />
+                  <div className="relative">
+                    {group.cover_image_url ? (
+                      <img src={group.cover_image_url} alt={group.name} className="w-full h-28 object-cover" />
                     ) : (
-                      <Users className="h-6 w-6 text-muted-foreground" />
+                      <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                      </div>
                     )}
+                    <div className="absolute -bottom-6 left-3">
+                      <div className="w-12 h-12 rounded-full border-2 border-background bg-muted overflow-hidden flex items-center justify-center">
+                        {group.avatar_url
+                          ? <img src={group.avatar_url} className="w-full h-full object-cover" />
+                          : <span className="text-xl">👥</span>}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-base truncate" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                  <div className="pt-8 px-3 pb-3 flex flex-col gap-1">
+                    <h3 className="font-semibold text-sm leading-tight line-clamp-1" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                       {group.name}
-                    </p>
-                    {group.address && (
-                      <p className="text-xs text-muted-foreground truncate">{group.address}</p>
-                    )}
+                    </h3>
                     {group.description && (
-                      <p className="text-sm text-muted-foreground truncate mt-0.5">{group.description}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{group.description}</p>
                     )}
                   </div>
                 </div>

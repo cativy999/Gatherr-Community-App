@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Image as ImageIcon, Loader2, Link, Link2, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ const WARD_LIST = [
 const CreateGroup = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { id } = useParams();
+  const isEditing = !!id;
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,15 +46,35 @@ const CreateGroup = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [claimedWards, setClaimedWards] = useState<string[]>([]);
+  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+  const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
       .from("groups")
-      .select("name")
+      .select("name, id")
       .then(({ data }) => {
-        setClaimedWards((data ?? []).map((g: any) => g.name));
+        // When editing, exclude current group from claimed list
+        setClaimedWards((data ?? []).filter((g: any) => g.id !== id).map((g: any) => g.name));
       });
-  }, []);
+  }, [id]);
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (!id) return;
+    supabase.from("groups").select("*").eq("id", id).single().then(({ data }) => {
+      if (!data) return;
+      setName(data.name ?? "");
+      setDescription(data.description ?? "");
+      setGoodToKnow(data.good_to_know ?? "");
+      setAddress(data.address ?? "");
+      setFacebook(data.facebook_url ?? "");
+      setInstagram(data.instagram_url ?? "");
+      setWebsite(data.website_url ?? "");
+      if (data.cover_image_url) { setCoverPreview(data.cover_image_url); setExistingCoverUrl(data.cover_image_url); }
+      if (data.avatar_url) { setAvatarPreview(data.avatar_url); setExistingAvatarUrl(data.avatar_url); }
+    });
+  }, [id]);
 
   
 
@@ -80,14 +102,14 @@ const CreateGroup = () => {
     if (!session?.user) return;
 
     setSaving(true);
-    
-    let coverUrl = null;
-    let avatarUrl = null;
+
+    let coverUrl = existingCoverUrl;
+    let avatarUrl = existingAvatarUrl;
 
     if (coverFile) coverUrl = await uploadImage(coverFile, "covers");
     if (avatarFile) avatarUrl = await uploadImage(avatarFile, "avatars");
 
-    const { error } = await supabase.from("groups").insert({
+    const payload = {
       user_id: session.user.id,
       name: name.trim(),
       description: description.trim(),
@@ -98,14 +120,21 @@ const CreateGroup = () => {
       website_url: website.trim() || null,
       cover_image_url: coverUrl,
       avatar_url: avatarUrl,
-    });
+    };
+
+    let error;
+    if (isEditing) {
+      ({ error } = await supabase.from("groups").update(payload).eq("id", id));
+    } else {
+      ({ error } = await supabase.from("groups").insert(payload));
+    }
 
     if (error) {
       console.error(error);
-      toast.error("Failed to create group. Try again.");
+      toast.error(isEditing ? "Failed to update group." : "Failed to create group. Try again.");
     } else {
-      toast.success("Group created! 🎉");
-      navigate("/community");
+      toast.success(isEditing ? "Group updated! ✅" : "Group created! 🎉");
+      navigate(isEditing ? `/group/${id}` : "/community");
     }
     setSaving(false);
   };
@@ -118,7 +147,7 @@ const CreateGroup = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-            Create Group
+            {isEditing ? "Edit Group" : "Create Group"}
           </h1>
         </div>
       </header>
@@ -247,7 +276,7 @@ const CreateGroup = () => {
 
           {/* Submit */}
           <Button onClick={handleCreate} disabled={saving || !name.trim()} className="w-full h-12 rounded-2xl text-base font-semibold">
-            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Group 🎉"}
+            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : isEditing ? "Save Changes ✅" : "Create Group 🎉"}
           </Button>
 
         </div>

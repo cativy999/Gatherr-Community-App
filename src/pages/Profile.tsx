@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, LogOut, Pencil, Check, X, Loader2, CalendarDays, ChevronRight } from "lucide-react";
+import { MapPin, LogOut, Pencil, Check, X, Loader2, CalendarDays, ChevronRight, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
@@ -33,6 +33,7 @@ const Profile = () => {
   const [ageRange, setAgeRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
 
   const [publishedCount, setPublishedCount] = useState(0);
+  const [groupCount, setGroupCount] = useState(0);
   const [editing, setEditing] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
   const [tempRange, setTempRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
@@ -75,6 +76,12 @@ const Profile = () => {
         .eq("user_id", user.id)
         .eq("status", "published");
       setPublishedCount(count ?? 0);
+
+      const { count: gCount } = await supabase
+        .from("groups")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setGroupCount(gCount ?? 0);
     };
     fetchProfile();
   }, [user]);
@@ -325,6 +332,23 @@ const Profile = () => {
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold">{publishedCount} Published Events</p>
+                <p className="text-xs text-muted-foreground">Tap to view and manage</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+
+          {/* Published Groups */}
+          <button
+            onClick={() => navigate("/my-published-groups")}
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl border border-border hover:bg-accent/40 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold">{groupCount} Published Groups</p>
                 <p className="text-xs text-muted-foreground">Tap to view and manage</p>
               </div>
             </div>
