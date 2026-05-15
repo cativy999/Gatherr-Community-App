@@ -1,7 +1,7 @@
 {
-  "routes": [
-    { "src": "/event/([^/]+)", "dest": "/api/og/$1" },
-    { "src": "/e/([^/]+)", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/event/:id", "destination": "/api/og/:id" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
