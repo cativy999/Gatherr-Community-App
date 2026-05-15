@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Globe, Link, Link2, Pencil } from "lucide-react";
+import { MapPin, Globe, Link, Link2, Pencil } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -97,9 +97,6 @@ const GroupProfile = () => {
         <div className="w-full h-52 bg-secondary overflow-hidden">
           {group.cover_image_url && <img src={group.cover_image_url} className="w-full h-full object-cover" />}
         </div>
-        <button onClick={() => navigate(-1)} className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors">
-          <ArrowLeft className="h-5 w-5 text-white" />
-        </button>
         {session?.user?.id === group?.user_id && (
           <button
             onClick={() => navigate(`/create-group/${id}`)}

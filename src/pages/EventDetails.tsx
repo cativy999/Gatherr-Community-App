@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +62,7 @@ const INFO_ICON_MAP: Record<string, React.ElementType> = {
   note:     FileText,
   car:      Car,
   pin:      MapPin,
+  dollar:   DollarSign,
 };
 
 const EventDetails = () => {
@@ -795,7 +796,7 @@ const EventDetails = () => {
                 {(event.start_time || event.time) && (
                   <div className="flex items-center gap-1.5 text-foreground">
                     <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="text-xs font-medium">
+                    <span className="text-[14px] font-medium">
                       {event.start_time
                         ? event.end_time
                           ? `${new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()} – ${new Date(`2000-01-01T${event.end_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()}`
@@ -1007,7 +1008,7 @@ const EventDetails = () => {
 {/* About */}
           <div className="space-y-3">
             <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>About</h2>
-            <p className={`text-base leading-snug whitespace-pre-wrap ${!descExpanded ? "line-clamp-4" : ""}`}>
+            <p className={`text-base leading-snug whitespace-pre-wrap ${!descExpanded ? "line-clamp-6" : ""}`}>
               {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}
             </p>
             {event.description?.length > 200 && (
@@ -1020,40 +1021,16 @@ const EventDetails = () => {
 {/* Additional Details */}
           {event.additional_info && event.additional_info.length > 0 && (
             <div className="space-y-1">
-              {/* Section header — toggle button */}
-              <button
-                onClick={() => setShowAdditionalDetails(v => !v)}
-                className="w-full flex items-center justify-between pb-2 border-b"
-                style={{ borderColor: 'rgba(0,0,0,0.1)' }}
-              >
-                <div className="flex items-center gap-2">
-                  <Balloon className="h-[18px] w-[18px] flex-shrink-0" />
-                  <span className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                    Additional Details ({event.additional_info.length})
-                  </span>
-                </div>
-                {/* Plus / Minus */}
-                {showAdditionalDetails ? (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14"/>
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14"/><path d="M5 12h14"/>
-                  </svg>
-                )}
-              </button>
+              {/* Section header */}
+              <div className="w-full flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                <Balloon className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                  Additional Details
+                </span>
+              </div>
 
-              {/* Accordion items — animated slide in/out */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateRows: showAdditionalDetails ? '1fr' : '0fr',
-                  transition: 'grid-template-rows 0.35s ease',
-                }}
-              >
-                <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                  <div className="flex flex-col pl-4 pb-6">
+              {/* All items always visible */}
+              <div className="flex flex-col pl-4 pb-6">
                     {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
                       const isOpen = expandedInfoItems.has(idx);
                       return (
@@ -1107,8 +1084,6 @@ const EventDetails = () => {
                         </div>
                       );
                     })}
-                  </div>
-                </div>
               </div>
             </div>
           )}

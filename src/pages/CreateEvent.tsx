@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -83,6 +83,7 @@ const CreateEvent = () => {
     { key: "note",     Icon: FileText },
     { key: "car",      Icon: Car },
     { key: "pin",      Icon: MapPin },
+    { key: "dollar",   Icon: DollarSign },
   ];
 
   const toggleFood = (id: string) => {
@@ -528,8 +529,8 @@ const CreateEvent = () => {
               {/* Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description</label>
-                <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base" value={description}
-                  onChange={(e) => { const val = e.target.value; setDescription(val.charAt(0).toUpperCase() + val.slice(1)); }} maxLength={2000} />
+                <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base resize-none overflow-y-auto" style={{ maxHeight: '260px' }} value={description}
+                  onChange={(e) => { const val = e.target.value; setDescription(val.charAt(0).toUpperCase() + val.slice(1)); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 260) + 'px'; }} maxLength={2000} />
                 <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
               </div>
 
@@ -595,12 +596,14 @@ const CreateEvent = () => {
                       <textarea
                         placeholder="Description..."
                         rows={2}
-                        className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground"
+                        className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground overflow-hidden"
                         value={item.description}
                         onChange={(e) => {
                           const next = [...additionalInfo];
                           next[idx] = { ...next[idx], description: e.target.value };
                           setAdditionalInfo(next);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
                         }}
                         maxLength={500}
                       />

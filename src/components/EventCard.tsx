@@ -182,11 +182,6 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
           {durationPart && <span className="text-muted-foreground"> · {durationPart}</span>}
         </p>
 
-        {creatorWard && (
-          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-secondary text-foreground font-medium">
-            {creatorWard} 🏳️
-          </span>
-        )}
         {event.food && event.food.length > 0 && (
           <div className="flex items-center gap-2 pt-1">
             {event.food.map((f) => {

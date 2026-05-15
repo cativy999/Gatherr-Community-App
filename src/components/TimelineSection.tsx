@@ -121,15 +121,16 @@ const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {
                     style={{ borderWidth: '1px', borderColor: 'hsl(0deg 0% 70%)', WebkitTapHighlightColor: 'transparent' }}
                   >
                     <div className="flex-1 space-y-1 min-w-0">
-                      {event.time && (
-                        <p className="text-sm font-medium text-foreground">{formatTime(event.time)}</p>
+                      {(event.start_time || event.time) && (
+                        <p className="text-[14px] font-medium text-foreground">
+                          {event.start_time
+                            ? event.end_time
+                              ? `${formatTime(event.start_time)} – ${formatTime(event.end_time)}`
+                              : formatTime(event.start_time)
+                            : formatTime(event.time)}
+                        </p>
                       )}
                       <h3 className="text-sm font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
-                      {creatorWards[event.user_id] && (
-                        <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                          {creatorWards[event.user_id]}
-                        </span>
-                      )}
                       {event.location && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="h-3 w-3 flex-shrink-0" />
