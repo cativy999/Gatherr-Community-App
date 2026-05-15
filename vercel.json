@@ -2,16 +2,18 @@
   "rewrites": [
     {
       "source": "/event/:id",
-      "destination": "/api/event-og?id=:id"
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Pinterest|Snapchat).*"
+        }
+      ],
+      "destination": "/api/og/:id"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/event-og.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
