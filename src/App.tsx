@@ -113,6 +113,7 @@ const App = () => (
                 <Route path="/create-event/:id" element={<CreateEvent />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/event/:id" element={<EventDetails />} />
+                <Route path="/e/:id" element={<EventDetails />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/ward/:slug" element={<WardProfile />} />
                 <Route path="/search" element={<Search />} />
