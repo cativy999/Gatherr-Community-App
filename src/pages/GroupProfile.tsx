@@ -55,7 +55,7 @@ const GroupProfile = () => {
             .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
             .eq("status", "published")
             .in("user_id", wardUserIds)
-            .gte("date", today)
+            .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
             .order("date", { ascending: true });
           eventsData = data ?? [];
         } else {
@@ -63,7 +63,7 @@ const GroupProfile = () => {
             .from("events")
             .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
             .eq("status", "published")
-            .gte("date", today)
+            .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
             .order("date", { ascending: true });
           eventsData = data ?? [];
         }

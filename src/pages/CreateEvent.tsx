@@ -71,8 +71,11 @@ const CreateEvent = () => {
   const [websiteLink, setWebsiteLink] = useState("");
   const [foodProvided, setFoodProvided] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringDay, setRecurringDay] = useState("Sunday");
+  const [scanning, setScanning] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
 
   const INFO_ICONS = [
@@ -133,6 +136,7 @@ const CreateEvent = () => {
       setFoodProvided((data.food ?? []).length > 0);
       setIsRecurring(data.is_recurring ?? false);
       setRecurringDay(data.recurring_day ?? "Sunday");
+      setTimezone(data.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
       setAdditionalInfo(data.additional_info ?? []);
     };
     fetchEvent();
@@ -202,6 +206,82 @@ const CreateEvent = () => {
     else { navigate("/post"); }
   };
 
+  const scanPoster = async () => {
+    if (!imageFile) return;
+    setScanning(true);
+    try {
+      // Convert image to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // strip data:image/...;base64,
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(imageFile);
+      });
+
+      const mediaType = imageFile.type || 'image/jpeg';
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'text', text: `Today's date is ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. Extract event details from this flyer or poster image and return ONLY a JSON object with these fields (use null if not found):
+{
+  "title": "event name",
+  "description": "full description or details shown on the flyer. Write each sentence on its own line separated by a newline character.",
+  "date": "YYYY-MM-DD format only, null if not found. If the poster shows a month and day but no year, assume the current year (${new Date().getFullYear()}) unless that date has already passed, in which case use next year (${new Date().getFullYear() + 1}).",
+  "end_date": "YYYY-MM-DD format only if the event spans multiple days and an end date is shown, otherwise null. Apply the same year logic as date.",
+  "start_time": "HH:MM 24-hour format only, null if not found",
+  "end_time": "HH:MM 24-hour format only, null if not found",
+  "location": "venue or address text, null if not found"
+}
+Return only the JSON, no explanation.` }
+            ]
+          }]
+        })
+      });
+
+      const data = await res.json();
+      const text = data.content?.[0]?.text ?? '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON found');
+      const extracted = JSON.parse(jsonMatch[0]);
+
+      if (extracted.title) setTitle(extracted.title);
+      if (extracted.description) {
+        // Add a line break after every sentence (period, exclamation, question mark)
+        const formatted = extracted.description
+          .replace(/([.!?])\s+/g, '$1\n')
+          .trim();
+        setDescription(formatted);
+      }
+      if (extracted.date) setDate(extracted.date);
+      if (extracted.end_date) setEndDate(extracted.end_date);
+      if (extracted.start_time) setStartTime(extracted.start_time);
+      if (extracted.end_time) setEndTime(extracted.end_time);
+      if (extracted.location) { setLocation(extracted.location); setAddress(extracted.location); }
+
+      toast.success('✨ Event details filled in! Review and adjust as needed.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not read the poster. Try a clearer image.');
+    }
+    setScanning(false);
+  };
+
   const handleSubmit = async () => {
     if (!title || (!isRecurring && !date) || (!address && !virtualLink)) {
       alert("Please fill in title, date and location!");
@@ -230,6 +310,7 @@ const CreateEvent = () => {
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
       is_recurring: isRecurring,
       recurring_day: isRecurring ? recurringDay : null,
+      timezone: timezone || null,
       additional_info: additionalInfo.filter(item => item.title.trim()).length > 0
         ? additionalInfo.filter(item => item.title.trim())
         : null,
@@ -296,6 +377,27 @@ const CreateEvent = () => {
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
             </div>
+
+            {/* Scan poster button — appears after image is selected */}
+            {imageFile && (
+              <button
+                type="button"
+                onClick={scanPoster}
+                disabled={scanning}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-purple-400 bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 transition-colors disabled:opacity-60"
+              >
+                {scanning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Reading poster...
+                  </>
+                ) : (
+                  <>
+                    ✨ Auto-fill from poster
+                  </>
+                )}
+              </button>
+            )}
 
             <div className="flex-1 space-y-4">
 
@@ -404,6 +506,46 @@ const CreateEvent = () => {
                   );
                 })()}
               </div>
+
+              {/* Timezone picker */}
+              {(startTime || endTime) && (() => {
+                const TZ_OPTIONS = [
+                  { label: "Pacific Time (PT)",        value: "America/Los_Angeles" },
+                  { label: "Mountain Time (MT)",       value: "America/Denver" },
+                  { label: "Mountain Time – AZ (no DST)", value: "America/Phoenix" },
+                  { label: "Central Time (CT)",        value: "America/Chicago" },
+                  { label: "Eastern Time (ET)",        value: "America/New_York" },
+                  { label: "Alaska Time (AKT)",        value: "America/Anchorage" },
+                  { label: "Hawaii Time (HT)",         value: "Pacific/Honolulu" },
+                ];
+                const selected = TZ_OPTIONS.find(o => o.value === timezone);
+                const displayLabel = selected ? selected.label : timezone;
+                return (
+                  <div className="relative">
+                    <div
+                      className="h-11 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                      onClick={() => setTimezoneOpen(!timezoneOpen)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">🌐</span>
+                        <span className="text-sm text-black">{displayLabel}</span>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${timezoneOpen ? "rotate-180" : ""}`} />
+                    </div>
+                    {timezoneOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden">
+                        {TZ_OPTIONS.map(opt => (
+                          <button key={opt.value} type="button"
+                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${timezone === opt.value ? "font-bold" : ""}`}
+                            onClick={() => { setTimezone(opt.value); setTimezoneOpen(false); }}>
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Recurring toggle */}
               <div className="flex items-center justify-between py-1">

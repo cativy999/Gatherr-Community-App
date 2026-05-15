@@ -54,6 +54,35 @@ const getInitialColor = (name: string) => {
   return '#94A3B8';
 };
 
+const TZ_ABBR: Record<string, string> = {
+  'America/Los_Angeles': 'PT',
+  'America/Denver':      'MT',
+  'America/Phoenix':     'MT',
+  'America/Chicago':     'CT',
+  'America/New_York':    'ET',
+  'America/Anchorage':   'AKT',
+  'Pacific/Honolulu':    'HT',
+};
+const getTzAbbr = (tz: string | null | undefined): string =>
+  tz ? (TZ_ABBR[tz] ?? '') : '';
+
+// Converts "HH:MM" from fromTz to a formatted time string in toTz
+const convertTime = (timeStr: string, fromTz: string, toTz: string): string => {
+  if (!timeStr || fromTz === toTz) return '';
+  try {
+    const today = new Date();
+    const [h, m] = timeStr.split(':').map(Number);
+    const baseUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), h, m, 0);
+    const baseDate = new Date(baseUtc);
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: fromTz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(baseDate);
+    const tzH = parseInt(parts.find(p => p.type === 'hour')!.value) % 24;
+    const tzM = parseInt(parts.find(p => p.type === 'minute')!.value);
+    const diffMs = ((h - tzH) * 60 + (m - tzM)) * 60 * 1000;
+    const converted = new Date(baseUtc + diffMs);
+    return new Intl.DateTimeFormat('en-US', { timeZone: toTz, hour: 'numeric', minute: '2-digit', hour12: true }).format(converted).toLowerCase();
+  } catch { return ''; }
+};
+
 const INFO_ICON_MAP: Record<string, React.ElementType> = {
   calendar: Calendar,
   star:     Star,
@@ -795,18 +824,36 @@ const EventDetails = () => {
                       })()
                     : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </p>
-                {(event.start_time || event.time) && (
-                  <div className="flex items-center gap-1.5 text-foreground">
-                    <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="text-[14px] font-medium">
-                      {event.start_time
-                        ? event.end_time
-                          ? `${new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()} – ${new Date(`2000-01-01T${event.end_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()}`
-                          : new Date(`2000-01-01T${event.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()
-                        : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`}
-                    </span>
-                  </div>
-                )}
+                {(event.start_time || event.time) && (() => {
+                  const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+                  const timeDisplay = event.start_time
+                    ? event.end_time
+                      ? `${fmt(event.start_time)} – ${fmt(event.end_time)}`
+                      : fmt(event.start_time)
+                    : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`;
+                  const tzAbbr = getTzAbbr(event.timezone);
+                  const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                  const viewerAbbr = getTzAbbr(viewerTz);
+                  const isDifferentTz = event.timezone && viewerTz !== event.timezone;
+                  const convertedStart = isDifferentTz && event.start_time ? convertTime(event.start_time, event.timezone!, viewerTz) : '';
+                  const convertedEnd = isDifferentTz && event.end_time ? convertTime(event.end_time, event.timezone!, viewerTz) : '';
+                  const yourTime = convertedStart
+                    ? convertedEnd ? `${convertedStart} – ${convertedEnd}` : convertedStart
+                    : '';
+                  return (
+                    <div className="flex items-start gap-1.5 text-foreground">
+                      <Clock className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-[14px] font-medium">
+                          {timeDisplay}{tzAbbr ? <span className="text-muted-foreground font-normal"> {tzAbbr}</span> : null}
+                        </span>
+                        {yourTime && viewerAbbr && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{yourTime} {viewerAbbr} <span className="text-muted-foreground">(your time)</span></p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Add to Calendar button */}

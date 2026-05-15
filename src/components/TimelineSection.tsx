@@ -60,6 +60,18 @@ interface TimelineSectionProps {
   onEventClick?: (eventId: string) => void;
 }
 
+const TZ_ABBR: Record<string, string> = {
+  'America/Los_Angeles': 'PT',
+  'America/Denver':      'MT',
+  'America/Phoenix':     'MT',
+  'America/Chicago':     'CT',
+  'America/New_York':    'ET',
+  'America/Anchorage':   'AKT',
+  'Pacific/Honolulu':    'HT',
+};
+const getTzAbbr = (tz: string | null | undefined): string =>
+  tz ? (TZ_ABBR[tz] ?? '') : '';
+
 const getInitialColor = (name: string) => {
   const l = (name || '?').charAt(0).toUpperCase();
   if ('ABCD'.includes(l)) return '#F97066';
@@ -128,6 +140,9 @@ const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {
                               ? `${formatTime(event.start_time)} – ${formatTime(event.end_time)}`
                               : formatTime(event.start_time)
                             : formatTime(event.time)}
+                          {getTzAbbr(event.timezone) && (
+                            <span className="text-sm text-muted-foreground font-normal"> {getTzAbbr(event.timezone)}</span>
+                          )}
                         </p>
                       )}
                       <h3 className="text-sm font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>

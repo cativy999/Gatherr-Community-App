@@ -28,6 +28,7 @@ interface EventCardProps {
     location?: string | null;
     lat?: number | null;
     lng?: number | null;
+    timezone?: string | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
@@ -102,6 +103,18 @@ const getRegionTag = (
   if (stateAbbr === 'CA') return null; // can't split without coords
   return stateAbbr;
 };
+
+const TZ_ABBR: Record<string, string> = {
+  'America/Los_Angeles': 'PT',
+  'America/Denver':      'MT',
+  'America/Phoenix':     'MT',
+  'America/Chicago':     'CT',
+  'America/New_York':    'ET',
+  'America/Anchorage':   'AKT',
+  'Pacific/Honolulu':    'HT',
+};
+const getTzAbbr = (tz: string | null | undefined): string =>
+  tz ? (TZ_ABBR[tz] ?? '') : '';
 
 const getInitialColor = (name: string) => {
   const l = (name || '?').charAt(0).toUpperCase();
@@ -260,7 +273,10 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
         )}
 
         <p className="text-xs font-medium min-w-0 leading-snug">
-          <span className="text-foreground">{dateLine}{timePart ? `  ·  ${timePart}` : ""}</span>
+          <span className="text-foreground">
+            {dateLine}{timePart ? `  ·  ${timePart}` : ""}
+            {timePart && getTzAbbr(event.timezone) ? <span className="text-muted-foreground"> {getTzAbbr(event.timezone)}</span> : null}
+          </span>
           {durationPart && <span className="text-muted-foreground"> · {durationPart}</span>}
         </p>
 

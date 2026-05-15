@@ -31,6 +31,7 @@ type Event = {
   duration?: string;
   is_recurring?: boolean;
   recurring_day?: string | null;
+  timezone?: string | null;
 };
 
 const filterChips = [
@@ -72,10 +73,10 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, timezone")
         .eq("status", "published")
         .eq("category", "ward")
-        .gte("date", today)
+        .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
         .order("created_at", { ascending: false });
 
       if (error) { console.error(error); setLoading(false); return; }
