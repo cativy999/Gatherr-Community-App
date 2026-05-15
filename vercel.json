@@ -1,7 +1,6 @@
 {
-  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/event/:id", "destination": "/api/og/:id" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
