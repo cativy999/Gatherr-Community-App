@@ -25,11 +25,83 @@ interface EventCardProps {
     end_date?: string | null;
     is_recurring?: boolean;
     recurring_day?: string | null;
+    location?: string | null;
+    lat?: number | null;
+    lng?: number | null;
   };
   creatorWard?: string;
   isSaved?: boolean;
   onToggleSave?: (id: string, e: React.MouseEvent) => void;
 }
+
+const STATE_ABBR: Record<string, string> = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+  'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+  'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+  'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+  'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+  'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+  'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+};
+
+// Returns state abbreviation from lat/lng bounding boxes (most reliable).
+// Covers states most likely to appear in the app; returns null for anything else.
+const stateFromCoords = (lat: number, lng: number): string | null => {
+  if (lat >= 32.5 && lat <= 42.1 && lng >= -124.5 && lng <= -114.1) return 'CA';
+  if (lat >= 37.0 && lat <= 42.0 && lng >= -114.1 && lng <= -109.0) return 'UT';
+  if (lat >= 31.3 && lat <= 37.0 && lng >= -114.9 && lng <= -109.0) return 'AZ';
+  if (lat >= 35.0 && lat <= 42.1 && lng >= -120.0 && lng <= -114.0) return 'NV';
+  if (lat >= 41.9 && lat <= 46.3 && lng >= -124.7 && lng <= -116.5) return 'OR';
+  if (lat >= 45.5 && lat <= 49.1 && lng >= -124.8 && lng <= -116.9) return 'WA';
+  if (lat >= 41.9 && lat <= 49.1 && lng >= -117.3 && lng <= -111.0) return 'ID';
+  if (lat >= 36.9 && lat <= 41.0 && lng >= -109.1 && lng <= -102.0) return 'CO';
+  if (lat >= 31.3 && lat <= 37.0 && lng >= -109.1 && lng <= -103.0) return 'NM';
+  if (lat >= 25.8 && lat <= 36.6 && lng >= -106.7 && lng <= -93.5)  return 'TX';
+  if (lat >= 24.4 && lat <= 31.1 && lng >= -87.7  && lng <= -79.9)  return 'FL';
+  if (lat >= 40.4 && lat <= 45.1 && lng >= -79.8  && lng <= -71.9)  return 'NY';
+  if (lat >= 38.8 && lat <= 42.7 && lng >= -88.1  && lng <= -84.8)  return 'IN';
+  if (lat >= 41.6 && lat <= 42.1 && lng >= -88.2  && lng <= -82.4)  return 'OH';
+  return null;
+};
+
+const getRegionTag = (
+  location: string | null | undefined,
+  lat: number | null | undefined,
+  lng: number | null | undefined
+): string | null => {
+  // 1. Coordinates-first: most reliable, works even when location text is missing/malformed
+  if (lat != null && lng != null) {
+    const state = stateFromCoords(lat, lng);
+    if (state === 'CA') return lat < 36.5 ? 'SoCal' : 'NorCal';
+    if (state) return state;
+  }
+
+  // 2. lng-only fallback for CA (covers events where lat is null but lng is stored)
+  if (lng != null && lat == null) {
+    // California longitude range; use lng to split SoCal/NorCal
+    if (lng >= -124.5 && lng <= -114.1) {
+      return lng < -119.0 ? 'NorCal' : 'SoCal';
+    }
+  }
+
+  // 3. Text parsing fallback
+  if (!location) return null;
+  const parts = location.split(/[,/]/).map(p => p.trim()).filter(Boolean);
+  let stateAbbr: string | null = null;
+  for (const part of parts) {
+    if (/^[A-Z]{2}$/i.test(part)) {
+      const up = part.toUpperCase();
+      if (Object.values(STATE_ABBR).includes(up)) { stateAbbr = up; break; }
+    }
+    if (STATE_ABBR[part]) { stateAbbr = STATE_ABBR[part]; break; }
+  }
+  if (!stateAbbr) return null;
+  if (stateAbbr === 'CA') return null; // can't split without coords
+  return stateAbbr;
+};
 
 const getInitialColor = (name: string) => {
   const l = (name || '?').charAt(0).toUpperCase();
@@ -157,6 +229,16 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
           </div>
         )}
 
+
+        {/* Region tag bottom right */}
+        {(() => {
+          const tag = getRegionTag(event.location, event.lat, event.lng);
+          return tag ? (
+            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm">
+              <span className="text-white text-[10px] font-bold tracking-wide">{tag}</span>
+            </div>
+          ) : null;
+        })()}
 
         {/* Heart top right */}
         <button

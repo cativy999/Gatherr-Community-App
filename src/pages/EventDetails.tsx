@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +63,8 @@ const INFO_ICON_MAP: Record<string, React.ElementType> = {
   car:      Car,
   pin:      MapPin,
   dollar:   DollarSign,
+  ticket:   Ticket,
+  food:     Utensils,
 };
 
 const EventDetails = () => {

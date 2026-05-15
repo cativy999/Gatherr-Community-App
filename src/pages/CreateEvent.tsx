@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -84,6 +84,8 @@ const CreateEvent = () => {
     { key: "car",      Icon: Car },
     { key: "pin",      Icon: MapPin },
     { key: "dollar",   Icon: DollarSign },
+    { key: "ticket",   Icon: Ticket },
+    { key: "food",     Icon: Utensils },
   ];
 
   const toggleFood = (id: string) => {
@@ -418,21 +420,91 @@ const CreateEvent = () => {
                 </button>
               </div>
 
-              {/* Day of week picker — shown when recurring */}
+              {/* Day of week picker + time — shown when recurring */}
               {isRecurring && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Repeats every</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => {
-                      const full = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" }[d]!;
-                      return (
-                        <button key={d} type="button" onClick={() => setRecurringDay(full)}
-                          className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${recurringDay === full ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
-                          {d}
-                        </button>
-                      );
-                    })}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Repeats every</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => {
+                        const full = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" }[d]!;
+                        return (
+                          <button key={d} type="button" onClick={() => setRecurringDay(full)}
+                            className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${recurringDay === full ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
+                            {d}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  {/* Time pickers for recurring event */}
+                  {(() => {
+                    const timeOptions = Array.from({ length: 48 }, (_, i) => {
+                      const hours = Math.floor(i / 2);
+                      const mins = i % 2 === 0 ? "00" : "30";
+                      const period = hours < 12 ? "AM" : "PM";
+                      const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                      return {
+                        label: `${displayHours}:${mins} ${period}`,
+                        value: `${String(hours).padStart(2, "0")}:${mins}`,
+                      };
+                    });
+                    const formatTime = (val: string) =>
+                      new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Time</p>
+                        <div className="flex items-center gap-3">
+                          {/* Start time */}
+                          <div className="relative flex-1">
+                            <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                              onClick={() => { setStartTimeOpen(!startTimeOpen); setEndTimeOpen(false); }}>
+                              <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
+                                {startTime ? formatTime(startTime) : "Start time"}
+                              </span>
+                              <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${startTimeOpen ? "rotate-180" : ""}`} />
+                            </div>
+                            {startTimeOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                                {timeOptions.map(opt => (
+                                  <button key={opt.value} type="button"
+                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${startTime === opt.value ? "font-bold" : ""}`}
+                                    onClick={() => { setStartTime(opt.value); setStartTimeOpen(false); }}>
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <span className="text-sm font-medium shrink-0">To</span>
+
+                          {/* End time */}
+                          <div className="relative flex-1">
+                            <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+                              onClick={() => { setEndTimeOpen(!endTimeOpen); setStartTimeOpen(false); }}>
+                              <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
+                                {endTime ? formatTime(endTime) : "End time"}
+                              </span>
+                              <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${endTimeOpen ? "rotate-180" : ""}`} />
+                            </div>
+                            {endTimeOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+                                {timeOptions.map(opt => (
+                                  <button key={opt.value} type="button"
+                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${endTime === opt.value ? "font-bold" : ""}`}
+                                    onClick={() => { setEndTime(opt.value); setEndTimeOpen(false); }}>
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
