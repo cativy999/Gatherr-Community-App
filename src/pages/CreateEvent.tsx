@@ -294,9 +294,9 @@ Return only the JSON, no explanation.` }
   const AI_STYLES = [
     { key: "botanical",  label: "🌿 Botanical",  suffix: "illustrated in a soft botanical watercolor style, cream background, delicate floral accents, warm muted earthy tones, airy and elegant" },
     { key: "watercolor", label: "🎨 Watercolor", suffix: "in dreamy pastel watercolor style, soft color washes, light and whimsical, warm glowing light, gentle brushstrokes" },
-    { key: "photo",      label: "📷 Photo",      suffix: "as a beautiful high quality photograph, warm golden hour light, vibrant and inviting, cinematic feel, sharp focus" },
     { key: "minimal",    label: "✨ Minimal",    suffix: "as a clean minimal flat illustration, soft pastel palette, simple shapes, lots of white space, modern and elegant" },
     { key: "vibrant",    label: "🌈 Vibrant",    suffix: "as a bold vibrant illustration, rich saturated colors, energetic and fun, colorful, modern pop art style" },
+    { key: "retro",      label: "🎪 Retro",      suffix: "as a vintage retro poster illustration, warm aged tones, classic typography feel, nostalgic 1960s-70s style, grainy texture" },
   ];
 
   const generateImage = async () => {
@@ -483,10 +483,10 @@ Return only the JSON, no explanation.` }
                   <p className="text-sm font-medium text-muted-foreground">Title to show on image <span className="text-xs text-gray-400">(optional)</span></p>
                   <input
                     type="text"
-                    placeholder="e.g. MEET & EAT, BEACH BBQ NIGHT..."
-                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors uppercase"
+                    placeholder="e.g. Meet & Eat, Beach Bbq Night..."
+                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors"
                     value={aiTitle}
-                    onChange={e => setAiTitle(e.target.value.toUpperCase())}
+                    onChange={e => setAiTitle(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
                   />
                 </div>
 
