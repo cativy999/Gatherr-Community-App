@@ -41,7 +41,8 @@ export default async function handler(req, res) {
     // Include date + time in title so iMessage/Messenger shows them
     const datePart = [date, timeStr].filter(Boolean).join(' at ');
     const title = datePart ? `${eventTitle} · ${datePart}` : eventTitle;
-    const fullDescription = [location, description].filter(Boolean).join(' · ');
+    // Time goes first in description so FB shows it even if title is truncated
+    const fullDescription = [timeStr, location, description].filter(Boolean).join(' · ');
     const canonicalUrl = `https://gatherr-one.vercel.app/event/${id}`;
     // Regular users get redirected to /e/:id (served by React app via catch-all)
     const appUrl = `https://gatherr-one.vercel.app/e/${id}`;
