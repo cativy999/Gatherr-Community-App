@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
     const eventRes = await fetch(
-      `${supabaseUrl}/rest/v1/events?id=eq.${id}&select=title,description,image_url,date,location`,
+      `${supabaseUrl}/rest/v1/events?id=eq.${id}&select=title,description,image_url,date,location,start_time,end_time`,
       {
         headers: {
           apikey: supabaseKey,
@@ -17,18 +17,31 @@ export default async function handler(req, res) {
     const data = await eventRes.json();
     const event = data?.[0];
 
-    const title = event?.title ? event.title.replace(/"/g, '&quot;') : 'Gatherr Event';
+    const eventTitle = event?.title ? event.title.replace(/"/g, '&quot;') : 'Gatherr Event';
     const description = event?.description
       ? event.description.replace(/\n/g, ' ').replace(/"/g, '&quot;').slice(0, 200)
       : 'Join us for this event on Gatherr!';
     const image = event?.image_url || 'https://gatherr-one.vercel.app/Gatherr.jpg';
     const date = event?.date
       ? new Date(event.date + 'T00:00:00').toLocaleDateString('en-US', {
-          weekday: 'long', month: 'long', day: 'numeric',
+          weekday: 'short', month: 'short', day: 'numeric',
         })
       : '';
+    const formatTime = (t) => {
+      if (!t) return '';
+      const [h, m] = t.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const hour = h % 12 || 12;
+      return m === 0 ? `${hour} ${ampm}` : `${hour}:${String(m).padStart(2,'0')} ${ampm}`;
+    };
+    const startTime = formatTime(event?.start_time);
+    const endTime = formatTime(event?.end_time);
+    const timeStr = startTime && endTime ? `${startTime}–${endTime}` : startTime;
     const location = event?.location || '';
-    const fullDescription = [date, location, description].filter(Boolean).join(' · ');
+    // Include date + time in title so iMessage/Messenger shows them
+    const datePart = [date, timeStr].filter(Boolean).join(' at ');
+    const title = datePart ? `${eventTitle} · ${datePart}` : eventTitle;
+    const fullDescription = [location, description].filter(Boolean).join(' · ');
     const canonicalUrl = `https://gatherr-one.vercel.app/event/${id}`;
     // Regular users get redirected to /e/:id (served by React app via catch-all)
     const appUrl = `https://gatherr-one.vercel.app/e/${id}`;

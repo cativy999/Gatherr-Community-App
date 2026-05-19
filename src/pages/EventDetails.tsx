@@ -547,10 +547,12 @@ const EventDetails = () => {
     }
   };
 
+  const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
+
   const shareOptions = [
     {
       icon: Copy, label: "Copy Link",
-      action: () => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); setShareOpen(false); }
+      action: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); setShareOpen(false); }
     },
   ];
 
@@ -770,9 +772,9 @@ const EventDetails = () => {
               <button
                 onClick={() => {
                   if (navigator.share) {
-                    navigator.share({ title: event.title, url: window.location.href }).catch(() => {});
+                    navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
                   } else {
-                    navigator.clipboard.writeText(window.location.href);
+                    navigator.clipboard.writeText(shareUrl);
                     toast.success("Link copied!");
                   }
                 }}
