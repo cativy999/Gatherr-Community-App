@@ -73,6 +73,23 @@ export default async function handler(req, res) {
 </html>`);
   } catch (e) {
     console.error(e);
-    res.redirect(302, `https://gatherr-one.vercel.app/e/${id}`);
+    // Never 302 redirect — bots follow it and land on generic React app
+    // Use JS-only redirect so bots stay here and read the fallback OG tags
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Gatherr Event</title>
+    <meta property="og:title" content="Gatherr Event" />
+    <meta property="og:description" content="Join us for this event on Gatherr!" />
+    <meta property="og:image" content="https://gatherr-one.vercel.app/Gatherr.jpg" />
+    <meta property="og:site_name" content="Gatherr" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <script>window.location.replace("https://gatherr-one.vercel.app/e/${id}");</script>
+  </body>
+</html>`);
   }
 }
