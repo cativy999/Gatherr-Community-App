@@ -77,6 +77,7 @@ const CreateEvent = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringDay, setRecurringDay] = useState("Sunday");
   const [scanning, setScanning] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
 
   const INFO_ICONS = [
@@ -283,6 +284,28 @@ Return only the JSON, no explanation.` }
     setScanning(false);
   };
 
+  const generateImage = async () => {
+    setGenerating(true);
+    try {
+      const prompt = `Beautiful event photo for "${title || 'community event'}"${description ? ': ' + description.slice(0, 120) : ''}. Vibrant, inviting, high quality photography. No text or words in the image.`;
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      const url = data?.data?.[0]?.url;
+      if (!url) throw new Error('No image returned');
+      setImagePreview(url);
+      setImageFile(null);
+      toast.success('🎨 Image generated!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not generate image. Try again.');
+    }
+    setGenerating(false);
+  };
+
   const handleSubmit = async () => {
     if (!title || (!isRecurring && !date) || (!address && !virtualLink)) {
       alert("Please fill in title, date and location!");
@@ -379,26 +402,38 @@ Return only the JSON, no explanation.` }
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
             </div>
 
-            {/* Scan poster button — appears after image is selected */}
-            {imageFile && (
+            {/* AI buttons row */}
+            <div className="flex gap-2">
+              {/* Generate image with Ideogram */}
               <button
                 type="button"
-                onClick={scanPoster}
-                disabled={scanning}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-purple-400 bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 transition-colors disabled:opacity-60"
+                onClick={generateImage}
+                disabled={generating}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-pink-400 bg-pink-50 text-pink-700 font-semibold text-sm hover:bg-pink-100 transition-colors disabled:opacity-60"
               >
-                {scanning ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Reading poster...
-                  </>
+                {generating ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
                 ) : (
-                  <>
-                    ✨ Auto-fill from poster
-                  </>
+                  <>🎨 Generate image</>
                 )}
               </button>
-            )}
+
+              {/* Scan poster — appears after image is selected */}
+              {imageFile && (
+                <button
+                  type="button"
+                  onClick={scanPoster}
+                  disabled={scanning}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-purple-400 bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 transition-colors disabled:opacity-60"
+                >
+                  {scanning ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Reading...</>
+                  ) : (
+                    <>✨ Auto-fill</>
+                  )}
+                </button>
+              )}
+            </div>
 
             <div className="flex-1 space-y-4">
 
