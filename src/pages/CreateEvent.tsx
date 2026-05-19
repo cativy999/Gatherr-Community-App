@@ -24,6 +24,69 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+// Time options starting at 6 PM, wrapping around
+const TIME_OPTIONS = (() => {
+  const opts = [];
+  // 6 PM → 11:30 PM
+  for (let h = 18; h < 24; h++)
+    for (const m of ['00', '30'])
+      opts.push(`${String(h).padStart(2, '0')}:${m}`);
+  // 12 AM → 5:30 AM
+  for (let h = 0; h < 6; h++)
+    for (const m of ['00', '30'])
+      opts.push(`${String(h).padStart(2, '0')}:${m}`);
+  // 6 AM → 5:30 PM
+  for (let h = 6; h < 18; h++)
+    for (const m of ['00', '30'])
+      opts.push(`${String(h).padStart(2, '0')}:${m}`);
+  return opts;
+})();
+
+const formatTime = (v: string) =>
+  new Date(`2000-01-01T${v}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
+  const [open, setOpen] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected item into view when opening
+  useEffect(() => {
+    if (open && value && listRef.current) {
+      const idx = TIME_OPTIONS.indexOf(value);
+      if (idx !== -1) {
+        const item = listRef.current.children[idx] as HTMLElement;
+        item?.scrollIntoView({ block: 'center' });
+      }
+    }
+  }, [open]);
+
+  return (
+    <div className="relative flex-1">
+      <div
+        className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`text-sm ${value ? 'text-black' : 'text-muted-foreground'}`}>
+          {value ? formatTime(value) : placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-2xl shadow-xl z-30 overflow-y-auto" style={{ maxHeight: '220px' }}>
+          {TIME_OPTIONS.map(t => (
+            <button key={t} type="button"
+              onClick={() => { onChange(t); setOpen(false); }}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors ${value === t ? 'bg-black text-white font-semibold' : 'hover:bg-gray-50 text-black'}`}>
+              {formatTime(t)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -58,8 +121,6 @@ const CreateEvent = () => {
   const endDateRef = useRef<HTMLInputElement>(null);
   const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [startTimeOpen, setStartTimeOpen] = useState(false);
-  const [endTimeOpen, setEndTimeOpen] = useState(false);
   const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState<number | null>(null);
@@ -607,70 +668,12 @@ Return only the JSON, no explanation.` }
                   </div>
                 </div>
 
-                {/* Start time + To + End time — own row on mobile */}
-                {(() => {
-                  const timeOptions = Array.from({ length: 48 }, (_, i) => {
-                    const hours = Math.floor(i / 2);
-                    const mins = i % 2 === 0 ? "00" : "30";
-                    const period = hours < 12 ? "AM" : "PM";
-                    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-                    return {
-                      label: `${displayHours}:${mins} ${period}`,
-                      value: `${String(hours).padStart(2, "0")}:${mins}`,
-                    };
-                  });
-                  const formatTime = (val: string) =>
-                    new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-                  return (
-                    <div className="flex items-center gap-3 sm:contents">
-                      {/* Start time */}
-                      <div className="relative flex-1 sm:w-[140px] sm:flex-none">
-                        <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                          onClick={() => { setStartTimeOpen(!startTimeOpen); setEndTimeOpen(false); }}>
-                          <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
-                            {startTime ? formatTime(startTime) : "Start time"}
-                          </span>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${startTimeOpen ? "rotate-180" : ""}`} />
-                        </div>
-                        {startTimeOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                            {timeOptions.map(opt => (
-                              <button key={opt.value} type="button"
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${startTime === opt.value ? "font-bold" : ""}`}
-                                onClick={() => { setStartTime(opt.value); setStartTimeOpen(false); }}>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <span className="text-sm font-medium shrink-0">To</span>
-
-                      {/* End time */}
-                      <div className="relative flex-1 sm:w-[140px] sm:flex-none">
-                        <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                          onClick={() => { setEndTimeOpen(!endTimeOpen); setStartTimeOpen(false); }}>
-                          <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
-                            {endTime ? formatTime(endTime) : "End time"}
-                          </span>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${endTimeOpen ? "rotate-180" : ""}`} />
-                        </div>
-                        {endTimeOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                            {timeOptions.map(opt => (
-                              <button key={opt.value} type="button"
-                                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${endTime === opt.value ? "font-bold" : ""}`}
-                                onClick={() => { setEndTime(opt.value); setEndTimeOpen(false); }}>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                {/* Start time + To + End time */}
+                <div className="flex items-center gap-3 sm:contents">
+                  <TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" />
+                  <span className="text-sm font-medium shrink-0">To</span>
+                  <TimePicker value={endTime} onChange={setEndTime} placeholder="End time" />
+                </div>
               </div>
 
               {/* Timezone picker */}
@@ -747,72 +750,14 @@ Return only the JSON, no explanation.` }
                   </div>
 
                   {/* Time pickers for recurring event */}
-                  {(() => {
-                    const timeOptions = Array.from({ length: 48 }, (_, i) => {
-                      const hours = Math.floor(i / 2);
-                      const mins = i % 2 === 0 ? "00" : "30";
-                      const period = hours < 12 ? "AM" : "PM";
-                      const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-                      return {
-                        label: `${displayHours}:${mins} ${period}`,
-                        value: `${String(hours).padStart(2, "0")}:${mins}`,
-                      };
-                    });
-                    const formatTime = (val: string) =>
-                      new Date(`2000-01-01T${val}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-                    return (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Time</p>
-                        <div className="flex items-center gap-3">
-                          {/* Start time */}
-                          <div className="relative flex-1">
-                            <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                              onClick={() => { setStartTimeOpen(!startTimeOpen); setEndTimeOpen(false); }}>
-                              <span className={`text-sm ${startTime ? "text-black" : "text-muted-foreground"}`}>
-                                {startTime ? formatTime(startTime) : "Start time"}
-                              </span>
-                              <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${startTimeOpen ? "rotate-180" : ""}`} />
-                            </div>
-                            {startTimeOpen && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                                {timeOptions.map(opt => (
-                                  <button key={opt.value} type="button"
-                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${startTime === opt.value ? "font-bold" : ""}`}
-                                    onClick={() => { setStartTime(opt.value); setStartTimeOpen(false); }}>
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <span className="text-sm font-medium shrink-0">To</span>
-
-                          {/* End time */}
-                          <div className="relative flex-1">
-                            <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                              onClick={() => { setEndTimeOpen(!endTimeOpen); setStartTimeOpen(false); }}>
-                              <span className={`text-sm ${endTime ? "text-black" : "text-muted-foreground"}`}>
-                                {endTime ? formatTime(endTime) : "End time"}
-                              </span>
-                              <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${endTimeOpen ? "rotate-180" : ""}`} />
-                            </div>
-                            {endTimeOpen && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                                {timeOptions.map(opt => (
-                                  <button key={opt.value} type="button"
-                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${endTime === opt.value ? "font-bold" : ""}`}
-                                    onClick={() => { setEndTime(opt.value); setEndTimeOpen(false); }}>
-                                    {opt.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Time</p>
+                    <div className="flex items-center gap-3">
+                      <TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" />
+                      <span className="text-sm font-medium shrink-0">To</span>
+                      <TimePicker value={endTime} onChange={setEndTime} placeholder="End time" />
+                    </div>
+                  </div>
                 </div>
               )}
 

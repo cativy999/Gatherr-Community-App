@@ -34,6 +34,8 @@ const Profile = () => {
 
   const [publishedCount, setPublishedCount] = useState(0);
   const [groupCount, setGroupCount] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
   const [tempRange, setTempRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
@@ -82,6 +84,14 @@ const Profile = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id);
       setGroupCount(gCount ?? 0);
+
+      const { data: notifs } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setNotifications(notifs ?? []);
     };
     fetchProfile();
   }, [user]);
@@ -319,6 +329,66 @@ const Profile = () => {
                 )}
               </div>
             ))}
+          </div>
+
+          {/* Notifications */}
+          <div className="space-y-2">
+            <button
+              onClick={async () => {
+                setShowNotifications(!showNotifications);
+                // Mark all as read when opened
+                if (!showNotifications && notifications.some(n => !n.read) && user) {
+                  await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+                  setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                }
+              }}
+              className="w-full flex items-center justify-between px-4 py-4 rounded-2xl border border-border hover:bg-accent/40 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative h-9 w-9 rounded-full bg-red-50 flex items-center justify-center">
+                  <span className="text-lg">🔔</span>
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {notifications.filter(n => !n.read).length}
+                    </span>
+                  )}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Notifications</p>
+                  <p className="text-xs text-muted-foreground">
+                    {notifications.filter(n => !n.read).length > 0 ? `${notifications.filter(n => !n.read).length} unread` : "All caught up!"}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showNotifications ? "rotate-90" : ""}`} />
+            </button>
+
+            {showNotifications && (
+              <div className="rounded-2xl border border-border overflow-hidden">
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No notifications yet</p>
+                ) : (
+                  notifications.map(n => (
+                    <button
+                      key={n.id}
+                      onClick={() => n.event_id && navigate(`/event/${n.event_id}`)}
+                      className={`w-full flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 text-left transition-colors hover:bg-accent/40 ${!n.read ? "bg-blue-50/50" : ""}`}
+                    >
+                      <span className="text-lg mt-0.5">
+                        {n.type === "mention" ? "🏷️" : "🔔"}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">{n.message}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Published Events */}

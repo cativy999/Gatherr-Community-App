@@ -437,6 +437,20 @@ const EventDetails = () => {
       author: profile?.name || "Anonymous",
       avatar: profile?.avatar_url || null,
     }, ...comments]);
+
+    // Send notification if comment mentions the host
+    const hostUserId = event?.user_id;
+    if (hostUserId && userId !== hostUserId && creatorName && comment.toLowerCase().includes(`@${creatorName.toLowerCase()}`)) {
+      await supabase.from("notifications").insert({
+        user_id: hostUserId,
+        from_user_id: userId,
+        type: "mention",
+        event_id: id,
+        message: `${profile?.name || "Someone"} mentioned you in "${event?.title}"`,
+        read: false,
+      });
+    }
+
     setComment("");
     toast.success("Comment posted!");
   };
@@ -1263,6 +1277,17 @@ const EventDetails = () => {
             </h2>
             {!isGuest ? (
               <div className="space-y-3">
+                {/* Tag host chip */}
+                {creatorName && userId !== event?.user_id && (
+                  <button
+                    type="button"
+                    onClick={() => setComment(prev => prev ? `${prev} @${creatorName} ` : `@${creatorName} `)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-sm text-muted-foreground hover:bg-accent transition-colors border border-border"
+                  >
+                    <span className="text-primary font-medium">@{creatorName}</span>
+                    <span className="text-xs">tag host</span>
+                  </button>
+                )}
                 {/* Input row */}
                 <div className="flex items-start">
                   <textarea

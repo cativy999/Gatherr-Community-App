@@ -12,7 +12,24 @@ const BottomNav = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [goingCount, setGoingCount] = useState(0);
   const [seenCount, setSeenCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    // Fetch unread notifications count
+    const fetchNotifications = () => {
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnreadNotifications(count ?? 0));
+    };
+    fetchNotifications();
+    const notifInterval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(notifInterval);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -90,7 +107,7 @@ const BottomNav = () => {
 
             if (item.id === "profile") {
               return (
-                <button key="profile" onClick={() => navigate("/profile")} className="flex items-center justify-center w-12 h-12 transition-colors">
+                <button key="profile" onClick={() => navigate("/profile")} className="relative flex items-center justify-center w-12 h-12 transition-colors">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Profile" referrerPolicy="no-referrer"
                       className={`w-7 h-7 rounded-full object-cover ${isActive ? "ring-2 ring-primary" : "ring-1 ring-border"}`}
@@ -99,6 +116,11 @@ const BottomNav = () => {
                     <div className={`w-7 h-7 rounded-full bg-secondary flex items-center justify-center ${isActive ? "ring-2 ring-primary" : ""}`}>
                       <User className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                     </div>
+                  )}
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                    </span>
                   )}
                 </button>
               );
