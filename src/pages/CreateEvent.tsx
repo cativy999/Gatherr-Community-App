@@ -287,7 +287,7 @@ Return only the JSON, no explanation.` }
   const generateImage = async () => {
     setGenerating(true);
     try {
-      const prompt = `Beautiful event photo for "${title || 'community event'}"${description ? ': ' + description.slice(0, 120) : ''}. Vibrant, inviting, high quality photography. No text or words in the image.`;
+      const prompt = `Soft airy illustration for "${title || 'community event'}"${description ? ': ' + description.slice(0, 120) : ''}. Dreamy pastel watercolor style, light and whimsical, warm glowing light, gentle brushstrokes, editorial illustration. No text or words in the image.`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
