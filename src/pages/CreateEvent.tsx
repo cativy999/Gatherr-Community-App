@@ -78,6 +78,10 @@ const CreateEvent = () => {
   const [recurringDay, setRecurringDay] = useState("Sunday");
   const [scanning, setScanning] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiStyle, setAiStyle] = useState("botanical");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiPreview, setAiPreview] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
 
   const INFO_ICONS = [
@@ -284,10 +288,21 @@ Return only the JSON, no explanation.` }
     setScanning(false);
   };
 
+  const AI_STYLES = [
+    { key: "botanical",  label: "🌿 Botanical",  suffix: "Soft botanical illustration, cream off-white background, watercolor wildflowers and green leaves, daisy and garden flowers, warm muted earthy tones, elegant and airy." },
+    { key: "watercolor", label: "🎨 Watercolor", suffix: "Dreamy pastel watercolor style, soft washes of color, light and whimsical, warm glowing light, gentle brushstrokes, airy editorial illustration." },
+    { key: "photo",      label: "📷 Photo",      suffix: "Beautiful high quality event photography, warm golden hour light, vibrant and inviting, cinematic feel." },
+    { key: "minimal",    label: "✨ Minimal",    suffix: "Clean minimal illustration, simple flat design, soft pastel palette, lots of white space, modern and elegant." },
+    { key: "vibrant",    label: "🌈 Vibrant",    suffix: "Bold vibrant illustration, rich saturated colors, energetic and fun, colorful geometric shapes, modern pop art style." },
+  ];
+
   const generateImage = async () => {
     setGenerating(true);
+    setAiPreview(null);
     try {
-      const prompt = `Soft airy illustration for "${title || 'community event'}"${description ? ': ' + description.slice(0, 120) : ''}. Dreamy pastel watercolor style, light and whimsical, warm glowing light, gentle brushstrokes, editorial illustration. No text or words in the image.`;
+      const styleObj = AI_STYLES.find(s => s.key === aiStyle)!;
+      const base = aiPrompt.trim() || title || 'community event';
+      const prompt = `${styleObj.suffix} Subject: "${base}". No text or words in the image.`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -296,14 +311,21 @@ Return only the JSON, no explanation.` }
       const data = await res.json();
       const url = data?.data?.[0]?.url;
       if (!url) throw new Error('No image returned');
-      setImagePreview(url);
-      setImageFile(null);
-      toast.success('🎨 Image generated!');
+      setAiPreview(url);
     } catch (e) {
       console.error(e);
       toast.error('Could not generate image. Try again.');
     }
     setGenerating(false);
+  };
+
+  const applyAiImage = () => {
+    if (!aiPreview) return;
+    setImagePreview(aiPreview);
+    setImageFile(null);
+    setAiModalOpen(false);
+    setAiPreview(null);
+    toast.success('🎨 Image applied!');
   };
 
   const handleSubmit = async () => {
@@ -402,44 +424,92 @@ Return only the JSON, no explanation.` }
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
             </div>
 
-            {/* AI buttons row */}
-            <div className="flex gap-2">
-              {/* Generate image with Ideogram */}
-              {title ? (
-                <button
-                  type="button"
-                  onClick={generateImage}
-                  disabled={generating}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-pink-400 bg-pink-50 text-pink-700 font-semibold text-sm hover:bg-pink-100 transition-colors disabled:opacity-60"
-                >
-                  {generating ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
-                  ) : (
-                    <>🎨 Generate image</>
-                  )}
-                </button>
-              ) : (
-                <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-gray-400 text-sm">
-                  🎨 Add a title to generate image
-                </div>
-              )}
-
-              {/* Scan poster — appears after image is selected */}
+            {/* AI image link + scan poster */}
+            <div className="flex items-center justify-between px-1">
+              <button
+                type="button"
+                onClick={() => { setAiPrompt(title || ""); setAiPreview(null); setAiModalOpen(true); }}
+                className="text-sm font-medium text-pink-500 hover:text-pink-600 transition-colors flex items-center gap-1"
+              >
+                ✨ AI-generated image
+              </button>
               {imageFile && (
                 <button
                   type="button"
                   onClick={scanPoster}
                   disabled={scanning}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-purple-400 bg-purple-50 text-purple-700 font-semibold text-sm hover:bg-purple-100 transition-colors disabled:opacity-60"
+                  className="text-sm font-medium text-purple-500 hover:text-purple-600 transition-colors flex items-center gap-1 disabled:opacity-50"
                 >
-                  {scanning ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Reading...</>
-                  ) : (
-                    <>✨ Auto-fill</>
-                  )}
+                  {scanning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading...</> : <>✨ Auto-fill from poster</>}
                 </button>
               )}
             </div>
+
+            {/* AI Image Generation Modal */}
+            <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+              <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-2xl p-5">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold">✨ Generate Event Image</DialogTitle>
+                </DialogHeader>
+
+                {/* Style chips */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Choose a style</p>
+                  <div className="flex flex-wrap gap-2">
+                    {AI_STYLES.map(s => (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => setAiStyle(s.key)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${aiStyle === s.key ? "bg-black text-white border-black" : "bg-white text-black border-gray-300 hover:border-gray-500"}`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom prompt */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Describe your event</p>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. BBQ sunset near the beach, outdoor summer gathering..."
+                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 resize-none outline-none focus:border-black transition-colors"
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                  />
+                </div>
+
+                {/* Preview */}
+                {aiPreview && (
+                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <img src={aiPreview} alt="Generated" className="w-full h-48 object-cover" />
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={generateImage}
+                    disabled={generating}
+                    className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60"
+                  >
+                    {generating ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <>{aiPreview ? "🔄 Regenerate" : "🎨 Generate"}</>}
+                  </button>
+                  {aiPreview && (
+                    <button
+                      type="button"
+                      onClick={applyAiImage}
+                      className="flex-1 h-11 rounded-xl border-2 border-black text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      ✅ Use this image
+                    </button>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <div className="flex-1 space-y-4">
 
