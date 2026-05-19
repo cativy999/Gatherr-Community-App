@@ -83,6 +83,8 @@ const CreateEvent = () => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiTitle, setAiTitle] = useState("");
   const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [aiGenerations, setAiGenerations] = useState(0);
+  const AI_MAX_GENERATIONS = 3;
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
 
   const INFO_ICONS = [
@@ -298,6 +300,7 @@ Return only the JSON, no explanation.` }
   ];
 
   const generateImage = async () => {
+    if (aiGenerations >= AI_MAX_GENERATIONS) return;
     setGenerating(true);
     setAiPreview(null);
     try {
@@ -307,7 +310,7 @@ Return only the JSON, no explanation.` }
       const textInstruction = titleText
         ? `Include the text "${titleText}" in large elegant typography as the focal title of the design.`
         : 'No text or words in the image.';
-      const prompt = `Event flyer design: ${base}, ${styleObj.suffix}. ${textInstruction}`;
+      const prompt = `Event flyer design: ${base}, ${styleObj.suffix}. ${textInstruction} No brand names, no watermarks, no logos, no extra text.`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,6 +320,7 @@ Return only the JSON, no explanation.` }
       const url = data?.data?.[0]?.url;
       if (!url) throw new Error('No image returned');
       setAiPreview(url);
+      setAiGenerations(prev => prev + 1);
     } catch (e) {
       console.error(e);
       toast.error('Could not generate image. Try again.');
@@ -411,7 +415,7 @@ Return only the JSON, no explanation.` }
             {/* Image Upload */}
             <div className="relative w-full flex-shrink-0">
               <div className="relative flex items-center justify-center w-full h-56 bg-secondary rounded-2xl border border-gray-400 overflow-hidden" onClick={() => fileInputRef.current?.click()}>
-                <img src={imagePreview || "/Peoplebeach.png"} alt="Event image" className="w-full h-full object-cover" />
+                <img src={imagePreview || "/placeholder-event.png"} alt="Event image" className="w-full h-full object-cover" />
                 {!imagePreview && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <button type="button" className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-full border border-white/60" style={{ backgroundColor: "rgba(144, 144, 144, 0.5)" }}>
@@ -479,10 +483,10 @@ Return only the JSON, no explanation.` }
                   <p className="text-sm font-medium text-muted-foreground">Title to show on image <span className="text-xs text-gray-400">(optional)</span></p>
                   <input
                     type="text"
-                    placeholder="e.g. Meet & Eat, Beach BBQ Night..."
-                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors"
+                    placeholder="e.g. MEET & EAT, BEACH BBQ NIGHT..."
+                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors uppercase"
                     value={aiTitle}
-                    onChange={e => setAiTitle(e.target.value)}
+                    onChange={e => setAiTitle(e.target.value.toUpperCase())}
                   />
                 </div>
 
@@ -505,26 +509,59 @@ Return only the JSON, no explanation.` }
                   </div>
                 )}
 
+                {/* Generation counter */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                  <span>{aiGenerations}/{AI_MAX_GENERATIONS} generations used</span>
+                  {aiGenerations >= AI_MAX_GENERATIONS && (
+                    <span className="text-red-400 font-medium">No more generations for this event</span>
+                  )}
+                </div>
+
                 {/* Buttons */}
                 <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={generateImage}
-                    disabled={generating}
-                    className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60"
-                  >
-                    {generating ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <>{aiPreview ? "🔄 Regenerate" : "🎨 Generate"}</>}
-                  </button>
-                  {aiPreview && (
+                  {aiPreview ? (
+                    <>
+                      {/* Use this image — prominent */}
+                      <button
+                        type="button"
+                        onClick={applyAiImage}
+                        className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                      >
+                        ✅ Use this image
+                      </button>
+                      {/* Regenerate — subtle */}
+                      <button
+                        type="button"
+                        onClick={generateImage}
+                        disabled={generating || aiGenerations >= AI_MAX_GENERATIONS}
+                        className="h-11 px-4 rounded-xl border border-gray-300 text-gray-500 text-sm font-medium hover:border-gray-400 hover:text-gray-700 transition-colors disabled:opacity-40"
+                      >
+                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔄"}
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      onClick={applyAiImage}
-                      className="flex-1 h-11 rounded-xl border-2 border-black text-sm font-semibold hover:bg-gray-50 transition-colors"
+                      onClick={generateImage}
+                      disabled={generating || aiGenerations >= AI_MAX_GENERATIONS}
+                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60"
                     >
-                      ✅ Use this image
+                      {generating ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <>🎨 Generate</>}
                     </button>
                   )}
                 </div>
+
+                {/* Auto-fill from poster after image is generated */}
+                {aiPreview && imageFile && (
+                  <button
+                    type="button"
+                    onClick={() => { applyAiImage(); setTimeout(scanPoster, 300); }}
+                    disabled={scanning}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-purple-300 bg-purple-50 text-purple-600 text-sm font-medium hover:bg-purple-100 transition-colors"
+                  >
+                    {scanning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading poster...</> : <>✨ Use this image + auto-fill event details</>}
+                  </button>
+                )}
               </DialogContent>
             </Dialog>
 
