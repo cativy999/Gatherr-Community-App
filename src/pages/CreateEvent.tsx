@@ -405,18 +405,24 @@ Return only the JSON, no explanation.` }
             {/* AI buttons row */}
             <div className="flex gap-2">
               {/* Generate image with Ideogram */}
-              <button
-                type="button"
-                onClick={generateImage}
-                disabled={generating}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-pink-400 bg-pink-50 text-pink-700 font-semibold text-sm hover:bg-pink-100 transition-colors disabled:opacity-60"
-              >
-                {generating ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
-                ) : (
-                  <>🎨 Generate image</>
-                )}
-              </button>
+              {title ? (
+                <button
+                  type="button"
+                  onClick={generateImage}
+                  disabled={generating}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-pink-400 bg-pink-50 text-pink-700 font-semibold text-sm hover:bg-pink-100 transition-colors disabled:opacity-60"
+                >
+                  {generating ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
+                  ) : (
+                    <>🎨 Generate image</>
+                  )}
+                </button>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-gray-400 text-sm">
+                  🎨 Add a title to generate image
+                </div>
+              )}
 
               {/* Scan poster — appears after image is selected */}
               {imageFile && (
