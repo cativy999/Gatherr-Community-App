@@ -51,7 +51,6 @@ export default async function handler(req, res) {
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${fullDescription}" />
     <meta name="twitter:image" content="${image}" />
-    <meta http-equiv="refresh" content="0; url=${appUrl}" />
   </head>
   <body>
     <script>window.location.replace("${appUrl}");</script>
