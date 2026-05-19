@@ -81,6 +81,7 @@ const CreateEvent = () => {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiStyle, setAiStyle] = useState("botanical");
   const [aiPrompt, setAiPrompt] = useState("");
+  const [aiTitle, setAiTitle] = useState("");
   const [aiPreview, setAiPreview] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
 
@@ -289,11 +290,11 @@ Return only the JSON, no explanation.` }
   };
 
   const AI_STYLES = [
-    { key: "botanical",  label: "🌿 Botanical",  suffix: "Soft botanical illustration, cream off-white background, watercolor wildflowers and green leaves, daisy and garden flowers, warm muted earthy tones, elegant and airy." },
-    { key: "watercolor", label: "🎨 Watercolor", suffix: "Dreamy pastel watercolor style, soft washes of color, light and whimsical, warm glowing light, gentle brushstrokes, airy editorial illustration." },
-    { key: "photo",      label: "📷 Photo",      suffix: "Beautiful high quality event photography, warm golden hour light, vibrant and inviting, cinematic feel." },
-    { key: "minimal",    label: "✨ Minimal",    suffix: "Clean minimal illustration, simple flat design, soft pastel palette, lots of white space, modern and elegant." },
-    { key: "vibrant",    label: "🌈 Vibrant",    suffix: "Bold vibrant illustration, rich saturated colors, energetic and fun, colorful geometric shapes, modern pop art style." },
+    { key: "botanical",  label: "🌿 Botanical",  suffix: "illustrated in a soft botanical watercolor style, cream background, delicate floral accents, warm muted earthy tones, airy and elegant" },
+    { key: "watercolor", label: "🎨 Watercolor", suffix: "in dreamy pastel watercolor style, soft color washes, light and whimsical, warm glowing light, gentle brushstrokes" },
+    { key: "photo",      label: "📷 Photo",      suffix: "as a beautiful high quality photograph, warm golden hour light, vibrant and inviting, cinematic feel, sharp focus" },
+    { key: "minimal",    label: "✨ Minimal",    suffix: "as a clean minimal flat illustration, soft pastel palette, simple shapes, lots of white space, modern and elegant" },
+    { key: "vibrant",    label: "🌈 Vibrant",    suffix: "as a bold vibrant illustration, rich saturated colors, energetic and fun, colorful, modern pop art style" },
   ];
 
   const generateImage = async () => {
@@ -302,7 +303,11 @@ Return only the JSON, no explanation.` }
     try {
       const styleObj = AI_STYLES.find(s => s.key === aiStyle)!;
       const base = aiPrompt.trim() || title || 'community event';
-      const prompt = `${styleObj.suffix} Subject: "${base}". No text or words in the image.`;
+      const titleText = aiTitle.trim();
+      const textInstruction = titleText
+        ? `Include the text "${titleText}" in large elegant typography as the focal title of the design.`
+        : 'No text or words in the image.';
+      const prompt = `Event flyer design: ${base}, ${styleObj.suffix}. ${textInstruction}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -428,7 +433,7 @@ Return only the JSON, no explanation.` }
             <div className="flex items-center justify-between px-1">
               <button
                 type="button"
-                onClick={() => { setAiPrompt(title || ""); setAiPreview(null); setAiModalOpen(true); }}
+                onClick={() => { setAiPrompt(title || ""); setAiTitle(title || ""); setAiPreview(null); setAiModalOpen(true); }}
                 className="text-sm font-medium text-pink-500 hover:text-pink-600 transition-colors flex items-center gap-1"
               >
                 ✨ AI-generated image
@@ -467,6 +472,18 @@ Return only the JSON, no explanation.` }
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Title on image */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Title to show on image <span className="text-xs text-gray-400">(optional)</span></p>
+                  <input
+                    type="text"
+                    placeholder="e.g. Meet & Eat, Beach BBQ Night..."
+                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors"
+                    value={aiTitle}
+                    onChange={e => setAiTitle(e.target.value)}
+                  />
                 </div>
 
                 {/* Custom prompt */}
