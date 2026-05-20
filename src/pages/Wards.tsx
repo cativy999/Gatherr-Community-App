@@ -2,6 +2,7 @@ import {
   Balloon, Church, HeartHandshake, Sparkles, Search, PizzaIcon, Video } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
+import ChallengeCard from "@/components/ChallengeCard";
 
 import { useLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/lib/supabase";
@@ -293,6 +294,9 @@ const Wards = () => {
       {/* ── Main content ── */}
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto space-y-8">
+
+          {/* Challenge Card */}
+          {session && <ChallengeCard />}
 
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
