@@ -389,10 +389,20 @@ Return only the JSON, no explanation.` }
     setGenerating(false);
   };
 
-  const applyAiImage = () => {
+  const applyAiImage = async () => {
     if (!aiPreview) return;
-    setImagePreview(aiPreview);
-    setImageFile(null);
+    try {
+      // Fetch the Ideogram image and convert to a File so it uploads to Supabase on submit
+      const res = await fetch(aiPreview);
+      const blob = await res.blob();
+      const file = new File([blob], `ai-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setImageFile(file);
+      setImagePreview(aiPreview);
+    } catch {
+      // CORS fallback: use URL directly (may expire)
+      setImagePreview(aiPreview);
+      setImageFile(null);
+    }
     setAiModalOpen(false);
     setAiPreview(null);
     toast.success('🎨 Image applied!');
