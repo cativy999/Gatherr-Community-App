@@ -665,7 +665,7 @@ const EventDetails = () => {
               <img
                 src={event.image_url}
                 alt={event.title}
-                className="w-full h-56 object-cover rounded-2xl"
+                className="w-full h-72 object-cover rounded-2xl"
                 style={{ boxShadow: '0px 4px 20px 6px rgba(0,0,0,0.08)' }}
                 onLoad={() => {
                   if (!event.image_url) return;
@@ -1077,7 +1077,7 @@ const EventDetails = () => {
               {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}
             </p>
             {event.description?.length > 200 && (
-              <button onClick={() => setDescExpanded(e => !e)} className="w-full text-right text-sm font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#424242' }}>
+              <button onClick={() => setDescExpanded(e => !e)} className="w-full text-left text-sm font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#424242' }}>
                 {descExpanded ? "Show less" : "Show more >"}
               </button>
             )}
