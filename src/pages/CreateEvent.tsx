@@ -312,8 +312,8 @@ const CreateEvent = () => {
 {
   "title": "event name",
   "description": "full description or details shown on the flyer. Write each sentence on its own line separated by a newline character.",
-  "date": "YYYY-MM-DD format only, null if not found. If the poster shows a month and day but no year, always use the current year ${new Date().getFullYear()} unless the date is more than 3 months in the past, in which case use ${new Date().getFullYear() + 1}.",
-  "end_date": "YYYY-MM-DD format only if the event spans multiple days and an end date is shown, otherwise null. Apply the same year logic as date.",
+  "date": "YYYY-MM-DD format only, null if not found. Today is ${new Date().toISOString().split('T')[0]}. If no year is shown on the poster, you MUST use ${new Date().getFullYear()} as the year. Never use any other year unless the poster explicitly shows a different year.",
+  "end_date": "YYYY-MM-DD format only if the event spans multiple days and an end date is shown, otherwise null. Same rule: use ${new Date().getFullYear()} if no year shown.",
   "start_time": "HH:MM 24-hour format only, null if not found",
   "end_time": "HH:MM 24-hour format only, null if not found",
   "location": "venue or address text, null if not found"
