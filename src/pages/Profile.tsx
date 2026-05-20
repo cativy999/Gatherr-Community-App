@@ -116,12 +116,16 @@ const Profile = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-24">
       {/* Header */}
-      <header className="px-4 py-4">
-        <h1 className="text-xl font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Profile</h1>
+      <header className="px-5 py-4">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Profile</h1>
+        </div>
       </header>
 
+      <div className="max-w-4xl mx-auto w-full px-5">
+
       {/* Avatar + Name + Ward */}
-      <div className="flex flex-col items-center gap-3 pb-4 px-4">
+      <div className="flex flex-col items-center gap-3 pb-4">
         <Avatar className="h-24 w-24">
           <AvatarImage src={avatar} referrerPolicy="no-referrer" />
           <AvatarFallback className="text-2xl bg-muted">{initials}</AvatarFallback>
@@ -132,7 +136,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-8 px-4 pt-4">
+      <div className="flex flex-col gap-8 pt-4">
 
         {/* Events You've Been */}
         {pastEvents.length > 0 && (
@@ -140,13 +144,12 @@ const Profile = () => {
             <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
               Events You've Been ({pastEvents.length})
             </p>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
               {pastEvents.map((e) => (
                 <button
                   key={e.event_id}
                   onClick={() => navigate(`/event/${e.event_id}`)}
-                  className="flex-shrink-0 rounded-xl overflow-hidden"
-                  style={{ width: 85, height: 87 }}
+                  className="flex-shrink-0 rounded-xl overflow-hidden w-[85px] h-[87px] md:w-[140px] md:h-[140px]"
                 >
                   <img
                     src={e.image_url}
@@ -162,37 +165,41 @@ const Profile = () => {
         {/* Personal Info */}
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Personal Info</p>
-          <div className="flex flex-col">
-            {settingsRows.map((row, i) => {
-              const Icon = row.icon;
-              return (
-                <div key={row.label}>
-                  <button
-                    onClick={row.onPress}
-                    className="w-full flex items-center gap-4 py-3 hover:bg-accent/30 transition-colors rounded-lg -mx-1 px-1"
-                  >
-                    <Icon className="h-6 w-6 text-foreground flex-shrink-0" strokeWidth={1.5} />
-                    <div className="flex-1 flex items-center justify-between min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{row.label}</span>
-                        {"badge" in row && row.badge && (
-                          <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                            {row.badge > 9 ? "9+" : row.badge}
-                          </span>
-                        )}
-                      </div>
-                      {"sub" in row && row.sub && (
-                        <span className="text-xs text-muted-foreground mr-2">{row.sub}</span>
-                      )}
+
+          {/* Mobile: single column — Desktop: two columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
+            {[settingsRows.slice(0, 2), settingsRows.slice(2, 4)].map((colRows, colIdx) => (
+              <div key={colIdx} className="flex flex-col">
+                {colRows.map((row, i) => {
+                  const Icon = row.icon;
+                  return (
+                    <div key={row.label}>
+                      <button
+                        onClick={row.onPress}
+                        className="w-full flex items-center gap-4 py-3 hover:bg-accent/30 transition-colors rounded-lg -mx-1 px-1"
+                      >
+                        <Icon className="h-6 w-6 text-foreground flex-shrink-0" strokeWidth={1.5} />
+                        <div className="flex-1 flex items-center justify-between min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{row.label}</span>
+                            {"badge" in row && row.badge && (
+                              <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                                {row.badge > 9 ? "9+" : row.badge}
+                              </span>
+                            )}
+                          </div>
+                          {"sub" in row && row.sub && (
+                            <span className="text-xs text-muted-foreground mr-2">{row.sub}</span>
+                          )}
+                        </div>
+                        <ChevronRight className="h-[18px] w-[18px] text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
+                      </button>
+                      <div className="h-px bg-border ml-10 opacity-[0.12]" />
                     </div>
-                    <ChevronRight className="h-[18px] w-[18px] text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
-                  </button>
-                  {i < settingsRows.length - 1 && (
-                    <div className="h-px bg-border ml-10" />
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -206,6 +213,8 @@ const Profile = () => {
             <span className="text-sm font-medium">Log Out</span>
           </button>
         </div>
+
+      </div>
 
       </div>
     </div>
