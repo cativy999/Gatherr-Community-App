@@ -28,6 +28,8 @@ import PublishedGroupsPage from "./pages/PublishedGroupsPage";
 import CreateGroup from "./pages/CreateGroup";
 import Community from "./pages/Community";
 import GroupProfile from "./pages/GroupProfile";
+import AccountInfo from "./pages/AccountInfo";
+import NotificationsPage from "./pages/NotificationsPage";
 import FeedbackButton from "@/components/FeedbackButton";
 
 
@@ -112,6 +114,8 @@ const App = () => (
                 <Route path="/create-event" element={<CreateEvent />} />
                 <Route path="/create-event/:id" element={<CreateEvent />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/account-info" element={<AccountInfo />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/event/:id" element={<EventDetails />} />
                 <Route path="/e/:id" element={<EventDetails />} />
                 <Route path="/events" element={<Events />} />
