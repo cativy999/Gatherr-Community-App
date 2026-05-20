@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, ChevronLeft, Check, X, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -171,22 +170,6 @@ const AccountInfo = () => {
 
       <main className="flex-1 px-6 py-6">
         <div className="max-w-2xl mx-auto space-y-6">
-
-          {/* Avatar */}
-          <div className="flex flex-col items-center space-y-3">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={avatar} referrerPolicy="no-referrer" />
-              <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="text-center">
-              <p className="font-semibold text-base">{name || "Your Name"}</p>
-              {location && (
-                <p className="text-muted-foreground flex items-center justify-center gap-1 mt-0.5 text-xs">
-                  <MapPin className="h-3 w-3" />{location}
-                </p>
-              )}
-            </div>
-          </div>
 
           {/* Editable Fields */}
           <div className="rounded-2xl border border-border overflow-hidden">
