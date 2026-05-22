@@ -274,7 +274,7 @@ const CreateEvent = () => {
     if (!id) return;
     const { error } = await supabase.from("events").delete().eq("id", id);
     if (error) { alert("Failed to delete event."); console.error(error); }
-    else { navigate("/post"); }
+    else { navigate("/wards"); }
   };
 
   const scanPoster = async () => {
