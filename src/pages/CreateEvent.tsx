@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -48,20 +48,35 @@ const formatTime = (v: string) =>
 const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll selected item into view when opening
+  // Scroll selected item into view within the dropdown (no page scroll)
   useEffect(() => {
     if (open && value && listRef.current) {
       const idx = TIME_OPTIONS.indexOf(value);
       if (idx !== -1) {
         const item = listRef.current.children[idx] as HTMLElement;
-        item?.scrollIntoView({ block: 'center' });
+        if (item) {
+          listRef.current.scrollTop = item.offsetTop - listRef.current.clientHeight / 2 + item.offsetHeight / 2;
+        }
       }
     }
   }, [open]);
 
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <div className="relative flex-1">
+    <div className="relative flex-1" ref={containerRef}>
       <div
         className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
         onClick={() => setOpen(!open)}
@@ -73,11 +88,11 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
       </div>
 
       {open && (
-        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-2xl shadow-xl z-30 overflow-y-auto" style={{ maxHeight: '220px' }}>
+        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
           {TIME_OPTIONS.map(t => (
             <button key={t} type="button"
               onClick={() => { onChange(t); setOpen(false); }}
-              className={`w-full text-left px-4 py-3 text-sm transition-colors ${value === t ? 'bg-black text-white font-semibold' : 'hover:bg-gray-50 text-black'}`}>
+              className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${value === t ? 'font-bold' : 'text-black'}`}>
               {formatTime(t)}
             </button>
           ))}
@@ -108,6 +123,8 @@ const CreateEvent = () => {
   const [maxAge, setMaxAge] = useState<string>("");
   const [minAgeOpen, setMinAgeOpen] = useState(false);
   const [maxAgeOpen, setMaxAgeOpen] = useState(false);
+  const minAgeRef = useRef<HTMLDivElement>(null);
+  const maxAgeRef = useRef<HTMLDivElement>(null);
   const [locationSearch, setLocationSearch] = useState("");
   const [savedAddresses, setSavedAddresses] = useState<{display: string, city: string, lat: number, lng: number, count: number}[]>(() => {
     try { return JSON.parse(localStorage.getItem("address_history") || "[]"); }
@@ -169,14 +186,26 @@ const CreateEvent = () => {
     );
   };
 
-  const foodOptions = [
-    { id: "pizza", icon: Pizza },
-    { id: "drinks", icon: CupSoda },
-    { id: "cookies", icon: Cookie },
-    { id: "burgers", icon: Hamburger },
-    { id: "icecream", icon: IceCreamCone },
-    { id: "salad", icon: Salad },
-    { id: "catered", icon: HandPlatter },
+  const foodGroups = [
+    {
+      label: "Warm & Meal",
+      items: [
+        { id: "pizza",   icon: Pizza,       label: "Pizza" },
+        { id: "burgers", icon: Hamburger,   label: "Burgers" },
+        { id: "bbq",     icon: Flame,       label: "BBQ" },
+        { id: "catered", icon: HandPlatter, label: "Catered" },
+      ],
+    },
+    {
+      label: "Cold & Dessert",
+      items: [
+        { id: "drinks",   icon: CupSoda,      label: "Drinks" },
+        { id: "cookies",  icon: Cookie,       label: "Cookies" },
+        { id: "icecream", icon: IceCreamCone, label: "Ice Cream" },
+        { id: "popcorn",  icon: Popcorn,      label: "Popcorn" },
+        { id: "salad",    icon: Salad,        label: "Salad" },
+      ],
+    },
   ];
 
   useEffect(() => {
@@ -239,6 +268,8 @@ const CreateEvent = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (locationRef.current && !locationRef.current.contains(e.target as Node)) setLocationOpen(false);
+      if (minAgeRef.current && !minAgeRef.current.contains(e.target as Node)) setMinAgeOpen(false);
+      if (maxAgeRef.current && !maxAgeRef.current.contains(e.target as Node)) setMaxAgeOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -687,11 +718,10 @@ Return only the JSON, no explanation.` }
                 <div className="text-sm text-gray-500 text-right">{title.length}/80</div>
               </div>
 
-              {/* Date, Start time → End time */}
-              <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 ${isRecurring ? "opacity-40 pointer-events-none" : ""}`}>
-                {/* Start date → End date */}
-                <div className="flex items-center gap-2 w-full sm:flex-1">
-                  {/* Start date */}
+              {/* Date + Time row — stacked on mobile, one equal-width row on desktop */}
+              <div className={`flex flex-col md:flex-row md:items-center gap-3 pb-4 ${isRecurring ? "opacity-40 pointer-events-none" : ""}`}>
+                {/* Dates — sub-row on mobile, dissolves into parent on desktop */}
+                <div className="flex items-center gap-2 md:contents">
                   <div className="relative flex-1 cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
                     <input ref={dateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                       value={date} onChange={(e) => setDate(e.target.value)} />
@@ -702,14 +732,10 @@ Return only the JSON, no explanation.` }
                       <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                   </div>
-
                   <span className="text-sm font-medium shrink-0 text-muted-foreground">–</span>
-
-                  {/* End date (optional) */}
                   <div className="relative flex-1 cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
                     <input ref={endDateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                      min={date || undefined} />
+                      value={endDate} onChange={(e) => setEndDate(e.target.value)} min={date || undefined} />
                     <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
                       <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
                         {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
@@ -719,8 +745,8 @@ Return only the JSON, no explanation.` }
                   </div>
                 </div>
 
-                {/* Start time + To + End time */}
-                <div className="flex items-center gap-3 sm:contents">
+                {/* Times — sub-row on mobile, dissolves into parent on desktop */}
+                <div className="flex items-center gap-2 md:contents">
                   <TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" />
                   <span className="text-sm font-medium shrink-0">To</span>
                   <TimePicker value={endTime} onChange={setEndTime} placeholder="End time" />
@@ -912,7 +938,40 @@ Return only the JSON, no explanation.` }
 
               {/* Additional Info */}
               <div className="space-y-3">
-                <label className="text-sm font-medium">Additional Info</label>
+                <div>
+                  <label className="text-sm font-medium">Extra Details</label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Add sections like parking, what to bring, schedule, etc.</p>
+                </div>
+
+                {/* Quick-add suggestions — always visible, hide already-added ones */}
+                {(() => {
+                  const suggestions = [
+                    { title: "What to Bring", icon: "check" },
+                    { title: "Parking", icon: "car" },
+                    { title: "Schedule", icon: "calendar" },
+                    { title: "Cost Details", icon: "dollar" },
+                    { title: "Kids Welcome", icon: "balloon" },
+                  ].filter(s => !additionalInfo.some(item => item.title === s.title));
+                  if (suggestions.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.title}
+                          type="button"
+                          onClick={() => setAdditionalInfo([...additionalInfo, { title: suggestion.title, description: "", icon: suggestion.icon }])}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-400 text-xs text-muted-foreground hover:border-black hover:text-black transition-colors"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                          </svg>
+                          {suggestion.title}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {additionalInfo.map((item, idx) => (
                   <div key={idx} className="rounded-xl border border-black bg-white p-3 space-y-2.5">
                     {/* Title row */}
@@ -971,7 +1030,7 @@ Return only the JSON, no explanation.` }
                     <div style={{ borderLeft: '2px solid rgba(0,0,0,0.09)' }} className="pl-3">
                       <textarea
                         placeholder="Description..."
-                        rows={2}
+                        rows={4}
                         className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground overflow-hidden"
                         value={item.description}
                         onChange={(e) => {
@@ -989,14 +1048,12 @@ Return only the JSON, no explanation.` }
                 <button
                   type="button"
                   onClick={() => setAdditionalInfo([...additionalInfo, { title: "", description: "", icon: "check" }])}
-                  className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-1"
+                  className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-gray-400 text-sm text-muted-foreground hover:border-black hover:text-black transition-colors"
                 >
-                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: 'rgba(0,0,0,0.3)' }}>
-                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                      <path d="M5 1v8M1 5h8" stroke="rgba(0,0,0,0.4)" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                  Add section
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                  Add another section
                 </button>
               </div>
 
@@ -1073,16 +1130,22 @@ Return only the JSON, no explanation.` }
                     className={`h-12 rounded-xl text-sm font-semibold transition-all border-[1px] ${foodProvided ? "border-[2px] border-primary bg-primary/5" : "border-black"}`}>Yes 🍽️</button>
                 </div>
                 {foodProvided && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-xs text-muted-foreground">Pick up to 2</p>
-                    <div className="flex flex-wrap gap-2">
-                      {foodOptions.map(({ id, icon: Icon }) => (
-                        <button key={id} type="button" onClick={() => toggleFood(id)}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border ${selectedFoods.includes(id) ? "border-[2px] border-primary bg-primary/5" : "border-transparent bg-secondary"}`}>
-                          <Icon className="h-4 w-4" />
-                        </button>
-                      ))}
-                    </div>
+                    {foodGroups.map((group) => (
+                      <div key={group.label} className="space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{group.label}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {group.items.map(({ id, icon: Icon, label }) => (
+                            <button key={id} type="button" onClick={() => toggleFood(id)}
+                              className={`flex items-center gap-1.5 min-w-[48px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${selectedFoods.includes(id) ? "border-[2px] border-primary bg-primary/5" : "border-transparent bg-secondary"}`}>
+                              <Icon className="h-4 w-4 shrink-0" />
+                              <span className="text-xs">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1093,7 +1156,7 @@ Return only the JSON, no explanation.` }
                 <div className="flex items-center gap-3">
 
                   {/* Min age */}
-                  <div className="relative flex-1">
+                  <div className="relative flex-1" ref={minAgeRef}>
                     <div
                       className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
                       onClick={() => { setMinAgeOpen(!minAgeOpen); setMaxAgeOpen(false); }}>
@@ -1118,7 +1181,7 @@ Return only the JSON, no explanation.` }
                   <span className="text-sm font-medium shrink-0">To</span>
 
                   {/* Max age */}
-                  <div className="relative flex-1">
+                  <div className="relative flex-1" ref={maxAgeRef}>
                     <div
                       className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
                       onClick={() => { setMaxAgeOpen(!maxAgeOpen); setMinAgeOpen(false); }}>
@@ -1130,10 +1193,9 @@ Return only the JSON, no explanation.` }
                     {maxAgeOpen && (
                       <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
                         <button type="button"
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${maxAge === "+" ? "font-bold" : ""}`}
+                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${maxAge === "+" ? "font-bold" : ""}`}
                           onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}>
-                          <p className="text-sm">+</p>
-                          <p className="text-xs text-muted-foreground">(above)</p>
+                          <p className="text-sm">+ <span className="text-xs text-muted-foreground">(above)</span></p>
                         </button>
                         {[25, 30, 35, 40, 45, 50, 55, 60].map(opt => (
                           <button key={opt} type="button"
