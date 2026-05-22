@@ -102,6 +102,7 @@ const CreateEvent = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [minAge, setMinAge] = useState<string>("");
   const [maxAge, setMaxAge] = useState<string>("");
@@ -504,12 +505,44 @@ Return only the JSON, no explanation.` }
                   </div>
                 )}
                 {imagePreview && (
-                  <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                    <span className="px-4 py-1.5 bg-black/50 text-white backdrop-blur-sm rounded-full text-xs font-semibold">Change Image</span>
-                  </div>
+                  <>
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                      <span className="px-4 py-1.5 bg-black/50 text-white backdrop-blur-sm rounded-full text-xs font-semibold">Change Image</span>
+                    </div>
+                    {/* Expand button */}
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                    </button>
+                  </>
                 )}
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+
+              {/* Image lightbox */}
+              {imageExpanded && imagePreview && (
+                <div
+                  className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                  onClick={() => setImageExpanded(false)}
+                >
+                  <img
+                    src={imagePreview}
+                    alt="Event image"
+                    className="max-w-full max-h-full rounded-2xl object-contain"
+                  />
+                  <button
+                    className="absolute top-5 right-5 p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                    onClick={() => setImageExpanded(false)}
+                  >
+                    <span className="text-white text-lg leading-none">✕</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* AI image link + scan poster */}
