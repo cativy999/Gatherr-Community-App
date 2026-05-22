@@ -373,29 +373,20 @@ Return only the JSON, no explanation.` }
         ? `Include the text "${titleText}" in large elegant typography as the focal title of the design.`
         : 'No text or words in the image.';
       const prompt = `Event flyer design: ${base}, ${styleObj.suffix}. ${textInstruction} No brand names, no watermarks, no logos, no extra text.`;
+      // Send user's auth token so server can upload directly to Supabase storage
+      const userToken = session?.access_token;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, userToken }),
       });
       const data = await res.json();
       const url = data?.data?.[0]?.url;
       if (!url) throw new Error('No image returned');
 
-      // If server returned base64 image data, convert to File immediately (avoids CORS + expiry)
-      if (data.imageBase64) {
-        try {
-          const byteString = atob(data.imageBase64);
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-          const blob = new Blob([ab], { type: data.imageContentType || 'image/jpeg' });
-          const file = new File([blob], `ai-${Date.now()}.jpg`, { type: 'image/jpeg' });
-          setAiPendingFile(file);
-        } catch (b64Err) {
-          console.error('base64 decode failed:', b64Err);
-          setAiPendingFile(null);
-        }
+      // If server returned a permanent Supabase URL, mark it so applyAiImage skips re-upload
+      if (data.permanentUrl) {
+        setAiPendingFile(null); // no file needed — URL is already permanent
       }
 
       setAiPreview(url);
@@ -409,12 +400,14 @@ Return only the JSON, no explanation.` }
 
   const applyAiImage = async () => {
     if (!aiPreview) return;
-    // Use the File we already prepared during generation (no CORS, no expiry issues)
-    if (aiPendingFile) {
+    // If the server already uploaded to Supabase, the URL is permanent — just use it directly
+    const isPermanent = aiPreview.includes('supabase.co');
+    if (isPermanent) {
+      setImageFile(null); // no re-upload needed
+    } else if (aiPendingFile) {
       setImageFile(aiPendingFile);
     } else {
-      // Fallback: URL only (may expire — shouldn't normally hit this)
-      setImageFile(null);
+      setImageFile(null); // last resort — URL may expire
     }
     setImagePreview(aiPreview);
     setAiPendingFile(null);

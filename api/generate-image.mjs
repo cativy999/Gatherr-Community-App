@@ -9,7 +9,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body;
+    const { prompt, userToken } = req.body;
+
+    // 1. Generate image from Ideogram
     const response = await fetch('https://api.ideogram.ai/generate', {
       method: 'POST',
       headers: {
@@ -27,28 +29,56 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    const url = data?.data?.[0]?.url;
+    const ideogramUrl = data?.data?.[0]?.url;
 
-    // While we have the URL server-side, download the image and return it as base64
-    // so the client never has to deal with CORS or expiring URLs
-    if (url) {
-      try {
-        const imgRes = await fetch(url);
-        const arrayBuffer = await imgRes.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+    if (!ideogramUrl) {
+      return res.status(200).json(data);
+    }
+
+    // 2. Download the image server-side (no CORS issues here)
+    const imgRes = await fetch(ideogramUrl);
+    if (!imgRes.ok) {
+      console.error('Failed to download Ideogram image:', imgRes.status);
+      return res.status(200).json(data);
+    }
+    const imageBuffer = await imgRes.arrayBuffer();
+
+    // 3. Upload directly to Supabase storage using the user's auth token
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const authToken = userToken || process.env.VITE_SUPABASE_KEY;
+
+    if (supabaseUrl && authToken) {
+      const fileName = `ai-${Date.now()}.jpg`;
+      const uploadRes = await fetch(
+        `${supabaseUrl}/storage/v1/object/event-images/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'image/jpeg',
+            'x-upsert': 'false',
+          },
+          body: imageBuffer,
+        }
+      );
+
+      if (uploadRes.ok) {
+        const permanentUrl = `${supabaseUrl}/storage/v1/object/public/event-images/${fileName}`;
+        // Return permanent Supabase URL instead of expiring Ideogram URL
         return res.status(200).json({
           ...data,
-          imageBase64: base64,
-          imageContentType: contentType,
+          data: [{ ...data.data[0], url: permanentUrl }],
+          permanentUrl,
         });
-      } catch (imgErr) {
-        // If download fails, still return the URL (client will handle fallback)
-        console.error('Failed to download generated image:', imgErr);
+      } else {
+        const errText = await uploadRes.text();
+        console.error('Supabase upload failed:', uploadRes.status, errText);
       }
     }
 
-    res.status(200).json(data);
+    // Fallback: return original Ideogram URL
+    return res.status(200).json(data);
+
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Image generation failed' });
