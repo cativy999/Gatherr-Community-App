@@ -392,14 +392,16 @@ Return only the JSON, no explanation.` }
   const applyAiImage = async () => {
     if (!aiPreview) return;
     try {
-      // Fetch the Ideogram image and convert to a File so it uploads to Supabase on submit
-      const res = await fetch(aiPreview);
+      // Use server-side proxy to avoid CORS when downloading Ideogram image
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(aiPreview)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error('Proxy fetch failed');
       const blob = await res.blob();
       const file = new File([blob], `ai-${Date.now()}.jpg`, { type: 'image/jpeg' });
       setImageFile(file);
       setImagePreview(aiPreview);
     } catch {
-      // CORS fallback: use URL directly (may expire)
+      // fallback: use URL directly (may expire, but better than nothing)
       setImagePreview(aiPreview);
       setImageFile(null);
     }
