@@ -27,6 +27,27 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    const url = data?.data?.[0]?.url;
+
+    // While we have the URL server-side, download the image and return it as base64
+    // so the client never has to deal with CORS or expiring URLs
+    if (url) {
+      try {
+        const imgRes = await fetch(url);
+        const arrayBuffer = await imgRes.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+        return res.status(200).json({
+          ...data,
+          imageBase64: base64,
+          imageContentType: contentType,
+        });
+      } catch (imgErr) {
+        // If download fails, still return the URL (client will handle fallback)
+        console.error('Failed to download generated image:', imgErr);
+      }
+    }
+
     res.status(200).json(data);
   } catch (e) {
     console.error(e);

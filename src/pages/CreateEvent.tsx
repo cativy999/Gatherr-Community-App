@@ -144,6 +144,7 @@ const CreateEvent = () => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiTitle, setAiTitle] = useState("");
   const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [aiPendingFile, setAiPendingFile] = useState<File | null>(null);
   const [aiGenerations, setAiGenerations] = useState(0);
   const AI_MAX_GENERATIONS = 3;
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
@@ -380,6 +381,23 @@ Return only the JSON, no explanation.` }
       const data = await res.json();
       const url = data?.data?.[0]?.url;
       if (!url) throw new Error('No image returned');
+
+      // If server returned base64 image data, convert to File immediately (avoids CORS + expiry)
+      if (data.imageBase64) {
+        try {
+          const byteString = atob(data.imageBase64);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+          const blob = new Blob([ab], { type: data.imageContentType || 'image/jpeg' });
+          const file = new File([blob], `ai-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          setAiPendingFile(file);
+        } catch (b64Err) {
+          console.error('base64 decode failed:', b64Err);
+          setAiPendingFile(null);
+        }
+      }
+
       setAiPreview(url);
       setAiGenerations(prev => prev + 1);
     } catch (e) {
@@ -391,20 +409,15 @@ Return only the JSON, no explanation.` }
 
   const applyAiImage = async () => {
     if (!aiPreview) return;
-    try {
-      // Use server-side proxy to avoid CORS when downloading Ideogram image
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(aiPreview)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Proxy fetch failed');
-      const blob = await res.blob();
-      const file = new File([blob], `ai-${Date.now()}.jpg`, { type: 'image/jpeg' });
-      setImageFile(file);
-      setImagePreview(aiPreview);
-    } catch {
-      // fallback: use URL directly (may expire, but better than nothing)
-      setImagePreview(aiPreview);
+    // Use the File we already prepared during generation (no CORS, no expiry issues)
+    if (aiPendingFile) {
+      setImageFile(aiPendingFile);
+    } else {
+      // Fallback: URL only (may expire — shouldn't normally hit this)
       setImageFile(null);
     }
+    setImagePreview(aiPreview);
+    setAiPendingFile(null);
     setAiModalOpen(false);
     setAiPreview(null);
     toast.success('🎨 Image applied!');
