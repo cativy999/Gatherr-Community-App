@@ -1,4 +1,4 @@
-import { MapPin, Search, X, Loader2, Globe, Navigation, ChevronDown } from "lucide-react";
+import { MapPin, Search, X, Globe, Navigation, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "@/contexts/LocationContext";
 
@@ -8,8 +8,8 @@ interface LocationSelectorProps {
 }
 
 const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
-  const { setLocationCoords, clearLocation } = useLocation();
-const isEverywhere = value === "Everywhere";
+  const { setLocationCoords, clearLocation, detectedLocation, detectedLat, detectedLng, restoreDetectedLocation } = useLocation();
+  const isEverywhere = value === "Everywhere";
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
@@ -17,9 +17,18 @@ const isEverywhere = value === "Everywhere";
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleEverywhere = () => {
     clearLocation();
     onChange("Everywhere");
+    setIsOpen(false);
+    setSearch("");
+    setResults([]);
+  };
+
+  const handleMyLocation = () => {
+    restoreDetectedLocation();
+    if (detectedLocation) onChange(detectedLocation);
     setIsOpen(false);
     setSearch("");
     setResults([]);
@@ -31,7 +40,7 @@ const isEverywhere = value === "Everywhere";
       viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0');
     }
   };
-  
+
   const resetZoom = () => {
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
@@ -63,17 +72,21 @@ const isEverywhere = value === "Everywhere";
       setSearching(true);
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&addressdetails=1&limit=6&countrycodes=us`,
           { headers: { "Accept-Language": "en" } }
         );
         const data = await res.json();
         const locations = data.map((item: any) => {
           const { city, town, village, state, country } = item.address;
-          const place = city || town || village || item.display_name.split(",")[0];
+          const place = city || town || village;
+          const label = place && place !== state
+            ? `${place}, ${state || country}`
+            : (state || item.display_name.split(",")[0]);
           return {
-            label: `${place}, ${state || country}`,
+            label,
             lat: parseFloat(item.lat),
             lng: parseFloat(item.lon),
+            isState: !place || place === state,
           };
         }).filter(Boolean);
         // Deduplicate by label
@@ -91,30 +104,33 @@ const isEverywhere = value === "Everywhere";
     }, 400);
   }, [search]);
 
+  // Show "My Location" only when user is on Everywhere and we have a detected location
+  const showMyLocation = isEverywhere && detectedLocation && detectedLocation !== "Everywhere";
+
   return (
     <div className="relative" ref={containerRef}>
-  <button
-  onClick={() => {
-    preventZoom();
-    setIsOpen(!isOpen);
-  }}
-  className="flex flex-col items-center"
->
-  <span className="text-xs text-muted-foreground font-medium">Location</span>
-  <div className="flex items-center gap-1.5 mt-0.5">
-    <Navigation className="h-4 w-4 text-foreground" />
-    <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-      {value}
-    </span>
-    <ChevronDown className="h-4 w-4 text-foreground" />
-    {!isEverywhere && (
-      <X
-        className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
-        onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
-      />
-    )}
-  </div>
-</button>
+      <button
+        onClick={() => {
+          preventZoom();
+          setIsOpen(!isOpen);
+        }}
+        className="flex flex-col items-center"
+      >
+        <span className="text-xs text-muted-foreground font-medium">Location</span>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <Navigation className="h-4 w-4 text-foreground" />
+          <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+            {value}
+          </span>
+          <ChevronDown className="h-4 w-4 text-foreground" />
+          {!isEverywhere && (
+            <X
+              className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
+              onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
+            />
+          )}
+        </div>
+      </button>
 
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-2xl shadow-lg z-30 overflow-hidden">
@@ -140,8 +156,8 @@ const isEverywhere = value === "Everywhere";
             </div>
           </div>
 
-          <div className="max-h-48 overflow-y-auto">
-               {searching && (
+          <div className="max-h-56 overflow-y-auto">
+            {searching && (
               <div className="px-4 py-3 text-sm text-muted-foreground text-center">Type to search any city</div>
             )}
             {!searching && results.map((loc) => (
@@ -173,6 +189,20 @@ const isEverywhere = value === "Everywhere";
               <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               Everywhere
             </button>
+
+            {/* My Location — only shown when currently on Everywhere */}
+            {showMyLocation && (
+              <button
+                onClick={handleMyLocation}
+                className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-t border-border text-foreground"
+              >
+                <Navigation className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <span>
+                  <span className="font-semibold text-primary">My Location</span>
+                  <span className="block text-xs text-muted-foreground truncate">{detectedLocation}</span>
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}

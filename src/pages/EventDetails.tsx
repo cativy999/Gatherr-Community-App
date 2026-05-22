@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -138,6 +138,9 @@ const EventDetails = () => {
   const [linksExpanded, setLinksExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replies, setReplies] = useState<Record<string, any[]>>({});
   const [similarEvents, setSimilarEvents] = useState<any[]>([]);
   const [expandedInfoItems, setExpandedInfoItems] = useState<Set<number>>(new Set());
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
@@ -296,9 +299,9 @@ const EventDetails = () => {
     const fetchComments = async () => {
       const { data } = await supabase
         .from("comments")
-        .select("id, content, created_at, user_id")
+        .select("id, content, created_at, user_id, parent_id")
         .eq("event_id", id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
 
       if (data && data.length > 0) {
         const userIds = [...new Set(data.map((c: any) => c.user_id))];
@@ -312,10 +315,19 @@ const EventDetails = () => {
           author: profileMap[c.user_id]?.name || "Anonymous",
           avatar: profileMap[c.user_id]?.avatar_url || null,
         }));
-        setComments(mapped);
+        // Split top-level vs replies
+        const topLevel = mapped.filter((c: any) => !c.parent_id).reverse();
+        const replyMap: Record<string, any[]> = {};
+        mapped.filter((c: any) => c.parent_id).forEach((c: any) => {
+          if (!replyMap[c.parent_id]) replyMap[c.parent_id] = [];
+          replyMap[c.parent_id].push(c);
+        });
+        setComments(topLevel);
+        setReplies(replyMap);
         fetchReactions(mapped.map((c: any) => c.id));
       } else {
         setComments([]);
+        setReplies({});
       }
     };
     fetchComments();
@@ -453,6 +465,36 @@ const EventDetails = () => {
 
     setComment("");
     toast.success("Comment posted!");
+  };
+
+  const handleSubmitReply = async (parentComment: any) => {
+    if (!replyText.trim()) return;
+    if (!userId) { toast.error("Please log in to reply"); return; }
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ event_id: id, user_id: userId, content: replyText.trim().charAt(0).toUpperCase() + replyText.trim().slice(1), parent_id: parentComment.id })
+      .select("id, content, created_at, user_id, parent_id")
+      .single();
+    if (error) { toast.error("Failed to post reply"); return; }
+    const { data: profile } = await supabase.from("profiles").select("name, avatar_url").eq("user_id", userId).single();
+    const newReply = { ...data, author: profile?.name || "Anonymous", avatar: profile?.avatar_url || null };
+    setReplies(prev => ({ ...prev, [parentComment.id]: [...(prev[parentComment.id] || []), newReply] }));
+
+    // Notify the comment author that someone replied
+    if (parentComment.user_id && userId !== parentComment.user_id) {
+      await supabase.from("notifications").insert({
+        user_id: parentComment.user_id,
+        from_user_id: userId,
+        type: "reply",
+        event_id: id,
+        message: `${profile?.name || "Someone"} replied to your comment on "${event?.title}"`,
+        read: false,
+      });
+    }
+
+    setReplyText("");
+    setReplyingTo(null);
+    toast.success("Reply posted!");
   };
 
   const handleReaction = async (commentId: string, emoji: string) => {
@@ -785,14 +827,41 @@ const EventDetails = () => {
                 </svg>
               </button>
             </div>
-            {(event.age_min || event.age_max) && (
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-black/8 text-foreground w-fit" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
-                {event.age_min && event.age_max
-                  ? `Ages ${event.age_min}–${event.age_max}`
-                  : event.age_min
-                  ? `Ages ${event.age_min}+`
-                  : `Ages up to ${event.age_max}`}
-              </span>
+            {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {(event.age_min || event.age_max) && (
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full text-foreground" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
+                    {event.age_min && event.age_max
+                      ? `Ages ${event.age_min}–${event.age_max}`
+                      : event.age_min
+                      ? `Ages ${event.age_min}+`
+                      : `Ages up to ${event.age_max}`}
+                  </span>
+                )}
+                {event.food && event.food.length > 0 && (() => {
+                  const FOOD_ICON_MAP: Record<string, React.ReactNode> = {
+                    pizza: <Pizza className="h-3.5 w-3.5" />,
+                    burgers: <Hamburger className="h-3.5 w-3.5" />,
+                    bbq: <Flame className="h-3.5 w-3.5" />,
+                    catered: <HandPlatter className="h-3.5 w-3.5" />,
+                    drinks: <CupSoda className="h-3.5 w-3.5" />,
+                    cookies: <Cookie className="h-3.5 w-3.5" />,
+                    icecream: <IceCreamCone className="h-3.5 w-3.5" />,
+                    popcorn: <Popcorn className="h-3.5 w-3.5" />,
+                    salad: <Salad className="h-3.5 w-3.5" />,
+                  };
+                  return (
+                    <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
+                      <Utensils className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="flex items-center gap-1">
+                        {event.food.map((f: string) => (
+                          <span key={f} title={f}>{FOOD_ICON_MAP[f] || <Utensils className="h-3.5 w-3.5" />}</span>
+                        ))}
+                      </span>
+                    </span>
+                  );
+                })()}
+              </div>
             )}
           </div>
 
@@ -1106,7 +1175,7 @@ const EventDetails = () => {
                               const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
                               return IconComp ? <IconComp className="flex-shrink-0 h-5 w-5" /> : null;
                             })()}
-                            <span className="flex-1 font-bold text-black min-w-0" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                            <span className="flex-1 font-normal text-black min-w-0" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                               {item.title}
                             </span>
                             <svg
@@ -1242,20 +1311,22 @@ const EventDetails = () => {
               {event.address && (
                 <p className="text-sm text-muted-foreground">{formatAddress(event.address)}</p>
               )}
-              <button
-                onClick={() => setMapPickerOpen(true)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-black/[0.17] hover:bg-accent/30 transition-colors text-left"
-                style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-black/[0.17]" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
-                  <MapPin className="h-5 w-5 text-foreground" />
+              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200 }} onClick={() => setMapPickerOpen(true)}>
+                <iframe
+                  width="100%"
+                  height="200"
+                  style={{ border: 0, display: 'block', pointerEvents: 'none' }}
+                  loading="lazy"
+                  src={event.lat && event.lng
+                    ? `https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`
+                    : `https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&z=15&output=embed`}
+                />
+                <div className="absolute inset-0 flex items-end justify-end p-3">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-semibold text-gray-700">
+                    <Navigation className="h-3.5 w-3.5" />Open in Maps
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{formatAddress(event.address)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Tap to open in Maps</p>
-                </div>
-                <Navigation className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              </button>
+              </div>
             </div>
           )}
 
@@ -1307,59 +1378,136 @@ const EventDetails = () => {
                 <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
               ) : (
                 (showAllComments ? comments : comments.slice(0, 3)).map(c => (
-                  <div key={c.id} className="flex gap-3">
-                    {c.avatar ? (
-                      <img src={c.avatar} alt={c.author} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-bold text-sm text-[#383838]">{c.author}</p>
-                          <p className="text-xs text-[#949494]">{timeAgo(c.created_at)}</p>
+                  <div key={c.id} className="space-y-3">
+                    {/* Top-level comment */}
+                    <div className="flex gap-3">
+                      {c.avatar ? (
+                        <img src={c.avatar} alt={c.author} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                          <User className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        {c.user_id === userId && (
-                          <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-foreground leading-snug mt-1">{c.content}</p>
-                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        {["❤️", "😢", "😮", "😂", "👍"].map(emoji => {
-                          const emojiReactions = (reactions[c.id] || []).filter(r => r.emoji === emoji);
-                          if (emojiReactions.length === 0) return null;
-                          const hasReacted = emojiReactions.some(r => r.user_id === userId);
-                          return (
-                            <button
-                              key={emoji}
-                              onClick={() => handleReaction(c.id, emoji)}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${hasReacted ? "bg-primary/10 border-primary/30 font-semibold" : "bg-accent/50 border-transparent hover:bg-accent"}`}
-                            >
-                              <span>{emoji}</span>
-                              <span className="text-muted-foreground">{emojiReactions.length}</span>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-bold text-sm text-[#383838]">{c.author}</p>
+                            <p className="text-xs text-[#949494]">{timeAgo(c.created_at)}</p>
+                          </div>
+                          {c.user_id === userId && (
+                            <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          );
-                        })}
-                        <div className="relative">
-                          <button onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)} className="p-1 rounded-full hover:bg-accent transition-colors">
-                            <Smile className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                          {openEmojiPicker === c.id && (
-                            <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
-                              {["❤️", "😢", "😮", "😂", "👍"].map(emoji => (
-                                <button key={emoji} onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }} className="text-lg hover:scale-125 transition-transform">
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-foreground leading-snug mt-1">{c.content}</p>
+                        <div className="flex items-center gap-1 mt-2 flex-wrap">
+                          {["❤️", "😢", "😮", "😂", "👍"].map(emoji => {
+                            const emojiReactions = (reactions[c.id] || []).filter(r => r.emoji === emoji);
+                            if (emojiReactions.length === 0) return null;
+                            const hasReacted = emojiReactions.some(r => r.user_id === userId);
+                            return (
+                              <button
+                                key={emoji}
+                                onClick={() => handleReaction(c.id, emoji)}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${hasReacted ? "bg-primary/10 border-primary/30 font-semibold" : "bg-accent/50 border-transparent hover:bg-accent"}`}
+                              >
+                                <span>{emoji}</span>
+                                <span className="text-muted-foreground">{emojiReactions.length}</span>
+                              </button>
+                            );
+                          })}
+                          <div className="relative">
+                            <button onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)} className="p-1 rounded-full hover:bg-accent transition-colors">
+                              <Smile className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                            {openEmojiPicker === c.id && (
+                              <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
+                                {["❤️", "😢", "😮", "😂", "👍"].map(emoji => (
+                                  <button key={emoji} onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }} className="text-lg hover:scale-125 transition-transform">
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {!isGuest && (
+                            <button
+                              onClick={() => { setReplyingTo(replyingTo === c.id ? null : c.id); setReplyText(""); }}
+                              className="text-xs text-muted-foreground hover:text-foreground font-medium ml-1 transition-colors"
+                            >
+                              Reply
+                            </button>
                           )}
                         </div>
                       </div>
                     </div>
+
+                    {/* Existing replies */}
+                    {(replies[c.id] || []).length > 0 && (
+                      <div className="ml-12 space-y-3">
+                        {(replies[c.id] || []).map(r => (
+                          <div key={r.id} className="flex gap-2.5">
+                            {r.avatar ? (
+                              <img src={r.avatar} alt={r.author} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-bold text-xs text-[#383838]">{r.author}</p>
+                                  <p className="text-[10px] text-[#949494]">{timeAgo(r.created_at)}</p>
+                                </div>
+                                {r.user_id === userId && (
+                                  <button onClick={() => handleDeleteComment(r.id, r.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-foreground leading-snug mt-0.5">{r.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Inline reply input */}
+                    {replyingTo === c.id && (
+                      <div className="ml-12 flex gap-2 items-start">
+                        {userAvatar ? (
+                          <img src={userAvatar} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 space-y-2">
+                          <textarea
+                            autoFocus
+                            placeholder={`Reply to ${c.author}...`}
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            rows={2}
+                            className="w-full resize-none rounded-2xl border border-[#3a3a3a] px-3 py-2 text-sm outline-none focus:border-gray-500 transition-colors"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSubmitReply(c)}
+                              disabled={!replyText.trim()}
+                              className="px-4 py-1.5 bg-black text-white text-xs font-semibold rounded-full hover:bg-gray-800 transition-colors disabled:opacity-40"
+                            >
+                              Reply
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

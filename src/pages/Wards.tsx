@@ -167,14 +167,20 @@ const Wards = () => {
       // Extract state from user location string e.g. "Torrance, CA" or "Torrance, California"
       const locationParts = location.split(",").map(s => s.trim());
       const userState = locationParts.length > 1 ? locationParts[locationParts.length - 1].toLowerCase() : null;
+      // Detect state-level pick: no comma means it's just "Hawaii" or "California"
+      const isStatePick = locationParts.length === 1;
 
       result = result.filter((e) => {
-        // Best case: both have coordinates — use 50 mile radius
+        const eventLoc = e.location?.toLowerCase() ?? "";
+        // State-level pick (e.g. "Hawaii", "California") — match by state name text
+        if (isStatePick) {
+          return eventLoc.includes(location.toLowerCase());
+        }
+        // City-level pick with coordinates — use 75 mile radius
         if (locationLat && locationLng && e.lat && e.lng) {
-          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 50;
+          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 75;
         }
         // Fallback: match state so nearby cities still show up
-        const eventLoc = e.location?.toLowerCase() ?? "";
         if (userState) return eventLoc.includes(userState);
         return cityName ? eventLoc.includes(cityName.toLowerCase()) : true;
       });
