@@ -933,16 +933,9 @@ const EventDetails = () => {
                   e.currentTarget.addEventListener("touchmove", cancel, { once: true });
                 }}
               >
-                {event.lat && event.lng ? (
-                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-                    <iframe width="48" height="48" style={{ border: 0, display: "block", pointerEvents: "none" }} loading="lazy"
-                      src={`https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`} />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
-                    <MapPin className="h-5 w-5 text-foreground" />
-                  </div>
-                )}
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border border-black/[0.17]" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
+                  <MapPin className="h-5 w-5 text-foreground" />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{formatAddress(event.address)}</p>
                 </div>
@@ -1249,26 +1242,20 @@ const EventDetails = () => {
               {event.address && (
                 <p className="text-sm text-muted-foreground">{formatAddress(event.address)}</p>
               )}
-              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200 }} onClick={() => setMapPickerOpen(true)}>
-                <iframe
-                  width="100%"
-                  height="200"
-                  style={{ border: 0, display: 'block', pointerEvents: 'none' }}
-                  loading="lazy"
-                  src={
-                    event.lat && event.lng
-                      ? `https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`
-                      : `https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&z=15&output=embed`
-                  }
-                />
-                {/* Tap overlay */}
-                <div className="absolute inset-0 flex items-end justify-end p-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-semibold text-gray-700">
-                    <Navigation className="h-3.5 w-3.5" />
-                    Open in Maps
-                  </div>
+              <button
+                onClick={() => setMapPickerOpen(true)}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-black/[0.17] hover:bg-accent/30 transition-colors text-left"
+                style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-black/[0.17]" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}>
+                  <MapPin className="h-5 w-5 text-foreground" />
                 </div>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{formatAddress(event.address)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Tap to open in Maps</p>
+                </div>
+                <Navigation className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
             </div>
           )}
 
