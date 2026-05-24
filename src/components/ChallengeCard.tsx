@@ -138,13 +138,13 @@ const ChallengeCard = () => {
           />
         </div>
         <span
+          className="sm:ml-[19px]"
           style={{
             fontFamily: "'Holtwood One SC', serif",
             fontSize: 24,
             lineHeight: 1,
             color: "#000",
             display: "block",
-            marginLeft: 19,
           }}
         >
           Challnege

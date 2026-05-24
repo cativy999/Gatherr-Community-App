@@ -350,7 +350,14 @@ const Wards = () => {
         <div className="max-w-4xl mx-auto space-y-8">
 
           {/* Challenge Card */}
-          {session && <ChallengeCard />}
+          {session && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
+              </div>
+              <ChallengeCard />
+            </div>
+          )}
 
           {loading ? (
             <p className="text-center text-muted-foreground py-12">Loading events...</p>
