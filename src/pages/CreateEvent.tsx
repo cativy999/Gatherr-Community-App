@@ -874,9 +874,24 @@ Return only the JSON, no explanation.` }
                     )}
 
                     {/* Address dropdown */}
-                    {locationOpen && !isVirtual && (locationResults.length > 0 || (locationSearch === "" && savedAddresses.length > 0)) && (
+                    {locationOpen && !isVirtual && (locationSearch.trim() || locationResults.length > 0 || (locationSearch === "" && savedAddresses.length > 0)) && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
                         {locationSearching && <div className="flex items-center justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
+
+                        {/* Use exactly what was typed */}
+                        {locationSearch.trim() && (
+                          <button type="button"
+                            onClick={() => {
+                              setAddress(locationSearch);
+                              setLocationSearch(locationSearch);
+                              setLocation(locationSearch);
+                              setLocationOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-b border-border">
+                            <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                            <span><span className="font-semibold text-primary">Use: </span>{locationSearch}</span>
+                          </button>
+                        )}
                         {locationSearch === "" && savedAddresses.length > 0 && (
                           <>
                             <div className="px-4 py-2 text-xs text-muted-foreground font-medium">Recent</div>

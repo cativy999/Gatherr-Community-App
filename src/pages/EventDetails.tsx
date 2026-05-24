@@ -138,6 +138,7 @@ const EventDetails = () => {
   const [linksExpanded, setLinksExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replies, setReplies] = useState<Record<string, any[]>>({});
@@ -497,6 +498,139 @@ const EventDetails = () => {
     toast.success("Reply posted!");
   };
 
+  const shareToStory = async () => {
+    setShareMenuOpen(false);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext("2d")!;
+
+    const drawCard = () => {
+      // Dark gradient background (fallback / base layer)
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, "#0f0f0f");
+      bg.addColorStop(1, "#1a1a1a");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    const drawOverlayAndText = () => {
+      // Gradient overlay so text is always readable
+      const overlay = ctx.createLinearGradient(0, canvas.height * 0.35, 0, canvas.height);
+      overlay.addColorStop(0, "rgba(0,0,0,0)");
+      overlay.addColorStop(0.5, "rgba(0,0,0,0.6)");
+      overlay.addColorStop(1, "rgba(0,0,0,0.92)");
+      ctx.fillStyle = overlay;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Helper: word wrap
+      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number, font: string, color = "white") => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        const words = text.split(" ");
+        let line = "";
+        let currentY = y;
+        for (const word of words) {
+          const test = line + word + " ";
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line.trim(), x, currentY);
+            line = word + " ";
+            currentY += lineHeight;
+          } else {
+            line = test;
+          }
+        }
+        ctx.fillText(line.trim(), x, currentY);
+        return currentY;
+      };
+
+      const pad = 90;
+      const maxW = canvas.width - pad * 2;
+
+      // Title
+      const titleY = wrapText(event.title || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
+
+      // Date
+      const dateStr = eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.fillText(dateStr, pad, titleY + 80);
+
+      // Time
+      if (event.start_time) {
+        const [h, m] = event.start_time.split(":").map(Number);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const hour = h % 12 || 12;
+        const timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+        ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.fillText(timeStr, pad, titleY + 150);
+      }
+
+      // Location
+      if (event.location) {
+        ctx.font = "48px 'Helvetica Neue', Helvetica, sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.fillText(event.location, pad, titleY + 230);
+      }
+
+      // Gatherr branding at bottom
+      ctx.font = "bold 52px 'Helvetica Neue', Helvetica, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.textAlign = "center";
+      ctx.fillText("gatherr", canvas.width / 2, 1860);
+      ctx.textAlign = "left";
+    };
+
+    drawCard();
+
+    // Try to load event image
+    if (event.image_url) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width - img.width * scale) / 2;
+        const y = (canvas.height - img.height * scale) / 2;
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        drawOverlayAndText();
+        doShare();
+      };
+      img.onerror = () => {
+        // Image failed (CORS etc) — use dark bg only
+        drawOverlayAndText();
+        doShare();
+      };
+      img.src = event.image_url;
+    } else {
+      drawOverlayAndText();
+      doShare();
+    }
+
+    const doShare = () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Couldn't generate image"); return; }
+        const file = new File([blob], "gatherr-event.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: event.title });
+          } catch (e: any) {
+            if (e?.name !== "AbortError") toast.error("Sharing failed");
+          }
+        } else {
+          // Desktop fallback — download the image
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "gatherr-event.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success("Image saved! Upload it to your Instagram Story.");
+        }
+      }, "image/png");
+    };
+  };
+
   const handleReaction = async (commentId: string, emoji: string) => {
     if (!userId) { toast.error("Please log in to react"); return; }
     const anyExisting = reactions[commentId]?.find(r => r.user_id === userId);
@@ -811,21 +945,50 @@ const EventDetails = () => {
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
-                  } else {
-                    navigator.clipboard.writeText(shareUrl);
-                    toast.success("Link copied!");
-                  }
-                }}
-                className="flex-shrink-0 mt-1 hover:opacity-70 transition-opacity"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                </svg>
-              </button>
+              <div className="relative flex-shrink-0 mt-1">
+                <button
+                  onClick={() => setShareMenuOpen(prev => !prev)}
+                  className="hover:opacity-70 transition-opacity"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                  </svg>
+                </button>
+                {shareMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setShareMenuOpen(false)} />
+                    <div className="absolute right-0 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-48">
+                      <button
+                        onClick={() => {
+                          setShareMenuOpen(false);
+                          if (navigator.share) {
+                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
+                          } else {
+                            navigator.clipboard.writeText(shareUrl);
+                            toast.success("Link copied!");
+                          }
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        Share Link
+                      </button>
+                      <button
+                        onClick={shareToStory}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+                        </svg>
+                        Share to Story
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
               <div className="flex flex-wrap items-center gap-2">
