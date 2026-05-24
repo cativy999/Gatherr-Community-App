@@ -27,18 +27,39 @@ const formatTime = (timeStr: string) => {
 
 export const groupByWeek = (events: any[]) => {
   const now = new Date();
-  const endOfWeek = new Date(now);
-  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
-  const endOfNextWeek = new Date(endOfWeek);
-  endOfNextWeek.setDate(endOfWeek.getDate() + 7);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Week = Sunday → Saturday
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // back to Sunday
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6); // this Saturday
+
+  const startOfNextWeek = new Date(endOfWeek);
+  startOfNextWeek.setDate(endOfWeek.getDate() + 1); // next Sunday
+
+  const endOfNextWeek = new Date(startOfNextWeek);
+  endOfNextWeek.setDate(startOfNextWeek.getDate() + 6); // next Saturday
 
   const thisWeek: any[] = [];
   const nextWeek: any[] = [];
   const later: any[] = [];
 
   events.forEach((event) => {
+    // Recurring events always appear in both this week and next week
+    if (event.is_recurring) {
+      thisWeek.push(event);
+      nextWeek.push(event);
+      return;
+    }
+
     const [y, m, d] = event.date.split("-").map(Number);
     const eventDate = new Date(y, m - 1, d);
+
+    // Don't show past events
+    if (eventDate < today) return;
+
     if (eventDate <= endOfWeek) thisWeek.push(event);
     else if (eventDate <= endOfNextWeek) nextWeek.push(event);
     else later.push(event);

@@ -93,11 +93,21 @@ const getRegionTag = (
   const parts = location.split(/[,/]/).map(p => p.trim()).filter(Boolean);
   let stateAbbr: string | null = null;
   for (const part of parts) {
+    // Check full part (e.g. "Utah" or "UT")
     if (/^[A-Z]{2}$/i.test(part)) {
       const up = part.toUpperCase();
       if (Object.values(STATE_ABBR).includes(up)) { stateAbbr = up; break; }
     }
     if (STATE_ABBR[part]) { stateAbbr = STATE_ABBR[part]; break; }
+    // Also check each word within the part (handles "UT 84095" → "UT")
+    for (const word of part.split(/\s+/)) {
+      if (/^[A-Z]{2}$/i.test(word)) {
+        const up = word.toUpperCase();
+        if (Object.values(STATE_ABBR).includes(up)) { stateAbbr = up; break; }
+      }
+      if (STATE_ABBR[word]) { stateAbbr = STATE_ABBR[word]; break; }
+    }
+    if (stateAbbr) break;
   }
   if (!stateAbbr) return null;
   if (stateAbbr === 'CA') return null; // can't split without coords

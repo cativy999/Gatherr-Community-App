@@ -170,11 +170,29 @@ const Wards = () => {
       // Detect state-level pick: no comma means it's just "Hawaii" or "California"
       const isStatePick = locationParts.length === 1;
 
+      const STATE_ABBR: Record<string, string> = {
+        'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+        'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+        'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+        'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+        'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+        'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+        'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+        'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+        'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+        'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+      };
+      const stateAbbr = STATE_ABBR[location] ?? null; // e.g. "Utah" → "UT"
+      // Use word-boundary regex so "HI" doesn't match "Philadelphia", "UT" doesn't match "but", etc.
+      const abbrRegex = stateAbbr ? new RegExp(`\\b${stateAbbr}\\b`, 'i') : null;
+
       result = result.filter((e) => {
         const eventLoc = e.location?.toLowerCase() ?? "";
-        // State-level pick (e.g. "Hawaii", "California") — match by state name text
+        // State-level pick (e.g. "Hawaii", "Utah") — match by full name OR abbreviation (whole word only)
         if (isStatePick) {
-          return eventLoc.includes(location.toLowerCase());
+          if (eventLoc.includes(location.toLowerCase())) return true;
+          if (abbrRegex && abbrRegex.test(e.location ?? "")) return true;
+          return false;
         }
         // City-level pick with coordinates — use 75 mile radius
         if (locationLat && locationLng && e.lat && e.lng) {
@@ -211,19 +229,49 @@ const Wards = () => {
   }, [events, activeFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
 
   const groupEventsByTime = (evts: Event[]) => {
-    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-    const startOfNextWeek = new Date(startOfToday); startOfNextWeek.setDate(startOfToday.getDate() + 7);
-    const startOfLater = new Date(startOfToday); startOfLater.setDate(startOfToday.getDate() + 14);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // Week = Sunday → Saturday
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // back to this Sunday
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // this Saturday
+
+    const startOfNextWeek = new Date(endOfWeek);
+    startOfNextWeek.setDate(endOfWeek.getDate() + 1); // next Sunday
+
+    const endOfNextWeek = new Date(startOfNextWeek);
+    endOfNextWeek.setDate(startOfNextWeek.getDate() + 6); // next Saturday
+
     const thisWeek: Event[] = [];
     const nextWeek: Event[] = [];
     const later: Event[] = [];
+
+    const DAY_NUM: Record<string, number> = {
+      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
+      Thursday: 4, Friday: 5, Saturday: 6,
+    };
+    const todayDayNum = today.getDay();
+
     evts.forEach((e) => {
-      if (e.is_recurring) { thisWeek.push(e); return; }
-      const d = new Date(e.date);
-      if (d < startOfNextWeek) thisWeek.push(e);
-      else if (d < startOfLater) nextWeek.push(e);
+      if (e.is_recurring) {
+        const recurringDayNum = e.recurring_day ? (DAY_NUM[e.recurring_day] ?? -1) : -1;
+        // Only show in This Week if the recurring day hasn't passed yet this week (>= today)
+        if (recurringDayNum >= todayDayNum) thisWeek.push(e);
+        // Always show in Next Week
+        nextWeek.push(e);
+        return;
+      }
+      const [y, m, d] = e.date.split("-").map(Number);
+      const eventDate = new Date(y, m - 1, d);
+
+      if (eventDate < today) return; // skip past events
+      if (eventDate <= endOfWeek) thisWeek.push(e);
+      else if (eventDate <= endOfNextWeek) nextWeek.push(e);
       else later.push(e);
     });
+
     return { thisWeek, nextWeek, later };
   };
   
@@ -355,30 +403,11 @@ const Wards = () => {
 <div className="space-y-3" ref={nextWeekRef}>
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
   {nextWeek.length > 0 ? (
-    (() => {
-      const grouped = groupByMonth(nextWeek);
-      const keys = Object.keys(grouped);
-      return keys.length > 1 ? (
-        <div className="space-y-6">
-          {keys.map((month) => (
-            <div key={month} className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
-              <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                {grouped[month].map((event) => (
-                  <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-          {nextWeek.map((event) => (
-            <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
-          ))}
-        </div>
-      );
-    })()
+    <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      {nextWeek.map((event) => (
+        <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+      ))}
+    </div>
   ) : (
     <EmptySection label="Next Week" />
   )}
@@ -387,9 +416,9 @@ const Wards = () => {
               {/* Later */}
 <div className="space-y-3" ref={laterRef}>
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
-  {later.length > 0 ? (
+  {later.filter(e => !e.is_recurring).length > 0 ? (
     <div className="space-y-6">
-      {Object.entries(groupByMonth(later)).map(([month, evts]) => (
+      {Object.entries(groupByMonth(later.filter(e => !e.is_recurring))).map(([month, evts]) => (
         <div key={month} className="space-y-3" ref={(el) => { monthRefs.current[month] = el; }}>
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
