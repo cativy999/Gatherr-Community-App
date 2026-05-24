@@ -418,7 +418,7 @@ const Wards = () => {
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
   {later.filter(e => !e.is_recurring).length > 0 ? (
     <div className="space-y-6">
-      {Object.entries(groupByMonth(later.filter(e => !e.is_recurring))).map(([month, evts]) => (
+      {Object.entries(groupByMonth([...later.filter(e => !e.is_recurring)].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))).map(([month, evts]) => (
         <div key={month} className="space-y-3" ref={(el) => { monthRefs.current[month] = el; }}>
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
