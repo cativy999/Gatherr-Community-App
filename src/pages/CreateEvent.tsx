@@ -503,16 +503,13 @@ Return only the JSON, no explanation.` }
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
+      <header className="sticky top-0 z-10 bg-transparent px-4 py-2">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-2xl font-bold">{isEditing ? "Edit Event" : "Create Single Event"}</h1>
-          </div>
+          <button onClick={() => navigate(-1)} className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 transition-colors flex-shrink-0">
+            <ArrowLeft className="h-6 w-6" />
+          </button>
           {isEditing && (
-            <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={() => setDeleteOpen(true)} disabled={loading}>
+            <Button variant="ghost" size="icon" className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 text-red-500" onClick={() => setDeleteOpen(true)} disabled={loading}>
               <Trash2 className="h-5 w-5" />
             </Button>
           )}
@@ -522,6 +519,11 @@ Return only the JSON, no explanation.` }
       <main className="flex-1 px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex flex-col gap-4">
+
+            {/* Page title */}
+            <h1 className="font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '1.5rem' }}>
+              {isEditing ? "Edit Event" : "Create Event"}
+            </h1>
 
             {/* Image Upload */}
             <div className="relative w-full flex-shrink-0">
