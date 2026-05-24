@@ -521,7 +521,7 @@ Return only the JSON, no explanation.` }
           <div className="flex flex-col gap-4">
 
             {/* Page title */}
-            <h1 className="font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '1.5rem' }}>
+            <h1 className="font-bold text-center" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '1.5rem' }}>
               {isEditing ? "Edit Event" : "Create Event"}
             </h1>
 
