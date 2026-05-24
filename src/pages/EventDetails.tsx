@@ -500,13 +500,13 @@ const EventDetails = () => {
 
   const shareToStory = async () => {
     setShareMenuOpen(false);
+
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
     const ctx = canvas.getContext("2d")!;
 
-    const drawCard = () => {
-      // Dark gradient background (fallback / base layer)
+    const drawBackground = () => {
       const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
       bg.addColorStop(0, "#0f0f0f");
       bg.addColorStop(1, "#1a1a1a");
@@ -515,7 +515,6 @@ const EventDetails = () => {
     };
 
     const drawOverlayAndText = () => {
-      // Gradient overlay so text is always readable
       const overlay = ctx.createLinearGradient(0, canvas.height * 0.35, 0, canvas.height);
       overlay.addColorStop(0, "rgba(0,0,0,0)");
       overlay.addColorStop(0.5, "rgba(0,0,0,0.6)");
@@ -523,7 +522,6 @@ const EventDetails = () => {
       ctx.fillStyle = overlay;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Helper: word wrap
       const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number, font: string, color = "white") => {
         ctx.font = font;
         ctx.fillStyle = color;
@@ -546,35 +544,28 @@ const EventDetails = () => {
 
       const pad = 90;
       const maxW = canvas.width - pad * 2;
-
-      // Title
       const titleY = wrapText(event.title || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
 
-      // Date
       const dateStr = eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
       ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.fillText(dateStr, pad, titleY + 80);
 
-      // Time
       if (event.start_time) {
         const [h, m] = event.start_time.split(":").map(Number);
         const ampm = h >= 12 ? "PM" : "AM";
         const hour = h % 12 || 12;
-        const timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
         ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
         ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.fillText(timeStr, pad, titleY + 150);
+        ctx.fillText(`${hour}:${String(m).padStart(2, "0")} ${ampm}`, pad, titleY + 150);
       }
 
-      // Location
       if (event.location) {
         ctx.font = "48px 'Helvetica Neue', Helvetica, sans-serif";
         ctx.fillStyle = "rgba(255,255,255,0.55)";
         ctx.fillText(event.location, pad, titleY + 230);
       }
 
-      // Gatherr branding at bottom
       ctx.font = "bold 52px 'Helvetica Neue', Helvetica, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.textAlign = "center";
@@ -582,53 +573,51 @@ const EventDetails = () => {
       ctx.textAlign = "left";
     };
 
-    drawCard();
+    const doShare = async () => {
+      return new Promise<void>((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
+          const file = new File([blob], "gatherr-event.png", { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: event.title });
+            } catch (e: any) {
+              if (e?.name !== "AbortError") toast.error("Sharing failed");
+            }
+          } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "gatherr-event.png";
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success("Image saved! Upload it to your Instagram Story.");
+          }
+          resolve();
+        }, "image/png");
+      });
+    };
 
-    // Try to load event image
+    drawBackground();
+
     if (event.image_url) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width - img.width * scale) / 2;
-        const y = (canvas.height - img.height * scale) / 2;
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        drawOverlayAndText();
-        doShare();
-      };
-      img.onerror = () => {
-        // Image failed (CORS etc) — use dark bg only
-        drawOverlayAndText();
-        doShare();
-      };
-      img.src = event.image_url;
-    } else {
-      drawOverlayAndText();
-      doShare();
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+          const x = (canvas.width - img.width * scale) / 2;
+          const y = (canvas.height - img.height * scale) / 2;
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+          resolve();
+        };
+        img.onerror = () => resolve(); // use dark bg if image fails
+        img.src = event.image_url;
+      });
     }
 
-    const doShare = () => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) { toast.error("Couldn't generate image"); return; }
-        const file = new File([blob], "gatherr-event.png", { type: "image/png" });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file], title: event.title });
-          } catch (e: any) {
-            if (e?.name !== "AbortError") toast.error("Sharing failed");
-          }
-        } else {
-          // Desktop fallback — download the image
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "gatherr-event.png";
-          a.click();
-          URL.revokeObjectURL(url);
-          toast.success("Image saved! Upload it to your Instagram Story.");
-        }
-      }, "image/png");
-    };
+    drawOverlayAndText();
+    await doShare();
   };
 
   const handleReaction = async (commentId: string, emoji: string) => {
