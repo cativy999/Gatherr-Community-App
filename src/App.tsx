@@ -2,19 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
-
-// Redirect /e/:id → /event/:id (canonical URL for OG previews)
-const ShortEventRedirect = () => {
-  const { id } = useParams<{ id: string }>();
-  return <Navigate to={`/event/${id}`} replace />;
-};
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
@@ -40,6 +33,11 @@ import NotificationsPage from "./pages/NotificationsPage";
 import Challenge from "./pages/Challenge";
 import FeedbackButton from "@/components/FeedbackButton";
 
+// Redirect /e/:id → /event/:id (canonical URL for OG previews)
+const ShortEventRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/event/${id}`} replace />;
+};
 
 const queryClient = new QueryClient();
 
@@ -58,17 +56,17 @@ const AuthListener = () => {
   useEffect(() => {
     console.log("AuthListener fired:", { loading, session: !!session, hasNavigated: hasNavigated.current });
     if (loading) return;
-  
+
     // Don't redirect if we're on reset-password page (with or without hash)
     const isResetPage = window.location.pathname === "/reset-password" ||
       window.location.hash.includes("type=recovery"); // ✅ catches the hash too
-  
+
     if (isResetPage) return;
-  
+
     if (!session) return;
     if (hasNavigated.current) return;
 
-  
+
     hasNavigated.current = true;
     supabase
       .from("profiles")
@@ -93,12 +91,12 @@ const AuthListener = () => {
 const AppLayout = () => {
   const { session } = useAuth();
   const { pathname } = useLocation();
-  
+
   const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward"];
   const hideNavPatterns = ["/create-event"];
 
   if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
-  
+
   return <BottomNav />;
 };
 
