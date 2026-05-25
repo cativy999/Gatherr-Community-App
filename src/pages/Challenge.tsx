@@ -496,8 +496,8 @@ const Challenge = () => {
 
       {/* ── Log Steps Dialog ── */}
       <Dialog open={logOpen} onOpenChange={setLogOpen}>
-        <DialogContent className="w-[calc(100%-40px)] max-w-[380px] rounded-[18px] p-0 overflow-hidden" style={{ background: "#f4f0e6", border: "none" }}>
-          <div style={{ padding: "40px 24px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, position: "relative" }}>
+        <DialogContent className="w-[calc(100%-40px)] max-w-[380px] rounded-[18px] p-0 overflow-y-auto" style={{ background: "#f4f0e6", border: "none", maxHeight: "90dvh" }}>
+          <div style={{ padding: "32px 24px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
 
             {/* Title */}
             <div style={{ textAlign: "center" }}>
@@ -509,10 +509,11 @@ const Challenge = () => {
               </div>
             </div>
 
-            {/* Cowboy boots illustration */}
+            {/* Cowboy boots illustration — hidden on small screens */}
             <img
               src="/cowboyboots.png"
               alt=""
+              className="hidden sm:block"
               style={{ width: 110, height: 90, objectFit: "contain", transform: "scaleX(-1)" }}
             />
 
