@@ -1,15 +1,12 @@
 {
+  "functions": {
+    "api/og/[id].ts": {
+      "includeFiles": "dist/index.html"
+    }
+  },
   "rewrites": [
-    {
-      "source": "/event/:id",
-      "missing": [{ "type": "query", "key": "direct" }],
-      "destination": "/api/og/:id"
-    },
-    {
-      "source": "/e/:id",
-      "missing": [{ "type": "query", "key": "direct" }],
-      "destination": "/api/og/:id"
-    },
+    { "source": "/event/:id", "destination": "/api/og/:id" },
+    { "source": "/e/:id",     "destination": "/api/og/:id" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
