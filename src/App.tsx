@@ -92,7 +92,7 @@ const AppLayout = () => {
   const { session } = useAuth();
   const { pathname } = useLocation();
 
-  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward"];
+  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge"];
   const hideNavPatterns = ["/create-event"];
 
   if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
