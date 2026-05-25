@@ -580,7 +580,8 @@ const EventDetails = () => {
           const file = new File([blob], "gatherr-event.png", { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
-              await navigator.share({ files: [file], title: event.title });
+              // Share file only (no title) to prevent double-paste on some apps
+              await navigator.share({ files: [file] });
             } catch (e: any) {
               if (e?.name !== "AbortError") toast.error("Sharing failed");
             }
@@ -946,25 +947,38 @@ const EventDetails = () => {
                 {shareMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setShareMenuOpen(false)} />
-                    <div className="absolute right-0 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-48">
+                    <div className="absolute right-0 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52">
+                      {/* Copy Link — straight to clipboard */}
                       <button
                         onClick={() => {
                           setShareMenuOpen(false);
-                          if (navigator.share) {
-                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
-                          } else {
-                            navigator.clipboard.writeText(shareUrl);
-                            toast.success("Link copied!");
-                          }
+                          navigator.clipboard.writeText(shareUrl);
+                          toast.success("Link copied!");
                         }}
                         className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
                         </svg>
-                        Share Link
+                        Copy Link
                       </button>
+                      {/* Share Link — native share sheet */}
+                      {navigator.share && (
+                        <button
+                          onClick={() => {
+                            setShareMenuOpen(false);
+                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          </svg>
+                          Share Link
+                        </button>
+                      )}
+                      {/* Share to Story */}
                       <button
                         onClick={shareToStory}
                         className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
