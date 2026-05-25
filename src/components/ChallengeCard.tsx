@@ -123,11 +123,11 @@ const ChallengeCard = () => {
           >
             Step
           </span>
-          {/* Hide illustration on mobile when in-challenge so there's room */}
+          {/* Hide illustration when in-challenge */}
           <img
             src="/Pioneerwalking.png"
             alt=""
-            className={hasJoined ? "hidden sm:block" : "block"}
+            className={hasJoined ? "hidden" : "block"}
             style={{
               width: 52,
               height: 30,
