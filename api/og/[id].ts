@@ -43,7 +43,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       day: "numeric",
     });
   }
-  const description = [dateStr, event?.location, rawDesc]
+
+  let timeStr = "";
+  if (event?.start_time) {
+    const [h, m] = event.start_time.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+
+  const description = [
+    dateStr && timeStr ? `${dateStr} at ${timeStr}` : dateStr || timeStr,
+    event?.location,
+    rawDesc,
+  ]
     .filter(Boolean)
     .join(" · ");
 
