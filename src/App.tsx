@@ -2,12 +2,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+
+// Redirect /e/:id → /event/:id (canonical URL for OG previews)
+const ShortEventRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/event/${id}`} replace />;
+};
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
@@ -119,7 +126,7 @@ const App = () => (
                 <Route path="/challenge" element={<Challenge />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/event/:id" element={<EventDetails />} />
-                <Route path="/e/:id" element={<EventDetails />} />
+                <Route path="/e/:id" element={<ShortEventRedirect />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/ward/:slug" element={<WardProfile />} />
                 <Route path="/search" element={<Search />} />
