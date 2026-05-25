@@ -82,8 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image"       content="${escapeHtml(image)}" />
 
-  <!-- Redirect human visitors instantly into the React app -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(redirectUrl)}" />
+  <!-- Redirect human browsers (not bots) into the React app via JS only -->
   <script>window.location.replace("${redirectUrl}");</script>
 </head>
 <body>
