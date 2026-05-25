@@ -1,20 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL!,
   process.env.VITE_SUPABASE_ANON_KEY!
 );
 
-function escapeHtml(str: string): string {
+function esc(str: string): string {
   return (str || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/"/g, "&quot;");
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -27,93 +24,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .single();
 
   const baseUrl = "https://gatherr-one.vercel.app";
-  const title = event?.title || "Gatherr Event";
-  const rawDesc = event?.description
-    ? event.description.slice(0, 200)
-    : `Join us for ${title} on Gatherr — find local community events near you.`;
-  const image = event?.image_url || `${baseUrl}/Gatherr.jpg`;
-  const url = `${baseUrl}/event/${id}`;
+  const title  = event?.title || "Gatherr Event";
+  const image  = event?.image_url || `${baseUrl}/Gatherr.jpg`;
+  const url    = `${baseUrl}/event/${id}`;
 
+  // Build description: "Saturday, May 30 at 10:00 AM · Los Angeles · ..."
   let dateStr = "";
   if (event?.date) {
     const [y, m, d] = event.date.split("-").map(Number);
     dateStr = new Date(y, m - 1, d).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
+      weekday: "long", month: "long", day: "numeric",
     });
   }
-
   let timeStr = "";
   if (event?.start_time) {
     const [h, m] = event.start_time.split(":").map(Number);
     const ampm = h >= 12 ? "PM" : "AM";
-    const hour = h % 12 || 12;
-    timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+    timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
   }
+  const when = dateStr && timeStr ? `${dateStr} at ${timeStr}` : dateStr || timeStr;
+  const rawDesc = event?.description ? event.description.slice(0, 160) : `Join us on Gatherr`;
+  const description = [when, event?.location, rawDesc].filter(Boolean).join(" · ");
 
-  const description = [
-    dateStr && timeStr ? `${dateStr} at ${timeStr}` : dateStr || timeStr,
-    event?.location,
-    rawDesc,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  // Read the built React app HTML and inject event-specific OG tags.
-  // This way ALL clients (bots, iMessage, WhatsApp, real browsers) get
-  // the correct preview — no redirect needed, the React app loads normally.
-  let html: string;
-  try {
-    html = readFileSync(join(process.cwd(), "dist", "index.html"), "utf-8");
-  } catch {
-    // Fallback: serve a minimal OG page if dist/index.html isn't available
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.send(`<!DOCTYPE html><html><head>
-      <meta property="og:title" content="${escapeHtml(title)}" />
-      <meta property="og:description" content="${escapeHtml(description)}" />
-      <meta property="og:image" content="${escapeHtml(image)}" />
-      <meta property="og:url" content="${escapeHtml(url)}" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="${escapeHtml(title)}" />
-      <meta name="twitter:image" content="${escapeHtml(image)}" />
-    </head><body><a href="${escapeHtml(url)}">${escapeHtml(title)}</a></body></html>`);
-  }
-
-  // Replace the generic OG tags with event-specific ones
-  html = html
-    .replace(
-      /(<title>)[^<]*/,
-      `$1${escapeHtml(title)} | Gatherr`
-    )
-    .replace(
-      /(<meta property="og:title" content=")[^"]*/,
-      `$1${escapeHtml(title)}`
-    )
-    .replace(
-      /(<meta property="og:description" content=")[^"]*/,
-      `$1${escapeHtml(description)}`
-    )
-    .replace(
-      /(<meta property="og:image" content=")[^"]*/,
-      `$1${escapeHtml(image)}`
-    )
-    .replace(
-      /(<meta name="twitter:image" content=")[^"]*/,
-      `$1${escapeHtml(image)}`
-    )
-    // Add og:url + twitter title/description right before </head>
-    .replace(
-      "</head>",
-      `  <meta property="og:url" content="${escapeHtml(url)}" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Gatherr" />
-  <meta name="twitter:title" content="${escapeHtml(title)}" />
-  <meta name="twitter:description" content="${escapeHtml(description)}" />
-</head>`
-    );
+  // ?direct=1 bypasses this rewrite so the React SPA loads normally
+  const appUrl = `/event/${id}?direct=1`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
-  return res.send(html);
+
+  return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${esc(title)} | Gatherr</title>
+  <meta name="description" content="${esc(description)}"/>
+
+  <meta property="og:type"        content="website"/>
+  <meta property="og:site_name"   content="Gatherr"/>
+  <meta property="og:url"         content="${esc(url)}"/>
+  <meta property="og:title"       content="${esc(title)}"/>
+  <meta property="og:description" content="${esc(description)}"/>
+  <meta property="og:image"       content="${esc(image)}"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+
+  <meta name="twitter:card"        content="summary_large_image"/>
+  <meta name="twitter:title"       content="${esc(title)}"/>
+  <meta name="twitter:description" content="${esc(description)}"/>
+  <meta name="twitter:image"       content="${esc(image)}"/>
+
+  <script>window.location.replace("${appUrl}");</script>
+</head>
+<body>
+  <p><a href="${esc(appUrl)}">${esc(title)}</a></p>
+  <p>${esc(description)}</p>
+  <img src="${esc(image)}" alt="${esc(title)}" style="max-width:600px"/>
+</body>
+</html>`);
 }
