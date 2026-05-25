@@ -1,12 +1,10 @@
 {
+  "redirects": [
+    { "source": "/e/:id", "destination": "/event/:id", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/event/:id",
-      "missing": [{ "type": "query", "key": "direct" }],
-      "destination": "/api/og/:id"
-    },
-    {
-      "source": "/e/:id",
       "missing": [{ "type": "query", "key": "direct" }],
       "destination": "/api/og/:id"
     },
