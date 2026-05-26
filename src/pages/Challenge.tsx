@@ -148,33 +148,30 @@ const Challenge = () => {
 
   useEffect(() => { fetchData(); }, [userId]);
 
+  useEffect(() => {
+    document.body.style.background = "#f4f0e6";
+    return () => { document.body.style.background = ""; };
+  }, []);
+
   const firstName = myName.split(" ")[0] || "Friend";
 
   return (
     <div style={{ background: "#f4f0e6", minHeight: "100vh", paddingBottom: 100 }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 24px" }}>
 
-        {/* ── Header: back + map ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 29, position: "sticky", top: 0, zIndex: 50, paddingTop: 12, paddingBottom: 8, background: "transparent" }}>
+        {/* ── User greeting row ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 52, marginBottom: 29 }}>
+          {/* Back arrow */}
           <button
             onClick={() => navigate("/wards")}
-            style={{ background: "#e8e1d0", borderRadius: 39, padding: "14px 17px", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={22} color="#000" />
           </button>
-          <button
-            onClick={() => setMapOpen(true)}
-            style={{ background: "#e8e1d0", borderRadius: 39, padding: "14px 17px", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
-          >
-            <Map size={20} />
-          </button>
-        </div>
 
-        {/* ── User greeting row ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 29 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 15, flex: 1, minWidth: 0 }}>
             {/* Avatar with cowboy hat */}
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
               <Avatar style={{ width: 60, height: 60 }}>
                 <AvatarImage src={myAvatar ?? undefined} referrerPolicy="no-referrer" />
                 <AvatarFallback style={{ fontSize: 18 }}>
@@ -188,7 +185,7 @@ const Challenge = () => {
               />
             </div>
 
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, color: "#000", lineHeight: 1 }}>
                 Hi, {firstName}
               </div>
@@ -198,11 +195,11 @@ const Challenge = () => {
               </div>
             </div>
 
-            <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, marginLeft: 4 }}>+</span>
+            <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, flexShrink: 0 }}>+</span>
           </div>
 
           {/* Overlapping participant avatars */}
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
             {leaderboard.filter(e => e.user_id !== userId).slice(0, 4).map((e, i) => (
               <div key={e.user_id} style={{ marginRight: -12, zIndex: 10 - i, position: "relative" }}>
                 <Avatar style={{ width: 26, height: 26, border: "2px solid #f4f0e6" }}>
@@ -225,20 +222,28 @@ const Challenge = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
-            {/* Log Steps CTA */}
-            <button
-              onClick={() => navigate(`/log-steps?day=${todayStr}`)}
-              style={{ width: "100%", background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
-            >
-              <Plus size={20} />
-              Log Your Steps Today
-            </button>
+            {/* Log Steps CTA + Map button row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => navigate(`/log-steps?day=${todayStr}`)}
+                style={{ flex: 1, background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
+              >
+                <Plus size={20} />
+                Log Your Steps Today
+              </button>
+              <button
+                onClick={() => setMapOpen(true)}
+                style={{ width: 52, height: 52, background: "#e8e1d0", borderRadius: 26, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              >
+                <Map size={20} />
+              </button>
+            </div>
 
             {/* Pioneer Trail card */}
             <div style={{ background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "25px 19px 20px" }}>
 
               {/* Title — centered */}
-              <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 24, color: "#000", marginBottom: 20, textAlign: "center" }}>
+              <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000", marginBottom: 20, textAlign: "center" }}>
                 Pioneer Trail Challenge
               </div>
 
