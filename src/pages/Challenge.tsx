@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Map, ArrowLeft, Trophy, MapPin, Check } from "lucide-react";
+import { Plus, Map, ArrowLeft, Trophy, MapPin, Check, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,6 +52,28 @@ interface LeaderEntry {
   total_steps: number;
 }
 
+const TrophyBadge = ({ rank }: { rank: number }) => {
+  const color = "#6B553F";
+  const sz = rank === 1 ? 46 : rank === 2 ? 40 : 36;
+  const fontSize = rank === 1 ? 13 : 11;
+  return (
+    <svg width={sz} height={Math.round(sz * 1.15)} viewBox="0 0 44 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Cup body — flat top opening, curved bottom */}
+      <path d="M8 6H36V24C36 32.8 29.7 38 22 38C14.3 38 8 32.8 8 24V6Z" stroke={color} strokeWidth="2.2" fill="none" strokeLinejoin="round"/>
+      {/* Left handle */}
+      <path d="M8 10C4.5 10 3 13.5 3 17C3 20.5 4.5 22 8 22" stroke={color} strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      {/* Right handle */}
+      <path d="M36 10C39.5 10 41 13.5 41 17C41 20.5 39.5 22 36 22" stroke={color} strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+      {/* Stem */}
+      <line x1="22" y1="38" x2="22" y2="44" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Base */}
+      <rect x="14" y="44" width="16" height="4" rx="2" stroke={color} strokeWidth="2" fill="none"/>
+      {/* Rank number — sits at top of cup opening */}
+      <text x="22" y="18" textAnchor="middle" dominantBaseline="middle" fontFamily="Inter,sans-serif" fontWeight="900" fontSize={fontSize} fill={color}>{rank}</text>
+    </svg>
+  );
+};
+
 const Challenge = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -74,7 +96,7 @@ const Challenge = () => {
   });
 
   const communityPct = Math.min(100, (communitySteps / TRAIL_STEPS) * 100);
-  const pioneerPct = Math.max(0, Math.min(100, communityPct));
+  const pioneerPct = Math.max(5, Math.min(90, communityPct));
   const currentCity = [...TRAIL_WAYPOINTS].reverse().find(w => communityPct >= w.pct)?.name || "Nauvoo, IL";
 
   const myPct = Math.min(100, (mySteps / TRAIL_STEPS) * 100);
@@ -257,28 +279,28 @@ const Challenge = () => {
                 </span>
               </div>
 
-              {/* Progress bar area */}
-              <div style={{ position: "relative", height: 80 }}>
-                {/* Pioneer illustration — hugs the fill edge */}
-                <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 0, transform: `translateX(${-pioneerPct}%)`, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <img src="/Pioneerwalking.png" alt="" style={{ width: 44, height: 25, objectFit: "contain", transform: "rotate(-3deg)" }} />
+              {/* Progress bar area — matches ChallengeCard */}
+              <div style={{ position: "relative", height: 52 }}>
+                {/* Track */}
+                <div style={{ position: "absolute", left: 1, top: 45, right: 1, height: 7, background: "#fff", borderRadius: 7 }}>
+                  <div style={{ height: 7, background: "#98340a", borderRadius: 7, width: `${communityPct}%`, transition: "width 0.7s" }} />
                 </div>
 
-                {/* Bar */}
-                <div style={{ position: "absolute", bottom: 32, left: 0, right: 0, height: 7 }}>
-                  <div style={{ background: "#fff", borderRadius: 7, height: 7, width: "100%", position: "relative" }}>
-                    <div style={{ background: "#98340a", borderRadius: 7, height: 7, width: `${communityPct}%`, position: "absolute", top: 0, left: 0, minWidth: communityPct > 0 ? 6 : 0 }} />
-                  </div>
-                  <div style={{ position: "absolute", right: -10, top: -9 }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#c8441a">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                  </div>
+                {/* Pioneer */}
+                <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 8, transform: "translateX(-50%)", pointerEvents: "none" }}>
+                  <img src="/Pioneerwalking.png" alt="" style={{ width: 40, height: 23, objectFit: "contain", transform: "rotate(-3deg)" }} />
                 </div>
 
-                {/* Labels */}
-                <div style={{ position: "absolute", bottom: 0, left: 0, fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</div>
-                <div style={{ position: "absolute", bottom: 0, right: 0, fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#6e4731" }}>Salt Lake City, UT</div>
+                {/* Star at right end */}
+                <div style={{ position: "absolute", right: -4, top: 32 }}>
+                  <Star size={22} color="#c2410c" fill="#c2410c" />
+                </div>
+              </div>
+
+              {/* End labels */}
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Salt Lake City, UT</span>
               </div>
             </div>
 
@@ -298,19 +320,25 @@ const Challenge = () => {
                       onClick={() => !isFuture && navigate(`/log-steps?day=${dateStr}`)}
                       style={{ opacity: isFuture ? 0.36 : 1, cursor: isFuture ? "default" : "pointer" }}
                     >
-                      <div style={{ background: "#fff", border: "1px solid #d0d0d0", borderRadius: 25, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 19px" }}>
+                      <div style={{
+                        background: isToday ? "transparent" : "#fff",
+                        border: isToday ? "2px solid #2e0f02" : "1px solid #e8e1d4",
+                        borderRadius: 25,
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "14px 19px"
+                      }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                          <div style={{ width: 43, height: 43, background: isToday ? "#756a5e" : "#f7f2e5", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div style={{ width: 43, height: 43, background: isToday ? "#2e0f02" : "#f7f2e5", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : "#857769" }}>
                               {DAY_LETTERS[i]}
                             </span>
                           </div>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : 500, color: isToday ? "#756a5e" : "#857769" }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : 500, color: isToday ? "#2e0f02" : "#857769" }}>
                             {DAYS[i]}
                           </span>
                         </div>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                          {steps > 0 && (
+                          {!isFuture && (
                             <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 24, color: "#000" }}>
                               {steps.toLocaleString()}
                             </span>
@@ -344,17 +372,11 @@ const Challenge = () => {
                   return (
                     <div key={entry.user_id} style={{ display: "flex", alignItems: "center", paddingTop: 10, paddingBottom: 10 }}>
                       {/* Rank badge */}
-                      <div style={{ width: 56, height: 56, position: "relative", flexShrink: 0 }}>
-                        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "radial-gradient(circle, #e8dfd0 0%, #d4c8b5 100%)", position: "absolute" }} />
+                      <div style={{ width: 50, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {i < 3 ? (
-                          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-                            <Trophy size={17} color="#6b553f" />
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, color: "#6b553f", fontSize: 14, lineHeight: 1 }}>
-                              {i + 1}
-                            </span>
-                          </div>
+                          <TrophyBadge rank={i + 1} />
                         ) : (
-                          <span style={{ position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)", fontFamily: "'Inter', sans-serif", fontWeight: 800, color: "#6b553f", fontSize: 16, textAlign: "center", letterSpacing: -0.96 }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, color: "#6b553f", fontSize: 17, letterSpacing: -0.5 }}>
                             #{i + 1}
                           </span>
                         )}
