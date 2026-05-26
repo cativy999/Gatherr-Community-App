@@ -321,11 +321,11 @@ const Challenge = () => {
                       style={{ opacity: isFuture ? 0.36 : 1, cursor: isFuture ? "default" : "pointer" }}
                     >
                       <div style={{
-                        background: isToday ? "transparent" : "transparent",
-                        border: isToday ? "2px solid #2e0f02" : "none",
+                        background: "transparent",
+                        border: isToday ? "2px solid #2e0f02" : "1px solid #D0D0D0",
                         borderRadius: 25,
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "14px 4px"
+                        padding: "14px 18px"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                           <div style={{ width: 43, height: 43, background: isToday ? "#2e0f02" : "transparent", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
