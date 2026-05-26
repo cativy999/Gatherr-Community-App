@@ -321,19 +321,19 @@ const Challenge = () => {
                       style={{ opacity: isFuture ? 0.36 : 1, cursor: isFuture ? "default" : "pointer" }}
                     >
                       <div style={{
-                        background: isToday ? "transparent" : "#fff",
-                        border: isToday ? "2px solid #2e0f02" : "1px solid #e8e1d4",
+                        background: isToday ? "transparent" : "transparent",
+                        border: isToday ? "2px solid #2e0f02" : "none",
                         borderRadius: 25,
                         display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "14px 19px"
+                        padding: "14px 4px"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                          <div style={{ width: 43, height: 43, background: isToday ? "#2e0f02" : "#f7f2e5", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : "#857769" }}>
+                          <div style={{ width: 43, height: 43, background: isToday ? "#2e0f02" : "transparent", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : "#2e0f02" }}>
                               {DAY_LETTERS[i]}
                             </span>
                           </div>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : 500, color: isToday ? "#2e0f02" : "#857769" }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : 600, color: "#000" }}>
                             {DAYS[i]}
                           </span>
                         </div>
