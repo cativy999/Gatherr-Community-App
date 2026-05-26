@@ -195,26 +195,25 @@ const Challenge = () => {
               </div>
             </div>
 
-            <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, flexShrink: 0 }}>+</span>
-          </div>
-
-          {/* Overlapping participant avatars */}
-          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-            {leaderboard.filter(e => e.user_id !== userId).slice(0, 4).map((e, i) => (
-              <div key={e.user_id} style={{ marginRight: -12, zIndex: 10 - i, position: "relative" }}>
-                <Avatar style={{ width: 26, height: 26, border: "2px solid #f4f0e6" }}>
-                  <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
-                  <AvatarFallback style={{ fontSize: 8 }}>
-                    {e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            ))}
-            {leaderboard.length > 5 && (
-              <div style={{ width: 27, height: 27, background: "#2d2d2d", borderRadius: 13.5, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 12, flexShrink: 0 }}>
-                <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>+{leaderboard.length - 5}</span>
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20 }}>+</span>
+              {/* Overlapping participant avatars */}
+              {leaderboard.filter(e => e.user_id !== userId).slice(0, 4).map((e, i) => (
+                <div key={e.user_id} style={{ marginRight: -12, zIndex: 10 - i, position: "relative" }}>
+                  <Avatar style={{ width: 26, height: 26, border: "2px solid #f4f0e6" }}>
+                    <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
+                    <AvatarFallback style={{ fontSize: 8 }}>
+                      {e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ))}
+              {leaderboard.length > 5 && (
+                <div style={{ width: 27, height: 27, background: "#2d2d2d", borderRadius: 13.5, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 12, flexShrink: 0 }}>
+                  <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>+{leaderboard.length - 5}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
