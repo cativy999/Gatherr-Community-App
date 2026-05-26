@@ -31,6 +31,7 @@ import GroupProfile from "./pages/GroupProfile";
 import AccountInfo from "./pages/AccountInfo";
 import NotificationsPage from "./pages/NotificationsPage";
 import Challenge from "./pages/Challenge";
+import LogSteps from "./pages/LogSteps";
 import FeedbackButton from "@/components/FeedbackButton";
 
 // Redirect /e/:id → /event/:id (canonical URL for OG previews)
@@ -92,7 +93,7 @@ const AppLayout = () => {
   const { session } = useAuth();
   const { pathname } = useLocation();
 
-  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge"];
+  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge", "/log-steps"];
   const hideNavPatterns = ["/create-event"];
 
   if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
@@ -122,6 +123,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/account-info" element={<AccountInfo />} />
                 <Route path="/challenge" element={<Challenge />} />
+                <Route path="/log-steps" element={<LogSteps />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/event/:id" element={<EventDetails />} />
                 <Route path="/e/:id" element={<ShortEventRedirect />} />
