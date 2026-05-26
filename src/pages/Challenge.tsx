@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Map, ArrowLeft, Pencil, Trophy, MapPin, Check } from "lucide-react";
+import { Plus, Map, ArrowLeft, Trophy, MapPin, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const TRAIL_STEPS = 2_600_000;
@@ -65,11 +63,7 @@ const Challenge = () => {
   const [communitySteps, setCommunitySteps] = useState(0);
   const [weeklySteps, setWeeklySteps] = useState<Record<string, number>>({});
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([]);
-  const [logOpen, setLogOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const [logDay, setLogDay] = useState("");
-  const [inputSteps, setInputSteps] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const todayStr = toDateStr(new Date());
   const weekStart = getWeekStart();
@@ -80,7 +74,7 @@ const Challenge = () => {
   });
 
   const communityPct = Math.min(100, (communitySteps / TRAIL_STEPS) * 100);
-  const pioneerPct = Math.max(3, Math.min(92, communityPct));
+  const pioneerPct = Math.max(0, Math.min(100, communityPct));
   const currentCity = [...TRAIL_WAYPOINTS].reverse().find(w => communityPct >= w.pct)?.name || "Nauvoo, IL";
 
   const myPct = Math.min(100, (mySteps / TRAIL_STEPS) * 100);
@@ -154,34 +148,7 @@ const Challenge = () => {
 
   useEffect(() => { fetchData(); }, [userId]);
 
-  const openLog = (dateStr: string) => {
-    setLogDay(dateStr);
-    setInputSteps("");
-    setLogOpen(true);
-  };
-
-  const handleLog = async () => {
-    const steps = parseInt(inputSteps.replace(/,/g, ""));
-    if (!steps || steps <= 0 || !userId) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from("step_entries")
-      .insert({ user_id: userId, steps });
-    if (error) {
-      toast.error("Failed to log steps");
-    } else {
-      toast.success(`+${steps.toLocaleString()} steps logged! 🚶`);
-      setLogOpen(false);
-      setInputSteps("");
-      fetchData();
-    }
-    setSaving(false);
-  };
-
   const firstName = myName.split(" ")[0] || "Friend";
-  const logDayName = logDay
-    ? new Date(logDay + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })
-    : "Today";
 
   return (
     <div style={{ background: "#f4f0e6", minHeight: "100vh", paddingBottom: 100 }}>
@@ -260,7 +227,7 @@ const Challenge = () => {
 
             {/* Log Steps CTA */}
             <button
-              onClick={() => openLog(todayStr)}
+              onClick={() => navigate(`/log-steps?day=${todayStr}`)}
               style={{ width: "100%", background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
             >
               <Plus size={20} />
@@ -287,17 +254,14 @@ const Challenge = () => {
               </div>
 
               {/* Progress bar area */}
-              <div style={{ position: "relative", height: 92 }}>
-                {/* Pioneer + city label */}
-                <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 0, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, color: "#6e4731", whiteSpace: "nowrap", marginBottom: 2 }}>
-                    {currentCity}
-                  </span>
+              <div style={{ position: "relative", height: 80 }}>
+                {/* Pioneer illustration — hugs the fill edge */}
+                <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 0, transform: `translateX(${-pioneerPct}%)`, display: "flex", flexDirection: "column", alignItems: "center" }}>
                   <img src="/Pioneerwalking.png" alt="" style={{ width: 44, height: 25, objectFit: "contain", transform: "rotate(-3deg)" }} />
                 </div>
 
                 {/* Bar */}
-                <div style={{ position: "absolute", bottom: 40, left: 1, right: 8, height: 7 }}>
+                <div style={{ position: "absolute", bottom: 32, left: 0, right: 0, height: 7 }}>
                   <div style={{ background: "#fff", borderRadius: 7, height: 7, width: "100%", position: "relative" }}>
                     <div style={{ background: "#98340a", borderRadius: 7, height: 7, width: `${communityPct}%`, position: "absolute", top: 0, left: 0, minWidth: communityPct > 0 ? 6 : 0 }} />
                   </div>
@@ -309,7 +273,7 @@ const Challenge = () => {
                 </div>
 
                 {/* Labels */}
-                <div style={{ position: "absolute", bottom: 0, left: 1, fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</div>
+                <div style={{ position: "absolute", bottom: 0, left: 0, fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</div>
                 <div style={{ position: "absolute", bottom: 0, right: 0, fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#6e4731" }}>Salt Lake City, UT</div>
               </div>
             </div>
@@ -325,8 +289,12 @@ const Challenge = () => {
                   const isToday = dateStr === todayStr;
                   const isFuture = dateStr > todayStr;
                   return (
-                    <div key={dateStr} style={{ display: "flex", alignItems: "center", gap: 10, opacity: isFuture ? 0.36 : 1 }}>
-                      <div style={{ background: "#fff", border: "1px solid #d0d0d0", borderRadius: 25, flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 19px" }}>
+                    <div
+                      key={dateStr}
+                      onClick={() => !isFuture && navigate(`/log-steps?day=${dateStr}`)}
+                      style={{ opacity: isFuture ? 0.36 : 1, cursor: isFuture ? "default" : "pointer" }}
+                    >
+                      <div style={{ background: "#fff", border: "1px solid #d0d0d0", borderRadius: 25, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 19px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                           <div style={{ width: 43, height: 43, background: isToday ? "#756a5e" : "#f7f2e5", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : "#857769" }}>
@@ -346,11 +314,6 @@ const Challenge = () => {
                           <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, color: "#7c7c7c", fontSize: 13 }}>Steps</span>
                         </div>
                       </div>
-                      {!isFuture && (
-                        <button onClick={() => openLog(dateStr)} style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer" }}>
-                          <Pencil size={18} color="#555" />
-                        </button>
-                      )}
                     </div>
                   );
                 })}
@@ -494,68 +457,6 @@ const Challenge = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Log Steps Dialog ── */}
-      <Dialog open={logOpen} onOpenChange={setLogOpen}>
-        <DialogContent className="w-[calc(100%-40px)] max-w-[380px] rounded-[18px] p-0 overflow-y-auto" style={{ background: "#f4f0e6", border: "none", maxHeight: "90dvh" }}>
-          <div style={{ padding: "32px 24px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
-
-            {/* Title */}
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, color: "#000" }}>
-                Log Steps for {logDayName}
-              </div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14, marginTop: 6 }}>
-                Enter your steps manually
-              </div>
-            </div>
-
-            {/* Cowboy boots illustration — hidden on small screens */}
-            <img
-              src="/cowboyboots.png"
-              alt=""
-              className="hidden sm:block"
-              style={{ width: 110, height: 90, objectFit: "contain", transform: "scaleX(-1)" }}
-            />
-
-            {/* Input section */}
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24, paddingTop: 4 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 14, color: "#000", letterSpacing: "0.84px" }}>
-                  Steps
-                </label>
-                <input
-                  type="number"
-                  placeholder="e.g. 8,212"
-                  value={inputSteps}
-                  onChange={(e) => setInputSteps(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLog()}
-                  autoFocus
-                  style={{
-                    height: 64, borderRadius: 80, border: "2px solid #54715c",
-                    padding: "17px 23px", fontFamily: "'Inter', sans-serif",
-                    fontWeight: 600, fontSize: 14, letterSpacing: "0.84px",
-                    color: "#555", background: "transparent", outline: "none",
-                    width: "100%", boxSizing: "border-box"
-                  }}
-                />
-              </div>
-
-              <button
-                onClick={handleLog}
-                disabled={saving || !inputSteps}
-                style={{
-                  width: "100%", height: 52, background: "#2e0f02",
-                  color: "#fff", borderRadius: 27, border: "none", cursor: saving || !inputSteps ? "not-allowed" : "pointer",
-                  fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500,
-                  boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)", opacity: saving || !inputSteps ? 0.6 : 1
-                }}
-              >
-                {saving ? "Saving..." : "Save Steps"}
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
