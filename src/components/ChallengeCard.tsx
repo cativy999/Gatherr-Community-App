@@ -147,7 +147,7 @@ const ChallengeCard = () => {
             display: "block",
           }}
         >
-          Challnege
+          Challenge
         </span>
       </div>
 
