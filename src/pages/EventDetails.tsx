@@ -1477,7 +1477,7 @@ const EventDetails = () => {
               {event.address && (
                 <p className="text-sm text-muted-foreground">{formatAddress(event.address)}</p>
               )}
-              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200 }} onClick={() => setMapPickerOpen(true)}>
+              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200, border: "3px solid #fff", boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }} onClick={() => setMapPickerOpen(true)}>
                 <iframe
                   width="100%"
                   height="200"
