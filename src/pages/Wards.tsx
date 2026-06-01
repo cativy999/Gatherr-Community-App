@@ -53,6 +53,8 @@ const Wards = () => {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signInDismissed, setSignInDismissed] = useState(false);
+  const isLoggedIn = !!session || signInDismissed;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation, locationLat, locationLng } = useLocation();
@@ -350,7 +352,7 @@ const Wards = () => {
         <div className="max-w-4xl mx-auto space-y-8">
 
           {/* Challenge Card */}
-          {session && (
+          {isLoggedIn && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
@@ -367,7 +369,7 @@ const Wards = () => {
               <div className="space-y-3" ref={thisWeekRef}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
-                  {session && (
+                  {isLoggedIn && (
                     <button
                       onClick={() => {
                         const url = window.location.href;
@@ -401,10 +403,10 @@ const Wards = () => {
               {/* Wards Near You — hidden for now */}
 
               {/* Next Week + Later — soft gated for guests */}
-              <div className={!session ? "relative -mx-5 md:mx-0" : ""}>
+              <div className={!isLoggedIn ? "relative -mx-5 md:mx-0" : ""}>
 
               {/* Blurred content for guests */}
-              <div className={!session ? "pointer-events-none select-none blur-sm px-5 md:px-0" : ""}>
+              <div className={!isLoggedIn ? "pointer-events-none select-none blur-sm px-5 md:px-0" : ""}>
 
               {/* Next Week */}
 <div className="space-y-3" ref={nextWeekRef}>
@@ -445,7 +447,7 @@ const Wards = () => {
               </div>
 
               {/* Gradient fade for guests */}
-              {!session && (
+              {!isLoggedIn && (
                 <div className="absolute -top-8 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent via-white/90 to-white pointer-events-none" />
               )}
 
@@ -458,7 +460,7 @@ const Wards = () => {
       </main>
 
       {/* Floating sign-in card for guests — fixed so it stays visible while scrolling */}
-      {!session && (
+      {!session && !signInDismissed && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50 pointer-events-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-5 text-center space-y-3 max-w-sm w-full border border-gray-100">
             <p className="font-bold text-lg" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>See what's coming up 👀</p>
@@ -469,6 +471,12 @@ const Wards = () => {
               className="w-full py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors"
             >
               Sign In
+            </button>
+            <button
+              onClick={() => setSignInDismissed(true)}
+              className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Not now
             </button>
           </div>
         </div>
