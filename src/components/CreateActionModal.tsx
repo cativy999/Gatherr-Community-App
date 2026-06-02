@@ -63,23 +63,19 @@ const CreateActionModal = ({ open, onClose, isDesktop }: CreateActionModalProps)
   );
 
   if (isDesktop) {
+    if (!open) return null;
     return (
       <>
-        {/* Backdrop */}
+        {/* Backdrop — stopPropagation prevents click bleeding to page content */}
         <div
-          className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-200 ${
-            open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={onClose}
+          className="fixed inset-0 z-40 bg-black/30"
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
         />
         {/* Centered popup */}
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none`}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div
-            className={`bg-background rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto transition-all duration-200 ${
-              open ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
-            }`}
+            className="bg-background rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
@@ -103,7 +99,7 @@ const CreateActionModal = ({ open, onClose, isDesktop }: CreateActionModalProps)
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
-        onClick={onClose}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
       />
       {/* Bottom sheet */}
       <div
