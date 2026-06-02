@@ -312,7 +312,7 @@ const Wards = () => {
             <LocationSelector value={location} onChange={setLocation} />
             <button
               onClick={() => navigate("/search")}
-              className="absolute right-0 p-2 hover:bg-accent rounded-full transition-colors"
+              className="md:hidden absolute right-0 p-2 hover:bg-accent rounded-full transition-colors"
             >
               <Search className="h-5 w-5 text-foreground" />
             </button>

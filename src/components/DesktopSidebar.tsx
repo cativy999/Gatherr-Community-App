@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Calendar1, Plus, UsersRound, Search, User } from "lucide-react";
+import { House, Calendar1, Plus, UsersRound, Search, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateActionModal from "./CreateActionModal";
 
 const NAV_ITEMS = [
-  { id: "calendar",  label: "Calendar",  icon: Calendar1, path: "/events" },
-  { id: "plus",      label: "Create",    icon: Plus,      path: null },
+  { id: "home",      label: "Home",      icon: House,      path: "/wards" },
+  { id: "calendar",  label: "Calendar",  icon: Calendar1,  path: "/events" },
+  { id: "plus",      label: "Create",    icon: Plus,       path: null },
   { id: "community", label: "Community", icon: UsersRound, path: "/community" },
-  { id: "search",    label: "Search",    icon: Search,    path: "/search" },
-  { id: "profile",   label: "Profile",   icon: User,      path: "/profile" },
+  { id: "search",    label: "Search",    icon: Search,     path: "/search" },
+  { id: "profile",   label: "Profile",   icon: User,       path: "/profile" },
 ];
 
 const DesktopSidebar = () => {
@@ -38,8 +39,6 @@ const DesktopSidebar = () => {
         className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30 bg-background"
         style={{
           width: 80,
-          borderRight: "1px solid hsl(var(--border) / 0.4)",
-          // overflow must be visible so expanded pill can bleed past 80px
           overflow: "visible",
         }}
       >
@@ -70,12 +69,14 @@ const DesktopSidebar = () => {
                 style={{
                   position: "relative",
                   height: 44,
+                  // Explicit width = just the icon zone so click/hover area never bleeds into content
+                  width: 56,
                   cursor: "pointer",
                   overflow: "visible",
                   marginLeft: 12,
                 }}
               >
-                {/* Expanding pill background — absolutely positioned so it can bleed past sidebar */}
+                {/* Expanding pill background — absolute, visual only, no click capture */}
                 <div
                   style={{
                     position: "absolute",
@@ -87,21 +88,25 @@ const DesktopSidebar = () => {
                     borderRadius: 10,
                     transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), background 0.15s ease",
                     zIndex: 0,
+                    pointerEvents: "none",
                   }}
                 />
 
-                {/* Row: icon + label — must be 200px wide so label has room to expand */}
+                {/* Row: icon + label — absolute so it doesn't expand the parent's hit area */}
                 <div
                   style={{
-                    position: "relative",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
                     zIndex: 1,
                     display: "flex",
                     alignItems: "center",
                     height: 44,
                     width: 200,
+                    pointerEvents: "none",
                   }}
                 >
-                  {/* Icon */}
+                  {/* Icon — re-enable pointer events so cursor:pointer works */}
                   <div
                     style={{
                       width: 56,
@@ -109,6 +114,7 @@ const DesktopSidebar = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      pointerEvents: "auto",
                     }}
                   >
                     {item.id === "profile" && avatarUrl ? (
