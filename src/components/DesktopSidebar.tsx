@@ -36,10 +36,11 @@ const DesktopSidebar = () => {
   return (
     <>
       <aside
-        className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30 bg-background"
+        className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30"
         style={{
-          width: 80,
+          width: 96,
           overflow: "visible",
+          background: "transparent",
         }}
       >
         {/* Gather logo → home */}
@@ -84,7 +85,7 @@ const DesktopSidebar = () => {
                     left: 0,
                     height: 44,
                     width: isHovered ? 200 : 56,
-                    background: isHovered ? "hsl(var(--accent) / 0.5)" : "transparent",
+                    background: "transparent",
                     borderRadius: 10,
                     transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), background 0.15s ease",
                     zIndex: 0,
