@@ -63,54 +63,62 @@ const Search = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-5 pt-4 pb-3 space-y-3">
-        {/* Search bar */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 flex items-center gap-2 bg-accent/50 rounded-2xl px-3 py-2.5">
-            <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search wards, groups, events..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            {query && (
-              <button onClick={() => setQuery("")} className="text-muted-foreground text-xs">✕</button>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <div className="px-5 py-3">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Search</h1>
+          </div>
+        </div>
+        <div className="px-5 pb-3 space-y-3">
+          <div className="max-w-4xl mx-auto space-y-3">
+            {/* Search bar */}
+            <div className="flex items-center gap-2 bg-accent/50 rounded-2xl px-3 py-2.5">
+              <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search wards, groups, events..."
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              {query && (
+                <button onClick={() => setQuery("")} className="text-muted-foreground text-xs">✕</button>
+              )}
+            </div>
+
+            {/* Chips — only show when not searching */}
+            {!isSearching && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveChip("wards")}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                    activeChip === "wards"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-white text-foreground border-[#BBBBBB]"
+                  }`}
+                >
+                  Wards
+                </button>
+                <button
+                  onClick={() => setActiveChip("groups")}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                    activeChip === "groups"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-white text-foreground border-[#BBBBBB]"
+                  }`}
+                >
+                  Popular Groups
+                </button>
+              </div>
             )}
           </div>
         </div>
-
-        {/* Chips — only show when not searching */}
-        {!isSearching && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveChip("wards")}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                activeChip === "wards"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-white text-foreground border-[#BBBBBB]"
-              }`}
-            >
-              Wards
-            </button>
-            <button
-              onClick={() => setActiveChip("groups")}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                activeChip === "groups"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-white text-foreground border-[#BBBBBB]"
-              }`}
-            >
-              Popular Groups
-            </button>
-          </div>
-        )}
       </div>
 
-      <main className="flex-1 px-5 py-4 space-y-6">
+      <main className="flex-1 px-5 py-4">
+        <div className="max-w-4xl mx-auto space-y-6">
 
         {/* ── Browse mode (no query) ── */}
         {!isSearching && activeChip === "wards" && (
@@ -239,6 +247,7 @@ const Search = () => {
             )}
           </div>
         )}
+        </div>
       </main>
     </div>
   );
