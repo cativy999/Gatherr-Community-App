@@ -8,6 +8,10 @@
       "missing": [{ "type": "query", "key": "direct" }],
       "destination": "/api/og/:id"
     },
+    {
+      "source": "/challenge",
+      "destination": "/api/challenge-og"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
