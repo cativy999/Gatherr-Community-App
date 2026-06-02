@@ -1045,7 +1045,7 @@ const EventDetails = () => {
                       </span>
                     </div>
                     <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
-                      <span className="text-base font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>🔁</span>
+                      <span className="text-[10px] font-bold leading-none text-foreground tracking-tight uppercase" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Every</span>
                     </div>
                   </>
                 ) : (

@@ -122,7 +122,7 @@ const App = () => (
             <BrowserRouter>
               <AuthListener />
               <DesktopSidebarLayout />
-              <div className="md:pl-20">
+              <div className="md:pl-24">
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />

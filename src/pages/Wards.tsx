@@ -382,8 +382,8 @@ const Wards = () => {
                           toast.success("Link copied!");
                         }
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-all active:scale-95"
-                      style={{ background: "linear-gradient(135deg, #FF3FA5 0%, #FF8C42 100%)" }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-95"
+                      style={{ background: "#F6D581", color: "#000" }}
                     >
                       <span>🎉</span>
                       Invite friends
@@ -424,7 +424,7 @@ const Wards = () => {
 </div>
 
               {/* Later */}
-<div className="space-y-3" ref={laterRef}>
+<div className="space-y-3 mt-8" ref={laterRef}>
   <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
   {later.filter(e => !e.is_recurring).length > 0 ? (
     <div className="space-y-6">

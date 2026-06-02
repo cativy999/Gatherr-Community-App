@@ -245,14 +245,33 @@ const Challenge = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
-            {/* Log Steps CTA */}
-            <button
-              onClick={() => navigate(`/log-steps?day=${todayStr}`)}
-              style={{ width: "100%", background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
-            >
-              <Plus size={20} />
-              Log Your Steps Today
-            </button>
+            {/* Log Steps CTA + Share */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => navigate(`/log-steps?day=${todayStr}`)}
+                style={{ flex: 1, background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
+              >
+                <Plus size={20} />
+                Log Your Steps Today
+              </button>
+              <button
+                onClick={() => {
+                  const text = `I've walked ${mySteps.toLocaleString()} steps on the Pioneer Trail Challenge! 🥾 Join me on Gatherr and let's walk to Salt Lake City together.`;
+                  const url = "https://gatherr-one.vercel.app/challenge";
+                  if (navigator.share) {
+                    navigator.share({ title: "Pioneer Trail Challenge", text, url }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(`${text} ${url}`);
+                    toast.success("Copied to clipboard!");
+                  }
+                }}
+                style={{ width: 52, height: 52, background: "#e8e1d0", borderRadius: 26, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                </svg>
+              </button>
+            </div>
 
             {/* Pioneer Trail card — flips to Trail Milestones */}
             <div
