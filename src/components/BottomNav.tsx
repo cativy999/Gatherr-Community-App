@@ -86,7 +86,7 @@ const BottomNav = () => {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-20"
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-20"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
       >
         <div className="flex items-center justify-around max-w-4xl mx-auto px-2" style={{ height: "64px" }}>

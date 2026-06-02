@@ -33,6 +33,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import Challenge from "./pages/Challenge";
 import LogSteps from "./pages/LogSteps";
 import FeedbackButton from "@/components/FeedbackButton";
+import DesktopSidebar from "@/components/DesktopSidebar";
 
 // Redirect /e/:id → /event/:id (canonical URL for OG previews)
 const ShortEventRedirect = () => {
@@ -89,16 +90,25 @@ const AuthListener = () => {
   return null;
 };
 
+const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge", "/log-steps"];
+const hideNavPatterns = ["/create-event"];
+
 const AppLayout = () => {
   const { session } = useAuth();
   const { pathname } = useLocation();
 
-  const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge", "/log-steps"];
-  const hideNavPatterns = ["/create-event"];
-
   if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
 
   return <BottomNav />;
+};
+
+const DesktopSidebarLayout = () => {
+  const { session } = useAuth();
+  const { pathname } = useLocation();
+
+  if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
+
+  return <DesktopSidebar />;
 };
 
 const App = () => (
@@ -111,6 +121,8 @@ const App = () => (
             <Sonner duration={1400} />
             <BrowserRouter>
               <AuthListener />
+              <DesktopSidebarLayout />
+              <div className="md:pl-20">
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />
@@ -138,6 +150,7 @@ const App = () => (
                 <Route path="/community" element={<Community />} />
                 <Route path="/group/:id" element={<GroupProfile />} />
               </Routes>
+              </div>
               <AppLayout />
               <FeedbackButton />
             </BrowserRouter>
