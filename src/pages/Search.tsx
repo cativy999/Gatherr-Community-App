@@ -66,14 +66,8 @@ const Search = () => {
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-5 pt-4 pb-3 space-y-3">
-        {/* Back + Search bar */}
+        {/* Search bar */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-accent rounded-full transition-colors flex-shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
           <div className="flex-1 flex items-center gap-2 bg-accent/50 rounded-2xl px-3 py-2.5">
             <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <input

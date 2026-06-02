@@ -84,7 +84,7 @@ const DesktopSidebar = () => {
                     left: 0,
                     height: 44,
                     width: isHovered ? 200 : 56,
-                    background: isHovered ? "hsl(var(--accent))" : "transparent",
+                    background: isHovered ? "hsl(var(--accent) / 0.5)" : "transparent",
                     borderRadius: 10,
                     transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), background 0.15s ease",
                     zIndex: 0,
