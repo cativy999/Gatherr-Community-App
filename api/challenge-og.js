@@ -5,7 +5,7 @@ export default function handler(req, res) {
   const isBot = /facebookexternalhit|twitterbot|slackbot|whatsapp|telegram|discord|linkedinbot|applebot|iMessage|Messages/i.test(userAgent);
 
   if (!isBot) {
-    return res.redirect(302, `${BASE_URL}/?redirect=/challenge`);
+    return res.redirect(302, `${BASE_URL}/wards`);
   }
 
   const title = "Pioneer Trail Challenge 🥾";
