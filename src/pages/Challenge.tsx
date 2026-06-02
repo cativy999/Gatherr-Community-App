@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Map, ArrowLeft, Trophy, MapPin, Check, Star } from "lucide-react";
+import { Plus, ArrowLeft, Trophy, MapPin, Check, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -86,6 +86,7 @@ const Challenge = () => {
   const [weeklySteps, setWeeklySteps] = useState<Record<string, number>>({});
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
+  const [cardFlipped, setCardFlipped] = useState(false);
 
   const todayStr = toDateStr(new Date());
   const weekStart = getWeekStart();
@@ -118,7 +119,7 @@ const Challenge = () => {
 
     const { data: myEntries } = await supabase
       .from("step_entries")
-      .select("steps, created_at")
+      .select("steps, logged_date, created_at")
       .eq("user_id", userId);
 
     const totalMySteps = (myEntries ?? []).reduce((s, e) => s + e.steps, 0);
@@ -126,7 +127,8 @@ const Challenge = () => {
 
     const weekly: Record<string, number> = {};
     (myEntries ?? []).forEach((e) => {
-      const entryDate = e.created_at?.slice(0, 10);
+      // Use `logged_date` column if set, fall back to created_at for old entries
+      const entryDate = e.logged_date ?? e.created_at?.slice(0, 10);
       if (entryDate && entryDate >= toDateStr(weekStart)) {
         weekly[entryDate] = (weekly[entryDate] || 0) + e.steps;
       }
@@ -243,64 +245,97 @@ const Challenge = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
-            {/* Log Steps CTA + Map button row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button
-                onClick={() => navigate(`/log-steps?day=${todayStr}`)}
-                style={{ flex: 1, background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
-              >
-                <Plus size={20} />
-                Log Your Steps Today
-              </button>
-              <button
-                onClick={() => setMapOpen(true)}
-                style={{ width: 52, height: 52, background: "#e8e1d0", borderRadius: 26, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-              >
-                <Map size={20} />
-              </button>
-            </div>
+            {/* Log Steps CTA */}
+            <button
+              onClick={() => navigate(`/log-steps?day=${todayStr}`)}
+              style={{ width: "100%", background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
+            >
+              <Plus size={20} />
+              Log Your Steps Today
+            </button>
 
-            {/* Pioneer Trail card */}
-            <div style={{ background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "25px 19px 20px" }}>
-
-              {/* Title — centered */}
-              <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000", marginBottom: 20, textAlign: "center" }}>
-                Pioneer Trail Challenge
-              </div>
-
-              {/* Total steps — centered */}
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 11, marginBottom: 24 }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>Total</span>
-                <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 27, color: "#000" }}>
-                  {communitySteps.toLocaleString()}
-                </span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>
-                  / {TRAIL_STEPS.toLocaleString()} steps
-                </span>
-              </div>
-
-              {/* Progress bar area — matches ChallengeCard */}
-              <div style={{ position: "relative", height: 52 }}>
-                {/* Track */}
-                <div style={{ position: "absolute", left: 1, top: 45, right: 1, height: 7, background: "#fff", borderRadius: 7 }}>
-                  <div style={{ height: 7, background: "#98340a", borderRadius: 7, width: `${communityPct}%`, transition: "width 0.7s" }} />
+            {/* Pioneer Trail card — flips to Trail Milestones */}
+            <div
+              onClick={() => setCardFlipped(f => !f)}
+              style={{ perspective: 1000, cursor: "pointer" }}
+            >
+              <div style={{
+                position: "relative",
+                transformStyle: "preserve-3d",
+                transition: "transform 0.55s cubic-bezier(0.4,0,0.2,1)",
+                transform: cardFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+              }}>
+                {/* ── FRONT: progress card ── */}
+                <div style={{ background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "25px 19px 20px", backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+                  <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000", marginBottom: 20, textAlign: "center" }}>
+                    Pioneer Trail Challenge
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 11, marginBottom: 24 }}>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>Total</span>
+                    <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 27, color: "#000" }}>
+                      {communitySteps.toLocaleString()}
+                    </span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>
+                      / {TRAIL_STEPS.toLocaleString()} steps
+                    </span>
+                  </div>
+                  <div style={{ position: "relative", height: 52 }}>
+                    <div style={{ position: "absolute", left: 1, top: 45, right: 1, height: 7, background: "#fff", borderRadius: 7 }}>
+                      <div style={{ height: 7, background: "#98340a", borderRadius: 7, width: `${communityPct}%`, transition: "width 0.7s" }} />
+                    </div>
+                    <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 8, transform: "translateX(-50%)", pointerEvents: "none" }}>
+                      <img src="/Pioneerwalking.png" alt="" style={{ width: 40, height: 23, objectFit: "contain", transform: "rotate(-3deg)" }} />
+                    </div>
+                    <div style={{ position: "absolute", right: -4, top: 32 }}>
+                      <Star size={22} color="#c2410c" fill="#c2410c" />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Salt Lake City, UT</span>
+                  </div>
+                  <div style={{ textAlign: "center", marginTop: 14, fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#aaa" }}>
+                    Tap to see Trail Milestones
+                  </div>
                 </div>
 
-                {/* Pioneer */}
-                <div style={{ position: "absolute", left: `${pioneerPct}%`, top: 8, transform: "translateX(-50%)", pointerEvents: "none" }}>
-                  <img src="/Pioneerwalking.png" alt="" style={{ width: 40, height: 23, objectFit: "contain", transform: "rotate(-3deg)" }} />
+                {/* ── BACK: Trail Milestones ── */}
+                <div style={{
+                  position: "absolute", top: 0, left: 0, right: 0,
+                  background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "25px 19px 20px",
+                  backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
+                  transform: "rotateY(180deg)",
+                }}>
+                  <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000", marginBottom: 16, textAlign: "center" }}>
+                    Trail Milestones
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {MILESTONES.map((m) => {
+                      const reached = communityMiles >= m.miles;
+                      return (
+                        <div key={m.label} style={{ background: "#fff", borderRadius: 25, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: reached ? "#857769" : "#f7f2e5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {reached && <Check size={13} color="#fff" strokeWidth={3} />}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                            <MapPin size={14} color="#6b553f" style={{ flexShrink: 0 }} />
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#6b553f", whiteSpace: "nowrap" }}>
+                              {m.label}
+                            </span>
+                            {m.subtitle && (
+                              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 12, color: "rgba(107,85,63,0.45)", whiteSpace: "nowrap" }}>
+                                {m.subtitle}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ textAlign: "center", marginTop: 14, fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#aaa" }}>
+                    Tap to go back
+                  </div>
                 </div>
-
-                {/* Star at right end */}
-                <div style={{ position: "absolute", right: -4, top: 32 }}>
-                  <Star size={22} color="#c2410c" fill="#c2410c" />
-                </div>
-              </div>
-
-              {/* End labels */}
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Nauvoo, IL</span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#6e4731" }}>Salt Lake City, UT</span>
               </div>
             </div>
 
@@ -314,6 +349,7 @@ const Challenge = () => {
                   const steps = weeklySteps[dateStr] || 0;
                   const isToday = dateStr === todayStr;
                   const isFuture = dateStr > todayStr;
+                  const isPast = dateStr < todayStr;
                   return (
                     <div
                       key={dateStr}
@@ -329,11 +365,11 @@ const Challenge = () => {
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                           <div style={{ width: 43, height: 43, background: isToday ? "#2e0f02" : "transparent", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : "#2e0f02" }}>
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: 20, color: isToday ? "#fff" : isPast ? "rgba(46, 16, 1, 0.37)" : "#2e0f02" }}>
                               {DAY_LETTERS[i]}
                             </span>
                           </div>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : 600, color: "#000" }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: isToday ? 700 : isPast ? 400 : 600, color: isPast ? "rgba(46, 16, 1, 0.37)" : "#000" }}>
                             {DAYS[i]}
                           </span>
                         </div>

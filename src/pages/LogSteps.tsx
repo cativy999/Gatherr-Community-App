@@ -35,7 +35,7 @@ const LogSteps = () => {
     setSaving(true);
     const { error } = await supabase
       .from("step_entries")
-      .insert({ user_id: userId, steps });
+      .insert({ user_id: userId, steps, logged_date: day });
     if (error) {
       toast.error("Failed to log steps");
       setSaving(false);
@@ -83,17 +83,8 @@ const LogSteps = () => {
             <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 24, color: "#000" }}>
               Log Steps for {dayName}
             </div>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14, marginTop: 8 }}>
-              Enter your steps manually
-            </div>
           </div>
 
-          {/* Cowboy boots illustration */}
-          <img
-            src="/cowboyboots.png"
-            alt=""
-            style={{ width: 140, height: 110, objectFit: "contain", transform: "scaleX(-1)", marginTop: 8 }}
-          />
 
           {/* Input section */}
           <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16, marginTop: 8 }}>
