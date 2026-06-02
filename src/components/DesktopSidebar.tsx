@@ -46,7 +46,7 @@ const DesktopSidebar = () => {
         {/* Gather logo → home */}
         <div
           className="cursor-pointer flex items-center"
-          style={{ paddingLeft: 20, paddingTop: 44, paddingBottom: 40 }}
+          style={{ paddingLeft: 20, paddingRight: 16, paddingTop: 44, paddingBottom: 40 }}
           onClick={() => navigate("/wards")}
         >
           <img src="/GatherLOGO.png" alt="Gather" style={{ height: 28, width: "auto", objectFit: "contain" }} />
@@ -85,7 +85,7 @@ const DesktopSidebar = () => {
                     left: 0,
                     height: 44,
                     width: isHovered ? 200 : 56,
-                    background: "transparent",
+                    background: isHovered ? "rgba(255,255,255,0.75)" : "transparent",
                     borderRadius: 10,
                     transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), background 0.15s ease",
                     zIndex: 0,
