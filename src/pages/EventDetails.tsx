@@ -1316,7 +1316,6 @@ const EventDetails = () => {
             <div className="space-y-1">
               {/* Section header */}
               <div className="w-full flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                <Balloon className="h-[18px] w-[18px] flex-shrink-0" />
                 <span className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                   Additional Details
                 </span>
@@ -1366,7 +1365,7 @@ const EventDetails = () => {
                             <div style={{ overflow: 'hidden', minHeight: 0 }}>
                               <div className="w-full pl-[26px] pb-2">
                                 <div
-                                  className="pl-6 pb-4 pr-2 text-sm font-semibold leading-relaxed whitespace-pre-wrap text-left"
+                                  className="pl-6 pb-4 pr-2 text-sm font-normal leading-relaxed whitespace-pre-wrap text-left"
                                   style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: 'rgba(0,0,0,0.5)' }}
                                 >
                                   {item.description}
