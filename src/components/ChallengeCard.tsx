@@ -87,7 +87,7 @@ const ChallengeCard = () => {
   const currentCity = getCurrentCity(pct);
 
   // Clamp so pioneer + label don't overflow edges
-  const pioneerPct = Math.max(5, Math.min(90, pct));
+  const pioneerPct = Math.max(5, Math.min(88, pct));
 
   const handleClick = () => navigate("/challenge");
   const handleBtn = (e: React.MouseEvent) => {
@@ -104,10 +104,11 @@ const ChallengeCard = () => {
         borderRadius: 13,
         position: "relative",
         width: "100%",
-        height: hasJoined ? 188 : 124,
+        height: hasJoined ? 210 : 124,
         overflow: "hidden",
         cursor: "pointer",
         userSelect: "none",
+        overflow: "hidden",
       }}
     >
       {/* ── Title: "Step" + pioneer inline ── */}
@@ -264,7 +265,7 @@ const ChallengeCard = () => {
             position: "absolute",
             left: "50%",
             transform: "translateX(-50%)",
-            top: 88,
+            top: 100,
             width: "calc(100% - 50px)",
           }}
         >
@@ -289,62 +290,74 @@ const ChallengeCard = () => {
                   height: 7,
                   background: "#98340a",
                   borderRadius: 7,
-                  width: `${pct}%`,
+                  width: `${pioneerPct}%`,
                   transition: "width 0.7s",
                 }}
               />
             </div>
 
-            {/* Pioneer + city label — travel together at current % */}
-            <div
-              style={{
-                position: "absolute",
-                left: `${pioneerPct}%`,
-                top: 0,
-                transform: "translateX(-50%)",
-                pointerEvents: "none",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              {/* City name hovering above the figure */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  background: "rgba(241,230,198,0.9)",
-                  borderRadius: 8,
-                  padding: "1px 4px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <MapPin size={9} color="#2E0F02" strokeWidth={2.5} />
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    fontFamily: "'Hanken Grotesk', sans-serif",
-                    color: "#2E0F02",
-                  }}
-                >
-                  {currentCity}
-                </span>
-              </div>
+            {/* Label floating directly above pioneer center */}
+            <div style={{
+              position: "absolute",
+              left: `${pioneerPct}%`,
+              top: 0,
+              transform: "translateX(-50%)",
+              pointerEvents: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              background: "rgba(241,230,198,0.9)",
+              borderRadius: 8,
+              padding: "1px 6px",
+              whiteSpace: "nowrap",
+            }}>
+              <MapPin size={9} color="#2E0F02" strokeWidth={2.5} />
+              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", color: "#2E0F02" }}>
+                {currentCity}
+              </span>
+            </div>
 
-              {/* Pioneer illustration */}
-              <img
-                src="/Pioneerwalking.png"
-                alt=""
-                style={{
-                  width: 40,
-                  height: 23,
-                  objectFit: "contain",
-                  transform: "rotate(-3deg)",
-                }}
-              />
+            {/* Pioneer + avatars — left edge anchored to fill end */}
+            <div style={{
+              position: "absolute",
+              left: `${pioneerPct}%`,
+              top: 18,
+              transform: "translateX(-20px)",
+              pointerEvents: "none",
+            }}>
+              {/* Pioneer + avatars row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <img
+                  src="/Pioneerwalking.png"
+                  alt=""
+                  style={{ width: 40, height: 23, objectFit: "contain", transform: "rotate(-3deg)", flexShrink: 0 }}
+                />
+                {/* Overlapping avatars next to pioneer */}
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {participants.slice(0, 2).map((p, i) =>
+                    p.avatar_url ? (
+                      <img
+                        key={p.user_id}
+                        src={p.avatar_url}
+                        referrerPolicy="no-referrer"
+                        style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", border: "2px solid #F1E6C6", marginLeft: i > 0 ? -7 : 0 }}
+                      />
+                    ) : (
+                      <div
+                        key={p.user_id}
+                        style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: getInitialColor(p.name), border: "2px solid #F1E6C6", marginLeft: i > 0 ? -7 : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff" }}
+                      >
+                        {p.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )
+                  )}
+                  {participantCount > 0 && (
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#2d2d2d", border: "2px solid #F1E6C6", marginLeft: -7, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#fff", fontSize: 7, fontWeight: 800 }}>+{participantCount}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Star at right end */}
