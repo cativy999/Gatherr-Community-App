@@ -87,6 +87,8 @@ const Challenge = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
   const [cardFlipped, setCardFlipped] = useState(false);
+  const [participantsFlipped, setParticipantsFlipped] = useState(false);
+  const [journeyDays, setJourneyDays] = useState(0);
 
   const todayStr = toDateStr(new Date());
   const weekStart = getWeekStart();
@@ -137,7 +139,15 @@ const Challenge = () => {
 
     const { data: allEntries } = await supabase
       .from("step_entries")
-      .select("user_id, steps");
+      .select("user_id, steps, created_at");
+
+    // Calculate journey days from first ever log
+    if (allEntries && allEntries.length > 0) {
+      const earliest = allEntries.reduce((min, e) =>
+        e.created_at < min ? e.created_at : min, allEntries[0].created_at);
+      const days = Math.floor((Date.now() - new Date(earliest).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      setJourneyDays(days);
+    }
 
     if (allEntries) {
       const communityTotal = allEntries.reduce((s, e) => s + e.steps, 0);
@@ -219,27 +229,74 @@ const Challenge = () => {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20 }}>+</span>
-              {/* Overlapping participant avatars */}
-              {leaderboard.filter(e => e.user_id !== userId).slice(0, 4).map((e, i) => (
-                <div key={e.user_id} style={{ marginRight: -12, zIndex: 10 - i, position: "relative" }}>
-                  <Avatar style={{ width: 26, height: 26, border: "2px solid #f4f0e6" }}>
-                    <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
-                    <AvatarFallback style={{ fontSize: 8 }}>
-                      {e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              ))}
-              {leaderboard.length > 5 && (
-                <div style={{ width: 27, height: 27, background: "#2d2d2d", borderRadius: 13.5, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: 12, flexShrink: 0 }}>
-                  <span style={{ color: "#fff", fontSize: 9, fontWeight: 800 }}>+{leaderboard.length - 5}</span>
+            {/* Scattered avatar cluster — clickable to flip */}
+            <div
+              onClick={() => setParticipantsFlipped(f => !f)}
+              style={{ cursor: "pointer", position: "relative", width: 68, height: 58, flexShrink: 0 }}
+            >
+              {leaderboard.filter(e => e.user_id !== userId).slice(0, 4).map((e, i) => {
+                // Scatter positions matching Figma layout
+                const positions = [
+                  { left: 8,  top: 12 },
+                  { left: 28, top: 6  },
+                  { left: 12, top: 33 },
+                  { left: 46, top: 16 },
+                ];
+                const pos = positions[i] || { left: i * 14, top: 10 };
+                return (
+                  <div key={e.user_id} style={{ position: "absolute", left: pos.left, top: pos.top, zIndex: 4 - i }}>
+                    <Avatar style={{ width: 22, height: 22, border: "2px solid #f4f0e6" }}>
+                      <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
+                      <AvatarFallback style={{ fontSize: 7 }}>
+                        {e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                );
+              })}
+              {leaderboard.length > 4 && (
+                <div style={{ position: "absolute", left: 35, top: 37, width: 22, height: 22, background: "#2d2d2d", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5 }}>
+                  <span style={{ color: "#fff", fontSize: 7, fontWeight: 800 }}>+{leaderboard.length - 4}</span>
                 </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* ── Participants flip panel ── */}
+        {participantsFlipped && (
+          <div style={{ marginBottom: 16, perspective: 1000 }}>
+            <div style={{ background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "20px 19px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 16, color: "#000" }}>Who's Walking</div>
+                <button onClick={() => setParticipantsFlipped(false)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#aaa" }}>Close</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {leaderboard.map((e) => (
+                  <div key={e.user_id} style={{ background: "#fff", borderRadius: 20, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar style={{ width: 36, height: 36, flexShrink: 0 }}>
+                      <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
+                      <AvatarFallback style={{ fontSize: 12 }}>{e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}</AvatarFallback>
+                    </Avatar>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#000", flex: 1 }}>{e.name}{e.user_id === userId ? " (you)" : ""}</span>
+                    <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 14, color: "#6b553f" }}>{e.total_steps.toLocaleString()}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#aaa" }}>steps</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Journey days banner ── */}
+        {journeyDays > 0 && (
+          <div style={{ background: "#e8e1d0", borderRadius: 16, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 18 }}>🥾</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#2e0f02" }}>
+              Day {journeyDays} of our journey together
+            </span>
+          </div>
+        )}
 
         {/* ── Main content ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
@@ -418,7 +475,7 @@ const Challenge = () => {
               {leaderboard.length === 0 ? (
                 <p style={{ color: "#888", textAlign: "center", padding: "32px 0", fontSize: 14 }}>No steps logged yet. Be the first!</p>
               ) : (
-                leaderboard.map((entry, i) => {
+                leaderboard.slice(0, 5).map((entry, i) => {
                   const isMe = entry.user_id === userId;
                   const maxSteps = leaderboard[0]?.total_steps || 1;
                   const barPct = Math.max(2, (entry.total_steps / maxSteps) * 100);
