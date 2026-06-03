@@ -263,39 +263,35 @@ const Challenge = () => {
           </div>
         </div>
 
-        {/* ── Participants flip panel ── */}
+        {/* ── Participants popup ── */}
         {participantsFlipped && (
-          <div style={{ marginBottom: 16, perspective: 1000 }}>
-            <div style={{ background: "#f6f4ee", border: "2px dashed #202020", borderRadius: 24, padding: "20px 19px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 16, color: "#000" }}>Who's Walking</div>
-                <button onClick={() => setParticipantsFlipped(false)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#aaa" }}>Close</button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {leaderboard.map((e) => (
-                  <div key={e.user_id} style={{ background: "#fff", borderRadius: 20, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-                    <Avatar style={{ width: 36, height: 36, flexShrink: 0 }}>
-                      <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
-                      <AvatarFallback style={{ fontSize: 12 }}>{e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#000", flex: 1 }}>{e.name}{e.user_id === userId ? " (you)" : ""}</span>
-                    <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 14, color: "#6b553f" }}>{e.total_steps.toLocaleString()}</span>
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#aaa" }}>steps</span>
-                  </div>
-                ))}
+          <>
+            <div
+              style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.4)" }}
+              onClick={() => setParticipantsFlipped(false)}
+            />
+            <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px", pointerEvents: "none" }}>
+              <div style={{ background: "#f4f0e6", borderRadius: 24, padding: "24px 20px", width: "100%", maxWidth: 400, pointerEvents: "auto", maxHeight: "80vh", overflowY: "auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000" }}>Who's Walking</div>
+                  <button onClick={() => setParticipantsFlipped(false)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#aaa" }}>Close</button>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {leaderboard.map((e) => (
+                    <div key={e.user_id} style={{ background: "#fff", borderRadius: 20, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <Avatar style={{ width: 36, height: 36, flexShrink: 0 }}>
+                        <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
+                        <AvatarFallback style={{ fontSize: 12 }}>{e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#000", flex: 1 }}>{e.name}{e.user_id === userId ? " (you)" : ""}</span>
+                      <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 14, color: "#6b553f" }}>{e.total_steps.toLocaleString()}</span>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#aaa" }}>steps</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── Journey days banner ── */}
-        {journeyDays > 0 && (
-          <div style={{ background: "#e8e1d0", borderRadius: 16, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 18 }}>🥾</span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: "#2e0f02" }}>
-              Day {journeyDays} of our journey together
-            </span>
-          </div>
+          </>
         )}
 
         {/* ── Main content ── */}
@@ -382,8 +378,15 @@ const Challenge = () => {
                   backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
                   transform: "rotateY(180deg)",
                 }}>
-                  <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000", marginBottom: 16, textAlign: "center" }}>
-                    Trail Milestones
+                  <div style={{ textAlign: "center", marginBottom: 16 }}>
+                    <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000" }}>
+                      Trail Milestones
+                    </div>
+                    {journeyDays > 0 && (
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#888", marginTop: 4 }}>
+                        Day {journeyDays} of our journey together
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {MILESTONES.map((m) => {
