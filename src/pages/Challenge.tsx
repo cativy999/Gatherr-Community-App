@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, ArrowLeft, Trophy, MapPin, Check, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -6,6 +6,73 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+
+// Inject digit animation keyframes once
+if (typeof document !== "undefined" && !document.getElementById("digit-roll-style")) {
+  const s = document.createElement("style");
+  s.id = "digit-roll-style";
+  s.textContent = `
+    @keyframes digitRoll {
+      0%   { transform: translateY(120%); opacity: 0; }
+      60%  { transform: translateY(-18%); opacity: 1; }
+      100% { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes cardRise {
+      0%   { transform: translateY(16px); opacity: 0; }
+      100% { transform: translateY(0);    opacity: 1; }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+const AnimatedSteps = ({ value }: { value: number }) => {
+  const [key, setKey] = useState(0);
+  const prev = useRef(value);
+
+  useEffect(() => {
+    if (value !== prev.current) {
+      prev.current = value;
+      setKey(k => k + 1);
+    }
+  }, [value]);
+
+  const str = value.toLocaleString();
+  // Build list of chars with their digit-index (right to left, skipping commas)
+  let digitPos = 0;
+  const chars = str.split("").map((ch) => {
+    if (ch === ",") return { ch, delay: 0, isComma: true };
+    const d = digitPos++;
+    return { ch, delay: d * 60, isComma: false };
+  }).reverse().map(c => c); // already built with right-to-left delay
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "baseline" }}>
+      {str.split("").map((ch, i) => {
+        if (ch === ",") return (
+          <span key={`${key}-${i}`} style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 27, color: "#000" }}>{ch}</span>
+        );
+        // digit index from right (skip commas)
+        const rightIdx = str.slice(i + 1).replace(/,/g, "").length;
+        const delay = rightIdx * 40;
+        return (
+          <span
+            key={`${key}-${i}`}
+            style={{
+              display: "inline-block",
+              overflow: "hidden",
+              fontFamily: "'Holtwood One SC', serif",
+              fontSize: 27,
+              color: "#000",
+              animation: key > 0 ? `digitRoll 0.3s ${delay}ms cubic-bezier(0.22,1,0.36,1) both` : "none",
+            }}
+          >
+            {ch}
+          </span>
+        );
+      })}
+    </span>
+  );
+};
 
 const TRAIL_STEPS = 2_600_000;
 const STEPS_PER_MILE = 2000;
@@ -277,8 +344,11 @@ const Challenge = () => {
                   <button onClick={() => setParticipantsFlipped(false)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#aaa" }}>Close</button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {leaderboard.map((e) => (
-                    <div key={e.user_id} style={{ background: "#fff", borderRadius: 20, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                  {leaderboard.map((e, i) => (
+                    <div key={e.user_id} style={{
+                      background: "#fff", borderRadius: 20, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12,
+                      animation: `cardRise 0.6s ${i * 90}ms cubic-bezier(0.16,1,0.3,1) both`,
+                    }}>
                       <Avatar style={{ width: 36, height: 36, flexShrink: 0 }}>
                         <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
                         <AvatarFallback style={{ fontSize: 12 }}>{e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}</AvatarFallback>
@@ -344,9 +414,7 @@ const Challenge = () => {
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 11, marginBottom: 24 }}>
                     <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>Total</span>
-                    <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 27, color: "#000" }}>
-                      {communitySteps.toLocaleString()}
-                    </span>
+                    <AnimatedSteps value={communitySteps} />
                     <span style={{ fontFamily: "'Inter', sans-serif", fontStyle: "italic", fontWeight: 600, color: "#888", fontSize: 14 }}>
                       / {TRAIL_STEPS.toLocaleString()} steps
                     </span>
