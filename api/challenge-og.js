@@ -1,4 +1,4 @@
-const BASE_URL = "https://beyond-sunday.vercel.app";
+const BASE_URL = "https://gatherr-one.vercel.app";
 
 export default function handler(req, res) {
   const userAgent = req.headers["user-agent"] || "";

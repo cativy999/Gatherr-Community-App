@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq("id", id)
     .single();
 
-  const baseUrl = "https://beyond-sunday.vercel.app";
+  const baseUrl = "https://gatherr-one.vercel.app";
   const title  = event?.title || "Gatherr Event";
   const image  = event?.image_url || `${baseUrl}/Gatherr.jpg`;
   const url    = `${baseUrl}/event/${id}`;

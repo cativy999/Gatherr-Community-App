@@ -4,7 +4,7 @@ A community platform for church groups to connect,
 organize events, and manage group activities together.
 
 ## Live App
-🔗 [beyond-sunday.vercel.app](https://beyond-sunday.vercel.app)
+🔗 [gatherr-one.vercel.app](https://gatherr-one.vercel.app)
 
 ## About
 Designed and built solo using an AI-native workflow —
