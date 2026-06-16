@@ -14,6 +14,14 @@ if (typeof document !== "undefined" && !document.getElementById("welcome-marquee
       from { transform: translateX(0); }
       to { transform: translateX(-50%); }
     }
+    .welcome-marquee-track {
+      animation: welcome-marquee-scroll 30s linear infinite;
+    }
+    @media (max-width: 767px) {
+      .welcome-marquee-track {
+        animation-duration: 50s;
+      }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -38,8 +46,8 @@ const MarqueeBanner = () => {
   return (
     <div className="w-full overflow-hidden py-2 bg-background">
       <div
-        className="flex"
-        style={{ animation: "welcome-marquee-scroll 12s linear infinite", width: "max-content" }}
+        className="flex welcome-marquee-track"
+        style={{ width: "max-content" }}
       >
         <MarqueeGroup />
         <MarqueeGroup />
@@ -94,7 +102,7 @@ const Welcome = () => {
           <img src="/BeyondLogin.png" alt="Beyond Sunday" className="w-64 max-w-full h-auto" />
         </div>
         <div className="space-y-4 text-center">
-          <p className="text-lg text-muted-foreground">Where LDS singles gather, connect and have fun. Find events, create events, join events. All in one place</p>
+          <p className="text-muted-foreground" style={{ fontSize: 16 }}>Where LDS singles gather, connect and have fun. Find events, create events, join events. All in one place</p>
         </div>
         <div className="space-y-4 pt-8">
           <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={() => setStep("email")}>
