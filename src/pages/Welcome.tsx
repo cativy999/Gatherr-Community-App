@@ -18,23 +18,31 @@ if (typeof document !== "undefined" && !document.getElementById("welcome-marquee
   document.head.appendChild(s);
 }
 
-const MarqueeBanner = () => {
-  const text = "WELCOME TO";
-  return (
-    <div className="w-full overflow-hidden py-2" style={{ background: "hsl(var(--primary) / 0.12)" }}>
-      <div
-        className="flex whitespace-nowrap"
-        style={{ animation: "welcome-marquee-scroll 12s linear infinite" }}
+const MARQUEE_COLOR = "#4D4DDB";
+
+const MarqueeGroup = () => (
+  <div className="flex shrink-0">
+    {Array.from({ length: 8 }).map((_, i) => (
+      <span
+        key={i}
+        className="pr-8 text-sm font-bold tracking-[0.2em] whitespace-nowrap"
+        style={{ color: MARQUEE_COLOR }}
       >
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span
-            key={i}
-            className="mx-4 text-sm font-bold tracking-[0.2em]"
-            style={{ color: "hsl(var(--primary))" }}
-          >
-            {text}
-          </span>
-        ))}
+        WELCOME TO
+      </span>
+    ))}
+  </div>
+);
+
+const MarqueeBanner = () => {
+  return (
+    <div className="w-full overflow-hidden py-2 bg-background">
+      <div
+        className="flex"
+        style={{ animation: "welcome-marquee-scroll 12s linear infinite", width: "max-content" }}
+      >
+        <MarqueeGroup />
+        <MarqueeGroup />
       </div>
     </div>
   );
