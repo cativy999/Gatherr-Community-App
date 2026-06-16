@@ -49,7 +49,7 @@ const DesktopSidebar = () => {
           style={{ paddingLeft: 20, paddingRight: 16, paddingTop: 44, paddingBottom: 40 }}
           onClick={() => navigate("/wards")}
         >
-          <img src="/GatherLOGO.png" alt="Gather" style={{ height: 28, width: "auto", objectFit: "contain" }} />
+          <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" style={{ height: 70, width: "auto", objectFit: "contain" }} />
         </div>
 
         {/* Nav items */}

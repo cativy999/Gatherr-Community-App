@@ -306,9 +306,9 @@ const Wards = () => {
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="px-5 py-3">
+        <div className="px-3 py-3">
           <div className="flex items-center justify-center max-w-4xl mx-auto relative">
-            <img src="/GatherLOGO.png" alt="Gatherr" className="md:hidden absolute left-0 h-5 w-auto object-contain" />
+            <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" className="md:hidden absolute left-0 h-10 w-auto object-contain" />
             <LocationSelector value={location} onChange={setLocation} />
             <button
               onClick={() => navigate("/search")}
