@@ -7,7 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
@@ -111,6 +111,17 @@ const DesktopSidebarLayout = () => {
   return <DesktopSidebar />;
 };
 
+const useShowDesktopSidebar = () => {
+  const { session } = useAuth();
+  const { pathname } = useLocation();
+  return !!session && !hideNavPaths.includes(pathname) && !hideNavPatterns.some(p => pathname.startsWith(p));
+};
+
+const ContentLayout = ({ children }: { children: ReactNode }) => {
+  const showSidebar = useShowDesktopSidebar();
+  return <div className={showSidebar ? "md:pl-24" : ""}>{children}</div>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -122,7 +133,7 @@ const App = () => (
             <BrowserRouter>
               <AuthListener />
               <DesktopSidebarLayout />
-              <div className="md:pl-24">
+              <ContentLayout>
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />
@@ -150,7 +161,7 @@ const App = () => (
                 <Route path="/community" element={<Community />} />
                 <Route path="/group/:id" element={<GroupProfile />} />
               </Routes>
-              </div>
+              </ContentLayout>
               <AppLayout />
               <FeedbackButton />
             </BrowserRouter>

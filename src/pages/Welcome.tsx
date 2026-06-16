@@ -18,7 +18,7 @@ if (typeof document !== "undefined" && !document.getElementById("welcome-marquee
   document.head.appendChild(s);
 }
 
-const MARQUEE_COLOR = "#4D4DDB";
+const MARQUEE_COLOR = "#C8DFFF";
 
 const MarqueeGroup = () => (
   <div className="flex shrink-0">
