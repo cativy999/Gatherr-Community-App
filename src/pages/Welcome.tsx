@@ -1,10 +1,44 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, ArrowLeft, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 
 type Step = "home" | "email" | "sent";
+
+if (typeof document !== "undefined" && !document.getElementById("welcome-marquee-style")) {
+  const s = document.createElement("style");
+  s.id = "welcome-marquee-style";
+  s.textContent = `
+    @keyframes welcome-marquee-scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+const MarqueeBanner = () => {
+  const text = "WELCOME TO";
+  return (
+    <div className="w-full overflow-hidden py-2" style={{ background: "hsl(var(--primary) / 0.12)" }}>
+      <div
+        className="flex whitespace-nowrap"
+        style={{ animation: "welcome-marquee-scroll 12s linear infinite" }}
+      >
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span
+            key={i}
+            className="mx-4 text-sm font-bold tracking-[0.2em]"
+            style={{ color: "hsl(var(--primary))" }}
+          >
+            {text}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Welcome = () => {
   const [step, setStep] = useState<Step>("home");
@@ -42,16 +76,17 @@ const Welcome = () => {
 
   // HOME SCREEN
   if (step === "home") return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+    <div className="flex min-h-screen flex-col items-center bg-background">
+      <div className="w-full pt-6">
+        <MarqueeBanner />
+      </div>
+      <div className="flex flex-1 w-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-md space-y-8">
         <div className="flex justify-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-accent">
-            <Users className="h-12 w-12 text-primary" strokeWidth={2} />
-          </div>
+          <img src="/BeyondLogin.png" alt="Beyond Sunday" className="w-64 max-w-full h-auto" />
         </div>
         <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Welcome to Gatherr</h1>
-          <p className="text-lg text-muted-foreground">Find and create local activities with your community.</p>
+          <p className="text-lg text-muted-foreground">Where LDS singles gather, connect and have fun. Find events, create events, join events. All in one place</p>
         </div>
         <div className="space-y-4 pt-8">
           <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={() => setStep("email")}>
@@ -78,6 +113,7 @@ const Welcome = () => {
         <p className="text-center text-sm text-muted-foreground pt-4">
           By continuing, you agree to our <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
         </p>
+      </div>
       </div>
     </div>
   );
