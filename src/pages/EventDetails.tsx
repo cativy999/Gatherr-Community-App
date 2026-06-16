@@ -713,7 +713,7 @@ const EventDetails = () => {
     }
   };
 
-  const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
+  const shareUrl = `https://beyond-sunday.vercel.app/event/${id}`;
 
   const shareOptions = [
     {
