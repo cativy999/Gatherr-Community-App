@@ -119,7 +119,7 @@ const Events = () => {
       {/* Sticky Header + Tabs */}
       <div className="sticky top-0 z-10 relative">
         <div
-          className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-md"
+          className="absolute inset-0 -z-10 bg-white/75 backdrop-blur-md"
           style={{
             WebkitMaskImage: "linear-gradient(to right, transparent 0%, transparent 15%, black 30%, black 70%, transparent 85%, transparent 100%)",
             maskImage: "linear-gradient(to right, transparent 0%, transparent 15%, black 30%, black 70%, transparent 85%, transparent 100%)",
