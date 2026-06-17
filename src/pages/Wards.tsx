@@ -289,7 +289,7 @@ const Wards = () => {
   };
 
   const EmptySection = ({ label, isThisWeek, nextWeekHasEvents }: { label: string; isThisWeek?: boolean; nextWeekHasEvents?: boolean }) => (
-    <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center space-y-1">
+    <div className="py-6 px-4 rounded-2xl bg-white/90 backdrop-blur-sm text-center space-y-1">
       <p className="text-sm font-medium text-muted-foreground">
         No events {location === "Everywhere" ? "" : `in ${cityName}`} {label.toLowerCase()}
       </p>
@@ -302,10 +302,23 @@ const Wards = () => {
   const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <div className="relative flex min-h-screen flex-col pb-20">
+
+      {/* ── Fixed video background ── */}
+      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+        <video
+          className="h-full w-full object-cover"
+          src="/CloudBackground.mp4"
+          poster="/CloudBackgroundPoster.jpg"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      </div>
 
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm">
         <div className="px-3 py-3">
           <div className="flex items-center justify-center max-w-4xl mx-auto relative">
             <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" className="md:hidden absolute left-0 h-10 w-auto object-contain" />
@@ -356,20 +369,20 @@ const Wards = () => {
           {isLoggedIn && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
+                <h2 className="text-base font-bold text-white drop-shadow-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
               </div>
               <ChallengeCard />
             </div>
           )}
 
           {loading ? (
-            <p className="text-center text-muted-foreground py-12">Loading events...</p>
+            <p className="text-center text-white drop-shadow-sm py-12">Loading events...</p>
           ) : (
             <>
               {/* This Week */}
               <div className="space-y-3" ref={thisWeekRef}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
+                  <h2 className="text-base font-bold text-white drop-shadow-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
                   {isLoggedIn && (
                     <button
                       onClick={() => {
@@ -411,7 +424,7 @@ const Wards = () => {
 
               {/* Next Week */}
 <div className="space-y-3" ref={nextWeekRef}>
-  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
+  <h2 className="text-base font-bold text-white drop-shadow-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
   {nextWeek.length > 0 ? (
     <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       {nextWeek.map((event) => (
@@ -425,12 +438,12 @@ const Wards = () => {
 
               {/* Later */}
 <div className="space-y-3 mt-8" ref={laterRef}>
-  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
+  <h2 className="text-base font-bold text-white drop-shadow-sm" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
   {later.filter(e => !e.is_recurring).length > 0 ? (
     <div className="space-y-6">
       {Object.entries(groupByMonth([...later.filter(e => !e.is_recurring)].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))).map(([month, evts]) => (
         <div key={month} className="space-y-3" ref={(el) => { monthRefs.current[month] = el; }}>
-          <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
+          <h3 className="text-sm font-semibold text-white/80 drop-shadow-sm">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {evts.map((event) => (
               <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
