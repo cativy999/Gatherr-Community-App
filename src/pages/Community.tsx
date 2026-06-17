@@ -27,8 +27,8 @@ const Community = () => {
         <div
           className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-md"
           style={{
-            WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
-            maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, transparent 25%, black 40%, black 60%, transparent 75%, transparent 100%)",
+            maskImage: "linear-gradient(to right, transparent 0%, transparent 25%, black 40%, black 60%, transparent 75%, transparent 100%)",
           }}
         />
         <div className="max-w-4xl mx-auto">
