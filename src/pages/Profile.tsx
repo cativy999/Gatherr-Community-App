@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import VideoBackground from "@/components/VideoBackground";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -114,7 +115,8 @@ const Profile = () => {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-24">
+    <div className="relative flex min-h-screen flex-col pb-24">
+      <VideoBackground />
       {/* Header */}
       <header className="px-5 py-4">
         <div className="max-w-4xl mx-auto">

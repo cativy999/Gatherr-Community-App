@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import VideoBackground from "@/components/VideoBackground";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -20,8 +21,9 @@ const Community = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-5 py-4">
+    <div className="relative flex min-h-screen flex-col pb-20">
+      <VideoBackground />
+      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm px-5 py-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
             Community

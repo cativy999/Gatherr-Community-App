@@ -2,6 +2,7 @@ import { ArrowLeft, Search as SearchIcon, MapPin, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import VideoBackground from "@/components/VideoBackground";
 
 const WARDS = [
   { id: "santa-monica", name: "YSA Santa Monica Ward", address: "3400 Sawtelle Blvd, Los Angeles, CA" },
@@ -63,9 +64,10 @@ const Search = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <div className="relative flex min-h-screen flex-col pb-20">
+      <VideoBackground />
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm">
         <div className="px-5 py-3">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Search</h1>

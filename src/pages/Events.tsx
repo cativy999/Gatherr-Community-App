@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, ThumbsUp, Smile, Heart, Clock } from "lucide-react";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
+import VideoBackground from "@/components/VideoBackground";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -111,10 +112,12 @@ const Events = () => {
   const { thisWeek, nextWeek, later } = groupByWeek(events);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <div className="relative flex min-h-screen flex-col pb-20">
+
+      <VideoBackground />
 
       {/* Sticky Header + Tabs */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm">
         <div className="px-5 py-3">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>My Events</h1>

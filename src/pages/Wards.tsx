@@ -3,6 +3,7 @@ import {
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 import ChallengeCard from "@/components/ChallengeCard";
+import VideoBackground from "@/components/VideoBackground";
 
 import { useLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/lib/supabase";
@@ -305,17 +306,7 @@ const Wards = () => {
     <div className="relative flex min-h-screen flex-col pb-20">
 
       {/* ── Fixed video background ── */}
-      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
-        <video
-          className="h-full w-full object-cover"
-          src="/CloudBackground.mp4"
-          poster="/CloudBackgroundPoster.jpg"
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
-      </div>
+      <VideoBackground />
 
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm">
