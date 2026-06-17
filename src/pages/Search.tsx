@@ -69,7 +69,7 @@ const Search = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 relative">
         <div
-          className="absolute inset-0 -z-10 bg-white/40 backdrop-blur-xl"
+          className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-md"
           style={{
             WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
             maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
