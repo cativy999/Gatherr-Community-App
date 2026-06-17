@@ -566,11 +566,33 @@ const EventDetails = () => {
         ctx.fillText(event.location, pad, titleY + 230);
       }
 
-      ctx.font = "bold 52px 'Helvetica Neue', Helvetica, sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.textAlign = "center";
-      ctx.fillText("Beyond Sunday", canvas.width / 2, 1860);
-      ctx.textAlign = "left";
+    };
+
+    const drawLogoWatermark = async () => {
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          // Recolor the logo to transparent white, keeping its shape/alpha intact
+          const logoW = 320;
+          const logoH = (img.height / img.width) * logoW;
+          const tmp = document.createElement("canvas");
+          tmp.width = logoW;
+          tmp.height = logoH;
+          const tctx = tmp.getContext("2d")!;
+          tctx.drawImage(img, 0, 0, logoW, logoH);
+          tctx.globalCompositeOperation = "source-in";
+          tctx.fillStyle = "white";
+          tctx.fillRect(0, 0, logoW, logoH);
+
+          ctx.globalAlpha = 0.55;
+          ctx.drawImage(tmp, 90, 90, logoW, logoH);
+          ctx.globalAlpha = 1;
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = "/BeyondSundaySplashLogo.png";
+      });
     };
 
     const doShare = async () => {
@@ -618,6 +640,7 @@ const EventDetails = () => {
     }
 
     drawOverlayAndText();
+    await drawLogoWatermark();
     await doShare();
   };
 
