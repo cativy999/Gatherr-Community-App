@@ -1072,7 +1072,7 @@ const EventDetails = () => {
                         {event.recurring_day ? event.recurring_day.slice(0, 3).toUpperCase() : "WKL"}
                       </span>
                     </div>
-                    <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
+                    <div className="w-full bg-white/90 backdrop-blur-sm md:bg-background md:backdrop-blur-none flex items-center justify-center flex-[1.4]">
                       <span className="text-[10px] font-bold leading-none text-foreground tracking-tight uppercase" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Every</span>
                     </div>
                   </>
@@ -1083,7 +1083,7 @@ const EventDetails = () => {
                         {eventDate.toLocaleDateString("en-US", { weekday: "short" })}
                       </span>
                     </div>
-                    <div className="w-full bg-background flex items-center justify-center flex-[1.4]">
+                    <div className="w-full bg-white/90 backdrop-blur-sm md:bg-background md:backdrop-blur-none flex items-center justify-center flex-[1.4]">
                       <span className="text-lg font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                         {eventDate.getDate()}
                       </span>
