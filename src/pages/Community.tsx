@@ -23,7 +23,14 @@ const Community = () => {
   return (
     <div className="relative flex min-h-screen flex-col pb-20">
       <VideoBackground />
-      <header className="sticky top-0 z-10 bg-white/20 backdrop-blur-xl px-5 py-4">
+      <header className="sticky top-0 z-10 relative px-5 py-4">
+        <div
+          className="absolute inset-0 -z-10 bg-white/20 backdrop-blur-xl"
+          style={{
+            WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+            maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+          }}
+        />
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
             Community

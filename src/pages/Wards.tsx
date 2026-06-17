@@ -309,7 +309,14 @@ const Wards = () => {
       <VideoBackground />
 
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10 bg-white/20 backdrop-blur-xl">
+      <div className="sticky top-0 z-10 relative">
+        <div
+          className="absolute inset-0 -z-10 bg-white/20 backdrop-blur-xl"
+          style={{
+            WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+            maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+          }}
+        />
         <div className="px-3 py-3">
           <div className="flex items-center justify-center max-w-4xl mx-auto relative">
             <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" className="md:hidden absolute left-0 h-10 w-auto object-contain" />
