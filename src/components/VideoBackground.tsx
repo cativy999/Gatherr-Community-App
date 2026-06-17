@@ -2,7 +2,10 @@
 // Used across the main app pages (Home, My Events, Search, Community, Profile) for a
 // consistent look. To swap the video or poster later, only this file needs to change.
 const VideoBackground = () => (
-  <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+  <div
+    className="fixed inset-0 -z-10 overflow-hidden bg-cover bg-center"
+    style={{ backgroundImage: "url('/CloudBackgroundPoster.jpg')" }}
+  >
     <video
       className="h-full w-full object-cover"
       src="/CloudBackground.mp4"
