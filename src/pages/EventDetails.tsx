@@ -569,7 +569,7 @@ const EventDetails = () => {
       ctx.font = "bold 52px 'Helvetica Neue', Helvetica, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.textAlign = "center";
-      ctx.fillText("gatherr", canvas.width / 2, 1860);
+      ctx.fillText("Beyond Sunday", canvas.width / 2, 1860);
       ctx.textAlign = "left";
     };
 
@@ -577,7 +577,7 @@ const EventDetails = () => {
       return new Promise<void>((resolve) => {
         canvas.toBlob(async (blob) => {
           if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
-          const file = new File([blob], "gatherr-event.png", { type: "image/png" });
+          const file = new File([blob], "beyond-sunday-event.png", { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
               // Share file only (no title) to prevent double-paste on some apps
@@ -589,7 +589,7 @@ const EventDetails = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "gatherr-event.png";
+            a.download = "beyond-sunday-event.png";
             a.click();
             URL.revokeObjectURL(url);
             toast.success("Image saved! Upload it to your Instagram Story.");
