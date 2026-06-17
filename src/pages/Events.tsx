@@ -121,8 +121,8 @@ const Events = () => {
         <div
           className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-md"
           style={{
-            WebkitMaskImage: "linear-gradient(to right, transparent 0%, transparent 20%, black 35%, black 65%, transparent 80%, transparent 100%)",
-            maskImage: "linear-gradient(to right, transparent 0%, transparent 20%, black 35%, black 65%, transparent 80%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, transparent 15%, black 30%, black 70%, transparent 85%, transparent 100%)",
+            maskImage: "linear-gradient(to right, transparent 0%, transparent 15%, black 30%, black 70%, transparent 85%, transparent 100%)",
           }}
         />
         <div className="px-5 py-3">
