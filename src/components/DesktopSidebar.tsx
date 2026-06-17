@@ -23,6 +23,12 @@ const DesktopSidebar = () => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  // Event Details has its own dynamic background (a gradient pulled from the
+  // event image), so the sidebar gets a white-transparent glass treatment
+  // there to pick up a hint of that color. Every other page uses the fixed
+  // cloud video background, so the sidebar stays fully transparent there.
+  const isEventDetailsPage = pathname.startsWith("/event/");
+
   useEffect(() => {
     if (!session?.user?.id) return;
     supabase
@@ -36,11 +42,13 @@ const DesktopSidebar = () => {
   return (
     <>
       <aside
-        className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30"
+        className={`hidden md:flex fixed left-0 top-0 h-full flex-col z-30 ${
+          isEventDetailsPage ? "bg-white/30 backdrop-blur-md" : ""
+        }`}
         style={{
           width: 96,
           overflow: "visible",
-          background: "transparent",
+          background: isEventDetailsPage ? undefined : "transparent",
         }}
       >
         {/* Gather logo → home */}
