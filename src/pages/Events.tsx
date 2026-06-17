@@ -117,7 +117,7 @@ const Events = () => {
       <VideoBackground />
 
       {/* Sticky Header + Tabs */}
-      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 backdrop-blur-xl">
         <div className="px-5 py-3">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>My Events</h1>
