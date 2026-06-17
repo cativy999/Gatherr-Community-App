@@ -7,7 +7,7 @@ import CreateActionModal from "./CreateActionModal";
 
 const NAV_ITEMS = [
   { id: "home",      label: "Home",      icon: House,      path: "/wards" },
-  { id: "calendar",  label: "Calendar",  icon: Calendar1,  path: "/events" },
+  { id: "calendar",  label: "My Events", icon: Calendar1,  path: "/events" },
   { id: "plus",      label: "Create",    icon: Plus,       path: null },
   { id: "community", label: "Community", icon: UsersRound, path: "/community" },
   { id: "search",    label: "Search",    icon: Search,     path: "/search" },
