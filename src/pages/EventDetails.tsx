@@ -810,14 +810,19 @@ const EventDetails = () => {
 
   return (
     <div
-      className="flex min-h-screen flex-col pb-24 transition-colors duration-700"
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        background: ambientColor
-          ? `linear-gradient(180deg, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.22) 0%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.10) 40%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.03) 70%, white 100%)`
-          : 'white',
-      }}
+      className="relative flex min-h-screen flex-col pb-24"
+      style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      {/* Full-bleed ambient background — fixed so it extends under the desktop
+          sidebar too, instead of stopping at the content column's left edge. */}
+      <div
+        className="fixed inset-0 -z-10 transition-colors duration-700"
+        style={{
+          background: ambientColor
+            ? `linear-gradient(180deg, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.22) 0%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.10) 40%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.03) 70%, white 100%)`
+            : 'white',
+        }}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-10 px-4 py-3 bg-transparent">
