@@ -213,7 +213,7 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
   return (
     <div
       onClick={() => navigate(`/event/${event.id}`)}
-      className="bg-card rounded-2xl cursor-pointer flex-shrink-0 min-w-0 w-[65vw] md:w-full select-none"
+      className="bg-transparent rounded-2xl cursor-pointer flex-shrink-0 min-w-0 w-[65vw] md:w-full select-none"
       style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {/* Image */}
