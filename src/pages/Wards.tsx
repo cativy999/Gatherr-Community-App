@@ -311,7 +311,7 @@ const Wards = () => {
       {/* ── Sticky header ── */}
       <div className="sticky top-0 z-10 relative">
         <div
-          className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-sm md:backdrop-blur-md md:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)]"
+          className="absolute inset-0 -z-10 bg-white/[0.65] backdrop-blur-sm md:backdrop-blur-md md:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)]"
         />
         <div className="px-3 py-3">
           <div className="flex items-center justify-center max-w-4xl mx-auto relative">
