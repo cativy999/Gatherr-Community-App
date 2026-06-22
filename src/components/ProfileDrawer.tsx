@@ -20,6 +20,7 @@ const ProfileDrawer = ({ open, onClose }: ProfileDrawerProps) => {
   const [ward, setWard] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [publishedCount, setPublishedCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const initials = name
     .split(" ")
@@ -52,6 +53,23 @@ const ProfileDrawer = ({ open, onClose }: ProfileDrawerProps) => {
         setPublishedCount(count ?? 0);
       });
   }, [user]);
+
+  // Unread notifications (tags/mentions, replies, likes on events you posted)
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = () => {
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnreadCount(count ?? 0));
+    };
+    fetchUnread();
+    if (!open) return;
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [user, open]);
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -98,10 +116,17 @@ const ProfileDrawer = ({ open, onClose }: ProfileDrawerProps) => {
 
         {/* User info */}
         <div className="flex flex-col items-center gap-3 px-6 py-8 border-b border-border">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={avatarUrl ?? undefined} referrerPolicy="no-referrer" />
-            <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={avatarUrl ?? undefined} referrerPolicy="no-referrer" />
+              <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+            </Avatar>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 border-2 border-background">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </div>
           <div className="text-center space-y-1">
             <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
               {name || "Your Name"}

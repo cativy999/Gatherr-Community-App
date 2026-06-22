@@ -23,7 +23,7 @@ const OnboardingName = () => {
     <div className="flex min-h-screen flex-col bg-background px-6 py-12">
       <div className="mx-auto w-full max-w-md flex-1 space-y-8">
         <div className="space-y-3 text-center pt-12">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 1 of 4</p>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 1 of 2</p>
           <h1 className="text-3xl font-bold tracking-tight">What should we call you?</h1>
           <p className="text-muted-foreground text-base">This is how others will see you</p>
         </div>

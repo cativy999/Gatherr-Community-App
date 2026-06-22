@@ -120,7 +120,6 @@ const EventDetails = () => {
   const [interestedCount, setInterestedCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
 
-  const [shareOpen, setShareOpen] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
@@ -139,6 +138,7 @@ const EventDetails = () => {
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAllComments, setShowAllComments] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [footerShareMenuOpen, setFooterShareMenuOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replies, setReplies] = useState<Record<string, any[]>>({});
@@ -423,6 +423,24 @@ const EventDetails = () => {
         setIsSaved(true);
         setLikeCount(prev => prev + 1);
         toast.success("Event saved!");
+
+        // Notify the host that someone liked their event
+        const hostUserId = event?.user_id;
+        if (hostUserId && userId !== hostUserId) {
+          const { data: likerProfile } = await supabase
+            .from("profiles")
+            .select("name")
+            .eq("user_id", userId)
+            .single();
+          await supabase.from("notifications").insert({
+            user_id: hostUserId,
+            from_user_id: userId,
+            type: "like",
+            event_id: id,
+            message: `${likerProfile?.name || "Someone"} liked your event "${event?.title}"`,
+            read: false,
+          });
+        }
       }
     } catch (err) {
       toast.error("Something went wrong");
@@ -738,13 +756,6 @@ const EventDetails = () => {
 
   const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
 
-  const shareOptions = [
-    {
-      icon: Copy, label: "Copy Link",
-      action: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); setShareOpen(false); }
-    },
-  ];
-
   useEffect(() => {
     const el = titleRef.current;
     if (!el) return;
@@ -806,6 +817,29 @@ const EventDetails = () => {
   const eventDate = (() => {
     const [y, m, d] = event.date.split("-").map(Number);
     return new Date(y, m - 1, d);
+  })();
+
+  // Compact "date  time" string used in the desktop footer bar
+  const footerDateTimeStr = (() => {
+    const fmtTime = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+    let dateStr: string;
+    if (event.is_recurring) {
+      dateStr = `Every ${event.recurring_day}`;
+    } else if (event.end_date) {
+      const [ey, em, ed] = event.end_date.split("-").map(Number);
+      const endDateObj = new Date(ey, em - 1, ed);
+      dateStr = `${eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} - ${endDateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`;
+    } else {
+      dateStr = eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    }
+    let timeStr = "";
+    if (event.start_time) {
+      timeStr = event.end_time ? `${fmtTime(event.start_time)}- ${fmtTime(event.end_time)}` : fmtTime(event.start_time);
+    } else if (event.time) {
+      timeStr = event.time;
+    }
+    const tzAbbr = getTzAbbr(event.timezone);
+    return [dateStr, timeStr && `${timeStr}${tzAbbr ? ` ${tzAbbr}` : ""}`].filter(Boolean).join("  ");
   })();
 
   return (
@@ -1297,25 +1331,6 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Share Dialog */}
-          <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
-              <DialogHeader className="p-5 pb-3">
-                <DialogTitle className="text-lg font-bold">Share Event</DialogTitle>
-              </DialogHeader>
-              <div className="px-5 pb-5 space-y-1">
-                {shareOptions.map(({ icon: Icon, label, action }) => (
-                  <button key={label} onClick={action} className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
-                      <Icon className="h-4 w-4 text-foreground" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-
           {/* Going List Dialog */}
           <Dialog open={goingListOpen} onOpenChange={setGoingListOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
@@ -1416,7 +1431,7 @@ const EventDetails = () => {
                               <div className="w-full pl-[26px] pb-2">
                                 <div
                                   className="pl-6 pb-4 pr-2 text-sm font-normal leading-relaxed whitespace-pre-wrap text-left"
-                                  style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: 'rgba(0,0,0,0.5)' }}
+                                  style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: '#000000cc' }}
                                 >
                                   {item.description}
                                 </div>
@@ -1830,30 +1845,131 @@ const EventDetails = () => {
         </div>{/* end max-w */}
       </main>
 
-      {/* Sticky RSVP Bar */}
-      <div
-        className="fixed bottom-0 left-0 right-0 backdrop-blur-md border-t border-white/40 px-6 py-4 z-50"
-        style={{
-          background: ambientColor
-            ? `rgb(${Math.round(255*0.78 + ambientColor[0]*0.22)},${Math.round(255*0.78 + ambientColor[1]*0.22)},${Math.round(255*0.78 + ambientColor[2]*0.22)})`
-            : 'white',
-        }}
-      >
-        <div className="max-w-4xl mx-auto">
-          {isGuest ? (
-            <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
-              Log in to RSVP & join the fun 🎉
-            </Button>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant={rsvpStatus === "going" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("going")}>
-                {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "👍 You're Going!" : "Going"}
+      {/* Sticky RSVP Bar — mobile: full-width bar; desktop: floating pill (Figma 1439:6603) */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:flex md:justify-center md:px-6 md:pb-6">
+        {/* Mobile bar */}
+        <div
+          className="md:hidden backdrop-blur-md border-t border-white/40 px-6 py-4 w-full"
+          style={{
+            background: ambientColor
+              ? `rgb(${Math.round(255*0.78 + ambientColor[0]*0.22)},${Math.round(255*0.78 + ambientColor[1]*0.22)},${Math.round(255*0.78 + ambientColor[2]*0.22)})`
+              : 'white',
+          }}
+        >
+          <div className="max-w-4xl mx-auto">
+            {isGuest ? (
+              <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
+                Log in to RSVP & join the fun 🎉
               </Button>
-              <Button variant={rsvpStatus === "interested" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("interested")}>
-                {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant={rsvpStatus === "going" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("going")}>
+                  {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "👍 You're Going!" : "Going"}
+                </Button>
+                <Button variant={rsvpStatus === "interested" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("interested")}>
+                  {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop floating pill */}
+        <div
+          className="hidden md:flex md:items-center md:gap-11 md:max-w-3xl md:w-full bg-white border-[0.5px] border-[rgba(0,0,0,0.58)] rounded-[46px] px-9 py-5"
+          style={{ boxShadow: '0px 12px 32px rgba(0,0,0,0.16)' }}
+        >
+          <div className="flex-1 min-w-0 flex flex-col gap-2 text-black">
+            <p className="text-sm">{footerDateTimeStr}</p>
+            <p className="font-bold text-2xl truncate" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</p>
+          </div>
+          <div className="flex items-center gap-3.5 flex-shrink-0">
+            {!isGuest && (
+              <div className="relative">
+                <button
+                  onClick={() => setFooterShareMenuOpen(prev => !prev)}
+                  className="bg-white p-2.5 rounded-full hover:bg-gray-50 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                  </svg>
+                </button>
+                {footerShareMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setFooterShareMenuOpen(false)} />
+                    <div className="absolute right-0 bottom-full mb-2 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52">
+                      {/* Copy Link — straight to clipboard */}
+                      <button
+                        onClick={() => {
+                          setFooterShareMenuOpen(false);
+                          navigator.clipboard.writeText(shareUrl);
+                          toast.success("Link copied!");
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                        </svg>
+                        Copy Link
+                      </button>
+                      {/* Share Link — native share sheet */}
+                      {navigator.share && (
+                        <button
+                          onClick={() => {
+                            setFooterShareMenuOpen(false);
+                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          </svg>
+                          Share Link
+                        </button>
+                      )}
+                      {/* Share to Story */}
+                      <button
+                        onClick={() => { setFooterShareMenuOpen(false); shareToStory(); }}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+                        </svg>
+                        Share to Story
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {isGuest ? (
+              <Button size="lg" className="rounded-full" onClick={() => navigate("/")}>
+                Log in to RSVP
               </Button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleRsvp("going")}
+                  disabled={!!rsvpLoading}
+                  className={`flex items-center justify-center h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${
+                    rsvpStatus === "going" ? "bg-[#2c2c2c] text-white border-white" : "bg-white text-black border-black"
+                  }`}
+                >
+                  {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "Going ✓" : "Going"}
+                </button>
+                <button
+                  onClick={() => handleRsvp("interested")}
+                  disabled={!!rsvpLoading}
+                  className={`flex items-center justify-center h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${
+                    rsvpStatus === "interested" ? "bg-[#2c2c2c] text-white border-white" : "bg-white text-black border-black"
+                  }`}
+                >
+                  {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

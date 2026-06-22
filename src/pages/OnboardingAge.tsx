@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { useNavigate } from "react-router-dom";
 import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 const MIN_AGE = 18;
 const MAX_AGE = 65;
@@ -13,6 +14,7 @@ const OnboardingAge = () => {
   const [age, setAge] = useState("");
   const [showPreferences, setShowPreferences] = useState(false);
   const [ageRange, setAgeRange] = useState<[number, number]>([25, 35]);
+  const [loading, setLoading] = useState(false);
   const prefsRef = useRef<HTMLDivElement>(null);
 
   const isAgeValid = (() => {
@@ -52,11 +54,36 @@ const OnboardingAge = () => {
     setAgeRange([low, high]);
   }, [ageRange]);
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     localStorage.setItem("onboarding_age_min", String(ageRange[0]));
     localStorage.setItem("onboarding_age_max", String(ageRange[1]));
-    console.log("Saved age range:", ageRange[0], ageRange[1]);
-    navigate("/onboarding/ward");
+
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const savedAge = localStorage.getItem("onboarding_age");
+      const preferred_age_min = localStorage.getItem("onboarding_age_min");
+      const preferred_age_max = localStorage.getItem("onboarding_age_max");
+      const name = localStorage.getItem("onboarding_name");
+
+      const { error } = await supabase.from("profiles").upsert({
+        user_id: user.id,
+        name: name || user.user_metadata?.full_name || null,
+        age: savedAge ? parseInt(savedAge) : null,
+        preferred_age_min: preferred_age_min ? parseInt(preferred_age_min) : null,
+        preferred_age_max: preferred_age_max ? parseInt(preferred_age_max) : null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+      }, { onConflict: "user_id" });
+
+      if (error) console.error("Supabase upsert error:", error);
+
+      localStorage.removeItem("onboarding_name");
+      localStorage.removeItem("onboarding_age");
+      localStorage.removeItem("onboarding_age_min");
+      localStorage.removeItem("onboarding_age_max");
+    }
+    setLoading(false);
+    navigate("/wards");
   };
 
   return (
@@ -65,7 +92,7 @@ const OnboardingAge = () => {
 
         {/* Header */}
         <div className="space-y-3 text-center pt-12">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 2 of 3</p>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Step 2 of 2</p>
           <h1 className="text-3xl font-bold tracking-tight">
             {showPreferences ? "About you" : "What is your age?"}
           </h1>
@@ -143,10 +170,10 @@ const OnboardingAge = () => {
           </>
         ) : (
           <>
-            <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleFinish}>
-              Next
+            <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleFinish} disabled={loading}>
+              {loading ? "Saving..." : "Get Started"}
             </Button>
-            <Button variant="ghost" size="lg" className="w-full h-14 text-base" onClick={() => navigate("/onboarding/ward")}>
+            <Button variant="ghost" size="lg" className="w-full h-14 text-base" onClick={handleFinish} disabled={loading}>
               Skip
             </Button>
           </>

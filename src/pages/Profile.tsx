@@ -1,23 +1,26 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Bell, CalendarDays, Users, User } from "lucide-react";
+import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import VideoBackground from "@/components/VideoBackground";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const user = session?.user;
-  const avatar = user?.user_metadata?.avatar_url;
 
   const [name, setName] = useState("");
   const [ward, setWard] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [publishedCount, setPublishedCount] = useState(0);
   const [groupCount, setGroupCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pastEvents, setPastEvents] = useState<{ event_id: string; image_url: string; title: string }[]>([]);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U";
 
@@ -33,6 +36,11 @@ const Profile = () => {
       if (profile) {
         setName(profile.name ?? "");
         setWard(profile.ward ?? "");
+        // Prefer a user-uploaded avatar; fall back to the avatar Google (etc.)
+        // provided at signup. Email-only sign-ups have neither until they upload one.
+        setAvatarUrl(profile.avatar_url || user.user_metadata?.avatar_url || null);
+      } else {
+        setAvatarUrl(user.user_metadata?.avatar_url || null);
       }
 
       // Published events count
@@ -88,6 +96,52 @@ const Profile = () => {
     navigate("/");
   };
 
+  const handleAvatarPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please choose an image file"); return; }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        // Downscale/compress to a square-ish avatar before upload
+        const maxSize = 500;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+          if (!blob) { toast.error("Couldn't process image"); return; }
+          setAvatarUploading(true);
+          try {
+            const fileName = `${user.id}-${Date.now()}.jpg`;
+            const { error: uploadError } = await supabase.storage
+              .from("avatars")
+              .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+            if (uploadError) { toast.error("Failed to upload image"); return; }
+            const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+            await supabase.from("profiles").upsert(
+              { user_id: user.id, avatar_url: data.publicUrl },
+              { onConflict: "user_id" }
+            );
+            setAvatarUrl(data.publicUrl);
+            toast.success("Profile photo updated!");
+          } catch {
+            toast.error("Something went wrong");
+          } finally {
+            setAvatarUploading(false);
+          }
+        }, "image/jpeg", 0.8);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const settingsRows = [
     {
       icon: User,
@@ -128,10 +182,37 @@ const Profile = () => {
 
       {/* Avatar + Name + Ward */}
       <div className="flex flex-col items-center gap-3 pb-4">
-        <Avatar className="h-24 w-24">
-          <AvatarImage src={avatar} referrerPolicy="no-referrer" />
-          <AvatarFallback className="text-2xl bg-muted">{initials}</AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={avatarUrl ?? undefined} referrerPolicy="no-referrer" />
+            <AvatarFallback className="text-2xl bg-muted">{initials}</AvatarFallback>
+          </Avatar>
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background shadow-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+            aria-label={avatarUrl ? "Change profile photo" : "Add profile photo"}
+          >
+            {avatarUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarPick}
+          />
+        </div>
+        {!avatarUrl && (
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            className="text-xs font-medium text-primary hover:underline -mt-1"
+          >
+            Add a profile photo
+          </button>
+        )}
         <div className="flex flex-col items-center gap-1">
           <p className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{name || "Your Name"}</p>
           {ward && <p className="text-sm text-muted-foreground">{ward}</p>}

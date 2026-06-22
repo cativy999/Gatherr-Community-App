@@ -22,6 +22,7 @@ const DesktopSidebar = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -31,6 +32,22 @@ const DesktopSidebar = () => {
       .eq("user_id", session.user.id)
       .single()
       .then(({ data }) => setAvatarUrl(data?.avatar_url ?? null));
+  }, [session?.user?.id]);
+
+  // Unread notifications (tags/mentions, replies, likes on events you posted)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const fetchUnread = () => {
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnreadCount(count ?? 0));
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
   }, [session?.user?.id]);
 
   return (
@@ -110,6 +127,7 @@ const DesktopSidebar = () => {
                   {/* Icon — re-enable pointer events so cursor:pointer works */}
                   <div
                     style={{
+                      position: "relative",
                       width: 56,
                       flexShrink: 0,
                       display: "flex",
@@ -136,6 +154,29 @@ const DesktopSidebar = () => {
                         color={isActive ? "hsl(var(--primary))" : "hsl(var(--foreground))"}
                         strokeWidth={isActive ? 2.5 : 2}
                       />
+                    )}
+                    {item.id === "profile" && unreadCount > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: 6,
+                          minWidth: 16,
+                          height: 16,
+                          background: "#ef4444",
+                          color: "#fff",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0 3px",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
                     )}
                   </div>
 

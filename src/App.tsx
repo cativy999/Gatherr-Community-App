@@ -12,7 +12,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
 import OnboardingAge from "./pages/OnboardingAge";
-import OnboardingWard from "./pages/OnboardingWard";
 import Wards from "./pages/Wards";
 import CreateEvent from "./pages/CreateEvent";
 import Post from "./pages/Post";
@@ -90,7 +89,7 @@ const AuthListener = () => {
   return null;
 };
 
-const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/onboarding/ward", "/challenge", "/log-steps"];
+const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps"];
 const hideNavPatterns = ["/create-event"];
 
 const AppLayout = () => {
@@ -138,7 +137,6 @@ const App = () => (
                 <Route path="/" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />
                 <Route path="/onboarding/age" element={<OnboardingAge />} />
-                <Route path="/onboarding/ward" element={<OnboardingWard />} />
                 <Route path="/wards" element={<Wards />} />
                 <Route path="/post" element={<Post />} />
                 <Route path="/create-event" element={<CreateEvent />} />
