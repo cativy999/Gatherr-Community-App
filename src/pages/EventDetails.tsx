@@ -1863,11 +1863,35 @@ const EventDetails = () => {
               </Button>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <Button variant={rsvpStatus === "going" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("going")}>
-                  {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "👍 You're Going!" : "Going"}
+                <Button
+                  size="lg"
+                  className="rounded-full bg-black text-white border border-black hover:bg-black/90"
+                  disabled={!!rsvpLoading}
+                  onClick={() => handleRsvp("going")}
+                >
+                  {rsvpLoading === "going" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {rsvpStatus === "going" && <CheckCircle2 className="h-4 w-4" />}
+                      Going
+                    </>
+                  )}
                 </Button>
-                <Button variant={rsvpStatus === "interested" ? "default" : "outline"} size="lg" className="rounded-full" disabled={!!rsvpLoading} onClick={() => handleRsvp("interested")}>
-                  {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+                <Button
+                  size="lg"
+                  className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
+                  disabled={!!rsvpLoading}
+                  onClick={() => handleRsvp("interested")}
+                >
+                  {rsvpLoading === "interested" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {rsvpStatus === "interested" && <CheckCircle2 className="h-4 w-4" />}
+                      Interested
+                    </>
+                  )}
                 </Button>
               </div>
             )}
@@ -1952,20 +1976,30 @@ const EventDetails = () => {
                 <button
                   onClick={() => handleRsvp("going")}
                   disabled={!!rsvpLoading}
-                  className={`flex items-center justify-center h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${
-                    rsvpStatus === "going" ? "bg-[#2c2c2c] text-white border-white" : "bg-white text-black border-black"
-                  }`}
+                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-black text-white whitespace-nowrap disabled:opacity-60"
                 >
-                  {rsvpLoading === "going" ? <Loader2 className="h-4 w-4 animate-spin" /> : rsvpStatus === "going" ? "Going ✓" : "Going"}
+                  {rsvpLoading === "going" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {rsvpStatus === "going" && <CheckCircle2 className="h-4 w-4" />}
+                      Going
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => handleRsvp("interested")}
                   disabled={!!rsvpLoading}
-                  className={`flex items-center justify-center h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${
-                    rsvpStatus === "interested" ? "bg-[#2c2c2c] text-white border-white" : "bg-white text-black border-black"
-                  }`}
+                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-white text-black whitespace-nowrap disabled:opacity-60"
                 >
-                  {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Interested"}
+                  {rsvpLoading === "interested" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {rsvpStatus === "interested" && <CheckCircle2 className="h-4 w-4" />}
+                      Interested
+                    </>
+                  )}
                 </button>
               </div>
             )}
