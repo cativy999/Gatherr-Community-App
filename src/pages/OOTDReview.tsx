@@ -159,11 +159,31 @@ const OOTDReview = () => {
                     border: activeId === item.id ? "2px dashed #111" : "1px solid #eaeaea",
                   }}
                 >
-                  <img
-                    src={item.photo}
-                    alt={item.name || "Outfit item"}
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                  <div className="relative w-full h-full rounded-xl overflow-hidden">
+                    <img
+                      src={item.photo}
+                      alt={item.name || "Outfit item"}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Dimmed overlay + camera icon — tap to retake this item's photo */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                      style={{ background: "rgba(0,0,0,0.18)" }}
+                    >
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveId(item.id);
+                          retakeInputRef.current?.click();
+                        }}
+                        role="button"
+                        aria-label="Retake item photo"
+                        className="flex items-center justify-center w-7 h-7 pointer-events-auto"
+                      >
+                        <Camera size={16} color="#fff" />
+                      </span>
+                    </div>
+                  </div>
                 </button>
                 <button
                   onClick={() => removeItem(item.id)}
@@ -188,31 +208,21 @@ const OOTDReview = () => {
           </div>
 
           {activeItem && (
-            <>
-              <div className="flex flex-col gap-2">
-                <p
-                  className="text-[13px] font-semibold uppercase tracking-wide"
-                  style={{ color: "#666", fontFamily: "'Hanken Grotesk', sans-serif" }}
-                >
-                  Item Name
-                </p>
-                <input
-                  value={activeItem.name}
-                  onChange={(e) => updateActiveName(e.target.value)}
-                  placeholder="e.g. Black Felt Fedora"
-                  className="w-full h-[52px] rounded-2xl px-4 text-[15px] text-[#1a1a1a] outline-none border focus:border-[#111] transition-colors"
-                  style={{ borderColor: "#eaeaea", fontFamily: "'Hanken Grotesk', sans-serif" }}
-                />
-              </div>
-
-              <button
-                onClick={() => retakeInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium"
-                style={{ background: "#fff", borderColor: "#E2E8F0", color: "#0F172A", fontFamily: "'Hanken Grotesk', sans-serif" }}
+            <div className="flex flex-col gap-2">
+              <p
+                className="text-[13px] font-semibold uppercase tracking-wide"
+                style={{ color: "#666", fontFamily: "'Hanken Grotesk', sans-serif" }}
               >
-                Retake Item Photo
-              </button>
-            </>
+                Item Name
+              </p>
+              <input
+                value={activeItem.name}
+                onChange={(e) => updateActiveName(e.target.value)}
+                placeholder="e.g. Black Felt Fedora"
+                className="w-full h-[52px] rounded-2xl px-4 text-[15px] text-[#1a1a1a] outline-none border focus:border-[#111] transition-colors"
+                style={{ borderColor: "#eaeaea", fontFamily: "'Hanken Grotesk', sans-serif" }}
+              />
+            </div>
           )}
         </div>
 
