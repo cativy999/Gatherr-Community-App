@@ -30,7 +30,7 @@ const FeedbackButton = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const hidePaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd"];
+  const hidePaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
   if (hidePaths.includes(pathname)) return null;
 
   const handleSubmit = async () => {

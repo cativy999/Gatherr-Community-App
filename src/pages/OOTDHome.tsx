@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, ImagePlus } from "lucide-react";
-import { toast } from "sonner";
 
 const OOTDHome = () => {
   const navigate = useNavigate();
@@ -11,8 +10,8 @@ const OOTDHome = () => {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // TODO: hand off to the photo-review step once it's built.
-    toast.success("Photo selected! Next step coming soon ✨");
+    const photoUrl = URL.createObjectURL(file);
+    navigate("/ootd/review", { state: { photo: photoUrl } });
     e.target.value = "";
   };
 
@@ -64,7 +63,7 @@ const OOTDHome = () => {
       {/* Message + actions */}
       <div className="w-full max-w-[480px] mx-auto px-8 mt-8 flex flex-col items-center text-center">
         <p
-          className="text-sm leading-6 text-black max-w-[280px]"
+          className="text-base leading-6 text-black max-w-[280px]"
           style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}
         >
           Share your{" "}

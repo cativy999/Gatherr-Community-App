@@ -370,8 +370,8 @@ const Wards = () => {
                 className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                <div className="w-[280px] sm:w-[320px] flex-shrink-0 md:w-auto"><ChallengeCard /></div>
                 <div className="w-[280px] sm:w-[320px] flex-shrink-0 md:w-auto"><OOTDCard /></div>
+                <div className="w-[280px] sm:w-[320px] flex-shrink-0 md:w-auto"><ChallengeCard /></div>
               </div>
             </div>
           )}
