@@ -159,31 +159,11 @@ const OOTDReview = () => {
                     border: activeId === item.id ? "2px dashed #111" : "1px solid #eaeaea",
                   }}
                 >
-                  <div className="relative w-full h-full rounded-xl overflow-hidden">
-                    <img
-                      src={item.photo}
-                      alt={item.name || "Outfit item"}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Dimmed overlay + camera icon — tap to retake this item's photo */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                      style={{ background: "rgba(0,0,0,0.18)" }}
-                    >
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveId(item.id);
-                          retakeInputRef.current?.click();
-                        }}
-                        role="button"
-                        aria-label="Retake item photo"
-                        className="flex items-center justify-center w-7 h-7 pointer-events-auto"
-                      >
-                        <Camera size={16} color="#fff" />
-                      </span>
-                    </div>
-                  </div>
+                  <img
+                    src={item.photo}
+                    alt={item.name || "Outfit item"}
+                    className="w-full h-full object-cover rounded-xl"
+                  />
                 </button>
                 <button
                   onClick={() => removeItem(item.id)}
@@ -215,13 +195,29 @@ const OOTDReview = () => {
               >
                 Item Name
               </p>
-              <input
-                value={activeItem.name}
-                onChange={(e) => updateActiveName(e.target.value)}
-                placeholder="e.g. Black Felt Fedora"
-                className="w-full h-[52px] rounded-2xl px-4 text-[15px] text-[#1a1a1a] outline-none border focus:border-[#111] transition-colors"
-                style={{ borderColor: "#eaeaea", fontFamily: "'Hanken Grotesk', sans-serif" }}
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  value={activeItem.name}
+                  onChange={(e) => updateActiveName(e.target.value)}
+                  placeholder="e.g. Black Felt Fedora"
+                  className="flex-1 h-[52px] rounded-2xl px-4 text-[15px] text-[#1a1a1a] outline-none border focus:border-[#111] transition-colors"
+                  style={{ borderColor: "#eaeaea", fontFamily: "'Hanken Grotesk', sans-serif" }}
+                />
+                <button
+                  onClick={() => retakeInputRef.current?.click()}
+                  aria-label="Retake item photo"
+                  className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 w-[52px] h-[52px] rounded-2xl border"
+                  style={{ borderColor: "#eaeaea" }}
+                >
+                  <Camera size={15} color="#111" />
+                  <span
+                    className="text-[10px] leading-none"
+                    style={{ color: "#666", fontFamily: "'Hanken Grotesk', sans-serif" }}
+                  >
+                    Retake
+                  </span>
+                </button>
+              </div>
             </div>
           )}
         </div>
