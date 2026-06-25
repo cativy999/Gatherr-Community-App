@@ -15,6 +15,7 @@ const OOTDCard = () => {
         src="/OOTD/Frame 1597880833.png"
         alt="Outfit of the Day"
         className="absolute inset-0 h-full w-full object-contain"
+        style={{ transform: "scale(1.35)" }}
         draggable={false}
       />
       <div className="absolute inset-x-0 top-0 flex flex-col items-center pt-2 pointer-events-none">
