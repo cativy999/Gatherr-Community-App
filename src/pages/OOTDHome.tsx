@@ -45,8 +45,8 @@ const OOTDHome = () => {
             className="flex items-center h-full"
             style={{ width: "max-content", animation: "ootdMarqueeLeft 24s linear infinite" }}
           >
-            <img src="/OOTD/Girls Carosal.png" alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" />
-            <img src="/OOTD/Girls Carosal.png" alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" aria-hidden="true" />
+            <img src="/OOTD/Girls Carosal.png" width={694} height={192} alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" />
+            <img src="/OOTD/Girls Carosal.png" width={694} height={192} alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" aria-hidden="true" />
           </div>
         </div>
         <div className="overflow-hidden h-[120px] sm:h-36 md:h-40 mt-[18px]">
@@ -54,8 +54,8 @@ const OOTDHome = () => {
             className="flex items-center h-full"
             style={{ width: "max-content", animation: "ootdMarqueeRight 24s linear infinite" }}
           >
-            <img src="/OOTD/Guys Carosal.png.png" alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" />
-            <img src="/OOTD/Guys Carosal.png.png" alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" aria-hidden="true" />
+            <img src="/OOTD/Guys Carosal.png.png" width={940} height={288} alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" />
+            <img src="/OOTD/Guys Carosal.png.png" width={940} height={288} alt="" draggable={false} className="h-full w-auto object-contain flex-shrink-0" aria-hidden="true" />
           </div>
         </div>
       </div>
