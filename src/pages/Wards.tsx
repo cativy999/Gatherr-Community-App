@@ -3,6 +3,7 @@ import {
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 import ChallengeCard from "@/components/ChallengeCard";
+import OOTDCard from "@/components/OOTDCard";
 import VideoBackground from "@/components/VideoBackground";
 
 import { useLocation } from "@/contexts/LocationContext";
@@ -365,7 +366,13 @@ const Wards = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
               </div>
-              <ChallengeCard />
+              <div
+                className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                <div className="w-[280px] sm:w-[320px] flex-shrink-0 md:w-auto"><ChallengeCard /></div>
+                <div className="w-[280px] sm:w-[320px] flex-shrink-0 md:w-auto"><OOTDCard /></div>
+              </div>
             </div>
           )}
 

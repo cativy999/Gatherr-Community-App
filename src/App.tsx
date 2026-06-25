@@ -31,6 +31,7 @@ import AccountInfo from "./pages/AccountInfo";
 import NotificationsPage from "./pages/NotificationsPage";
 import Challenge from "./pages/Challenge";
 import LogSteps from "./pages/LogSteps";
+import OOTDHome from "./pages/OOTDHome";
 import FeedbackButton from "@/components/FeedbackButton";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -89,7 +90,7 @@ const AuthListener = () => {
   return null;
 };
 
-const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps"];
+const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd"];
 const hideNavPatterns = ["/create-event"];
 
 const AppLayout = () => {
@@ -145,6 +146,7 @@ const App = () => (
                 <Route path="/account-info" element={<AccountInfo />} />
                 <Route path="/challenge" element={<Challenge />} />
                 <Route path="/log-steps" element={<LogSteps />} />
+                <Route path="/ootd" element={<OOTDHome />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/event/:id" element={<EventDetails />} />
                 <Route path="/e/:id" element={<ShortEventRedirect />} />

@@ -108,7 +108,6 @@ const ChallengeCard = () => {
         overflow: "hidden",
         cursor: "pointer",
         userSelect: "none",
-        overflow: "hidden",
       }}
     >
       {/* ── Title: "Step" + pioneer inline ── */}
