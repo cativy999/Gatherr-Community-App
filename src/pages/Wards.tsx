@@ -38,8 +38,8 @@ type Event = {
 };
 
 const filterChips = [
-  { id: "conference", label: "Conference", icon: Presentation },
   { id: "all", label: "All", icon: null },
+  { id: "conference", label: "Conference", icon: Presentation },
   { id: "spiritual", label: "Spiritual", icon: Church },
   { id: "fhe", label: "FHE", icon: Balloon },
   { id: "food", label: "Provide Food", icon: PizzaIcon },
