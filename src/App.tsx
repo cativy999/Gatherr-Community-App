@@ -28,6 +28,7 @@ import CreateGroup from "./pages/CreateGroup";
 import Community from "./pages/Community";
 import GroupProfile from "./pages/GroupProfile";
 import AccountInfo from "./pages/AccountInfo";
+import Admin from "./pages/Admin";
 import NotificationsPage from "./pages/NotificationsPage";
 import Challenge from "./pages/Challenge";
 import LogSteps from "./pages/LogSteps";
@@ -145,6 +146,7 @@ const App = () => (
                 <Route path="/create-event/:id" element={<CreateEvent />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/account-info" element={<AccountInfo />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="/challenge" element={<Challenge />} />
                 <Route path="/log-steps" element={<LogSteps />} />
                 <Route path="/ootd" element={<OOTDHome />} />

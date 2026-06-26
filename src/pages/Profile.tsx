@@ -1,8 +1,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2 } from "lucide-react";
+import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { ADMIN_EMAIL } from "@/lib/admin";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import VideoBackground from "@/components/VideoBackground";
@@ -142,6 +143,8 @@ const Profile = () => {
     reader.readAsDataURL(file);
   };
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   const settingsRows = [
     {
       icon: User,
@@ -166,6 +169,15 @@ const Profile = () => {
       sub: `${groupCount} groups`,
       onPress: () => navigate("/my-published-groups"),
     },
+    ...(isAdmin
+      ? [
+          {
+            icon: ShieldCheck,
+            label: "Admin Dashboard",
+            onPress: () => navigate("/admin"),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -251,7 +263,10 @@ const Profile = () => {
 
           {/* Mobile: single column — Desktop: two columns */}
           <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
-            {[settingsRows.slice(0, 2), settingsRows.slice(2, 4)].map((colRows, colIdx) => (
+            {(() => {
+              const mid = Math.ceil(settingsRows.length / 2);
+              return [settingsRows.slice(0, mid), settingsRows.slice(mid)];
+            })().map((colRows, colIdx) => (
               <div key={colIdx} className="flex flex-col">
                 {colRows.map((row, i) => {
                   const Icon = row.icon;
