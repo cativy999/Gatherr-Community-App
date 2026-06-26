@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import OOTDCard from "@/components/OOTDCard";
 
 // Inject digit animation keyframes once
 if (typeof document !== "undefined" && !document.getElementById("digit-roll-style")) {
@@ -614,6 +615,11 @@ const Challenge = () => {
             >
               Reset my steps
             </button>
+          </div>
+
+          {/* ── Outfit of the Day ── */}
+          <div style={{ width: "100%", height: 140 }}>
+            <OOTDCard />
           </div>
         </div>
       </div>
