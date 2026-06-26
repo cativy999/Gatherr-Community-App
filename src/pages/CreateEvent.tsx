@@ -1127,11 +1127,11 @@ Return only the JSON, no explanation.` }
                     { id: "fhe", label: "FHE", icon: <LandPlot className="h-4 w-4" /> },
                     { id: "service", label: "Service", icon: <HandPlatter className="h-4 w-4" /> },
                     { id: "general", label: "General", icon: <Rainbow className="h-4 w-4" /> },
-                    { id: "conference", label: "Conference", icon: <Presentation className="h-4 w-4" />, desktopOnlyIcon: true },
+                    { id: "conference", label: "Conference", icon: <Presentation className="h-4 w-4" /> },
                   ].map((type) => (
                     <button key={type.id} type="button" onClick={() => setWardType(type.id)}
                       className={`flex-shrink-0 rounded-xl transition-all px-4 py-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
-                      <span className={type.desktopOnlyIcon ? "hidden md:inline-flex" : "inline-flex"}>{type.icon}</span>
+                      {type.icon}
                       <p className="font-semibold text-sm whitespace-nowrap">{type.label}</p>
                     </button>
                   ))}
