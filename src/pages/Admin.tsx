@@ -90,13 +90,14 @@ const Admin = () => {
   const [likedCount, setLikedCount] = useState(0);
   const [stepEntries, setStepEntries] = useState<{ user_id: string; steps: number }[]>([]);
 
-  // Drill-down list views (Total Signups / Total Events stat cards open these)
-  const [drill, setDrill] = useState<null | "signups" | "events">(null);
+  // Drill-down list views (Total Signups / Total Events / Step Challenge stat cards open these)
+  const [drill, setDrill] = useState<null | "signups" | "events" | "steps">(null);
   const [signupOwnerFilter, setSignupOwnerFilter] = useState<OwnerFilter>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [ageFilter, setAgeFilter] = useState<AgeBucket>("all");
   const [eventOwnerFilter, setEventOwnerFilter] = useState<OwnerFilter>("all");
   const [eventTimeFilter, setEventTimeFilter] = useState<"all" | "week">("all");
+  const [stepOwnerFilter, setStepOwnerFilter] = useState<OwnerFilter>("all");
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -212,9 +213,6 @@ const Admin = () => {
         .sort((a, b) => b.steps - a.steps),
     [stepTotalsByUser]
   );
-  const realStepUsers = stepParticipants.filter((p) => !isOwnerUserId(p.user_id)).length;
-  const ownerStepUsers = stepParticipants.filter((p) => isOwnerUserId(p.user_id)).length;
-
   const rsvpCountByEvent = new Map<string, number>();
   rsvps.forEach((r) => {
     if (r.status === "going") rsvpCountByEvent.set(r.event_id, (rsvpCountByEvent.get(r.event_id) ?? 0) + 1);
@@ -241,6 +239,12 @@ const Admin = () => {
     return true;
   });
 
+  const filteredStepParticipants = stepParticipants.filter((p) => {
+    if (stepOwnerFilter === "real" && isOwnerUserId(p.user_id)) return false;
+    if (stepOwnerFilter === "owner" && !isOwnerUserId(p.user_id)) return false;
+    return true;
+  });
+
   // Redirect anyone who isn't the admin.
   if (!authLoading && !isAdmin) {
     navigate("/profile", { replace: true });
@@ -256,7 +260,7 @@ const Admin = () => {
   }
 
   const headerTitle =
-    drill === "signups" ? "All Signups" : drill === "events" ? "All Events" : "Admin Dashboard";
+    drill === "signups" ? "All Signups" : drill === "events" ? "All Events" : drill === "steps" ? "Step Challenge" : "Admin Dashboard";
   const handleBack = () => {
     if (drill) setDrill(null);
     else navigate("/profile");
@@ -389,6 +393,38 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ----- Drill-down: Step Challenge participants ----- */}
+          {drill === "steps" && (
+            <div key="steps-drill" className="flex flex-col gap-4 animate-in slide-in-from-right-full duration-300 ease-out">
+              <FilterPills
+                value={stepOwnerFilter}
+                onChange={setStepOwnerFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "real", label: "Real users" },
+                  { value: "owner", label: "Your testing" },
+                ]}
+              />
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredStepParticipants.length} of {stepParticipants.length}
+              </p>
+              <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
+                {filteredStepParticipants.length === 0 && <EmptyRow text="No one has logged steps yet." />}
+                {filteredStepParticipants.map((p) => (
+                  <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
+                    <p className="text-sm font-medium truncate">
+                      {nameById.get(p.user_id) || "Unknown user"}
+                      {isOwnerUserId(p.user_id) && (
+                        <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{p.steps.toLocaleString()} steps</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ----- Main dashboard (hidden while drilled in) ----- */}
           {!drill && (
             <>
@@ -474,33 +510,6 @@ const Admin = () => {
                   <p className="text-xs text-muted-foreground -mt-2">
                     {goingRsvps} of {totalRsvps} RSVPs are "Going". {ownerEvents} events were created from your testing accounts.
                   </p>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                        Recent events
-                      </p>
-                      <button
-                        onClick={() => { setEventOwnerFilter("all"); setEventTimeFilter("all"); setDrill("events"); }}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        See all
-                      </button>
-                    </div>
-                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
-                      {events.length === 0 && <EmptyRow text="No events yet." />}
-                      {events.slice(0, 8).map((e) => (
-                        <div key={e.id} className="flex items-center justify-between px-3.5 py-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{e.title || "Untitled event"}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              by {resolveName(e.user_id)} &middot; {rsvpCountByEvent.get(e.id) ?? 0} going
-                            </p>
-                          </div>
-                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(e.created_at)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -513,29 +522,12 @@ const Admin = () => {
                     <StatCard label="Saved events" value={savedCount} />
                     <StatCard label="Liked events" value={likedCount} />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                      Step Challenge participation
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <StatCard label="Real participants" value={realStepUsers} highlight />
-                      <StatCard label="Your testing" value={ownerStepUsers} muted />
-                    </div>
-                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden mt-1">
-                      {stepParticipants.length === 0 && <EmptyRow text="No one has logged steps yet." />}
-                      {stepParticipants.map((p) => (
-                        <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
-                          <p className="text-sm font-medium truncate">
-                            {nameById.get(p.user_id) || "Unknown user"}
-                            {isOwnerUserId(p.user_id) && (
-                              <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{p.steps.toLocaleString()} steps</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <StatCard
+                    label="Step Challenge participants"
+                    value={stepParticipants.length}
+                    wide
+                    onClick={() => { setStepOwnerFilter("all"); setDrill("steps"); }}
+                  />
                 </div>
               )}
 
