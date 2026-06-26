@@ -1259,6 +1259,7 @@ Return only the JSON, no explanation.` }
           {/* No Image Confirmation Dialog */}
           <Dialog open={noImageConfirmOpen} onOpenChange={setNoImageConfirmOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
+              <img src="/emptystatenoimage.png" alt="No image added" className="mx-auto h-32 sm:h-36 w-auto object-contain" />
               <DialogHeader><DialogTitle>No image added</DialogTitle></DialogHeader>
               <p className="text-sm text-muted-foreground">You haven't added a photo for this event. Events with images get more attention — want to add one?</p>
               <div className="flex gap-3 mt-2">
