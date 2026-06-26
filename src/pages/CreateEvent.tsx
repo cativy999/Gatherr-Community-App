@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -1127,10 +1127,11 @@ Return only the JSON, no explanation.` }
                     { id: "fhe", label: "FHE", icon: <LandPlot className="h-4 w-4" /> },
                     { id: "service", label: "Service", icon: <HandPlatter className="h-4 w-4" /> },
                     { id: "general", label: "General", icon: <Rainbow className="h-4 w-4" /> },
+                    { id: "conference", label: "Conference", icon: <Presentation className="h-4 w-4" />, desktopOnlyIcon: true },
                   ].map((type) => (
                     <button key={type.id} type="button" onClick={() => setWardType(type.id)}
                       className={`flex-1 rounded-xl transition-all overflow-hidden p-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
-                      {type.icon}
+                      <span className={type.desktopOnlyIcon ? "hidden md:inline-flex" : "inline-flex"}>{type.icon}</span>
                       <p className="font-semibold text-sm">{type.label}</p>
                     </button>
                   ))}

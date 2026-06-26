@@ -1,5 +1,5 @@
 import {
-  Balloon, Church, HeartHandshake, Sparkles, Search, PizzaIcon, Video } from "lucide-react";
+  Balloon, Church, HeartHandshake, Sparkles, Search, PizzaIcon, Video, Presentation } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 import ChallengeCard from "@/components/ChallengeCard";
@@ -38,9 +38,10 @@ type Event = {
 };
 
 const filterChips = [
+  { id: "conference", label: "Conference", icon: Presentation },
   { id: "all", label: "All", icon: null },
-  { id: "fhe", label: "FHE", icon: Balloon },
   { id: "spiritual", label: "Spiritual", icon: Church },
+  { id: "fhe", label: "FHE", icon: Balloon },
   { id: "food", label: "Provide Food", icon: PizzaIcon },
   { id: "popular", label: "Popular", icon: Sparkles },
   { id: "service", label: "Service", icon: HeartHandshake },
@@ -211,7 +212,7 @@ const Wards = () => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
-    if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service") {
+    if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service" || activeFilter === "conference") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
     if (activeFilter === "food") {
