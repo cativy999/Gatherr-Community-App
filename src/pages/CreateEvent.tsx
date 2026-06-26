@@ -119,6 +119,7 @@ const CreateEvent = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [noImageConfirmOpen, setNoImageConfirmOpen] = useState(false);
   const [minAge, setMinAge] = useState<string>("");
   const [maxAge, setMaxAge] = useState<string>("");
   const [minAgeOpen, setMinAgeOpen] = useState(false);
@@ -455,6 +456,15 @@ Return only the JSON, no explanation.` }
     }
     if (sessionLoading) { alert("Still loading, please wait a moment!"); return; }
     if (!session?.user) { alert("Not logged in!"); return; }
+    if (!imageFile && !imagePreview) {
+      setNoImageConfirmOpen(true);
+      return;
+    }
+    await proceedSubmit();
+  };
+
+  const proceedSubmit = async () => {
+    setNoImageConfirmOpen(false);
     setLoading(true);
     let imageUrl = imagePreview;
     if (imageFile) {
@@ -1242,6 +1252,18 @@ Return only the JSON, no explanation.` }
               <div className="flex gap-3 mt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Not now</Button>
                 <Button variant="destructive" className="flex-1" onClick={confirmDelete}>Yes, delete</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* No Image Confirmation Dialog */}
+          <Dialog open={noImageConfirmOpen} onOpenChange={setNoImageConfirmOpen}>
+            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
+              <DialogHeader><DialogTitle>No image added</DialogTitle></DialogHeader>
+              <p className="text-sm text-muted-foreground">You haven't added a photo for this event. Events with images get more attention — want to add one?</p>
+              <div className="flex gap-3 mt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setNoImageConfirmOpen(false)}>Add image</Button>
+                <Button className="flex-1" onClick={proceedSubmit}>Publish anyway</Button>
               </div>
             </DialogContent>
           </Dialog>
