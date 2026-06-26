@@ -24,6 +24,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+// PDF support is loaded on demand (only when a user picks a .pdf file) so it
+// doesn't add ~450kb to the bundle every visitor downloads.
+const loadPdfjs = async () => {
+  const pdfjsLib = await import("pdfjs-dist");
+  // @ts-ignore - Vite resolves this to a URL string for the worker bundle
+  const pdfWorkerUrl = (await import("pdfjs-dist/build/pdf.worker.min.js?url")).default;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  return pdfjsLib;
+};
+
 // Time options starting at 6 PM, wrapping around
 const TIME_OPTIONS = (() => {
   const opts = [];
@@ -276,9 +286,46 @@ const CreateEvent = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressCanvasAndSet = (canvas: HTMLCanvasElement, fileName: string) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const compressed = new File([blob], fileName, { type: "image/jpeg" });
+        setImageFile(compressed);
+        setImagePreview(URL.createObjectURL(compressed));
+      }
+    }, "image/jpeg", 0.7);
+  };
+
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+      try {
+        const pdfjsLib = await loadPdfjs();
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        const maxWidth = 1200;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const scale = Math.min(2, maxWidth / baseViewport.width);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        compressCanvasAndSet(canvas, file.name.replace(/\.pdf$/i, ".jpg"));
+      } catch (err) {
+        console.error("Failed to read PDF:", err);
+        alert("Couldn't read that PDF. Please try a different file or upload an image instead.");
+      }
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -290,13 +337,7 @@ const CreateEvent = () => {
         canvas.height = img.height * scale;
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const compressed = new File([blob], file.name, { type: "image/jpeg" });
-            setImageFile(compressed);
-            setImagePreview(URL.createObjectURL(compressed));
-          }
-        }, "image/jpeg", 0.7);
+        compressCanvasAndSet(canvas, file.name);
       };
       img.src = event.target?.result as string;
     };
@@ -543,7 +584,7 @@ Return only the JSON, no explanation.` }
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                     <button type="button" className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-full border border-white/60" style={{ backgroundColor: "rgba(144, 144, 144, 0.5)" }}>
                       <ImageIcon className="h-4 w-4" />
-                      Tap to upload event image
+                      Tap to upload image or PDF
                     </button>
                   </div>
                 )}
@@ -565,7 +606,7 @@ Return only the JSON, no explanation.` }
                   </>
                 )}
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImagePick} />
 
               {/* Image lightbox */}
               {imageExpanded && imagePreview && (
