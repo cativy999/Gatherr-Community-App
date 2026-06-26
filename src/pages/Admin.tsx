@@ -96,6 +96,7 @@ const Admin = () => {
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [ageFilter, setAgeFilter] = useState<AgeBucket>("all");
   const [eventOwnerFilter, setEventOwnerFilter] = useState<OwnerFilter>("all");
+  const [eventTimeFilter, setEventTimeFilter] = useState<"all" | "week">("all");
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -236,6 +237,7 @@ const Admin = () => {
   const filteredEvents = events.filter((e) => {
     if (eventOwnerFilter === "real" && isOwnerUserId(e.user_id)) return false;
     if (eventOwnerFilter === "owner" && !isOwnerUserId(e.user_id)) return false;
+    if (eventTimeFilter === "week" && !(e.created_at && new Date(e.created_at) >= weekStart)) return false;
     return true;
   });
 
@@ -277,7 +279,7 @@ const Admin = () => {
         <div className="max-w-2xl mx-auto space-y-5">
           {/* ----- Drill-down: All Signups ----- */}
           {drill === "signups" && (
-            <div className="flex flex-col gap-4">
+            <div key="signups-drill" className="flex flex-col gap-4 animate-in slide-in-from-right-full duration-300 ease-out">
               <div className="flex flex-wrap gap-2">
                 <FilterPills
                   value={signupOwnerFilter}
@@ -339,7 +341,7 @@ const Admin = () => {
 
           {/* ----- Drill-down: All Events ----- */}
           {drill === "events" && (
-            <div className="flex flex-col gap-4">
+            <div key="events-drill" className="flex flex-col gap-4 animate-in slide-in-from-right-full duration-300 ease-out">
               <FilterPills
                 value={eventOwnerFilter}
                 onChange={setEventOwnerFilter}
@@ -349,6 +351,24 @@ const Admin = () => {
                   { value: "owner", label: "Your testing" },
                 ]}
               />
+              <div className="flex gap-2">
+                {(["all", "week"] as const).map((opt) => {
+                  const active = eventTimeFilter === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setEventTimeFilter(opt)}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: active ? "#111" : "#f4f4f4",
+                        color: active ? "#fff" : "#444",
+                      }}
+                    >
+                      {opt === "all" ? "All time" : "This week"}
+                    </button>
+                  );
+                })}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Showing {filteredEvents.length} of {events.length}
               </p>
@@ -399,44 +419,30 @@ const Admin = () => {
               {tab === "signups" && (
                 <div className="flex flex-col gap-5">
                   <div className="grid grid-cols-3 gap-3">
-                    <StatCard label="Total signups" value={totalSignups} onClick={() => setDrill("signups")} />
-                    <StatCard label="Real users" value={realSignups} highlight onClick={() => { setSignupOwnerFilter("real"); setDrill("signups"); }} />
-                    <StatCard label="Your testing" value={ownerSignups} muted onClick={() => { setSignupOwnerFilter("owner"); setDrill("signups"); }} />
+                    <StatCard
+                      label="Total signups"
+                      value={totalSignups}
+                      onClick={() => {
+                        setSignupOwnerFilter("all");
+                        setLocationFilter("all");
+                        setAgeFilter("all");
+                        setDrill("signups");
+                      }}
+                    />
+                    <StatCard label="Real users" value={realSignups} highlight onClick={() => { setSignupOwnerFilter("real"); setLocationFilter("all"); setAgeFilter("all"); setDrill("signups"); }} />
+                    <StatCard label="Your testing" value={ownerSignups} muted onClick={() => { setSignupOwnerFilter("owner"); setLocationFilter("all"); setAgeFilter("all"); setDrill("signups"); }} />
                   </div>
-                  <StatCard
-                    label={hasSignupDates ? "New signups this month" : "New signups this month (no signup dates available yet)"}
-                    value={hasSignupDates ? signupsThisMonth : 0}
-                    wide
-                  />
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                        All profiles ({profiles.length})
+                  <div className="flex flex-col gap-1">
+                    <StatCard
+                      label="New signups this month"
+                      value={hasSignupDates ? signupsThisMonth : 0}
+                      wide
+                    />
+                    {!hasSignupDates && (
+                      <p className="text-[11px] text-muted-foreground px-1">
+                        No signup dates on record yet — this will start counting once that's available.
                       </p>
-                      <button
-                        onClick={() => { setSignupOwnerFilter("all"); setDrill("signups"); }}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        See all & filter
-                      </button>
-                    </div>
-                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
-                      {profiles.length === 0 && <EmptyRow text="No signups yet." />}
-                      {profiles.slice(0, 8).map((p) => (
-                        <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {p.name || "Unnamed user"}
-                              {isOwnerUserId(p.user_id) && (
-                                <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
-                              )}
-                            </p>
-                            {p.ward && <p className="text-xs text-muted-foreground truncate">{p.ward}</p>}
-                          </div>
-                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(p.created_at)}</p>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -445,12 +451,26 @@ const Admin = () => {
               {tab === "events" && (
                 <div className="flex flex-col gap-5">
                   <div className="grid grid-cols-2 gap-3">
-                    <StatCard label="Total events" value={totalEvents} onClick={() => setDrill("events")} />
-                    <StatCard label="Real-user events" value={realEvents} highlight onClick={() => { setEventOwnerFilter("real"); setDrill("events"); }} />
+                    <StatCard
+                      label="Total events"
+                      value={totalEvents}
+                      onClick={() => { setEventOwnerFilter("all"); setEventTimeFilter("all"); setDrill("events"); }}
+                    />
+                    <StatCard
+                      label="Real-user events"
+                      value={realEvents}
+                      highlight
+                      onClick={() => { setEventOwnerFilter("real"); setEventTimeFilter("all"); setDrill("events"); }}
+                    />
                     <StatCard label="Total RSVPs" value={totalRsvps} />
                     <StatCard label="Real-user RSVPs" value={realRsvps} highlight />
                   </div>
-                  <StatCard label="New events this week" value={eventsThisWeek} wide />
+                  <StatCard
+                    label="New events this week"
+                    value={eventsThisWeek}
+                    wide
+                    onClick={() => { setEventOwnerFilter("all"); setEventTimeFilter("week"); setDrill("events"); }}
+                  />
                   <p className="text-xs text-muted-foreground -mt-2">
                     {goingRsvps} of {totalRsvps} RSVPs are "Going". {ownerEvents} events were created from your testing accounts.
                   </p>
@@ -460,7 +480,7 @@ const Admin = () => {
                         Recent events
                       </p>
                       <button
-                        onClick={() => { setEventOwnerFilter("all"); setDrill("events"); }}
+                        onClick={() => { setEventOwnerFilter("all"); setEventTimeFilter("all"); setDrill("events"); }}
                         className="text-xs font-medium text-primary hover:underline"
                       >
                         See all
