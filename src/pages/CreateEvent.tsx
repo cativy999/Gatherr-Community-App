@@ -1121,7 +1121,7 @@ Return only the JSON, no explanation.` }
               {/* Type */}
               <div className="space-y-3 pb-12">
                 <label className="text-sm font-medium">Choose a category</label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2.5">
                   {[
                     { id: "spiritual", label: "Spiritual", icon: <SunMedium className="h-4 w-4" /> },
                     { id: "fhe", label: "FHE", icon: <LandPlot className="h-4 w-4" /> },
@@ -1130,9 +1130,9 @@ Return only the JSON, no explanation.` }
                     { id: "conference", label: "Conference", icon: <Presentation className="h-4 w-4" />, desktopOnlyIcon: true },
                   ].map((type) => (
                     <button key={type.id} type="button" onClick={() => setWardType(type.id)}
-                      className={`flex-1 rounded-xl transition-all overflow-hidden p-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
+                      className={`flex-shrink-0 rounded-xl transition-all px-4 py-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
                       <span className={type.desktopOnlyIcon ? "hidden md:inline-flex" : "inline-flex"}>{type.icon}</span>
-                      <p className="font-semibold text-sm">{type.label}</p>
+                      <p className="font-semibold text-sm whitespace-nowrap">{type.label}</p>
                     </button>
                   ))}
                 </div>
