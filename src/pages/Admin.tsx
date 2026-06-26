@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Users, CalendarCheck, MessageSquare, MessageCircle } from "lucide-react";
+import { ChevronLeft, Users, CalendarCheck, MessageSquare, MessageCircle, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_EMAIL, isOwnerUserId } from "@/lib/admin";
 
 type Tab = "signups" | "events" | "engagement" | "feedback";
+type OwnerFilter = "all" | "real" | "owner";
+type AgeBucket = "all" | "under20" | "20s" | "30s" | "40s" | "50plus" | "unknown";
 
 interface ProfileRow {
   user_id: string;
   name: string | null;
   ward: string | null;
+  location: string | null;
+  age: number | null;
   created_at: string | null;
 }
 
@@ -48,6 +52,25 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "feedback", label: "Feedback", icon: MessageSquare },
 ];
 
+const AGE_BUCKET_LABELS: Record<AgeBucket, string> = {
+  all: "All ages",
+  under20: "Under 20",
+  "20s": "20–29",
+  "30s": "30–39",
+  "40s": "40–49",
+  "50plus": "50+",
+  unknown: "Unknown",
+};
+
+const getAgeBucket = (age: number | null | undefined): AgeBucket => {
+  if (age == null) return "unknown";
+  if (age < 20) return "under20";
+  if (age < 30) return "20s";
+  if (age < 40) return "30s";
+  if (age < 50) return "40s";
+  return "50plus";
+};
+
 const Admin = () => {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
@@ -65,7 +88,14 @@ const Admin = () => {
   const [groupCount, setGroupCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [likedCount, setLikedCount] = useState(0);
-  const [stepEntryUserIds, setStepEntryUserIds] = useState<string[]>([]);
+  const [stepEntries, setStepEntries] = useState<{ user_id: string; steps: number }[]>([]);
+
+  // Drill-down list views (Total Signups / Total Events stat cards open these)
+  const [drill, setDrill] = useState<null | "signups" | "events">(null);
+  const [signupOwnerFilter, setSignupOwnerFilter] = useState<OwnerFilter>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [ageFilter, setAgeFilter] = useState<AgeBucket>("all");
+  const [eventOwnerFilter, setEventOwnerFilter] = useState<OwnerFilter>("all");
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -78,14 +108,14 @@ const Admin = () => {
       let profileRows: ProfileRow[] = [];
       const { data: profilesWithDate, error: profilesErr } = await supabase
         .from("profiles")
-        .select("user_id, name, ward, created_at")
+        .select("user_id, name, ward, location, age, created_at")
         .order("created_at", { ascending: false });
       if (!profilesErr && profilesWithDate) {
         profileRows = profilesWithDate as ProfileRow[];
       } else {
         const { data: profilesNoDate } = await supabase
           .from("profiles")
-          .select("user_id, name, ward");
+          .select("user_id, name, ward, location, age");
         profileRows = (profilesNoDate ?? []).map((p: any) => ({ ...p, created_at: null }));
       }
       setProfiles(profileRows);
@@ -129,8 +159,12 @@ const Admin = () => {
 
       const { data: stepRows } = await supabase
         .from("step_entries")
-        .select("user_id");
-      setStepEntryUserIds((stepRows ?? []).map((r: any) => r.user_id).filter(Boolean));
+        .select("user_id, steps");
+      setStepEntries(
+        (stepRows ?? [])
+          .filter((r: any) => r.user_id)
+          .map((r: any) => ({ user_id: r.user_id, steps: r.steps ?? 0 }))
+      );
 
       setLoading(false);
     };
@@ -138,13 +172,7 @@ const Admin = () => {
     fetchAll();
   }, [isAdmin]);
 
-  // Redirect anyone who isn't the admin.
-  if (!authLoading && !isAdmin) {
-    navigate("/profile", { replace: true });
-    return null;
-  }
-
-  const nameById = new Map(profiles.map((p) => [p.user_id, p.name]));
+  const nameById = useMemo(() => new Map(profiles.map((p) => [p.user_id, p.name])), [profiles]);
   const resolveName = (userId: string | null) => {
     if (!userId) return "Anonymous";
     if (isOwnerUserId(userId)) return `${nameById.get(userId) || "You"} (your testing)`;
@@ -155,6 +183,14 @@ const Admin = () => {
   const ownerSignups = profiles.filter((p) => isOwnerUserId(p.user_id)).length;
   const realSignups = totalSignups - ownerSignups;
 
+  const hasSignupDates = profiles.some((p) => p.created_at);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const signupsThisMonth = profiles.filter((p) => p.created_at && new Date(p.created_at) >= monthStart).length;
+
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const eventsThisWeek = events.filter((e) => e.created_at && new Date(e.created_at) >= weekStart).length;
+
   const totalEvents = events.length;
   const ownerEvents = events.filter((e) => isOwnerUserId(e.user_id)).length;
   const realEvents = totalEvents - ownerEvents;
@@ -163,13 +199,51 @@ const Admin = () => {
   const goingRsvps = rsvps.filter((r) => r.status === "going").length;
   const realRsvps = rsvps.filter((r) => !isOwnerUserId(r.user_id)).length;
 
-  const realStepUsers = new Set(stepEntryUserIds.filter((id) => !isOwnerUserId(id))).size;
-  const ownerStepUsers = new Set(stepEntryUserIds.filter((id) => isOwnerUserId(id))).size;
+  const stepTotalsByUser = useMemo(() => {
+    const map = new Map<string, number>();
+    stepEntries.forEach((r) => map.set(r.user_id, (map.get(r.user_id) ?? 0) + (r.steps || 0)));
+    return map;
+  }, [stepEntries]);
+  const stepParticipants = useMemo(
+    () =>
+      Array.from(stepTotalsByUser.entries())
+        .map(([user_id, steps]) => ({ user_id, steps }))
+        .sort((a, b) => b.steps - a.steps),
+    [stepTotalsByUser]
+  );
+  const realStepUsers = stepParticipants.filter((p) => !isOwnerUserId(p.user_id)).length;
+  const ownerStepUsers = stepParticipants.filter((p) => isOwnerUserId(p.user_id)).length;
 
   const rsvpCountByEvent = new Map<string, number>();
   rsvps.forEach((r) => {
     if (r.status === "going") rsvpCountByEvent.set(r.event_id, (rsvpCountByEvent.get(r.event_id) ?? 0) + 1);
   });
+
+  const locationOptions = useMemo(() => {
+    const set = new Set<string>();
+    profiles.forEach((p) => p.location && set.add(p.location));
+    return Array.from(set).sort();
+  }, [profiles]);
+
+  const filteredSignups = profiles.filter((p) => {
+    if (signupOwnerFilter === "real" && isOwnerUserId(p.user_id)) return false;
+    if (signupOwnerFilter === "owner" && !isOwnerUserId(p.user_id)) return false;
+    if (locationFilter !== "all" && p.location !== locationFilter) return false;
+    if (ageFilter !== "all" && getAgeBucket(p.age) !== ageFilter) return false;
+    return true;
+  });
+
+  const filteredEvents = events.filter((e) => {
+    if (eventOwnerFilter === "real" && isOwnerUserId(e.user_id)) return false;
+    if (eventOwnerFilter === "owner" && !isOwnerUserId(e.user_id)) return false;
+    return true;
+  });
+
+  // Redirect anyone who isn't the admin.
+  if (!authLoading && !isAdmin) {
+    navigate("/profile", { replace: true });
+    return null;
+  }
 
   if (authLoading || (isAdmin && loading)) {
     return (
@@ -179,154 +253,296 @@ const Admin = () => {
     );
   }
 
+  const headerTitle =
+    drill === "signups" ? "All Signups" : drill === "events" ? "All Events" : "Admin Dashboard";
+  const handleBack = () => {
+    if (drill) setDrill(null);
+    else navigate("/profile");
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col pb-24">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-border px-4 py-4">
         <div className="flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => navigate("/profile")} className="p-1 -ml-1 rounded-full hover:bg-accent transition-colors">
+          <button onClick={handleBack} className="p-1 -ml-1 rounded-full hover:bg-accent transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-            Admin Dashboard
+            {headerTitle}
           </h1>
         </div>
       </header>
 
       <main className="flex-1 px-5 py-4">
         <div className="max-w-2xl mx-auto space-y-5">
-          {/* Tab bar */}
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: active ? "#111" : "#f4f4f4",
-                    color: active ? "#fff" : "#444",
-                    fontFamily: "'Hanken Grotesk', sans-serif",
-                  }}
+          {/* ----- Drill-down: All Signups ----- */}
+          {drill === "signups" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                <FilterPills
+                  value={signupOwnerFilter}
+                  onChange={setSignupOwnerFilter}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "real", label: "Real users" },
+                    { value: "owner", label: "Your testing" },
+                  ]}
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="flex-1 h-9 rounded-lg border text-sm px-2.5"
+                  style={{ borderColor: "#eaeaea" }}
                 >
-                  <Icon className="h-4 w-4" strokeWidth={1.75} />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Signups */}
-          {tab === "signups" && (
-            <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-3 gap-3">
-                <StatCard label="Total signups" value={totalSignups} />
-                <StatCard label="Real users" value={realSignups} highlight />
-                <StatCard label="Your testing" value={ownerSignups} muted />
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  All profiles ({profiles.length})
-                </p>
-                <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
-                  {profiles.length === 0 && <EmptyRow text="No signups yet." />}
-                  {profiles.map((p) => (
-                    <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {p.name || "Unnamed user"}
-                          {isOwnerUserId(p.user_id) && (
-                            <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
-                          )}
-                        </p>
-                        {p.ward && <p className="text-xs text-muted-foreground truncate">{p.ward}</p>}
-                      </div>
-                      <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(p.created_at)}</p>
-                    </div>
+                  <option value="all">All locations</option>
+                  {locationOptions.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
                   ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Events & RSVPs */}
-          {tab === "events" && (
-            <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard label="Total events" value={totalEvents} />
-                <StatCard label="Real-user events" value={realEvents} highlight />
-                <StatCard label="Total RSVPs" value={totalRsvps} />
-                <StatCard label="Real-user RSVPs" value={realRsvps} highlight />
-              </div>
-              <p className="text-xs text-muted-foreground -mt-2">
-                {goingRsvps} of {totalRsvps} RSVPs are "Going". {ownerEvents} events were created from your testing accounts.
-              </p>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  Recent events
-                </p>
-                <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
-                  {events.length === 0 && <EmptyRow text="No events yet." />}
-                  {events.slice(0, 30).map((e) => (
-                    <div key={e.id} className="flex items-center justify-between px-3.5 py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{e.title || "Untitled event"}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          by {resolveName(e.user_id)} &middot; {rsvpCountByEvent.get(e.id) ?? 0} going
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(e.created_at)}</p>
-                    </div>
+                </select>
+                <select
+                  value={ageFilter}
+                  onChange={(e) => setAgeFilter(e.target.value as AgeBucket)}
+                  className="flex-1 h-9 rounded-lg border text-sm px-2.5"
+                  style={{ borderColor: "#eaeaea" }}
+                >
+                  {(Object.keys(AGE_BUCKET_LABELS) as AgeBucket[]).map((b) => (
+                    <option key={b} value={b}>{AGE_BUCKET_LABELS[b]}</option>
                   ))}
-                </div>
+                </select>
               </div>
-            </div>
-          )}
-
-          {/* Engagement & Community */}
-          {tab === "engagement" && (
-            <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard label="Comments" value={commentCount} />
-                <StatCard label="Groups created" value={groupCount} />
-                <StatCard label="Saved events" value={savedCount} />
-                <StatCard label="Liked events" value={likedCount} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  Step Challenge participation
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <StatCard label="Real participants" value={realStepUsers} highlight />
-                  <StatCard label="Your testing" value={ownerStepUsers} muted />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Feedback */}
-          {tab === "feedback" && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                Feedback ({feedback.length})
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredSignups.length} of {profiles.length}
               </p>
-              <div className="flex flex-col gap-3">
-                {feedback.length === 0 && <EmptyRow text="No feedback submitted yet." />}
-                {feedback.map((f) => (
-                  <div key={f.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold truncate">{resolveName(f.user_id)}</p>
-                      <p className="text-xs text-muted-foreground flex-shrink-0">{fmtDate(f.created_at)}</p>
+              <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
+                {filteredSignups.length === 0 && <EmptyRow text="No matching signups." />}
+                {filteredSignups.map((p) => (
+                  <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {p.name || "Unnamed user"}
+                        {isOwnerUserId(p.user_id) && (
+                          <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[p.location, p.ward, p.age ? `Age ${p.age}` : null].filter(Boolean).join(" · ") || "No details"}
+                      </p>
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed">{f.message}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      From: <span className="font-medium">{f.page_name || f.page_url || "Unknown page"}</span>
-                    </p>
+                    <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(p.created_at)}</p>
                   </div>
                 ))}
               </div>
             </div>
+          )}
+
+          {/* ----- Drill-down: All Events ----- */}
+          {drill === "events" && (
+            <div className="flex flex-col gap-4">
+              <FilterPills
+                value={eventOwnerFilter}
+                onChange={setEventOwnerFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "real", label: "Real users" },
+                  { value: "owner", label: "Your testing" },
+                ]}
+              />
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredEvents.length} of {events.length}
+              </p>
+              <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
+                {filteredEvents.length === 0 && <EmptyRow text="No matching events." />}
+                {filteredEvents.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between px-3.5 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{e.title || "Untitled event"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        by {resolveName(e.user_id)} &middot; {rsvpCountByEvent.get(e.id) ?? 0} going
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(e.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ----- Main dashboard (hidden while drilled in) ----- */}
+          {!drill && (
+            <>
+              {/* Tab bar */}
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+                {TABS.map((t) => {
+                  const Icon = t.icon;
+                  const active = tab === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: active ? "#111" : "#f4f4f4",
+                        color: active ? "#fff" : "#444",
+                        fontFamily: "'Hanken Grotesk', sans-serif",
+                      }}
+                    >
+                      <Icon className="h-4 w-4" strokeWidth={1.75} />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Signups */}
+              {tab === "signups" && (
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-3 gap-3">
+                    <StatCard label="Total signups" value={totalSignups} onClick={() => setDrill("signups")} />
+                    <StatCard label="Real users" value={realSignups} highlight onClick={() => { setSignupOwnerFilter("real"); setDrill("signups"); }} />
+                    <StatCard label="Your testing" value={ownerSignups} muted onClick={() => { setSignupOwnerFilter("owner"); setDrill("signups"); }} />
+                  </div>
+                  <StatCard
+                    label={hasSignupDates ? "New signups this month" : "New signups this month (no signup dates available yet)"}
+                    value={hasSignupDates ? signupsThisMonth : 0}
+                    wide
+                  />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                        All profiles ({profiles.length})
+                      </p>
+                      <button
+                        onClick={() => { setSignupOwnerFilter("all"); setDrill("signups"); }}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        See all & filter
+                      </button>
+                    </div>
+                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
+                      {profiles.length === 0 && <EmptyRow text="No signups yet." />}
+                      {profiles.slice(0, 8).map((p) => (
+                        <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {p.name || "Unnamed user"}
+                              {isOwnerUserId(p.user_id) && (
+                                <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
+                              )}
+                            </p>
+                            {p.ward && <p className="text-xs text-muted-foreground truncate">{p.ward}</p>}
+                          </div>
+                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(p.created_at)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Events & RSVPs */}
+              {tab === "events" && (
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard label="Total events" value={totalEvents} onClick={() => setDrill("events")} />
+                    <StatCard label="Real-user events" value={realEvents} highlight onClick={() => { setEventOwnerFilter("real"); setDrill("events"); }} />
+                    <StatCard label="Total RSVPs" value={totalRsvps} />
+                    <StatCard label="Real-user RSVPs" value={realRsvps} highlight />
+                  </div>
+                  <StatCard label="New events this week" value={eventsThisWeek} wide />
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    {goingRsvps} of {totalRsvps} RSVPs are "Going". {ownerEvents} events were created from your testing accounts.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                        Recent events
+                      </p>
+                      <button
+                        onClick={() => { setEventOwnerFilter("all"); setDrill("events"); }}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        See all
+                      </button>
+                    </div>
+                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden">
+                      {events.length === 0 && <EmptyRow text="No events yet." />}
+                      {events.slice(0, 8).map((e) => (
+                        <div key={e.id} className="flex items-center justify-between px-3.5 py-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{e.title || "Untitled event"}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              by {resolveName(e.user_id)} &middot; {rsvpCountByEvent.get(e.id) ?? 0} going
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{fmtDate(e.created_at)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Engagement & Community */}
+              {tab === "engagement" && (
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <StatCard label="Comments" value={commentCount} />
+                    <StatCard label="Groups created" value={groupCount} />
+                    <StatCard label="Saved events" value={savedCount} />
+                    <StatCard label="Liked events" value={likedCount} />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                      Step Challenge participation
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <StatCard label="Real participants" value={realStepUsers} highlight />
+                      <StatCard label="Your testing" value={ownerStepUsers} muted />
+                    </div>
+                    <div className="flex flex-col divide-y divide-border rounded-xl border border-border overflow-hidden mt-1">
+                      {stepParticipants.length === 0 && <EmptyRow text="No one has logged steps yet." />}
+                      {stepParticipants.map((p) => (
+                        <div key={p.user_id} className="flex items-center justify-between px-3.5 py-3">
+                          <p className="text-sm font-medium truncate">
+                            {nameById.get(p.user_id) || "Unknown user"}
+                            {isOwnerUserId(p.user_id) && (
+                              <span className="ml-2 text-[11px] font-normal text-muted-foreground">(your testing)</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex-shrink-0 ml-3">{p.steps.toLocaleString()} steps</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Feedback */}
+              {tab === "feedback" && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                    Feedback ({feedback.length})
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {feedback.length === 0 && <EmptyRow text="No feedback submitted yet." />}
+                    {feedback.map((f) => (
+                      <div key={f.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold truncate">{resolveName(f.user_id)}</p>
+                          <p className="text-xs text-muted-foreground flex-shrink-0">{fmtDate(f.created_at)}</p>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">{f.message}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          From: <span className="font-medium">{f.page_name || f.page_url || "Unknown page"}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
@@ -334,15 +550,65 @@ const Admin = () => {
   );
 };
 
-const StatCard = ({ label, value, highlight, muted }: { label: string; value: number; highlight?: boolean; muted?: boolean }) => (
-  <div
-    className="flex flex-col gap-1 rounded-xl border px-3.5 py-3"
-    style={{ borderColor: "#eaeaea", backgroundColor: highlight ? "#f0fdf4" : "#fff" }}
-  >
-    <p className="text-2xl font-bold" style={{ color: muted ? "#999" : "#111", fontFamily: "'Hanken Grotesk', sans-serif" }}>
-      {value}
-    </p>
-    <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
+const StatCard = ({
+  label,
+  value,
+  highlight,
+  muted,
+  wide,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  muted?: boolean;
+  wide?: boolean;
+  onClick?: () => void;
+}) => {
+  const Tag = onClick ? "button" : "div";
+  return (
+    <Tag
+      onClick={onClick}
+      className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-3 text-left transition-opacity ${onClick ? "hover:opacity-80" : ""} ${wide ? "w-full" : ""}`}
+      style={{ borderColor: "#eaeaea", backgroundColor: highlight ? "#f0fdf4" : "#fff" }}
+    >
+      <div className="flex flex-col gap-1">
+        <p className="text-2xl font-bold" style={{ color: muted ? "#999" : "#111", fontFamily: "'Hanken Grotesk', sans-serif" }}>
+          {value}
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-tight">{label}</p>
+      </div>
+      {onClick && <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+    </Tag>
+  );
+};
+
+const FilterPills = ({
+  value,
+  onChange,
+  options,
+}: {
+  value: OwnerFilter;
+  onChange: (v: OwnerFilter) => void;
+  options: { value: OwnerFilter; label: string }[];
+}) => (
+  <div className="flex gap-2">
+    {options.map((opt) => {
+      const active = value === opt.value;
+      return (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: active ? "#111" : "#f4f4f4",
+            color: active ? "#fff" : "#444",
+          }}
+        >
+          {opt.label}
+        </button>
+      );
+    })}
   </div>
 );
 
