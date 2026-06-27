@@ -9,6 +9,11 @@
       "destination": "/api/og/:id"
     },
     {
+      "source": "/group/:id",
+      "missing": [{ "type": "query", "key": "direct" }],
+      "destination": "/api/og/group/:id"
+    },
+    {
       "source": "/challenge",
       "destination": "/api/challenge-og"
     },

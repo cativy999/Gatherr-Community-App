@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
 
 const GroupProfile = () => {
@@ -14,6 +15,138 @@ const GroupProfile = () => {
   const [creatorProfiles, setCreatorProfiles] = useState<Record<string, { name: string; avatar_url: string | null }>>({});
   const [groupCreator, setGroupCreator] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
+
+  const shareToStory = async () => {
+    setShareMenuOpen(false);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext("2d")!;
+
+    const drawBackground = () => {
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, "#0f0f0f");
+      bg.addColorStop(1, "#1a1a1a");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    const drawOverlayAndText = () => {
+      const overlay = ctx.createLinearGradient(0, canvas.height * 0.35, 0, canvas.height);
+      overlay.addColorStop(0, "rgba(0,0,0,0)");
+      overlay.addColorStop(0.5, "rgba(0,0,0,0.6)");
+      overlay.addColorStop(1, "rgba(0,0,0,0.92)");
+      ctx.fillStyle = overlay;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number, font: string, color = "white") => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        const words = text.split(" ");
+        let line = "";
+        let currentY = y;
+        for (const word of words) {
+          const test = line + word + " ";
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line.trim(), x, currentY);
+            line = word + " ";
+            currentY += lineHeight;
+          } else {
+            line = test;
+          }
+        }
+        ctx.fillText(line.trim(), x, currentY);
+        return currentY;
+      };
+
+      const pad = 90;
+      const maxW = canvas.width - pad * 2;
+      const titleY = wrapText(group.name || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
+
+      if (group.address) {
+        ctx.font = "48px 'Helvetica Neue', Helvetica, sans-serif";
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.fillText(group.address, pad, titleY + 80);
+      }
+    };
+
+    const drawLogoWatermark = async () => {
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const logoW = 320;
+          const logoH = (img.height / img.width) * logoW;
+          const tmp = document.createElement("canvas");
+          tmp.width = logoW;
+          tmp.height = logoH;
+          const tctx = tmp.getContext("2d")!;
+          tctx.drawImage(img, 0, 0, logoW, logoH);
+          tctx.globalCompositeOperation = "source-in";
+          tctx.fillStyle = "white";
+          tctx.fillRect(0, 0, logoW, logoH);
+
+          ctx.globalAlpha = 0.55;
+          ctx.drawImage(tmp, 90, 90, logoW, logoH);
+          ctx.globalAlpha = 1;
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = "/BeyondSundaySplashLogo.png";
+      });
+    };
+
+    const doShare = async () => {
+      return new Promise<void>((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
+          const file = new File([blob], "beyond-sunday-group.png", { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file] });
+            } catch (e: any) {
+              if (e?.name !== "AbortError") toast.error("Sharing failed");
+            }
+          } else {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "beyond-sunday-group.png";
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success("Image saved! Upload it to your Instagram Story.");
+          }
+          resolve();
+        }, "image/png");
+      });
+    };
+
+    drawBackground();
+
+    if (group.cover_image_url) {
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+          const x = (canvas.width - img.width * scale) / 2;
+          const y = (canvas.height - img.height * scale) / 2;
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = group.cover_image_url;
+      });
+    }
+
+    drawOverlayAndText();
+    await drawLogoWatermark();
+    await doShare();
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -113,7 +246,64 @@ const GroupProfile = () => {
       </div>
 
       <div className="mt-14 px-5 flex flex-col items-center text-center space-y-1">
-        <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{group.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{group.name}</h1>
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => setShareMenuOpen((prev) => !prev)}
+              className="hover:opacity-70 transition-opacity"
+              aria-label="Share"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+              </svg>
+            </button>
+            {shareMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShareMenuOpen(false)} />
+                <div className="absolute left-1/2 -translate-x-1/2 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52 text-left">
+                  <button
+                    onClick={() => {
+                      setShareMenuOpen(false);
+                      navigator.clipboard.writeText(shareUrl);
+                      toast.success("Link copied!");
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                    </svg>
+                    Copy Link
+                  </button>
+                  {navigator.share && (
+                    <button
+                      onClick={() => {
+                        setShareMenuOpen(false);
+                        navigator.share({ title: group.name, url: shareUrl }).catch(() => {});
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                      </svg>
+                      Share Link
+                    </button>
+                  )}
+                  <button
+                    onClick={shareToStory}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+                    </svg>
+                    Share to Story
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         {group.address && (
           <a href={"https://maps.google.com/?q=" + encodeURIComponent(group.address)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-primary">
             <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
