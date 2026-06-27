@@ -18,12 +18,23 @@ const OOTDCard = ({ tall = false }: OOTDCardProps = {}) => {
       className="relative w-full h-full min-h-[124px] overflow-hidden rounded-[13px] border-2 border-black bg-white cursor-pointer select-none"
     >
       {tall ? (
-        <img
-          src="/OOTD/OOTD component 2.png"
-          alt="Outfit of the Day"
-          className="absolute inset-0 h-full w-full object-contain object-bottom"
-          draggable={false}
-        />
+        <>
+          {/* Mobile: taller-card artwork made for the narrow stacked layout */}
+          <img
+            src="/OOTD/OOTD component 2.png"
+            alt="Outfit of the Day"
+            className="absolute inset-0 h-full w-full object-contain object-bottom md:hidden"
+            draggable={false}
+          />
+          {/* Desktop: grid layout already gives this enough room, keep the original artwork */}
+          <img
+            src="/OOTD/Frame 1597880833.png"
+            alt="Outfit of the Day"
+            className="absolute inset-0 hidden h-full w-full object-contain object-bottom md:block"
+            style={{ transform: "scale(1.35)", transformOrigin: "center bottom" }}
+            draggable={false}
+          />
+        </>
       ) : (
         <img
           src="/OOTD/Frame 1597880833.png"
