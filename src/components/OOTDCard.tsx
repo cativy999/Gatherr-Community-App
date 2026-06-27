@@ -24,6 +24,7 @@ const OOTDCard = ({ tall = false }: OOTDCardProps = {}) => {
             src="/OOTD/OOTD component 2.png"
             alt="Outfit of the Day"
             className="absolute inset-0 h-full w-full object-contain object-bottom md:hidden"
+            style={{ transform: "scale(1.3)", transformOrigin: "center bottom" }}
             draggable={false}
           />
           {/* Desktop: grid layout already gives this enough room, keep the original artwork */}

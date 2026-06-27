@@ -112,7 +112,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
         borderRadius: 13,
         position: "relative",
         width: "100%",
-        height: hasJoined ? 210 : 124,
+        height: hasJoined ? 182 : 124,
         overflow: "hidden",
         cursor: "pointer",
         userSelect: "none",
@@ -272,7 +272,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
             position: "absolute",
             left: "50%",
             transform: "translateX(-50%)",
-            top: 100,
+            top: 88,
             width: "calc(100% - 50px)",
           }}
         >
@@ -379,7 +379,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginTop: 10,
+              marginTop: 8,
             }}
           >
             <span
