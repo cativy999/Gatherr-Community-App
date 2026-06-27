@@ -26,7 +26,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const baseUrl = "https://gatherr-one.vercel.app";
   const title  = event?.title || "Gatherr Event";
   const image  = event?.image_url || `${baseUrl}/Gatherr.jpg`;
-  const url    = `${baseUrl}/event/${id}`;
+
+  // Preserve any cache-busting query params (e.g. ?v=5) in og:url so
+  // Messenger/Facebook treat each cache-busted link as a distinct object
+  // to re-crawl, instead of deduping to the bare canonical URL.
+  const extraParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(req.query)) {
+    if (key === "id" || key === "direct") continue;
+    const v = Array.isArray(value) ? value[0] : value;
+    if (v !== undefined) extraParams.set(key, v);
+  }
+  const queryString = extraParams.toString();
+  const url = `${baseUrl}/event/${id}${queryString ? `?${queryString}` : ""}`;
 
   // Build description: "Saturday, May 30 at 10:00 AM · Los Angeles · ..."
   let dateStr = "";
