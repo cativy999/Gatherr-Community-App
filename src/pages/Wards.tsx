@@ -56,6 +56,7 @@ const Wards = () => {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stepChallengeJoined, setStepChallengeJoined] = useState(false);
   const [signInDismissed, setSignInDismissed] = useState(false);
   const isLoggedIn = !!session || signInDismissed;
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -371,8 +372,8 @@ const Wards = () => {
                 className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                <div className="w-[304px] sm:w-[344px] flex-shrink-0 md:w-auto"><OOTDCard /></div>
-                <div className="w-[376px] sm:w-[400px] flex-shrink-0 md:w-auto"><ChallengeCard /></div>
+                <div className="w-[304px] sm:w-[344px] flex-shrink-0 md:w-auto"><OOTDCard tall={stepChallengeJoined} /></div>
+                <div className="w-[376px] sm:w-[400px] flex-shrink-0 md:w-auto"><ChallengeCard onHasJoinedChange={setStepChallengeJoined} /></div>
               </div>
             </div>
           )}

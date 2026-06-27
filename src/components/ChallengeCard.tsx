@@ -46,7 +46,11 @@ interface Participant {
   avatar_url: string | null;
 }
 
-const ChallengeCard = () => {
+interface ChallengeCardProps {
+  onHasJoinedChange?: (joined: boolean) => void;
+}
+
+const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -55,6 +59,10 @@ const ChallengeCard = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
+
+  useEffect(() => {
+    onHasJoinedChange?.(hasJoined);
+  }, [hasJoined, onHasJoinedChange]);
 
   useEffect(() => {
     supabase
