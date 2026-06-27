@@ -368,42 +368,20 @@ const CreateEvent = () => {
 
       const mediaType = imageFile.type || 'image/jpeg';
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/scan-poster', {
         method: 'POST',
         headers: {
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-              { type: 'text', text: `Today's date is ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. Extract event details from this flyer or poster image and return ONLY a JSON object with these fields (use null if not found):
-{
-  "title": "event name",
-  "description": "full description or details shown on the flyer. Write each sentence on its own line separated by a newline character.",
-  "date": "YYYY-MM-DD format only, null if not found. Today is ${new Date().toISOString().split('T')[0]}. If no year is shown on the poster, you MUST use ${new Date().getFullYear()} as the year. Never use any other year unless the poster explicitly shows a different year.",
-  "end_date": "YYYY-MM-DD format only if the event spans multiple days and an end date is shown, otherwise null. Same rule: use ${new Date().getFullYear()} if no year shown.",
-  "start_time": "HH:MM 24-hour format only, null if not found",
-  "end_time": "HH:MM 24-hour format only, null if not found",
-  "location": "venue or address text, null if not found"
-}
-Return only the JSON, no explanation.` }
-            ]
-          }]
-        })
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
 
-      const data = await res.json();
-      const text = data.content?.[0]?.text ?? '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found');
-      const extracted = JSON.parse(jsonMatch[0]);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to scan poster');
+      }
+
+      const extracted = await res.json();
 
       if (extracted.title) setTitle(extracted.title);
       if (extracted.description) {
