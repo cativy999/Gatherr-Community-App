@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist.stale_*
+dist_old_*
 preview-dist
 screenshot.js
 vite.config.ts.timestamp-*.mjs

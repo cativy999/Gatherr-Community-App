@@ -50,8 +50,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   <meta property="og:title"       content="${esc(title)}"/>
   <meta property="og:description" content="${esc(description)}"/>
   <meta property="og:image"       content="${esc(image)}"/>
-  <meta property="og:image:width" content="1200"/>
-  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:secure_url" content="${esc(image)}"/>
+  <meta property="og:image:type"  content="image/jpeg"/>
 
   <meta name="twitter:card"        content="summary_large_image"/>
   <meta name="twitter:title"       content="${esc(title)}"/>
