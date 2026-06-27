@@ -78,7 +78,7 @@ const OOTDReview = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="w-full max-w-[480px] mx-auto px-6 pt-4 pb-10 flex flex-col gap-7">
+      <div className="w-full max-w-[480px] mx-auto px-6 pt-4 pb-36 flex flex-col gap-7">
         {/* Header */}
         <div className="flex items-center justify-between">
           <button
