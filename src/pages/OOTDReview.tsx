@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Camera, Plus, X } from "lucide-react";
+import { ChevronLeft, Camera, Plus, X, Scissors } from "lucide-react";
 import { toast } from "sonner";
+import { cutOutPerson } from "@/lib/backgroundRemoval";
 
 interface OOTDItem {
   id: string;
@@ -19,6 +20,12 @@ const OOTDReview = () => {
   const [items, setItems] = useState<OOTDItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // Cutout preview state — free, in-browser background removal so just the
+  // person can later be dropped into the OOTD template (no API/cost involved).
+  const [cutoutPhoto, setCutoutPhoto] = useState<string | null>(null);
+  const [showCutout, setShowCutout] = useState(false);
+  const [cutting, setCutting] = useState(false);
+
   const mainPhotoInputRef = useRef<HTMLInputElement>(null);
   const itemPhotoInputRef = useRef<HTMLInputElement>(null);
   const retakeInputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +41,31 @@ const OOTDReview = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setHeroPhoto(URL.createObjectURL(file));
+    setCutoutPhoto(null);
+    setShowCutout(false);
     e.target.value = "";
+  };
+
+  const handleToggleCutout = async () => {
+    if (showCutout) {
+      setShowCutout(false);
+      return;
+    }
+    if (cutoutPhoto) {
+      setShowCutout(true);
+      return;
+    }
+    if (!heroPhoto) return;
+    setCutting(true);
+    try {
+      const result = await cutOutPerson(heroPhoto);
+      setCutoutPhoto(result);
+      setShowCutout(true);
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't remove the background. Try a clearer photo.");
+    }
+    setCutting(false);
   };
 
   const handleAddItem = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +153,23 @@ const OOTDReview = () => {
         </div>
 
         {/* Hero photo */}
-        <div className="relative w-full h-[340px] sm:h-[400px] rounded-2xl overflow-hidden bg-[#f1f1f1]">
-          <img src={heroPhoto} alt="Your outfit" className="absolute inset-0 w-full h-full object-contain" />
+        <div
+          className="relative w-full h-[340px] sm:h-[400px] rounded-2xl overflow-hidden"
+          style={
+            showCutout && cutoutPhoto
+              ? {
+                  backgroundImage:
+                    "repeating-conic-gradient(#e9e9e9 0% 25%, #f7f7f7 0% 50%)",
+                  backgroundSize: "24px 24px",
+                }
+              : { background: "#f1f1f1" }
+          }
+        >
+          <img
+            src={showCutout && cutoutPhoto ? cutoutPhoto : heroPhoto}
+            alt="Your outfit"
+            className="absolute inset-0 w-full h-full object-contain"
+          />
           <button
             onClick={() => mainPhotoInputRef.current?.click()}
             className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold"
@@ -137,6 +183,21 @@ const OOTDReview = () => {
           >
             <Camera size={16} />
             Change Photo
+          </button>
+          <button
+            onClick={handleToggleCutout}
+            disabled={cutting}
+            className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold disabled:opacity-60"
+            style={{
+              background: "rgba(255,255,255,0.93)",
+              border: "1px solid #eaeaea",
+              color: "#111",
+              boxShadow: "0px 6px 16px 0px rgba(0,0,0,0.08)",
+              fontFamily: "'Hanken Grotesk', sans-serif",
+            }}
+          >
+            <Scissors size={16} />
+            {cutting ? "Removing…" : showCutout ? "Show Original" : "Remove Background"}
           </button>
         </div>
 

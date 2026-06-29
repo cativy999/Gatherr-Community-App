@@ -400,7 +400,8 @@ const CreateEvent = () => {
       toast.success('✨ Event details filled in! Review and adjust as needed.');
     } catch (e) {
       console.error(e);
-      toast.error('Could not read the poster. Try a clearer image.');
+      const message = e instanceof Error && e.message ? e.message : 'Could not read the poster. Try a clearer image.';
+      toast.error(message);
     }
     setScanning(false);
   };
