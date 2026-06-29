@@ -55,6 +55,21 @@ const TIME_OPTIONS = (() => {
 const formatTime = (v: string) =>
   new Date(`2000-01-01T${v}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
+// Hoisted to module scope so this array isn't rebuilt on every keystroke —
+// previously it was recreated inside the component on every re-render.
+const INFO_ICONS = [
+  { key: "calendar", Icon: Calendar },
+  { key: "star",     Icon: Star },
+  { key: "circle",   Icon: Circle },
+  { key: "check",    Icon: CheckCircle2 },
+  { key: "note",     Icon: FileText },
+  { key: "car",      Icon: Car },
+  { key: "pin",      Icon: MapPin },
+  { key: "dollar",   Icon: DollarSign },
+  { key: "ticket",   Icon: Ticket },
+  { key: "food",     Icon: Utensils },
+];
+
 const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -177,19 +192,16 @@ const CreateEvent = () => {
   const [aiGenerations, setAiGenerations] = useState(0);
   const AI_MAX_GENERATIONS = 3;
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
-
-  const INFO_ICONS = [
-    { key: "calendar", Icon: Calendar },
-    { key: "star",     Icon: Star },
-    { key: "circle",   Icon: Circle },
-    { key: "check",    Icon: CheckCircle2 },
-    { key: "note",     Icon: FileText },
-    { key: "car",      Icon: Car },
-    { key: "pin",      Icon: MapPin },
-    { key: "dollar",   Icon: DollarSign },
-    { key: "ticket",   Icon: Ticket },
-    { key: "food",     Icon: Utensils },
-  ];
+  // Tracks which "Extra Details" sections are collapsed (by index) — UI-only state, not saved.
+  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+  const toggleSectionCollapsed = (idx: number) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
 
   const toggleFood = (id: string) => {
     setSelectedFoods(prev =>
@@ -978,8 +990,11 @@ const CreateEvent = () => {
               {/* Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description</label>
-                <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base resize-none overflow-y-auto" style={{ maxHeight: '260px' }} value={description}
-                  onChange={(e) => { const val = e.target.value; setDescription(val.charAt(0).toUpperCase() + val.slice(1)); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 260) + 'px'; }} maxLength={2000} />
+                <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base resize-y overflow-y-auto" style={{ maxHeight: '600px' }} value={description}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDescription(val.charAt(0).toUpperCase() + val.slice(1));
+                  }} maxLength={2000} />
                 <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
               </div>
 
@@ -1019,7 +1034,9 @@ const CreateEvent = () => {
                   );
                 })()}
 
-                {additionalInfo.map((item, idx) => (
+                {additionalInfo.map((item, idx) => {
+                  const collapsed = collapsedSections.has(idx);
+                  return (
                   <div key={idx} className="rounded-xl border border-black bg-white p-3 space-y-2.5">
                     {/* Title row */}
                     <div className="flex items-center gap-2">
@@ -1042,6 +1059,14 @@ const CreateEvent = () => {
                       />
                       <button
                         type="button"
+                        onClick={() => toggleSectionCollapsed(idx)}
+                        aria-label={collapsed ? "Expand section" : "Collapse section"}
+                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0"
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx))}
                         className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
                       >
@@ -1051,47 +1076,60 @@ const CreateEvent = () => {
                       </button>
                     </div>
 
-                    {/* Icon picker */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {INFO_ICONS.map(({ key, Icon }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            const next = [...additionalInfo];
-                            next[idx] = { ...next[idx], icon: key };
-                            setAdditionalInfo(next);
-                          }}
-                          className={`p-3 rounded-xl border transition-all ${
-                            item.icon === key
-                              ? "bg-black border-black text-white"
-                              : "bg-white border-gray-300 text-gray-500 hover:border-gray-500"
-                          }`}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </button>
-                      ))}
-                    </div>
+                    {collapsed && item.description && (
+                      <p className="text-xs text-muted-foreground truncate pl-0.5">{item.description}</p>
+                    )}
 
-                    {/* Description */}
-                    <div style={{ borderLeft: '2px solid rgba(0,0,0,0.09)' }} className="pl-3">
-                      <textarea
-                        placeholder="Description..."
-                        rows={4}
-                        className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground overflow-hidden"
-                        value={item.description}
-                        onChange={(e) => {
-                          const next = [...additionalInfo];
-                          next[idx] = { ...next[idx], description: e.target.value };
-                          setAdditionalInfo(next);
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                        }}
-                        maxLength={500}
-                      />
-                    </div>
+                    {!collapsed && (
+                      <>
+                        {/* Icon picker */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {INFO_ICONS.map(({ key, Icon }) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => {
+                                const next = [...additionalInfo];
+                                next[idx] = { ...next[idx], icon: key };
+                                setAdditionalInfo(next);
+                              }}
+                              className={`p-3 rounded-xl border transition-all ${
+                                item.icon === key
+                                  ? "bg-black border-black text-white"
+                                  : "bg-white border-gray-300 text-gray-500 hover:border-gray-500"
+                              }`}
+                            >
+                              <Icon className="h-5 w-5" />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Description */}
+                        <div style={{ borderLeft: '2px solid rgba(0,0,0,0.09)' }} className="pl-3">
+                          <textarea
+                            placeholder="Description..."
+                            rows={4}
+                            className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground overflow-y-auto"
+                            style={{ maxHeight: '220px' }}
+                            value={item.description}
+                            onChange={(e) => {
+                              const next = [...additionalInfo];
+                              next[idx] = { ...next[idx], description: e.target.value };
+                              setAdditionalInfo(next);
+                              const el = e.target;
+                              requestAnimationFrame(() => {
+                                el.style.height = 'auto';
+                                el.style.height = Math.min(el.scrollHeight, 220) + 'px';
+                              });
+                            }}
+                            maxLength={500}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => setAdditionalInfo([...additionalInfo, { title: "", description: "", icon: "check" }])}
