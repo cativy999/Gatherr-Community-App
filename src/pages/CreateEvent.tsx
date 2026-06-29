@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -238,6 +238,21 @@ const CreateEvent = () => {
       return next;
     });
   };
+
+  // "Extra Details" per-section overflow menu (Delete lives behind this now,
+  // instead of a bare X next to the chevron, so it's harder to tap by accident).
+  const [openSectionMenu, setOpenSectionMenu] = useState<number | null>(null);
+  const sectionMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (openSectionMenu === null) return;
+    const handler = (e: MouseEvent) => {
+      if (sectionMenuRef.current && !sectionMenuRef.current.contains(e.target as Node)) {
+        setOpenSectionMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openSectionMenu]);
 
   const toggleFood = (id: string) => {
     setSelectedFoods(prev =>
@@ -1112,20 +1127,38 @@ const CreateEvent = () => {
                         type="button"
                         onClick={() => toggleSectionCollapsed(idx)}
                         aria-label={collapsed ? "Expand section" : "Collapse section"}
-                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0 p-1.5 -m-1.5 mr-2"
+                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0 p-1.5 -m-1.5"
                       >
                         <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
                       </button>
-                      <div className="w-px h-4 bg-gray-200 flex-shrink-0" />
-                      <button
-                        type="button"
-                        onClick={() => setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx))}
-                        className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 p-1.5 -m-1.5 ml-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 6 6 18M6 6l12 12"/>
-                        </svg>
-                      </button>
+                      <div className="relative flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setOpenSectionMenu(openSectionMenu === idx ? null : idx)}
+                          aria-label="Section options"
+                          className="text-muted-foreground hover:text-black transition-colors p-1.5 -m-1.5"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                        {openSectionMenu === idx && (
+                          <div
+                            ref={sectionMenuRef}
+                            className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx));
+                                setOpenSectionMenu(null);
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete section
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {collapsed && item.description && (
@@ -1168,11 +1201,6 @@ const CreateEvent = () => {
                               const next = [...additionalInfo];
                               next[idx] = { ...next[idx], description: e.target.value };
                               setAdditionalInfo(next);
-                              const el = e.target;
-                              requestAnimationFrame(() => {
-                                el.style.height = 'auto';
-                                el.style.height = Math.min(el.scrollHeight, 220) + 'px';
-                              });
                             }}
                             maxLength={500}
                           />
