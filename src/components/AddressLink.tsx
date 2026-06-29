@@ -1,47 +1,90 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MapPin } from "lucide-react";
+
+const MENU_WIDTH = 220;
+const MENU_HEIGHT_ESTIMATE = 112;
 
 /**
  * Renders a detected address as tappable text. Tapping it opens a small menu
  * letting the viewer choose Apple Maps or Google Maps — both accept plain,
  * loosely-formatted address text and geocode it themselves (same as typing
  * it into either app's search bar), so no strict address format is required.
+ *
+ * The menu is rendered into a portal (document.body) and fixed-positioned
+ * from the trigger's on-screen position, rather than nested/absolute inside
+ * the normal layout. The Extra Details accordion rows animate open/closed
+ * using an `overflow: hidden` wrapper, which was clipping the menu before —
+ * a portal escapes that entirely, and a fixed position survives any parent
+ * scroll/overflow/transform.
  */
 const AddressLink = ({ address }: { address: string }) => {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLSpanElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = () => {
+    const btn = triggerRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placeAbove = spaceBelow < MENU_HEIGHT_ESTIMATE + 12;
+    let left = rect.left;
+    if (left + MENU_WIDTH > window.innerWidth - 8) left = window.innerWidth - MENU_WIDTH - 8;
+    if (left < 8) left = 8;
+    const top = placeAbove ? rect.top - MENU_HEIGHT_ESTIMATE - 6 : rect.bottom + 6;
+    setCoords({ top, left });
+  };
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    updatePosition();
+    const handleOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const handleReflow = () => updatePosition();
+    document.addEventListener("mousedown", handleOutside);
+    window.addEventListener("scroll", handleReflow, true);
+    window.addEventListener("resize", handleReflow);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("scroll", handleReflow, true);
+      window.removeEventListener("resize", handleReflow);
+    };
   }, [open]);
 
   const encoded = encodeURIComponent(address);
 
   return (
-    <span ref={containerRef} className="relative inline-block">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="text-primary underline inline-flex items-center gap-1 align-baseline"
+        className="text-primary underline inline-flex items-center gap-1 align-baseline py-1.5 -my-1.5"
       >
-        <MapPin className="h-3.5 w-3.5 flex-shrink-0 inline" />
+        <MapPin className="h-4 w-4 flex-shrink-0 inline" />
         {address}
       </button>
-      {open && (
-        <span className="absolute left-0 top-full mt-1 z-30 flex flex-col min-w-[170px] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+      {open && coords && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: "fixed", top: coords.top, left: coords.left, width: MENU_WIDTH }}
+          className="z-[1000] flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+        >
           <a
             href={`https://maps.apple.com/?q=${encoded}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="px-3 py-2 text-sm text-left text-black hover:bg-gray-50 transition-colors whitespace-nowrap"
+            className="px-4 py-3.5 text-base text-left text-black hover:bg-gray-50 active:bg-gray-100 transition-colors"
           >
             Open in Apple Maps
           </a>
@@ -50,13 +93,14 @@ const AddressLink = ({ address }: { address: string }) => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="px-3 py-2 text-sm text-left text-black hover:bg-gray-50 transition-colors whitespace-nowrap border-t border-gray-100"
+            className="px-4 py-3.5 text-base text-left text-black hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100"
           >
             Open in Google Maps
           </a>
-        </span>
+        </div>,
+        document.body
       )}
-    </span>
+    </>
   );
 };
 
