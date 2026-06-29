@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, UserPlus, Shield, History } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -147,6 +147,16 @@ const EventDetails = () => {
   const [expandedInfoItems, setExpandedInfoItems] = useState<Set<number>>(new Set());
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
+  // Co-hosts: people the host has invited (via a shareable link) who get the
+  // same editing access as the host, plus a "Manage Event" section showing
+  // who's on the team and a lightweight activity log of recent edits.
+  const [cohostIds, setCohostIds] = useState<string[]>([]);
+  const [cohosts, setCohosts] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [activityLog, setActivityLog] = useState<{ id: string; message: string; created_at: string }[]>([]);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const isHost = !!userId && userId === event?.user_id;
+  const isHostOrCohost = isHost || (!!userId && cohostIds.includes(userId));
+
   useEffect(() => {
     const fetchEvent = async () => {
       const { data, error } = await supabase
@@ -175,6 +185,53 @@ const EventDetails = () => {
       setLoading(false);
     };
     fetchEvent();
+  }, [id]);
+
+  // Co-hosts + activity log + any live invite link. RLS already limits what
+  // comes back to people who are allowed to see it (host/co-hosts), so this
+  // is safe to call for every visitor — a regular viewer just gets empty
+  // results back.
+  useEffect(() => {
+    if (!id) return;
+    const fetchCohostData = async () => {
+      const { data: rows } = await supabase
+        .from("event_cohosts")
+        .select("user_id")
+        .eq("event_id", id);
+      const ids = (rows ?? []).map((r) => r.user_id);
+      setCohostIds(ids);
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, name, avatar_url")
+          .in("user_id", ids);
+        setCohosts(ids.map((uid) => {
+          const p = profs?.find((p) => p.user_id === uid);
+          return { user_id: uid, name: p?.name || "Someone", avatar_url: p?.avatar_url ?? null };
+        }));
+      } else {
+        setCohosts([]);
+      }
+
+      const { data: activity } = await supabase
+        .from("event_activity_log")
+        .select("id, message, created_at")
+        .eq("event_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setActivityLog(activity ?? []);
+
+      const { data: invite } = await supabase
+        .from("event_cohost_invites")
+        .select("id")
+        .eq("event_id", id)
+        .eq("revoked", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setInviteLink(invite ? `https://gatherr-one.vercel.app/cohost-invite/${invite.id}` : null);
+    };
+    fetchCohostData();
   }, [id]);
 
   // Fetch similar events after main event loads
@@ -757,6 +814,58 @@ const EventDetails = () => {
 
   const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
 
+  // Reuses (or creates) the event's one live co-host invite link, then hands
+  // it to the same native-share / copy-link pattern used for sharing the
+  // event itself.
+  const handleInviteCohost = async () => {
+    if (!id || !userId) return;
+    let link = inviteLink;
+    if (!link) {
+      const { data: existing } = await supabase
+        .from("event_cohost_invites")
+        .select("id")
+        .eq("event_id", id)
+        .eq("revoked", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      let token = existing?.id;
+      if (!token) {
+        const { data: created, error } = await supabase
+          .from("event_cohost_invites")
+          .insert({ event_id: id, created_by: userId })
+          .select("id")
+          .single();
+        if (error || !created) { toast.error("Couldn't create an invite link."); return; }
+        token = created.id;
+      }
+      link = `https://gatherr-one.vercel.app/cohost-invite/${token}`;
+      setInviteLink(link);
+    }
+    if (navigator.share) {
+      navigator.share({ title: `Co-host "${event.title}" on Gatherr`, url: link }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(link);
+      toast.success("Invite link copied!");
+    }
+  };
+
+  const handleRevokeInvite = async () => {
+    if (!id) return;
+    await supabase.from("event_cohost_invites").update({ revoked: true, revoked_at: new Date().toISOString() }).eq("event_id", id).eq("revoked", false);
+    setInviteLink(null);
+    toast.success("Invite link turned off");
+  };
+
+  const handleRemoveCohost = async (cohostUserId: string, name: string) => {
+    if (!id) return;
+    const { error } = await supabase.from("event_cohosts").delete().eq("event_id", id).eq("user_id", cohostUserId);
+    if (error) { toast.error("Couldn't remove co-host."); return; }
+    setCohosts((prev) => prev.filter((c) => c.user_id !== cohostUserId));
+    setCohostIds((prev) => prev.filter((uid) => uid !== cohostUserId));
+    toast.success(`${name} removed as co-host`);
+  };
+
   useEffect(() => {
     const el = titleRef.current;
     if (!el) return;
@@ -996,8 +1105,8 @@ const EventDetails = () => {
                 <Expand className="h-4 w-4 text-gray-700" />
               </button>
             )}
-            {/* Edit pencil — mobile, creator only */}
-            {userId === event?.user_id && (
+            {/* Edit pencil — mobile, host + co-hosts */}
+            {isHostOrCohost && (
               <button
                 onClick={() => navigate(`/create-event/${id}`)}
                 className="absolute bottom-3 right-3 p-2 bg-white/30 backdrop-blur-md rounded-full hover:bg-white/50 transition-colors"
@@ -1567,6 +1676,77 @@ const EventDetails = () => {
                   <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
                 </div>
               </div>
+              {isHostOrCohost && (
+                <button
+                  type="button"
+                  onClick={handleInviteCohost}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-full border border-dashed border-gray-300 text-sm font-semibold text-foreground hover:bg-gray-50 transition-colors"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Invite Co-host
+                </button>
+              )}
+            </div>
+          )}
+
+{/* Manage Event — host + co-hosts only */}
+          {isHostOrCohost && (
+            <div className="space-y-4">
+              <h2 className="text-[16px] font-bold pb-2 border-b flex items-center gap-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>
+                <Shield className="h-4 w-4" /> Manage Event
+              </h2>
+
+              {cohosts.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Co-hosts</p>
+                  {cohosts.map((c) => (
+                    <div key={c.user_id} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {c.avatar_url ? (
+                          <img src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="w-7 h-7 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getInitialColor(c.name) }}>
+                            {c.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-sm">{c.name}</span>
+                      </div>
+                      {isHost && (
+                        <button type="button" onClick={() => handleRemoveCohost(c.user_id, c.name)} className="text-xs text-red-500 font-medium hover:underline">
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isHost && inviteLink && (
+                <div className="flex items-center justify-between gap-2 text-sm bg-secondary/60 rounded-xl px-3 py-2.5">
+                  <span className="text-muted-foreground">Invite link is live</span>
+                  <button type="button" onClick={handleRevokeInvite} className="text-xs font-semibold text-red-500 hover:underline flex-shrink-0">
+                    Turn off
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5" /> Activity
+                </p>
+                {activityLog.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No changes yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {activityLog.map((a) => (
+                      <div key={a.id} className="flex items-baseline gap-2 text-sm">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.created_at)}</span>
+                        <span className="text-foreground">{a.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1833,7 +2013,7 @@ const EventDetails = () => {
 
         {/* RIGHT COLUMN — sticky image + attendees, desktop only */}
         <div className="hidden md:block sticky top-20 self-start space-y-4">
-          {userId === event?.user_id && (
+          {isHostOrCohost && (
             <div className="flex justify-end">
               <button
                 onClick={() => navigate(`/create-event/${id}`)}

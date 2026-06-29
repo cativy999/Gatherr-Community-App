@@ -239,6 +239,15 @@ const CreateEvent = () => {
     });
   };
 
+  // Co-host support: a co-host can edit an event just like the host, but
+  // shouldn't be able to silently take over ownership of it (see proceedSubmit,
+  // which leaves `user_id` out of the update payload), and access to this page
+  // for someone else's event is gated to host + co-hosts (see the fetchEvent
+  // effect below).
+  // null = still checking, true/false = resolved. Creating a new event is always authorized.
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(id ? null : true);
+  const originalEventRef = useRef<any>(null);
+
   // "Extra Details" per-section overflow menu (Delete lives behind this now,
   // instead of a bare X next to the chevron, so it's harder to tap by accident).
   const [openSectionMenu, setOpenSectionMenu] = useState<number | null>(null);
@@ -287,6 +296,25 @@ const CreateEvent = () => {
     const fetchEvent = async () => {
       const { data, error } = await supabase.from("events").select("*").eq("id", id).single();
       if (error) { console.error("Error fetching event:", error); return; }
+      originalEventRef.current = data;
+
+      // Authorization: only the host or an invited co-host may edit this event.
+      if (sessionLoading) {
+        // session not resolved yet — the auth-dependent effect below will re-check.
+      } else if (!session?.user) {
+        setIsAuthorized(false);
+      } else if (data.user_id === session.user.id) {
+        setIsAuthorized(true);
+      } else {
+        const { data: cohostRow } = await supabase
+          .from("event_cohosts")
+          .select("user_id")
+          .eq("event_id", id)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAuthorized(!!cohostRow);
+      }
+
       setTitle(data.title ?? "");
       setDescription(data.description ?? "");
       setCategory(data.category ?? null);
@@ -315,7 +343,14 @@ const CreateEvent = () => {
       setAdditionalInfo(data.additional_info ?? []);
     };
     fetchEvent();
-  }, [id]);
+  }, [id, session?.user?.id, sessionLoading]);
+
+  useEffect(() => {
+    if (isAuthorized === false) {
+      toast.error("You don't have permission to edit this event.");
+      navigate(id ? `/event/${id}` : "/wards");
+    }
+  }, [isAuthorized]);
 
   useEffect(() => {
     if (locationDebounceRef.current) clearTimeout(locationDebounceRef.current);
@@ -409,6 +444,10 @@ const CreateEvent = () => {
 
   const confirmDelete = async () => {
     if (!id) return;
+    if (originalEventRef.current && session?.user?.id !== originalEventRef.current.user_id) {
+      toast.error("Only the original host can delete this event.");
+      return;
+    }
     const { error } = await supabase.from("events").delete().eq("id", id);
     if (error) { alert("Failed to delete event."); console.error(error); }
     else { navigate("/wards"); }
@@ -532,6 +571,40 @@ const CreateEvent = () => {
     toast.success('🎨 Image applied!');
   };
 
+  // Writes a few human-readable "what changed" entries to the event's
+  // Activity Log (visible in the Manage Event section) after a successful
+  // edit. Intentionally coarse-grained — the goal is a quick history of edits
+  // for organizers, not a field-by-field audit trail.
+  const logEventChanges = async (newData: Record<string, any>) => {
+    const original = originalEventRef.current;
+    if (!id || !session?.user || !original) return;
+    const messages: string[] = [];
+
+    if (original.title !== newData.title) messages.push("changed the event title");
+    if (original.description !== newData.description) messages.push("updated the event description");
+    if (
+      original.date !== newData.date ||
+      original.start_time !== newData.start_time ||
+      original.end_time !== newData.end_time ||
+      original.end_date !== newData.end_date
+    ) messages.push("changed the event time");
+    if (original.address !== newData.address) messages.push("changed the event location");
+    if (original.image_url !== newData.image_url) {
+      messages.push(original.image_url ? "changed the event image" : "added a new image");
+    }
+    if (JSON.stringify(original.additional_info ?? null) !== JSON.stringify(newData.additional_info ?? null)) {
+      messages.push("updated the extra details");
+    }
+    if (messages.length === 0) return;
+
+    const { data: profile } = await supabase.from("profiles").select("name").eq("user_id", session.user.id).single();
+    const actor = profile?.name || "Someone";
+
+    await supabase.from("event_activity_log").insert(
+      messages.map(m => ({ event_id: id, user_id: session.user.id, message: `${actor} ${m}.` }))
+    );
+  };
+
   const handleSubmit = async () => {
     if (!title || (!isRecurring && !date) || (!address && !virtualLink)) {
       alert("Please fill in title, date and location!");
@@ -559,8 +632,8 @@ const CreateEvent = () => {
         imageUrl = data.publicUrl;
       }
     }
-    const eventData = {
-      user_id: session.user.id, title, description, category, is_free: isFree,
+    const eventData: Record<string, any> = {
+      title, description, category, is_free: isFree,
       date: isRecurring ? "2099-12-31" : date,
       location: location || address, image_url: imageUrl, status: "published",
       age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat, lng,
@@ -574,6 +647,10 @@ const CreateEvent = () => {
         ? additionalInfo.filter(item => item.title.trim())
         : null,
     };
+    // Only set user_id when creating a brand-new event. On an edit, a co-host
+    // saving changes must NOT overwrite who the original host is.
+    if (!isEditing) eventData.user_id = session.user.id;
+
     let error; let savedId = id;
     if (isEditing) {
       ({ error } = await supabase.from("events").update(eventData).eq("id", id));
@@ -584,6 +661,7 @@ const CreateEvent = () => {
     }
     if (error) { console.error("Error saving event:", JSON.stringify(error)); alert(JSON.stringify(error)); }
     else {
+      if (isEditing) logEventChanges(eventData);
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#a855f7", "#ec4899", "#f97316", "#facc15", "#4ade80"] });
       setTimeout(() => {
         confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#a855f7", "#ec4899", "#f97316"] });
@@ -594,6 +672,17 @@ const CreateEvent = () => {
     setLoading(false);
   };
 
+  if (isAuthorized === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (isAuthorized === false) {
+    return null; // the effect above is already redirecting away
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
       <header className="sticky top-0 z-10 bg-transparent px-4 py-2">
@@ -601,7 +690,7 @@ const CreateEvent = () => {
           <button onClick={() => navigate(-1)} className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 transition-colors flex-shrink-0">
             <ArrowLeft className="h-6 w-6" />
           </button>
-          {isEditing && (
+          {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
             <Button variant="ghost" size="icon" className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 text-red-500" onClick={() => setDeleteOpen(true)} disabled={loading}>
               <Trash2 className="h-5 w-5" />
             </Button>

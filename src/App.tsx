@@ -34,6 +34,7 @@ import Challenge from "./pages/Challenge";
 import LogSteps from "./pages/LogSteps";
 import OOTDHome from "./pages/OOTDHome";
 import OOTDReview from "./pages/OOTDReview";
+import CohostInvite from "./pages/CohostInvite";
 import FeedbackButton from "@/components/FeedbackButton";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -79,7 +80,13 @@ const AuthListener = () => {
       .single()
       .then(({ data: profile, error }) => {
         console.log("Profile check:", { profile, error }); // 👈 add this line
+        const pendingRedirect = sessionStorage.getItem("postAuthRedirect");
         if (profile) {
+          if (pendingRedirect) {
+            sessionStorage.removeItem("postAuthRedirect");
+            navigate(pendingRedirect);
+            return;
+          }
           const currentPath = window.location.pathname;
           if (currentPath !== "/") return; // already on the right page
           navigate("/wards");
@@ -93,7 +100,7 @@ const AuthListener = () => {
 };
 
 const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
-const hideNavPatterns = ["/create-event"];
+const hideNavPatterns = ["/create-event", "/cohost-invite"];
 
 const AppLayout = () => {
   const { session } = useAuth();
@@ -164,6 +171,7 @@ const App = () => (
                 <Route path="/my-published-groups" element={<PublishedGroupsPage />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/group/:id" element={<GroupProfile />} />
+                <Route path="/cohost-invite/:token" element={<CohostInvite />} />
               </Routes>
               </ContentLayout>
               <AppLayout />
