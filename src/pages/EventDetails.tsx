@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import AddressLink from "@/components/AddressLink";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -799,19 +800,54 @@ const EventDetails = () => {
     }
   };
 
+  // Heuristic match for US-style street addresses (number + street name +
+  // suffix, optionally followed by city/state/zip) so a pasted address turns
+  // into a tappable "open in Apple Maps / Google Maps" link. It won't catch
+  // every possible address format, but covers the common ones people paste
+  // from Google.
+  const ADDRESS_REGEX = new RegExp(
+    "\\b\\d{1,6}\\s[A-Za-z0-9.'-]+(?:\\s[A-Za-z0-9.'-]+){0,4}\\s" +
+    "(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Rd|Road|Dr(?:ive)?|Ln|Lane|Way|Ct|Court|Pl(?:ace)?|Pkwy|Parkway|Hwy|Highway|Cir(?:cle)?|Ter(?:race)?|Trl|Trail|Sq(?:uare)?|Loop)\\.?" +
+    "(?:\\s*,?\\s*(?:Suite|Ste|Apt|Unit|#)\\s*[\\w-]+)?" +
+    "(?:\\s*,\\s*[A-Za-z .'-]+)?" +
+    "(?:\\s*,?\\s*[A-Z]{2})?" +
+    "(?:\\s+\\d{5}(?:-\\d{4})?)?",
+    "gi"
+  );
+
+  const linkifyAddresses = (text: string, keyPrefix: string | number) => {
+    const matches = [...text.matchAll(ADDRESS_REGEX)];
+    if (matches.length === 0) return text;
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+    matches.forEach((m, j) => {
+      const start = m.index ?? 0;
+      const matchText = m[0];
+      if (start > cursor) nodes.push(<span key={`${keyPrefix}-${j}-pre`}>{text.slice(cursor, start)}</span>);
+      nodes.push(<AddressLink key={`${keyPrefix}-${j}-addr`} address={matchText} />);
+      cursor = start + matchText.length;
+    });
+    if (cursor < text.length) nodes.push(<span key={`${keyPrefix}-tail`}>{text.slice(cursor)}</span>);
+    return nodes;
+  };
+
   const renderDescription = (text: string) => {
+    if (!text) return text;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
-    return parts.map((part, i) =>
-      urlRegex.test(part) ? (
-        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all inline-flex items-center gap-1">
-          <Link className="h-3.5 w-3.5 flex-shrink-0" />
-          {part}
-        </a>
-      ) : (
-        <span key={i}>{part}</span>
-      )
-    );
+    return parts.map((part, i) => {
+      urlRegex.lastIndex = 0;
+      if (urlRegex.test(part)) {
+        urlRegex.lastIndex = 0;
+        return (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all inline-flex items-center gap-1">
+            <Link className="h-3.5 w-3.5 flex-shrink-0" />
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{linkifyAddresses(part, i)}</span>;
+    });
   };
 
   const eventDate = (() => {
@@ -1433,7 +1469,7 @@ const EventDetails = () => {
                                   className="pl-6 pb-4 pr-2 text-sm font-normal leading-relaxed whitespace-pre-wrap text-left"
                                   style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: '#000000cc' }}
                                 >
-                                  {item.description}
+                                  {renderDescription(item.description)}
                                 </div>
                               </div>
                             </div>
