@@ -197,23 +197,38 @@ const CreateEvent = () => {
   // Custom drag-to-resize for the Description box. Native CSS `resize` doesn't
   // render a draggable handle on iOS Safari, so we drive the height manually
   // with Pointer Events (which work for mouse, touch, and pen alike).
+  //
+  // IMPORTANT: this uses setPointerCapture instead of window-level listeners.
+  // The first version attached pointermove/pointerup listeners to `window`
+  // and only removed them when pointerup fired — but iOS Safari can cancel a
+  // touch (e.g. the gesture gets reinterpreted as a scroll) without ever
+  // firing pointerup. That left the listeners attached forever, so every
+  // later tap/scroll anywhere on the page kept re-triggering a layout
+  // recalculation, which is consistent with the page feeling "frozen" right
+  // after dragging the handle. Pointer capture guarantees the up/cancel
+  // events are delivered to this element no matter where the touch ends, so
+  // cleanup always runs.
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const handleDescriptionResizeStart = (e: React.PointerEvent) => {
+  const descriptionResizeStateRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const handleDescriptionResizeStart = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const textarea = descriptionTextareaRef.current;
     if (!textarea) return;
-    const startY = e.clientY;
-    const startHeight = textarea.offsetHeight;
-    const onMove = (ev: PointerEvent) => {
-      const newHeight = Math.min(600, Math.max(128, startHeight + (ev.clientY - startY)));
-      textarea.style.height = `${newHeight}px`;
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    descriptionResizeStateRef.current = { startY: e.clientY, startHeight: textarea.offsetHeight };
+  };
+  const handleDescriptionResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = descriptionResizeStateRef.current;
+    const textarea = descriptionTextareaRef.current;
+    if (!state || !textarea) return;
+    const newHeight = Math.min(600, Math.max(128, state.startHeight + (e.clientY - state.startY)));
+    textarea.style.height = `${newHeight}px`;
+  };
+  const handleDescriptionResizeEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    descriptionResizeStateRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   };
   const toggleSectionCollapsed = (idx: number) => {
     setCollapsedSections(prev => {
@@ -1019,6 +1034,9 @@ const CreateEvent = () => {
                     }} maxLength={2000} />
                   <div
                     onPointerDown={handleDescriptionResizeStart}
+                    onPointerMove={handleDescriptionResizeMove}
+                    onPointerUp={handleDescriptionResizeEnd}
+                    onPointerCancel={handleDescriptionResizeEnd}
                     aria-label="Drag to resize description box"
                     className="absolute bottom-0.5 right-0.5 w-6 h-6 flex items-end justify-end p-1 cursor-ns-resize text-gray-400 touch-none select-none"
                     style={{ touchAction: "none" }}
