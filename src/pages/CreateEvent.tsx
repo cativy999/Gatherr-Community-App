@@ -194,6 +194,27 @@ const CreateEvent = () => {
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
   // Tracks which "Extra Details" sections are collapsed (by index) — UI-only state, not saved.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+  // Custom drag-to-resize for the Description box. Native CSS `resize` doesn't
+  // render a draggable handle on iOS Safari, so we drive the height manually
+  // with Pointer Events (which work for mouse, touch, and pen alike).
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const handleDescriptionResizeStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
+    const startY = e.clientY;
+    const startHeight = textarea.offsetHeight;
+    const onMove = (ev: PointerEvent) => {
+      const newHeight = Math.min(600, Math.max(128, startHeight + (ev.clientY - startY)));
+      textarea.style.height = `${newHeight}px`;
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
   const toggleSectionCollapsed = (idx: number) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -990,11 +1011,23 @@ const CreateEvent = () => {
               {/* Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description</label>
-                <Textarea placeholder="Tell people about your event..." className="min-h-32 text-base resize-y overflow-y-auto" style={{ maxHeight: '600px' }} value={description}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDescription(val.charAt(0).toUpperCase() + val.slice(1));
-                  }} maxLength={2000} />
+                <div className="relative">
+                  <Textarea ref={descriptionTextareaRef} placeholder="Tell people about your event..." className="min-h-32 text-base resize-none overflow-y-auto pb-5" style={{ maxHeight: '600px' }} value={description}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDescription(val.charAt(0).toUpperCase() + val.slice(1));
+                    }} maxLength={2000} />
+                  <div
+                    onPointerDown={handleDescriptionResizeStart}
+                    aria-label="Drag to resize description box"
+                    className="absolute bottom-0.5 right-0.5 w-6 h-6 flex items-end justify-end p-1 cursor-ns-resize text-gray-400 touch-none select-none"
+                    style={{ touchAction: "none" }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M9 1 1 9M9 5 5 9M9 9h.01" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                </div>
                 <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
               </div>
 
@@ -1061,14 +1094,15 @@ const CreateEvent = () => {
                         type="button"
                         onClick={() => toggleSectionCollapsed(idx)}
                         aria-label={collapsed ? "Expand section" : "Collapse section"}
-                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0"
+                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0 p-1.5 -m-1.5 mr-2"
                       >
                         <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
                       </button>
+                      <div className="w-px h-4 bg-gray-200 flex-shrink-0" />
                       <button
                         type="button"
                         onClick={() => setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx))}
-                        className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
+                        className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 p-1.5 -m-1.5 ml-2"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M18 6 6 18M6 6l12 12"/>
