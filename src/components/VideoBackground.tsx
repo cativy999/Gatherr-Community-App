@@ -1,16 +1,19 @@
 // Fixed, full-page cloud video background. Sits behind all page content via -z-10.
 // Used across the main app pages (Home, My Events, Search, Community, Profile) for a
 // consistent look. To swap the video or poster later, only this file needs to change.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const VideoBackground = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Stays false until the video has actually started rendering frames. While
+  // false, the poster <img> below sits visually on top of the <video> and
+  // masks it completely — including iOS's native "tap to play" overlay,
+  // which renders on top of the video itself whenever autoplay hasn't
+  // kicked in yet (slow network, cold app launch, etc). That overlay was
+  // showing through before because nothing was actually covering the video
+  // element during that loading window.
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // React doesn't always reflect the `muted` JSX attribute onto the actual
-  // DOM property in time for autoplay to kick in on first paint — when that
-  // happens, mobile WebKit briefly shows its native "tap to play" overlay
-  // (the gray circle + play triangle) before falling back to the poster.
-  // Setting `muted` and calling `.play()` explicitly here closes that gap.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -19,10 +22,7 @@ const VideoBackground = () => {
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 -z-10 overflow-hidden bg-cover bg-center"
-      style={{ backgroundImage: "url('/CloudBackgroundPoster.jpg')" }}
-    >
+    <div className="fixed inset-0 -z-10 overflow-hidden">
       <video
         ref={videoRef}
         className="h-full w-full object-cover"
@@ -33,6 +33,14 @@ const VideoBackground = () => {
         loop
         muted
         playsInline
+        onPlaying={() => setIsPlaying(true)}
+      />
+      <img
+        src="/CloudBackgroundPoster.jpg"
+        alt=""
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+          isPlaying ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
       />
     </div>
   );
