@@ -80,10 +80,10 @@ const AuthListener = () => {
       .single()
       .then(({ data: profile, error }) => {
         console.log("Profile check:", { profile, error }); // 👈 add this line
-        const pendingRedirect = sessionStorage.getItem("postAuthRedirect");
+        const pendingRedirect = localStorage.getItem("postAuthRedirect");
         if (profile) {
           if (pendingRedirect) {
-            sessionStorage.removeItem("postAuthRedirect");
+            localStorage.removeItem("postAuthRedirect");
             navigate(pendingRedirect);
             return;
           }

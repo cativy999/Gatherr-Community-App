@@ -37,7 +37,7 @@ const CohostInvite = () => {
   }, [token]);
 
   const handleSignIn = () => {
-    if (token) sessionStorage.setItem("postAuthRedirect", `/cohost-invite/${token}`);
+    if (token) localStorage.setItem("postAuthRedirect", `/cohost-invite/${token}`);
     navigate("/");
   };
 
