@@ -151,7 +151,7 @@ const EventDetails = () => {
   // same editing access as the host, plus a "Manage Event" section showing
   // who's on the team and a lightweight activity log of recent edits.
   const [cohostIds, setCohostIds] = useState<string[]>([]);
-  const [cohosts, setCohosts] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [cohosts, setCohosts] = useState<{ user_id: string; name: string; avatar_url: string | null; ward: string | null }[]>([]);
   const [activityLog, setActivityLog] = useState<{ id: string; message: string; created_at: string }[]>([]);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
   const [manageEventOpen, setManageEventOpen] = useState(false);
@@ -205,11 +205,11 @@ const EventDetails = () => {
       if (ids.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("user_id, name, avatar_url")
+          .select("user_id, name, avatar_url, ward")
           .in("user_id", ids);
         setCohosts(ids.map((uid) => {
           const p = profs?.find((p) => p.user_id === uid);
-          return { user_id: uid, name: p?.name || "Someone", avatar_url: p?.avatar_url ?? null };
+          return { user_id: uid, name: p?.name || "Someone", avatar_url: p?.avatar_url ?? null, ward: p?.ward ?? null };
         }));
       } else {
         setCohosts([]);
@@ -1782,29 +1782,25 @@ const EventDetails = () => {
                   <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
                 </div>
               </div>
-              {/* Co-hosts — visible to every visitor, read-only */}
-              {cohosts.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2 flex-shrink-0">
-                    {cohosts.slice(0, 4).map((c) => (
-                      c.avatar_url ? (
-                        <img key={c.user_id} src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover border-2 border-white" />
-                      ) : (
-                        <div key={c.user_id} className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold border-2 border-white" style={{ backgroundColor: getInitialColor(c.name) }}>
-                          {c.name.charAt(0).toUpperCase()}
-                        </div>
-                      )
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Co-hosted by{" "}
-                    <span className="font-medium text-foreground">
-                      {cohosts.slice(0, 2).map(c => c.name).join(", ")}
-                      {cohosts.length > 2 ? ` +${cohosts.length - 2} more` : ""}
+              {/* Co-hosts — visible to every visitor, read-only. Mirrors the host's
+                  own name + ward display above so co-hosts get the same billing. */}
+              {cohosts.map((c) => (
+                <div key={c.user_id} className="flex items-center gap-2">
+                  {c.avatar_url ? (
+                    <img src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getInitialColor(c.name) }}>
+                      {c.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-sm text-muted-foreground">
+                      Co-hosted by <span className="font-semibold text-foreground">{c.name}</span>
                     </span>
-                  </span>
+                    {c.ward && <p className="text-xs text-muted-foreground">{c.ward}</p>}
+                  </div>
                 </div>
-              )}
+              ))}
               {isHostOrCohost && (
                 <div className="flex items-center gap-2">
                   <button
