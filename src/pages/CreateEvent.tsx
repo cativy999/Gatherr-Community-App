@@ -1501,14 +1501,16 @@ const CreateEvent = () => {
 
       {/* Floating Publish Button */}
       <div className="fixed bottom-0 left-0 right-0 px-5 py-4 bg-background/95 backdrop-blur-sm border-t border-border z-50">
-        <Button
-          size="lg"
-          className="w-full h-14 text-base font-semibold rounded-2xl"
-          onClick={handleSubmit}
-          disabled={loading || sessionLoading}
-        >
-          {loading ? "Saving..." : isEditing ? "Save Changes" : "Publish Event"}
-        </Button>
+        <div className="max-w-xl mx-auto">
+          <Button
+            size="lg"
+            className="w-full h-14 text-base font-semibold rounded-2xl"
+            onClick={handleSubmit}
+            disabled={loading || sessionLoading}
+          >
+            {loading ? "Saving..." : isEditing ? "Save Changes" : "Publish Event"}
+          </Button>
+        </div>
       </div>
 
     </div>
