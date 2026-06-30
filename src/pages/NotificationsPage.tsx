@@ -58,7 +58,7 @@ const NotificationsPage = () => {
                 className={`w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/40 ${!n.read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}
               >
                 <span className="text-xl mt-0.5 flex-shrink-0">
-                  {n.type === "mention" ? "🏷️" : n.type === "like" ? "❤️" : n.type === "reply" ? "💬" : "🔔"}
+                  {n.type === "mention" ? "🏷️" : n.type === "like" ? "❤️" : n.type === "reply" ? "💬" : n.type === "cohost_accepted" ? "🤝" : "🔔"}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-snug">{n.message}</p>

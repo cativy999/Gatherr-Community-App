@@ -65,21 +65,48 @@ const PublishedEventsPage = () => {
     setLoading(true);
     setEvents([]);
     const today = new Date(); today.setHours(0, 0, 0, 0);
+    const uid = session.user.id;
 
-    supabase
-      .from("events")
-      .select("id, title, date, location, image_url, age_min, age_max, user_id")
-      .eq("user_id", session.user.id)
-      .eq("status", "published")
-      .order("date", { ascending: activeTab === "upcoming" })
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setEvents(data.filter((e: any) =>
-            activeTab === "upcoming" ? toLocal(e.date) >= today : toLocal(e.date) < today
-          ));
-        }
-        setLoading(false);
-      });
+    const fetchAll = async () => {
+      // Events the user created
+      const { data: owned } = await supabase
+        .from("events")
+        .select("id, title, date, location, image_url, age_min, age_max, user_id")
+        .eq("user_id", uid)
+        .eq("status", "published")
+        .order("date", { ascending: activeTab === "upcoming" });
+
+      // Events where the user is a co-host
+      const { data: cohostRows } = await supabase
+        .from("event_cohosts")
+        .select("event_id")
+        .eq("user_id", uid);
+      const cohostIds = (cohostRows ?? []).map((r: any) => r.event_id);
+
+      let cohostEvents: Event[] = [];
+      if (cohostIds.length > 0) {
+        const { data: cohosted } = await supabase
+          .from("events")
+          .select("id, title, date, location, image_url, age_min, age_max, user_id")
+          .in("id", cohostIds)
+          .eq("status", "published")
+          .order("date", { ascending: activeTab === "upcoming" });
+        cohostEvents = (cohosted ?? []) as Event[];
+      }
+
+      // Merge + dedupe (owned takes precedence), then filter by tab
+      const seen = new Set<string>();
+      const merged = [...(owned ?? []), ...cohostEvents].filter((e: any) => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return activeTab === "upcoming" ? toLocal(e.date) >= today : toLocal(e.date) < today;
+      }) as Event[];
+
+      setEvents(merged);
+      setLoading(false);
+    };
+
+    fetchAll();
   }, [session, activeTab]);
 
   const deleteEvent = async (id: string) => {

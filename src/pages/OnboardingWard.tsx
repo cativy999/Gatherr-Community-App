@@ -60,7 +60,15 @@ const OnboardingWard = () => {
       localStorage.removeItem("onboarding_age_max");
     }
     setLoading(false);
-    navigate("/wards");
+    // If the user came here via a co-host invite (or any other post-auth
+    // redirect), send them there now instead of the home page.
+    const pending = localStorage.getItem("postAuthRedirect");
+    if (pending) {
+      localStorage.removeItem("postAuthRedirect");
+      navigate(pending);
+    } else {
+      navigate("/wards");
+    }
   };
 
   return (

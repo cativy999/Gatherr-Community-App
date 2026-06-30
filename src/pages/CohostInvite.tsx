@@ -42,16 +42,46 @@ const CohostInvite = () => {
   };
 
   const handleAccept = async () => {
-    if (!token) return;
+    if (!token || !info) return;
     setAccepting(true);
     const { data, error: rpcError } = await supabase.rpc("accept_cohost_invite", { p_token: token });
-    setAccepting(false);
     if (rpcError) {
+      setAccepting(false);
       toast.error(rpcError.message || "Couldn't accept this invite.");
       return;
     }
+
+    // Send notifications — fetch host user_id + co-host's display name in parallel
+    const eventId = data ?? info.event_id;
+    const [{ data: eventRow }, { data: myProfile }] = await Promise.all([
+      supabase.from("events").select("user_id").eq("id", info.event_id).single(),
+      supabase.from("profiles").select("name").eq("user_id", session!.user.id).single(),
+    ]);
+    const myName = myProfile?.name || "Someone";
+    const hostUserId = eventRow?.user_id;
+
+    await Promise.all([
+      // Notify the host that someone accepted
+      hostUserId
+        ? supabase.from("notifications").insert({
+            user_id: hostUserId,
+            type: "cohost_accepted",
+            message: `${myName} accepted your co-host invite for "${info.event_title}"`,
+            event_id: info.event_id,
+          })
+        : Promise.resolve(),
+      // Notify the co-host themselves as a persistent confirmation
+      supabase.from("notifications").insert({
+        user_id: session!.user.id,
+        type: "cohost_accepted",
+        message: `You're now a co-host for "${info.event_title}" — you can edit and manage it`,
+        event_id: info.event_id,
+      }),
+    ]);
+
+    setAccepting(false);
     toast.success("You're now a co-host!");
-    navigate(`/event/${data ?? info?.event_id}`);
+    navigate(`/event/${eventId}`);
   };
 
   if (loading || authLoading) {
