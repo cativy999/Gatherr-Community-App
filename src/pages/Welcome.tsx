@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 
-type Step = "home" | "email" | "sent";
+type Step = "home" | "email" | "sent" | "verified";
 
 if (typeof document !== "undefined" && !document.getElementById("welcome-marquee-style")) {
   const s = document.createElement("style");
@@ -59,14 +59,17 @@ const MarqueeBanner = () => {
 const Welcome = () => {
   const [step, setStep] = useState<Step>("home");
   const [email, setEmail] = useState(localStorage.getItem("last_used_email") || "");
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:8080",
+        redirectTo: window.location.origin,
         queryParams: { prompt: "select_account" },
       },
     });
@@ -88,6 +91,19 @@ const Welcome = () => {
       setStep("sent");
     }
     setLoading(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) { setOtpError("Enter the 6-digit code from the email."); return; }
+    setVerifying(true);
+    setOtpError("");
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
+    setVerifying(false);
+    if (error) {
+      setOtpError("That code didn't work. Double-check it or resend.");
+    }
+    // On success the AuthContext session listener fires automatically and
+    // App.tsx handles the redirect — no manual navigate needed here.
   };
 
   // HOME SCREEN
@@ -181,12 +197,38 @@ const Welcome = () => {
         </div>
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Check your email</h1>
-          <p className="text-muted-foreground">We sent a magic link to</p>
+          <p className="text-muted-foreground">We sent a code to</p>
           <p className="font-semibold text-foreground">{email}</p>
-          <p className="text-sm text-muted-foreground pt-2">Click the link in the email to sign in. If you don't see it, check your spam or junk folder📬.</p>
         </div>
+
+        {/* OTP code entry — keeps everything inside the app so the
+            PWA session is created here, not in Safari */}
+        <div className="space-y-3 text-left">
+          <Input
+            type="number"
+            inputMode="numeric"
+            placeholder="6-digit code"
+            value={otp}
+            onChange={(e) => { setOtp(e.target.value.slice(0, 6)); setOtpError(""); }}
+            onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
+            className="h-14 text-center text-2xl tracking-widest font-bold"
+          />
+          {otpError && <p className="text-sm text-destructive">{otpError}</p>}
+          <Button
+            size="lg"
+            className="w-full h-14 text-base font-semibold"
+            onClick={handleVerifyOtp}
+            disabled={verifying || otp.length !== 6}
+          >
+            {verifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Can't find it? Check your spam folder 📬
+        </p>
         <button
-          onClick={() => { setStep("email"); setError(""); }}
+          onClick={() => { setStep("email"); setError(""); setOtp(""); setOtpError(""); }}
           className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
         >
           Use a different email
