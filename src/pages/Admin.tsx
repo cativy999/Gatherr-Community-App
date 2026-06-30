@@ -95,6 +95,7 @@ const Admin = () => {
   const [signupOwnerFilter, setSignupOwnerFilter] = useState<OwnerFilter>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [ageFilter, setAgeFilter] = useState<AgeBucket>("all");
+  const [signupSort, setSignupSort] = useState<"newest" | "oldest">("newest");
   const [eventOwnerFilter, setEventOwnerFilter] = useState<OwnerFilter>("all");
   const [eventTimeFilter, setEventTimeFilter] = useState<"all" | "week">("all");
   const [stepOwnerFilter, setStepOwnerFilter] = useState<OwnerFilter>("all");
@@ -224,13 +225,19 @@ const Admin = () => {
     return Array.from(set).sort();
   }, [profiles]);
 
-  const filteredSignups = profiles.filter((p) => {
-    if (signupOwnerFilter === "real" && isOwnerUserId(p.user_id)) return false;
-    if (signupOwnerFilter === "owner" && !isOwnerUserId(p.user_id)) return false;
-    if (locationFilter !== "all" && p.location !== locationFilter) return false;
-    if (ageFilter !== "all" && getAgeBucket(p.age) !== ageFilter) return false;
-    return true;
-  });
+  const filteredSignups = profiles
+    .filter((p) => {
+      if (signupOwnerFilter === "real" && isOwnerUserId(p.user_id)) return false;
+      if (signupOwnerFilter === "owner" && !isOwnerUserId(p.user_id)) return false;
+      if (locationFilter !== "all" && p.location !== locationFilter) return false;
+      if (ageFilter !== "all" && getAgeBucket(p.age) !== ageFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return signupSort === "newest" ? tb - ta : ta - tb;
+    });
 
   const filteredEvents = events.filter((e) => {
     if (eventOwnerFilter === "real" && isOwnerUserId(e.user_id)) return false;
@@ -316,6 +323,15 @@ const Admin = () => {
                   {(Object.keys(AGE_BUCKET_LABELS) as AgeBucket[]).map((b) => (
                     <option key={b} value={b}>{AGE_BUCKET_LABELS[b]}</option>
                   ))}
+                </select>
+                <select
+                  value={signupSort}
+                  onChange={(e) => setSignupSort(e.target.value as "newest" | "oldest")}
+                  className="flex-1 h-9 rounded-lg border text-sm px-2.5"
+                  style={{ borderColor: "#eaeaea" }}
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
                 </select>
               </div>
               <p className="text-xs text-muted-foreground">
