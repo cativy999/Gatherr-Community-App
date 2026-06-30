@@ -79,7 +79,7 @@ const Welcome = () => {
     setError("");
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: "http://localhost:8080" },
+      options: { emailRedirectTo: window.location.origin },
     });
     if (error) {
       setError(error.message);
