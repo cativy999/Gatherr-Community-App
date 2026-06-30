@@ -77,6 +77,10 @@ const Admin = () => {
   const isAdmin = session?.user?.email === ADMIN_EMAIL;
 
   const [tab, setTab] = useState<Tab>("signups");
+  // Track when admin last opened the Signups tab so we can badge new signups.
+  const [lastSignupsViewed] = useState<string>(
+    () => localStorage.getItem("admin_lastSignupsViewed") ?? new Date(0).toISOString()
+  );
   const [loading, setLoading] = useState(true);
 
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -190,6 +194,9 @@ const Admin = () => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const signupsThisMonth = profiles.filter((p) => p.created_at && new Date(p.created_at) >= monthStart).length;
+  const newSignupsBadge = profiles.filter(
+    (p) => p.created_at && new Date(p.created_at) > new Date(lastSignupsViewed)
+  ).length;
 
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const eventsThisWeek = events.filter((e) => e.created_at && new Date(e.created_at) >= weekStart).length;
@@ -449,11 +456,17 @@ const Admin = () => {
                 {TABS.map((t) => {
                   const Icon = t.icon;
                   const active = tab === t.key;
+                  const badge = t.key === "signups" && newSignupsBadge > 0 ? newSignupsBadge : 0;
                   return (
                     <button
                       key={t.key}
-                      onClick={() => setTab(t.key)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors"
+                      onClick={() => {
+                        setTab(t.key);
+                        if (t.key === "signups") {
+                          localStorage.setItem("admin_lastSignupsViewed", new Date().toISOString());
+                        }
+                      }}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors relative"
                       style={{
                         backgroundColor: active ? "#111" : "#f4f4f4",
                         color: active ? "#fff" : "#444",
@@ -462,6 +475,11 @@ const Admin = () => {
                     >
                       <Icon className="h-4 w-4" strokeWidth={1.75} />
                       {t.label}
+                      {badge > 0 && (
+                        <span className="ml-1 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                          {badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
