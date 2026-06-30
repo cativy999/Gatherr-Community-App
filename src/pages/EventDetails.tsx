@@ -1814,7 +1814,7 @@ const EventDetails = () => {
                       Invite others to collaborate, manage the event page together, and track co-host activity—all from one place.
                     </p>
                   </div>
-                  <div className={`grid gap-3 w-full ${cohosts.length > 0 || inviteLink ? "grid-cols-2" : "grid-cols-1"}`}>
+                  <div className={`grid gap-3 w-full ${cohosts.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
                     <Button
                       size="lg"
                       className="rounded-full bg-black text-white border border-black hover:bg-black/90"
@@ -1822,10 +1822,10 @@ const EventDetails = () => {
                     >
                       Invite Now
                     </Button>
-                    {/* Manage Event only makes sense once there's actually
-                        something to manage — a co-host who's joined, or a
-                        live invite link waiting to be accepted/turned off. */}
-                    {(cohosts.length > 0 || inviteLink) && (
+                    {/* Manage Event only shows up once someone has actually
+                        accepted a co-host invite — sending the invite link
+                        alone isn't "managing" anything yet. */}
+                    {cohosts.length > 0 && (
                       <Button
                         size="lg"
                         className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
