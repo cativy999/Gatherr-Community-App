@@ -22,6 +22,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Holtwood+One+SC&display=swap" rel="stylesheet" />
+    <!-- Start fetching the cloud background video the instant the page is
+         parsed, in parallel with the JS bundle, instead of waiting for React
+         to mount <VideoBackground> first. On a cold app open that JS-parse
+         delay was the window where iOS showed its native play-button overlay
+         on the not-yet-loaded video; by the time the <video> tag exists, the
+         file is already in cache so it starts playing immediately. -->
+    <link rel="preload" as="video" href="/CloudBackground.mp4" type="video/mp4" />
   </head>
 
   <body>

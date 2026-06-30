@@ -28,6 +28,7 @@ const VideoBackground = () => {
         className="h-full w-full object-cover"
         src="/CloudBackground.mp4"
         poster="/CloudBackgroundPoster.jpg"
+        preload="auto"
         autoPlay
         loop
         muted
