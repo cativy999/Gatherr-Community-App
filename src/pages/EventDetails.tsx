@@ -1810,26 +1810,25 @@ const EventDetails = () => {
                     <img src="/Cohost mobile.png" alt="" className="h-[78px] w-auto md:hidden" />
                     <img src="/Cohost desktop.png" alt="" className="h-[60px] w-auto hidden md:block" />
                     <h3 className="font-extrabold text-base" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Invite Co-hosts</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px]">
+                    <p className="text-sm text-muted-foreground leading-relaxed w-full">
                       Invite others to collaborate, manage the event page together, and track co-host activity—all from one place.
                     </p>
                   </div>
-                  <div className="flex gap-3 w-full">
-                    <button
-                      type="button"
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                    <Button
+                      size="lg"
+                      className="rounded-full bg-black text-white border border-black hover:bg-black/90"
                       onClick={handleInviteCohost}
-                      className="flex-1 h-14 rounded-2xl bg-black text-white text-base font-semibold hover:opacity-90 transition-opacity"
                     >
                       Invite Now
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
                       onClick={() => setManageEventOpen(true)}
-                      className="flex-1 h-14 rounded-2xl border text-base font-semibold hover:bg-gray-50 transition-colors"
-                      style={{ borderColor: '#a3a3a3' }}
                     >
                       Manage Event
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
