@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, UserPlus, Shield, History } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -1802,23 +1802,35 @@ const EventDetails = () => {
                 </div>
               ))}
               {isHostOrCohost && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleInviteCohost}
-                    className="flex items-center justify-center gap-2 flex-1 py-2.5 rounded-full border border-dashed border-gray-300 text-sm font-semibold text-foreground hover:bg-gray-50 transition-colors"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Invite Co-host
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setManageEventOpen(true)}
-                    className="flex items-center justify-center gap-2 flex-1 py-2.5 rounded-full border border-dashed border-gray-300 text-sm font-semibold text-foreground hover:bg-gray-50 transition-colors"
-                  >
-                    <Shield className="h-4 w-4" />
-                    Manage Event
-                  </button>
+                <div
+                  className="flex flex-col items-center gap-5 text-center rounded-2xl border px-5 py-6"
+                  style={{ borderColor: '#d0d0d0', backgroundColor: 'rgba(255,255,255,0.5)' }}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <img src="/Cohost mobile.png" alt="" className="h-[78px] w-auto md:hidden" />
+                    <img src="/Cohost desktop.png" alt="" className="h-[60px] w-auto hidden md:block" />
+                    <h3 className="font-extrabold text-base" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Invite Co-hosts</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px]">
+                      Invite others to collaborate, manage the event page together, and track co-host activity—all from one place.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 w-full">
+                    <button
+                      type="button"
+                      onClick={handleInviteCohost}
+                      className="flex-1 h-14 rounded-2xl bg-black text-white text-base font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      Invite Now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManageEventOpen(true)}
+                      className="flex-1 h-14 rounded-2xl border text-base font-semibold hover:bg-gray-50 transition-colors"
+                      style={{ borderColor: '#a3a3a3' }}
+                    >
+                      Manage Event
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
