@@ -233,30 +233,6 @@ const Profile = () => {
 
       <div className="flex flex-col gap-8 pt-4">
 
-        {/* Events You've Been */}
-        {pastEvents.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-              Events You've Been ({pastEvents.length})
-            </p>
-            <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
-              {pastEvents.map((e) => (
-                <button
-                  key={e.event_id}
-                  onClick={() => navigate(`/event/${e.event_id}`)}
-                  className="flex-shrink-0 rounded-xl overflow-hidden w-[85px] h-[87px] md:w-[140px] md:h-[140px]"
-                >
-                  <img
-                    src={e.image_url}
-                    alt={e.title}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Personal Info */}
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Personal Info</p>
@@ -300,6 +276,30 @@ const Profile = () => {
             ))}
           </div>
         </div>
+
+        {/* Events You've Been */}
+        {pastEvents.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+              Events You've Been ({pastEvents.length})
+            </p>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+              {pastEvents.map((e) => (
+                <button
+                  key={e.event_id}
+                  onClick={() => navigate(`/event/${e.event_id}`)}
+                  className="flex-shrink-0 rounded-xl overflow-hidden w-[85px] h-[87px] md:w-[140px] md:h-[140px]"
+                >
+                  <img
+                    src={e.image_url}
+                    alt={e.title}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Log Out */}
         <div className="flex justify-center pt-2">
