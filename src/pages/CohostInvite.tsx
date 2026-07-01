@@ -60,24 +60,27 @@ const CohostInvite = () => {
     const myName = myProfile?.name || "Someone";
     const hostUserId = eventRow?.user_id;
 
-    await Promise.all([
-      // Notify the host that someone accepted
-      hostUserId
-        ? supabase.from("notifications").insert({
-            user_id: hostUserId,
-            type: "cohost_accepted",
-            message: `${myName} accepted your co-host invite for "${info.event_title}"`,
-            event_id: info.event_id,
-          })
-        : Promise.resolve(),
-      // Notify the co-host themselves as a persistent confirmation
-      supabase.from("notifications").insert({
-        user_id: session!.user.id,
-        type: "cohost_accepted",
-        message: `You're now a co-host for "${info.event_title}" — you can edit and manage it`,
-        event_id: info.event_id,
-      }),
-    ]);
+    // Notifications are best-effort — don't let them block the accept flow
+    try {
+      await Promise.all([
+        hostUserId
+          ? supabase.from("notifications").insert({
+              user_id: hostUserId,
+              type: "cohost_accepted",
+              message: `${myName} accepted your co-host invite for "${info.event_title}"`,
+              event_id: info.event_id,
+            })
+          : Promise.resolve(),
+        supabase.from("notifications").insert({
+          user_id: session!.user.id,
+          type: "cohost_accepted",
+          message: `You're now a co-host for "${info.event_title}" — you can edit and manage it`,
+          event_id: info.event_id,
+        }),
+      ]);
+    } catch (_) {
+      // Notification failure is non-fatal
+    }
 
     setAccepting(false);
     toast.success("You're now a co-host!");
