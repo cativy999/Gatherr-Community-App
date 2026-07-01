@@ -67,6 +67,7 @@ const CohostInvite = () => {
         hostUserId
           ? supabase.from("notifications").insert({
               user_id: hostUserId,
+              from_user_id: session!.user.id,
               type: "cohost_accepted",
               message: `${myName} accepted your co-host invite for "${info.event_title}"`,
               event_id: info.event_id,
@@ -74,6 +75,7 @@ const CohostInvite = () => {
           : Promise.resolve(),
         supabase.from("notifications").insert({
           user_id: session!.user.id,
+          from_user_id: session!.user.id,
           type: "cohost_accepted",
           message: `You're now a co-host for "${info.event_title}" — you can edit and manage it`,
           event_id: info.event_id,
