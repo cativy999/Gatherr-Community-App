@@ -86,7 +86,7 @@ const CohostInvite = () => {
     }
 
     setAccepting(false);
-    setAccepted(eventId);
+    navigate(`/event/${eventId}`);
   };
 
   if (loading || authLoading) {
@@ -195,6 +195,7 @@ const CohostInvite = () => {
           <button onClick={() => navigate("/wards")} className="w-full px-6 py-3.5 rounded-full border border-gray-300 text-sm font-semibold">
             Skip for Now
           </button>
+          <p className="text-xs text-muted-foreground text-center -mt-1">This will take you to the home page</p>
         </div>
       )}
     </div>
