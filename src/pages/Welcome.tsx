@@ -210,7 +210,7 @@ const Welcome = () => {
             autoCorrect="off"
             placeholder="Sign-in code"
             value={otp}
-            onChange={(e) => { setOtp(e.target.value); setOtpError(""); }}
+            onChange={(e) => { setOtp(e.target.value.replace(/[-\s]/g, "")); setOtpError(""); }}
             onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
             className="h-14 text-center text-2xl tracking-widest font-bold"
           />
@@ -219,7 +219,7 @@ const Welcome = () => {
             size="lg"
             className="w-full h-14 text-base font-semibold"
             onClick={handleVerifyOtp}
-            disabled={verifying || otp.length !== 6}
+            disabled={verifying || otp.trim().length < 4}
           >
             {verifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}
           </Button>
