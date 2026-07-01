@@ -183,17 +183,17 @@ const CohostInvite = () => {
           Sign in to accept
         </button>
       ) : (
-        <div className="flex items-center gap-3 mt-3">
-          <button onClick={() => navigate("/wards")} className="px-5 py-3 rounded-full border border-gray-300 text-sm font-semibold">
-            Decline
-          </button>
+        <div className="flex flex-col gap-3 w-full max-w-xs mt-3">
           <button
             onClick={handleAccept}
             disabled={accepting}
-            className="px-6 py-3 rounded-full bg-black text-white text-sm font-semibold disabled:opacity-60 flex items-center gap-2"
+            className="w-full px-6 py-3.5 rounded-full bg-black text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {accepting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Accept
+            Accept Invitation
+          </button>
+          <button onClick={() => navigate("/wards")} className="w-full px-6 py-3.5 rounded-full border border-gray-300 text-sm font-semibold">
+            Skip for Now
           </button>
         </div>
       )}
