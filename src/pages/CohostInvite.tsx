@@ -21,6 +21,7 @@ const CohostInvite = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
+  const [accepted, setAccepted] = useState<string | null>(null); // event_id after accept
 
   useEffect(() => {
     if (!token) return;
@@ -83,8 +84,7 @@ const CohostInvite = () => {
     }
 
     setAccepting(false);
-    toast.success("You're now a co-host!");
-    navigate(`/event/${eventId}`);
+    setAccepted(eventId);
   };
 
   if (loading || authLoading) {
@@ -127,6 +127,33 @@ const CohostInvite = () => {
         <button onClick={() => navigate(`/event/${info.event_id}`)} className="mt-4 px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold">
           View Event
         </button>
+      </div>
+    );
+  }
+
+  if (accepted) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center gap-4">
+        <img src="/Cohost mobile.png" alt="" className="h-[100px] w-auto md:hidden" />
+        <img src="/Cohost desktop.png" alt="" className="h-[80px] w-auto hidden md:block" />
+        <p className="text-xl font-bold">You're now a co-host! 🎉</p>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          You can edit and manage <span className="font-semibold text-foreground">"{info?.event_title}"</span> alongside the host.
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
+          <button
+            onClick={() => navigate(`/event/${accepted}`)}
+            className="w-full px-6 py-3.5 rounded-full bg-black text-white text-sm font-semibold"
+          >
+            View Event
+          </button>
+          <button
+            onClick={() => navigate("/wards")}
+            className="w-full px-6 py-3.5 rounded-full border border-gray-300 text-sm font-semibold"
+          >
+            Go to Homepage
+          </button>
+        </div>
       </div>
     );
   }
