@@ -83,7 +83,13 @@ const OnboardingAge = () => {
       localStorage.removeItem("onboarding_age_max");
     }
     setLoading(false);
-    navigate("/wards");
+    const pending = localStorage.getItem("postAuthRedirect");
+    if (pending) {
+      localStorage.removeItem("postAuthRedirect");
+      navigate(pending);
+    } else {
+      navigate("/wards");
+    }
   };
 
   return (
