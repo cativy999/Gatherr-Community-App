@@ -31,6 +31,8 @@ interface EventCardProps {
     timezone?: string | null;
   };
   creatorWard?: string;
+  communityName?: string;
+  communityAvatar?: string | null;
   isSaved?: boolean;
   onToggleSave?: (id: string, e: React.MouseEvent) => void;
 }
@@ -138,7 +140,7 @@ const getInitialColor = (name: string) => {
   return '#94A3B8';
 };
 
-const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventCardProps) => {
+const EventCard = ({ event, creatorWard, communityName, communityAvatar, isSaved = false, onToggleSave }: EventCardProps) => {
   const navigate = useNavigate();
   const [attendeeAvatars, setAttendeeAvatars] = useState<{url: string | null; name: string}[]>([]);
 
@@ -274,7 +276,17 @@ const EventCard = ({ event, creatorWard, isSaved = false, onToggleSave }: EventC
 
       {/* Content */}
       <div className="min-w-0 px-1 pt-2 space-y-1.5">
-      <h3 className="font-bold text-sm leading-tight text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
+        <h3 className="font-bold text-sm leading-tight text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
+        {communityName && (
+          <div className="flex items-center gap-1.5">
+            {communityAvatar ? (
+              <img src={communityAvatar} className="w-4 h-4 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="text-[10px]">👥</span>
+            )}
+            <span className="text-xs font-semibold text-primary truncate">{communityName}</span>
+          </div>
+        )}
         {event.virtual_link && (
           <div className="flex items-center gap-1 text-muted-foreground">
             <Video className="h-3.5 w-3.5 flex-shrink-0" />

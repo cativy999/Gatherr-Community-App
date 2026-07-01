@@ -35,6 +35,7 @@ type Event = {
   is_recurring?: boolean;
   recurring_day?: string | null;
   timezone?: string | null;
+  community_id?: string | null;
 };
 
 const filterChips = [
@@ -64,6 +65,8 @@ const Wards = () => {
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
   const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
+  const [communityNames, setCommunityNames] = useState<Record<string, string>>({});
+  const [communityAvatars, setCommunityAvatars] = useState<Record<string, string | null>>({});
 
   const routerLocation = useRouterLocation();
   const thisWeekRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, timezone")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, timezone, community_id")
         .eq("status", "published")
         .eq("category", "ward")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
@@ -111,6 +114,21 @@ const Wards = () => {
         const wardMap: Record<string, string> = {};
         (profiles ?? []).forEach((p: any) => { if (p.ward) wardMap[p.user_id] = p.ward; });
         setCreatorWards(wardMap);
+      }
+
+      // Fetch community names for events posted as a ward/community
+      const communityIds = [...new Set((data ?? []).map((e: any) => e.community_id).filter(Boolean))];
+      if (communityIds.length > 0) {
+        const { data: groups } = await supabase
+          .from("groups")
+          .select("id, name, avatar_url")
+          .in("id", communityIds);
+        const nameMap: Record<string, string> = {};
+        (groups ?? []).forEach((g: any) => { nameMap[g.id] = g.name; });
+        setCommunityNames(nameMap);
+        const avatarMap: Record<string, string | null> = {};
+        (groups ?? []).forEach((g: any) => { avatarMap[g.id] = g.avatar_url ?? null; });
+        setCommunityAvatars(avatarMap);
       }
       setLoading(false);
     };
@@ -409,7 +427,7 @@ const Wards = () => {
                 {thisWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
-                      <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+                      <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
                     ))}
                   </div>
                 ) : (
@@ -431,7 +449,7 @@ const Wards = () => {
   {nextWeek.length > 0 ? (
     <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       {nextWeek.map((event) => (
-        <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+        <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
       ))}
     </div>
   ) : (
@@ -449,7 +467,7 @@ const Wards = () => {
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {evts.map((event) => (
-              <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+              <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
             ))}
           </div>
         </div>
