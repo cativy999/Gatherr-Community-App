@@ -44,13 +44,18 @@ const Profile = () => {
         setAvatarUrl(user.user_metadata?.avatar_url || null);
       }
 
-      // Published events count
-      const { count: eCount } = await supabase
-        .from("events")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "published");
-      setPublishedCount(eCount ?? 0);
+      // Published events count (owned + co-hosted)
+      const [{ count: ownedCount }, { data: cohostRows }] = await Promise.all([
+        supabase.from("events").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "published"),
+        supabase.from("event_cohosts").select("event_id").eq("user_id", user.id),
+      ]);
+      const cohostIds = (cohostRows ?? []).map((r: any) => r.event_id);
+      let cohostCount = 0;
+      if (cohostIds.length > 0) {
+        const { count } = await supabase.from("events").select("id", { count: "exact", head: true }).in("id", cohostIds).eq("status", "published");
+        cohostCount = count ?? 0;
+      }
+      setPublishedCount((ownedCount ?? 0) + cohostCount);
 
       // Published groups count
       const { count: gCount } = await supabase
