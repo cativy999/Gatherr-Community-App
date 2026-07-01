@@ -121,12 +121,19 @@ const CohostInvite = () => {
 
   if (info.already_member) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center gap-2">
+      <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center gap-4">
+        <img src="/Cohost mobile.png" alt="" className="h-[100px] w-auto md:hidden" />
+        <img src="/Cohost desktop.png" alt="" className="h-[80px] w-auto hidden md:block" />
         <p className="text-lg font-semibold">You're already in on this one</p>
-        <p className="text-sm text-muted-foreground">You already have host access to "{info.event_title}".</p>
-        <button onClick={() => navigate(`/event/${info.event_id}`)} className="mt-4 px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold">
-          View Event
-        </button>
+        <p className="text-sm text-muted-foreground max-w-xs">You already have host access to "{info.event_title}".</p>
+        <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
+          <button onClick={() => navigate(`/event/${info.event_id}`)} className="w-full px-6 py-3.5 rounded-full bg-black text-white text-sm font-semibold">
+            View Event
+          </button>
+          <button onClick={() => navigate("/wards")} className="w-full px-6 py-3.5 rounded-full border border-gray-300 text-sm font-semibold">
+            Go to Homepage
+          </button>
+        </div>
       </div>
     );
   }
