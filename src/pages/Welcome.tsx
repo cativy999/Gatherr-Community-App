@@ -94,10 +94,10 @@ const Welcome = () => {
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length !== 6) { setOtpError("Enter the 6-digit code from the email."); return; }
+    if (otp.trim().length < 4) { setOtpError("Enter the code from your email."); return; }
     setVerifying(true);
     setOtpError("");
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "email" });
     setVerifying(false);
     if (error) {
       setOtpError("That code didn't work. Double-check it or resend.");
@@ -205,11 +205,12 @@ const Welcome = () => {
             PWA session is created here, not in Safari */}
         <div className="space-y-3 text-left">
           <Input
-            type="number"
-            inputMode="numeric"
-            placeholder="6-digit code"
+            type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            placeholder="Sign-in code"
             value={otp}
-            onChange={(e) => { setOtp(e.target.value.slice(0, 6)); setOtpError(""); }}
+            onChange={(e) => { setOtp(e.target.value); setOtpError(""); }}
             onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
             className="h-14 text-center text-2xl tracking-widest font-bold"
           />
