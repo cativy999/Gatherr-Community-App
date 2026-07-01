@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -130,9 +130,8 @@ const CohostInvite = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center gap-3">
-      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-1">
-        <Users className="h-6 w-6 text-primary" />
-      </div>
+      <img src="/Cohost mobile.png" alt="" className="h-[100px] w-auto md:hidden mb-1" />
+      <img src="/Cohost desktop.png" alt="" className="h-[80px] w-auto hidden md:block mb-1" />
       <p className="text-lg font-semibold">Co-host invite</p>
       <p className="text-sm text-muted-foreground max-w-xs">
         <span className="font-semibold text-foreground">{info.invited_by_name}</span> invited you to co-host{" "}
