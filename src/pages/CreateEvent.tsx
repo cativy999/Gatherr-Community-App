@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -192,6 +192,9 @@ const CreateEvent = () => {
   const [aiGenerations, setAiGenerations] = useState(0);
   const AI_MAX_GENERATIONS = 3;
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
+  const [communityId, setCommunityId] = useState<string | null>(null);
+  const [ownedGroups, setOwnedGroups] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
+  const [myProfile, setMyProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
   // Tracks which "Extra Details" sections are collapsed (by index) — UI-only state, not saved.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
   // Custom drag-to-resize for the Description box. Native CSS `resize` doesn't
@@ -341,6 +344,7 @@ const CreateEvent = () => {
       setRecurringDay(data.recurring_day ?? "Sunday");
       setTimezone(data.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
       setAdditionalInfo(data.additional_info ?? []);
+      setCommunityId(data.community_id ?? null);
     };
     fetchEvent();
   }, [id, session?.user?.id, sessionLoading]);
@@ -373,6 +377,15 @@ const CreateEvent = () => {
       setLocationSearching(false);
     }, 400);
   }, [locationSearch]);
+
+  // Fetch the current user's profile + owned groups for "Post as" selector
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase.from("profiles").select("name, avatar_url").eq("user_id", session.user.id).maybeSingle()
+      .then(({ data }) => setMyProfile(data ? { name: data.name, avatar_url: data.avatar_url ?? null } : null));
+    supabase.from("groups").select("id, name, avatar_url").eq("user_id", session.user.id)
+      .then(({ data }) => setOwnedGroups(data ?? []));
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -646,6 +659,7 @@ const CreateEvent = () => {
       additional_info: additionalInfo.filter(item => item.title.trim()).length > 0
         ? additionalInfo.filter(item => item.title.trim())
         : null,
+      community_id: communityId ?? null,
     };
     // Only set user_id when creating a brand-new event. On an edit, a co-host
     // saving changes must NOT overwrite who the original host is.
@@ -893,6 +907,48 @@ const CreateEvent = () => {
             </Dialog>
 
             <div className="flex-1 space-y-4">
+
+              {/* Post as — only shown when user owns at least one community */}
+              {ownedGroups.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Post as</label>
+                  <div className="flex flex-col gap-2">
+                    {/* My Profile option */}
+                    <button
+                      type="button"
+                      onClick={() => setCommunityId(null)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${communityId === null ? "border-black bg-black/5" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                    >
+                      {myProfile?.avatar_url ? (
+                        <img src={myProfile.avatar_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                          <User className="h-4 w-4 text-gray-500" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium flex-1 text-left">{myProfile?.name || "My Profile"}</span>
+                      {communityId === null && <div className="w-4 h-4 rounded-full bg-black flex-shrink-0" />}
+                    </button>
+                    {/* Community options */}
+                    {ownedGroups.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setCommunityId(g.id)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${communityId === g.id ? "border-black bg-black/5" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                      >
+                        {g.avatar_url ? (
+                          <img src={g.avatar_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-sm">👥</div>
+                        )}
+                        <span className="text-sm font-medium flex-1 text-left">{g.name}</span>
+                        {communityId === g.id && <div className="w-4 h-4 rounded-full bg-black flex-shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Event Title */}
               <div className="space-y-2">

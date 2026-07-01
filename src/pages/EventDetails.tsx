@@ -107,6 +107,7 @@ const EventDetails = () => {
   const [event, setEvent] = useState<any>(null);
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [creatorAvatar, setCreatorAvatar] = useState<string | null>(null);
+  const [communityGroup, setCommunityGroup] = useState<{ id: string; name: string; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<any[]>([]);
@@ -173,7 +174,14 @@ const EventDetails = () => {
         setEvent(data);
         setGoingCount(data.attendees ?? 0);
 
-        if (data.user_id) {
+        if (data.community_id) {
+          const { data: group } = await supabase
+            .from("groups")
+            .select("id, name, avatar_url")
+            .eq("id", data.community_id)
+            .single();
+          setCommunityGroup(group ? { id: group.id, name: group.name, avatar_url: group.avatar_url ?? null } : null);
+        } else if (data.user_id) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("name, avatar_url, ward")
@@ -1763,11 +1771,17 @@ const EventDetails = () => {
           </div>
 
 {/* Host */}
-          {creatorName && (
+          {(creatorName || communityGroup) && (
             <div className="space-y-3">
               <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Host</h2>
               <div className="flex items-center gap-2">
-                {creatorAvatar ? (
+                {communityGroup ? (
+                  communityGroup.avatar_url ? (
+                    <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">👥</div>
+                  )
+                ) : creatorAvatar ? (
                   <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -1776,9 +1790,9 @@ const EventDetails = () => {
                 )}
                 <div>
                   <span className="text-sm text-muted-foreground">
-                    Posted by <span className="font-semibold text-foreground">{creatorName}</span>
+                    Hosted by <span className="font-semibold text-foreground">{communityGroup ? communityGroup.name : creatorName}</span>
                   </span>
-                  {creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
+                  {!communityGroup && creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
                   <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
                 </div>
               </div>

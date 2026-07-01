@@ -78,6 +78,7 @@ interface TimelineSectionProps {
   events: any[];
   creatorWards?: Record<string, string>;
   creatorProfiles?: Record<string, CreatorProfile>;
+  communityProfiles?: Record<string, CreatorProfile>;
   onEventClick?: (eventId: string) => void;
 }
 
@@ -105,7 +106,7 @@ const getInitialColor = (name: string) => {
   return '#94A3B8';
 };
 
-const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {}, onEventClick }: TimelineSectionProps) => {
+const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {}, communityProfiles = {}, onEventClick }: TimelineSectionProps) => {
   const navigate = useNavigate();
   if (events.length === 0) return null;
   const grouped = groupByDate(events);
@@ -177,19 +178,25 @@ const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {
                         <Users className="h-3 w-3" />
                         <span>{event.attendees ?? 0} going</span>
                       </div>
-                      {creatorProfiles[event.user_id] && (
+                      {/* Show community or personal host */}
+                      {(event.community_id && communityProfiles[event.community_id]) ? (
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {communityProfiles[event.community_id].avatar_url ? (
+                            <img src={communityProfiles[event.community_id].avatar_url!} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <span className="text-[10px]">👥</span>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            Hosted by <span className="font-medium text-foreground">{communityProfiles[event.community_id].name}</span>
+                          </span>
+                        </div>
+                      ) : creatorProfiles[event.user_id] ? (
                         <div className="flex items-center gap-1.5 pt-1">
                           {creatorProfiles[event.user_id].avatar_url ? (
-                            <img
-                              src={creatorProfiles[event.user_id].avatar_url!}
-                              className="w-4 h-4 rounded-full object-cover flex-shrink-0"
-                              referrerPolicy="no-referrer"
-                            />
+                            <img src={creatorProfiles[event.user_id].avatar_url!} className="w-4 h-4 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
                           ) : (
-                            <div
-                              className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white"
-                              style={{ backgroundColor: getInitialColor(creatorProfiles[event.user_id].name), fontSize: 8, fontWeight: 700 }}
-                            >
+                            <div className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white"
+                              style={{ backgroundColor: getInitialColor(creatorProfiles[event.user_id].name), fontSize: 8, fontWeight: 700 }}>
                               {creatorProfiles[event.user_id].name.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -197,7 +204,7 @@ const TimelineSection = ({ label, events, creatorWards = {}, creatorProfiles = {
                             Posted by <span className="font-medium text-foreground">{creatorProfiles[event.user_id].name}</span>
                           </span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="flex flex-col items-end justify-between flex-shrink-0 self-stretch">

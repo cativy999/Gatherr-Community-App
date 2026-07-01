@@ -13,6 +13,7 @@ const GroupProfile = () => {
   const [group, setGroup] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [creatorProfiles, setCreatorProfiles] = useState<Record<string, { name: string; avatar_url: string | null }>>({});
+  const [communityProfiles, setCommunityProfiles] = useState<Record<string, { name: string; avatar_url: string | null }>>({});
   const [groupCreator, setGroupCreator] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
@@ -179,42 +180,71 @@ const GroupProfile = () => {
           .select("user_id, name, avatar_url")
           .eq("ward", groupData.name);
 
-        // 2. Fetch events — filtered by ward members if found, otherwise all
-        let eventsData: any[] = [];
+        // 2. Fetch events — by community_id OR by ward members
+        const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id";
+        const dateFilter = `end_date.gte.${today},and(end_date.is.null,date.gte.${today})`;
+
+        // Always fetch events posted as this community
+        const { data: communityEvents } = await supabase
+          .from("events")
+          .select(FIELDS)
+          .eq("status", "published")
+          .eq("community_id", groupData.id)
+          .or(dateFilter)
+          .order("date", { ascending: true });
+
+        // Also fetch events by ward members (legacy path)
+        let wardEvents: any[] = [];
         if (wardProfiles && wardProfiles.length > 0) {
           const wardUserIds = wardProfiles.map((p: any) => p.user_id);
           const { data } = await supabase
             .from("events")
-            .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
+            .select(FIELDS)
             .eq("status", "published")
             .in("user_id", wardUserIds)
-            .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
+            .is("community_id", null) // don't double-count community-posted events
+            .or(dateFilter)
             .order("date", { ascending: true });
-          eventsData = data ?? [];
-        } else {
-          const { data } = await supabase
-            .from("events")
-            .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link")
-            .eq("status", "published")
-            .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
-            .order("date", { ascending: true });
-          eventsData = data ?? [];
+          wardEvents = data ?? [];
         }
+
+        // Merge, dedupe by id
+        const seen = new Set<string>();
+        const eventsData = [...(communityEvents ?? []), ...wardEvents].filter((e: any) => {
+          if (seen.has(e.id)) return false;
+          seen.add(e.id);
+          return true;
+        });
         setEvents(eventsData);
 
-        // 3. Fetch creator profiles for ALL events (regardless of ward matching)
-        if (eventsData.length > 0) {
-          const uniqueUserIds = [...new Set(eventsData.map((e: any) => e.user_id))];
+        // 3. Fetch creator profiles for events posted by individuals
+        const individualEvents = eventsData.filter((e: any) => !e.community_id);
+        if (individualEvents.length > 0) {
+          const uniqueUserIds = [...new Set(individualEvents.map((e: any) => e.user_id))];
           const { data: creatorData } = await supabase
             .from("profiles")
             .select("user_id, name, avatar_url")
-            .in("user_id", uniqueUserIds);
-
+            .in("user_id", uniqueUserIds as string[]);
           const profileMap: Record<string, { name: string; avatar_url: string | null }> = {};
           (creatorData ?? []).forEach((p: any) => {
             profileMap[p.user_id] = { name: p.name, avatar_url: p.avatar_url ?? null };
           });
           setCreatorProfiles(profileMap);
+        }
+
+        // 4. Build community profiles map for community-posted events
+        const communityEventsList = eventsData.filter((e: any) => e.community_id);
+        if (communityEventsList.length > 0) {
+          const uniqueGroupIds = [...new Set(communityEventsList.map((e: any) => e.community_id))];
+          const { data: groupData2 } = await supabase
+            .from("groups")
+            .select("id, name, avatar_url")
+            .in("id", uniqueGroupIds as string[]);
+          const communityMap: Record<string, { name: string; avatar_url: string | null }> = {};
+          (groupData2 ?? []).forEach((g: any) => {
+            communityMap[g.id] = { name: g.name, avatar_url: g.avatar_url ?? null };
+          });
+          setCommunityProfiles(communityMap);
         }
       });
   }, [id]);
@@ -364,9 +394,9 @@ const GroupProfile = () => {
           <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Events</h2>
           {events.length > 0 ? (
             <div className="space-y-8">
-              <TimelineSection label="This Week" events={thisWeek} creatorProfiles={creatorProfiles} />
-              <TimelineSection label="Next Week" events={nextWeek} creatorProfiles={creatorProfiles} />
-              <TimelineSection label="Later" events={later} creatorProfiles={creatorProfiles} />
+              <TimelineSection label="This Week" events={thisWeek} creatorProfiles={creatorProfiles} communityProfiles={communityProfiles} />
+              <TimelineSection label="Next Week" events={nextWeek} creatorProfiles={creatorProfiles} communityProfiles={communityProfiles} />
+              <TimelineSection label="Later" events={later} creatorProfiles={creatorProfiles} communityProfiles={communityProfiles} />
             </div>
           ) : (
             <div className="py-6 px-4 rounded-2xl bg-accent/30 text-center">
