@@ -167,12 +167,17 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
     setOpen(false);
   };
 
+  const ADMIN_USER_ID = "57ff4ff5-bbeb-40f4-a518-4688ba45552c";
+
   const handleSubmitCustomWard = async () => {
     if (!customWard.trim()) return;
     setSubmitting(true);
-    const { error } = await supabase.from("ward_requests").insert({
-      requested_by: userId,
-      ward_name: customWard.trim(),
+    const { error } = await supabase.from("notifications").insert({
+      user_id: ADMIN_USER_ID,
+      from_user_id: userId,
+      type: "ward_request",
+      message: `Someone wants to add "${customWard.trim()}" to the ward list.`,
+      read: false,
     });
     setSubmitting(false);
     if (error) {
