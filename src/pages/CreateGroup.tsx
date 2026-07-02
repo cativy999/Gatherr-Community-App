@@ -108,12 +108,20 @@ interface WardPickerProps {
 
 const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) => {
   const [open, setOpen]               = useState(false);
+  const [isVisible, setIsVisible]     = useState(false);
   const [stateQuery, setStateQuery]   = useState("");
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [filter, setFilter]           = useState<FilterType>("All");
   const [showCantFind, setShowCantFind] = useState(false);
   const [customWard, setCustomWard]   = useState("");
   const [submitting, setSubmitting]   = useState(false);
+
+  // Trigger slide-in after mount
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
+    }
+  }, [open]);
 
   // Pre-select state when editing an existing group
   useEffect(() => {
@@ -189,12 +197,14 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
   };
 
   const handleClose = () => {
-    setOpen(false);
-    setShowCantFind(false);
-    // Reset state search back to the previously selected state (or empty)
-    const found = WARD_DATA.find((w) => w.name === value);
-    setSelectedState(found?.state ?? null);
-    setStateQuery(found?.state ?? "");
+    setIsVisible(false);
+    setTimeout(() => {
+      setOpen(false);
+      setShowCantFind(false);
+      const found = WARD_DATA.find((w) => w.name === value);
+      setSelectedState(found?.state ?? null);
+      setStateQuery(found?.state ?? "");
+    }, 280);
   };
 
   return (
@@ -202,7 +212,7 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
       {/* ── Trigger button ── */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => { setIsVisible(false); setOpen(true); }}
         className="w-full h-12 px-3 text-left text-base rounded-md border border-input bg-background flex items-center justify-between gap-2"
       >
         <span className={value ? "text-foreground truncate" : "text-muted-foreground"}>
@@ -216,14 +226,19 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
         <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/40"
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${isVisible ? "opacity-100" : "opacity-0"}`}
             onClick={handleClose}
           />
 
           {/* Sheet — bottom sheet on mobile, centered modal on desktop */}
-          <div className="relative bg-background flex flex-col shadow-xl
-            rounded-t-2xl max-h-[85vh]
-            md:rounded-2xl md:max-h-[75vh] md:w-full md:max-w-lg">
+          <div className={`relative bg-background flex flex-col shadow-xl
+            rounded-t-2xl h-[85vh]
+            md:rounded-2xl md:h-[72vh] md:w-full md:max-w-lg
+            transition-all duration-300 ease-out
+            ${isVisible
+              ? "translate-y-0 md:scale-100 md:opacity-100"
+              : "translate-y-full md:translate-y-0 md:scale-95 md:opacity-0"
+            }`}>
             {/* Drag handle (mobile only) */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
               <div className="w-10 h-1 rounded-full bg-border" />

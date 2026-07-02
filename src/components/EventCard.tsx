@@ -284,7 +284,7 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, isSaved
             ) : (
               <span className="text-[10px]">👥</span>
             )}
-            <span className="text-xs font-normal text-gray-400 truncate">{communityName}</span>
+            <span className="text-xs font-normal text-gray-500 truncate">{communityName}</span>
           </div>
         )}
         {event.virtual_link && (
