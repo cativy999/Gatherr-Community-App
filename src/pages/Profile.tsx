@@ -20,6 +20,7 @@ const Profile = () => {
   const [publishedCount, setPublishedCount] = useState(0);
   const [groupCount, setGroupCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [wardRequestCount, setWardRequestCount] = useState(0);
   const [pastEvents, setPastEvents] = useState<{ event_id: string; image_url: string; title: string }[]>([]);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,15 @@ const Profile = () => {
         .eq("user_id", user.id)
         .eq("read", false);
       setUnreadCount(nCount ?? 0);
+
+      // Ward requests (admin only)
+      if (user.email === ADMIN_EMAIL) {
+        const { count: wCount } = await supabase
+          .from("ward_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("reviewed", false);
+        setWardRequestCount(wCount ?? 0);
+      }
 
       // Last 10 past events user RSVPed to
       const today = new Date().toISOString().split("T")[0];
@@ -179,6 +189,7 @@ const Profile = () => {
           {
             icon: ShieldCheck,
             label: "Admin Dashboard",
+            badge: wardRequestCount > 0 ? wardRequestCount : null,
             onPress: () => navigate("/admin"),
           },
         ]
