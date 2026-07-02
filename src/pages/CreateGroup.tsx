@@ -174,7 +174,6 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
     setSubmitting(true);
     const { error } = await supabase.from("notifications").insert({
       user_id: ADMIN_USER_ID,
-      from_user_id: userId,
       type: "ward_request",
       message: `Someone wants to add "${customWard.trim()}" to the ward list.`,
       read: false,
