@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapPin } from "lucide-react";
+import { MapPin, Map } from "lucide-react";
 
-const MENU_WIDTH = 220;
-const MENU_HEIGHT_ESTIMATE = 112;
+const MENU_WIDTH = 210;
+const MENU_HEIGHT_ESTIMATE = 96;
 
 /**
  * Renders a detected address as tappable text. Tapping it opens a small menu
@@ -77,15 +77,16 @@ const AddressLink = ({ address }: { address: string }) => {
         <div
           ref={menuRef}
           style={{ position: "fixed", top: coords.top, left: coords.left, width: MENU_WIDTH }}
-          className="z-[1000] flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+          className="z-[1000] bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden whitespace-nowrap"
         >
           <a
             href={`https://maps.apple.com/?q=${encoded}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="px-4 py-3.5 text-base text-left text-black hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-left text-black hover:bg-gray-50 transition-colors border-b border-gray-100"
           >
+            <Map className="h-4 w-4 shrink-0 text-muted-foreground" />
             Open in Apple Maps
           </a>
           <a
@@ -93,8 +94,9 @@ const AddressLink = ({ address }: { address: string }) => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="px-4 py-3.5 text-base text-left text-black hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-left text-black hover:bg-gray-50 transition-colors"
           >
+            <Map className="h-4 w-4 shrink-0 text-muted-foreground" />
             Open in Google Maps
           </a>
         </div>,

@@ -1,10 +1,11 @@
 import { MapPin, Globe, Link, Link2, Pencil } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
+import ShareMenu from "@/components/ShareMenu";
 
 const GroupProfile = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const GroupProfile = () => {
   const [groupCreator, setGroupCreator] = useState<{ name: string; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
 
   const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
 
@@ -278,8 +280,9 @@ const GroupProfile = () => {
       <div className="mt-14 px-5 flex flex-col items-center text-center space-y-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{group.name}</h1>
-          <div className="relative flex-shrink-0">
+          <div className="flex-shrink-0">
             <button
+              ref={shareButtonRef}
               onClick={() => setShareMenuOpen((prev) => !prev)}
               className="hover:opacity-70 transition-opacity"
               aria-label="Share"
@@ -288,50 +291,16 @@ const GroupProfile = () => {
                 <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
               </svg>
             </button>
-            {shareMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setShareMenuOpen(false)} />
-                <div className="absolute left-1/2 -translate-x-1/2 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52 text-left">
-                  <button
-                    onClick={() => {
-                      setShareMenuOpen(false);
-                      navigator.clipboard.writeText(shareUrl);
-                      toast.success("Link copied!");
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                    </svg>
-                    Copy Link
-                  </button>
-                  {navigator.share && (
-                    <button
-                      onClick={() => {
-                        setShareMenuOpen(false);
-                        navigator.share({ title: group.name, url: shareUrl }).catch(() => {});
-                      }}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                      </svg>
-                      Share Link
-                    </button>
-                  )}
-                  <button
-                    onClick={shareToStory}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
-                    </svg>
-                    Share to Story
-                  </button>
-                </div>
-              </>
-            )}
+            <ShareMenu
+              open={shareMenuOpen}
+              onClose={() => setShareMenuOpen(false)}
+              triggerRef={shareButtonRef}
+              items={[
+                { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
+                { label: "Share Link", onClick: () => navigator.share?.({ title: group.name, url: shareUrl }), hidden: !navigator.share },
+                { label: "Share to Story", onClick: shareToStory },
+              ]}
+            />
           </div>
         </div>
         {group.address && (

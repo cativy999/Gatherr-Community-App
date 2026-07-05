@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import AddressLink from "@/components/AddressLink";
+import ShareMenu from "@/components/ShareMenu";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -141,6 +142,8 @@ const EventDetails = () => {
   const [showAllComments, setShowAllComments] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [footerShareMenuOpen, setFooterShareMenuOpen] = useState(false);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const footerShareButtonRef = useRef<HTMLButtonElement>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replies, setReplies] = useState<Record<string, any[]>>({});
@@ -1164,8 +1167,9 @@ const EventDetails = () => {
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
-              <div className="relative flex-shrink-0 mt-1">
+              <div className="flex-shrink-0 mt-1">
                 <button
+                  ref={shareButtonRef}
                   onClick={() => setShareMenuOpen(prev => !prev)}
                   className="hover:opacity-70 transition-opacity"
                 >
@@ -1173,53 +1177,16 @@ const EventDetails = () => {
                     <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                   </svg>
                 </button>
-                {shareMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setShareMenuOpen(false)} />
-                    <div className="absolute right-0 top-8 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52">
-                      {/* Copy Link — straight to clipboard */}
-                      <button
-                        onClick={() => {
-                          setShareMenuOpen(false);
-                          navigator.clipboard.writeText(shareUrl);
-                          toast.success("Link copied!");
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                        </svg>
-                        Copy Link
-                      </button>
-                      {/* Share Link — native share sheet */}
-                      {navigator.share && (
-                        <button
-                          onClick={() => {
-                            setShareMenuOpen(false);
-                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
-                          }}
-                          className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                          </svg>
-                          Share Link
-                        </button>
-                      )}
-                      {/* Share to Story */}
-                      <button
-                        onClick={shareToStory}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
-                        </svg>
-                        Share to Story
-                      </button>
-                    </div>
-                  </>
-                )}
+                <ShareMenu
+                  open={shareMenuOpen}
+                  onClose={() => setShareMenuOpen(false)}
+                  triggerRef={shareButtonRef}
+                  items={[
+                    { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
+                    { label: "Share Link", onClick: () => navigator.share?.({ title: event.title, url: shareUrl }), hidden: !navigator.share },
+                    { label: "Share to Story", onClick: shareToStory },
+                  ]}
+                />
               </div>
             </div>
             {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
@@ -2229,8 +2196,9 @@ const EventDetails = () => {
           </div>
           <div className="flex items-center gap-3.5 flex-shrink-0">
             {!isGuest && (
-              <div className="relative">
+              <div>
                 <button
+                  ref={footerShareButtonRef}
                   onClick={() => setFooterShareMenuOpen(prev => !prev)}
                   className="bg-white p-2.5 rounded-full hover:bg-gray-50 transition-colors"
                 >
@@ -2238,53 +2206,16 @@ const EventDetails = () => {
                     <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                   </svg>
                 </button>
-                {footerShareMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setFooterShareMenuOpen(false)} />
-                    <div className="absolute right-0 bottom-full mb-2 z-30 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52">
-                      {/* Copy Link — straight to clipboard */}
-                      <button
-                        onClick={() => {
-                          setFooterShareMenuOpen(false);
-                          navigator.clipboard.writeText(shareUrl);
-                          toast.success("Link copied!");
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                        </svg>
-                        Copy Link
-                      </button>
-                      {/* Share Link — native share sheet */}
-                      {navigator.share && (
-                        <button
-                          onClick={() => {
-                            setFooterShareMenuOpen(false);
-                            navigator.share({ title: event.title, url: shareUrl }).catch(() => {});
-                          }}
-                          className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                          </svg>
-                          Share Link
-                        </button>
-                      )}
-                      {/* Share to Story */}
-                      <button
-                        onClick={() => { setFooterShareMenuOpen(false); shareToStory(); }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-3 border-t border-border"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
-                        </svg>
-                        Share to Story
-                      </button>
-                    </div>
-                  </>
-                )}
+                <ShareMenu
+                  open={footerShareMenuOpen}
+                  onClose={() => setFooterShareMenuOpen(false)}
+                  triggerRef={footerShareButtonRef}
+                  items={[
+                    { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
+                    { label: "Share Link", onClick: () => navigator.share?.({ title: event.title, url: shareUrl }), hidden: !navigator.share },
+                    { label: "Share to Story", onClick: shareToStory },
+                  ]}
+                />
               </div>
             )}
             {isGuest ? (
