@@ -19,6 +19,7 @@ const GroupProfile = () => {
   const [loading, setLoading] = useState(true);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const [isCoAdmin, setIsCoAdmin] = useState(false);
 
   const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
 
@@ -151,6 +152,19 @@ const GroupProfile = () => {
     await doShare();
   };
 
+  // Check if current user is an accepted co-admin
+  useEffect(() => {
+    if (!id || !session?.user.id) return;
+    supabase
+      .from("group_admins")
+      .select("id")
+      .eq("group_id", id)
+      .eq("user_id", session.user.id)
+      .eq("status", "accepted")
+      .maybeSingle()
+      .then(({ data }) => setIsCoAdmin(!!data));
+  }, [id, session?.user.id]);
+
   useEffect(() => {
     if (!id) return;
     supabase
@@ -262,7 +276,7 @@ const GroupProfile = () => {
         <div className="w-full h-52 bg-secondary overflow-hidden">
           {group.cover_image_url && <img src={group.cover_image_url} className="w-full h-full object-cover" />}
         </div>
-        {session?.user?.id === group?.user_id && (
+        {(session?.user?.id === group?.user_id || isCoAdmin) && (
           <button
             onClick={() => navigate(`/create-group/${id}`)}
             className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors text-white text-sm font-medium"

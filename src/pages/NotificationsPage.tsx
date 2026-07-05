@@ -54,11 +54,25 @@ const NotificationsPage = () => {
             {notifications.map(n => (
               <button
                 key={n.id}
-                onClick={() => n.event_id && navigate(`/event/${n.event_id}`)}
+                onClick={() => {
+                  if (n.type === "group_coadmin_invite" && n.reference_id) {
+                    navigate(`/group-admin-invite/${n.reference_id}`);
+                  } else if (n.event_id) {
+                    navigate(`/event/${n.event_id}`);
+                  }
+                }}
                 className={`w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/40 ${!n.read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}
               >
                 <span className="text-xl mt-0.5 flex-shrink-0">
-                  {n.type === "mention" ? "🏷️" : n.type === "like" ? "❤️" : n.type === "reply" ? "💬" : n.type === "cohost_accepted" ? "🤝" : n.type === "ward_request" ? "🏛️" : "🔔"}
+                  {n.type === "mention" ? "🏷️"
+                    : n.type === "like" ? "❤️"
+                    : n.type === "reply" ? "💬"
+                    : n.type === "cohost_accepted" ? "🤝"
+                    : n.type === "ward_request" ? "🏛️"
+                    : n.type === "group_coadmin_invite" ? "👑"
+                    : n.type === "group_coadmin_accepted" ? "✅"
+                    : n.type === "group_coadmin_declined" ? "👋"
+                    : "🔔"}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-snug">{n.message}</p>

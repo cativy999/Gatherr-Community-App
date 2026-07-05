@@ -2,13 +2,23 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, MapPin, Image as ImageIcon, Loader2,
-  Link, Link2, Globe, Check, Search, X, ChevronDown,
+  Link, Link2, Globe, Check, Search, X, ChevronDown, UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+// ─── Co-Admin types ───────────────────────────────────────────────────────────
+
+interface CoAdminInfo {
+  adminId: string;        // group_admins.id
+  userId: string;
+  name: string;
+  avatar_url: string | null;
+  status: "pending" | "accepted";
+}
 
 // ─── Ward data ───────────────────────────────────────────────────────────────
 
@@ -484,6 +494,13 @@ const CreateGroup = () => {
   const [existingCoverUrl, setExistingCoverUrl]   = useState<string | null>(null);
   const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
 
+  // Co-admin state
+  const [coAdmin, setCoAdmin]           = useState<CoAdminInfo | null>(null);
+  const [adminSearch, setAdminSearch]   = useState("");
+  const [adminResults, setAdminResults] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [searchingAdmin, setSearchingAdmin] = useState(false);
+  const [invitingAdmin, setInvitingAdmin]   = useState(false);
+
   // Load claimed wards (all group names except current group when editing)
   useEffect(() => {
     supabase
@@ -515,6 +532,49 @@ const CreateGroup = () => {
     });
   }, [id]);
 
+  // Load existing co-admin for this group
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from("group_admins")
+      .select("id, user_id, status")
+      .eq("group_id", id)
+      .in("status", ["pending", "accepted"])
+      .maybeSingle()
+      .then(async ({ data: adminRow }) => {
+        if (!adminRow) { setCoAdmin(null); return; }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, avatar_url")
+          .eq("user_id", adminRow.user_id)
+          .maybeSingle();
+        setCoAdmin({
+          adminId:    adminRow.id,
+          userId:     adminRow.user_id,
+          name:       profile?.name ?? "Unknown",
+          avatar_url: profile?.avatar_url ?? null,
+          status:     adminRow.status as "pending" | "accepted",
+        });
+      });
+  }, [id]);
+
+  // Debounced admin user search
+  useEffect(() => {
+    if (!adminSearch.trim()) { setAdminResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearchingAdmin(true);
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, name, avatar_url")
+        .ilike("name", `%${adminSearch.trim()}%`)
+        .neq("user_id", session?.user.id ?? "")
+        .limit(6);
+      setAdminResults(data ?? []);
+      setSearchingAdmin(false);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [adminSearch, session?.user.id]);
+
   const handleImagePick = (
     e: React.ChangeEvent<HTMLInputElement>,
     setPreview: (v: string) => void,
@@ -532,6 +592,46 @@ const CreateGroup = () => {
     if (error) return null;
     const { data } = supabase.storage.from("group-images").getPublicUrl(fileName);
     return data.publicUrl;
+  };
+
+  const handleInviteAdmin = async (profile: { user_id: string; name: string; avatar_url: string | null }) => {
+    if (!id || !session?.user.id) return;
+    setInvitingAdmin(true);
+    // Insert group_admins row
+    const { data: adminRow, error: adminErr } = await supabase
+      .from("group_admins")
+      .insert({ group_id: id, user_id: profile.user_id, invited_by: session.user.id, status: "pending" })
+      .select("id")
+      .single();
+    if (adminErr || !adminRow) {
+      toast.error("Couldn't send invite.");
+      setInvitingAdmin(false);
+      return;
+    }
+    // Send in-app notification
+    await supabase.from("notifications").insert({
+      user_id:      profile.user_id,
+      from_user_id: session.user.id,
+      type:         "group_coadmin_invite",
+      message:      `You've been invited to co-admin the "${name}" group.`,
+      reference_id: adminRow.id,
+      read:         false,
+    });
+    setCoAdmin({ adminId: adminRow.id, userId: profile.user_id, name: profile.name, avatar_url: profile.avatar_url, status: "pending" });
+    setAdminSearch("");
+    setAdminResults([]);
+    setInvitingAdmin(false);
+    toast.success(`Invite sent to ${profile.name}!`);
+  };
+
+  const handleRemoveCoAdmin = async (adminId: string) => {
+    const { error } = await supabase
+      .from("group_admins")
+      .update({ status: "declined" })
+      .eq("id", adminId);
+    if (error) { toast.error("Couldn't remove co-admin."); return; }
+    setCoAdmin(null);
+    toast.success("Co-admin removed.");
   };
 
   const handleCreate = async () => {
@@ -696,6 +796,103 @@ const CreateGroup = () => {
                 placeholder="Website URL" className="h-11" />
             </div>
           </div>
+
+          {/* Co-Admin (edit mode only) */}
+          {isEditing && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" /> Co-Admin
+                </label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Invite one person to help manage this group
+                </p>
+              </div>
+
+              {coAdmin ? (
+                /* Show current or pending co-admin */
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-accent overflow-hidden flex items-center justify-center flex-shrink-0">
+                      {coAdmin.avatar_url ? (
+                        <img src={coAdmin.avatar_url} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          {coAdmin.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium leading-tight">{coAdmin.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {coAdmin.status === "pending" ? "Invite pending…" : "Co-admin"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCoAdmin(coAdmin.adminId)}
+                    className="text-xs text-red-500 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    {coAdmin.status === "pending" ? "Cancel" : "Remove"}
+                  </button>
+                </div>
+              ) : (
+                /* User search input */
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      type="text"
+                      value={adminSearch}
+                      onChange={(e) => setAdminSearch(e.target.value)}
+                      placeholder="Search by name…"
+                      className="w-full h-11 pl-9 pr-9 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      autoComplete="off"
+                    />
+                    {adminSearch && (
+                      <button
+                        type="button"
+                        onClick={() => { setAdminSearch(""); setAdminResults([]); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search results */}
+                  {(adminResults.length > 0 || searchingAdmin) && (
+                    <div className="mt-1 rounded-xl border border-input bg-background shadow-lg overflow-hidden">
+                      {searchingAdmin ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : adminResults.map((p) => (
+                        <button
+                          key={p.user_id}
+                          type="button"
+                          disabled={invitingAdmin}
+                          onClick={() => handleInviteAdmin(p)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent border-b border-border last:border-0 text-left transition-colors"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-accent overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {p.avatar_url ? (
+                              <img src={p.avatar_url} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xs font-semibold text-muted-foreground">{p.name.charAt(0).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <span className="font-medium">{p.name}</span>
+                          {invitingAdmin && <Loader2 className="h-3 w-3 animate-spin ml-auto text-muted-foreground" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Submit */}
           <Button

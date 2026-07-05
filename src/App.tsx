@@ -35,6 +35,7 @@ import LogSteps from "./pages/LogSteps";
 import OOTDHome from "./pages/OOTDHome";
 import OOTDReview from "./pages/OOTDReview";
 import CohostInvite from "./pages/CohostInvite";
+import GroupAdminInvite from "./pages/GroupAdminInvite";
 import FeedbackButton from "@/components/FeedbackButton";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -100,7 +101,7 @@ const AuthListener = () => {
 };
 
 const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
-const hideNavPatterns = ["/create-event", "/cohost-invite"];
+const hideNavPatterns = ["/create-event", "/cohost-invite", "/group-admin-invite"];
 
 const AppLayout = () => {
   const { session } = useAuth();
@@ -172,6 +173,7 @@ const App = () => (
                 <Route path="/community" element={<Community />} />
                 <Route path="/group/:id" element={<GroupProfile />} />
                 <Route path="/cohost-invite/:token" element={<CohostInvite />} />
+                <Route path="/group-admin-invite/:inviteId" element={<GroupAdminInvite />} />
               </Routes>
               </ContentLayout>
               <AppLayout />
