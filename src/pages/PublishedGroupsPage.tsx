@@ -11,6 +11,7 @@ type Group = {
   description: string | null;
   avatar_url: string | null;
   cover_image_url: string | null;
+  role: "admin" | "coadmin";
 };
 
 const PublishedGroupsPage = () => {
@@ -31,15 +32,49 @@ const PublishedGroupsPage = () => {
 
   useEffect(() => {
     if (!session?.user) { setLoading(false); return; }
-    supabase
-      .from("groups")
-      .select("id, name, description, avatar_url, cover_image_url")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setGroups(data ?? []);
-        setLoading(false);
+    const userId = session.user.id;
+
+    const loadGroups = async () => {
+      // Groups the user owns
+      const { data: owned } = await supabase
+        .from("groups")
+        .select("id, name, description, avatar_url, cover_image_url")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      // Groups the user co-admins (accepted)
+      const { data: adminRows } = await supabase
+        .from("group_admins")
+        .select("group_id")
+        .eq("user_id", userId)
+        .eq("status", "accepted");
+
+      let coAdminGroups: Group[] = [];
+      if (adminRows && adminRows.length > 0) {
+        const groupIds = adminRows.map((r: any) => r.group_id);
+        const { data: coOwned } = await supabase
+          .from("groups")
+          .select("id, name, description, avatar_url, cover_image_url")
+          .in("id", groupIds)
+          .order("created_at", { ascending: false });
+        coAdminGroups = (coOwned ?? []).map((g: any) => ({ ...g, role: "coadmin" as const }));
+      }
+
+      const ownedWithRole: Group[] = (owned ?? []).map((g: any) => ({ ...g, role: "admin" as const }));
+
+      // Merge, dedupe by id (in case someone is both owner and has an admin row)
+      const seen = new Set<string>();
+      const merged = [...ownedWithRole, ...coAdminGroups].filter((g) => {
+        if (seen.has(g.id)) return false;
+        seen.add(g.id);
+        return true;
       });
+
+      setGroups(merged);
+      setLoading(false);
+    };
+
+    loadGroups();
   }, [session]);
 
   const deleteGroup = async (id: string) => {
@@ -73,6 +108,13 @@ const PublishedGroupsPage = () => {
           </div>
         </div>
 
+        {/* Role badge */}
+        <div className="absolute top-2 left-2">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${group.role === "admin" ? "bg-black/60 text-white" : "bg-purple-600/80 text-white"}`}>
+            {group.role === "admin" ? "Admin" : "Co-admin"}
+          </span>
+        </div>
+
         {/* Menu */}
         <div
           className="absolute top-2 right-2"
@@ -95,12 +137,14 @@ const PublishedGroupsPage = () => {
               >
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
               </button>
-              <button
-                onClick={() => deleteGroup(group.id)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </button>
+              {group.role === "admin" && (
+                <button
+                  onClick={() => deleteGroup(group.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -128,7 +172,7 @@ const PublishedGroupsPage = () => {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-            Published Groups
+            Manage Groups
           </h1>
           <span className="text-sm text-muted-foreground">({groups.length})</span>
         </div>

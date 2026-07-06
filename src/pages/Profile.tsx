@@ -57,12 +57,12 @@ const Profile = () => {
       }
       setPublishedCount((ownedCount ?? 0) + cohostCount);
 
-      // Published groups count
-      const { count: gCount } = await supabase
-        .from("groups")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      setGroupCount(gCount ?? 0);
+      // Groups count: owned + co-admin (accepted)
+      const [{ count: gOwned }, { data: adminRows }] = await Promise.all([
+        supabase.from("groups").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("group_admins").select("group_id").eq("user_id", user.id).eq("status", "accepted"),
+      ]);
+      setGroupCount((gOwned ?? 0) + (adminRows?.length ?? 0));
 
       // Unread notifications count
       const { count: nCount } = await supabase
@@ -171,7 +171,7 @@ const Profile = () => {
     },
     {
       icon: Users,
-      label: "Published Groups",
+      label: "Manage Groups",
       sub: `${groupCount} groups`,
       onPress: () => navigate("/my-published-groups"),
     },
