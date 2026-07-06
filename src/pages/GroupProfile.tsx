@@ -20,6 +20,7 @@ const GroupProfile = () => {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
   const [isCoAdmin, setIsCoAdmin] = useState(false);
+  const [groupCoAdmin, setGroupCoAdmin] = useState<{ name: string; avatar_url: string | null } | null>(null);
 
   const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
 
@@ -187,6 +188,22 @@ const GroupProfile = () => {
           if (creatorData) setGroupCreator({ name: creatorData.name, avatar_url: creatorData.avatar_url ?? null });
         }
 
+        // Fetch accepted co-admin
+        const { data: adminRow } = await supabase
+          .from("group_admins")
+          .select("user_id")
+          .eq("group_id", groupData.id)
+          .eq("status", "accepted")
+          .maybeSingle();
+        if (adminRow?.user_id) {
+          const { data: adminProfile } = await supabase
+            .from("profiles")
+            .select("name, avatar_url")
+            .eq("user_id", adminRow.user_id)
+            .maybeSingle();
+          if (adminProfile) setGroupCoAdmin({ name: adminProfile.name, avatar_url: adminProfile.avatar_url ?? null });
+        }
+
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
@@ -323,19 +340,38 @@ const GroupProfile = () => {
             {group.address}
           </a>
         )}
-        {groupCreator && (
-          <div className="flex items-center gap-2 pt-1">
-            {groupCreator.avatar_url ? (
-              <img src={groupCreator.avatar_url} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
-            ) : (
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                style={{ backgroundColor: '#94A3B8', fontSize: 9, fontWeight: 700 }}>
-                {groupCreator.name.charAt(0).toUpperCase()}
+        {(groupCreator || groupCoAdmin) && (
+          <div className="flex items-center justify-center gap-4 pt-1 flex-wrap">
+            {groupCreator && (
+              <div className="flex items-center gap-1.5">
+                {groupCreator.avatar_url ? (
+                  <img src={groupCreator.avatar_url} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                    style={{ backgroundColor: '#94A3B8', fontSize: 9, fontWeight: 700 }}>
+                    {groupCreator.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  Admin: <span className="font-semibold text-foreground">{groupCreator.name}</span>
+                </span>
               </div>
             )}
-            <span className="text-xs text-muted-foreground">
-              Created by <span className="font-semibold text-foreground">{groupCreator.name}</span>
-            </span>
+            {groupCoAdmin && (
+              <div className="flex items-center gap-1.5">
+                {groupCoAdmin.avatar_url ? (
+                  <img src={groupCoAdmin.avatar_url} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                    style={{ backgroundColor: '#94A3B8', fontSize: 9, fontWeight: 700 }}>
+                    {groupCoAdmin.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  Co-admin: <span className="font-semibold text-foreground">{groupCoAdmin.name}</span>
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

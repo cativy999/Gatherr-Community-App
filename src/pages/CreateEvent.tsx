@@ -378,13 +378,42 @@ const CreateEvent = () => {
     }, 400);
   }, [locationSearch]);
 
-  // Fetch the current user's profile + owned groups for "Post as" selector
+  // Fetch the current user's profile + owned/co-admin groups for "Post as" selector
   useEffect(() => {
     if (!session?.user?.id) return;
-    supabase.from("profiles").select("name, avatar_url").eq("user_id", session.user.id).maybeSingle()
+    const userId = session.user.id;
+
+    supabase.from("profiles").select("name, avatar_url").eq("user_id", userId).maybeSingle()
       .then(({ data }) => setMyProfile(data ? { name: data.name, avatar_url: data.avatar_url ?? null } : null));
-    supabase.from("groups").select("id, name, avatar_url").eq("user_id", session.user.id)
-      .then(({ data }) => setOwnedGroups(data ?? []));
+
+    const loadGroups = async () => {
+      // Groups the user owns
+      const { data: owned } = await supabase
+        .from("groups").select("id, name, avatar_url").eq("user_id", userId);
+
+      // Groups the user co-admins (accepted)
+      const { data: adminRows } = await supabase
+        .from("group_admins").select("group_id").eq("user_id", userId).eq("status", "accepted");
+
+      let coAdminGroups: { id: string; name: string; avatar_url: string | null }[] = [];
+      if (adminRows && adminRows.length > 0) {
+        const groupIds = adminRows.map((r: any) => r.group_id);
+        const { data: groups } = await supabase
+          .from("groups").select("id, name, avatar_url").in("id", groupIds);
+        coAdminGroups = groups ?? [];
+      }
+
+      // Merge, dedupe by id
+      const seen = new Set<string>();
+      const merged = [...(owned ?? []), ...coAdminGroups].filter((g: any) => {
+        if (seen.has(g.id)) return false;
+        seen.add(g.id);
+        return true;
+      });
+      setOwnedGroups(merged);
+    };
+
+    loadGroups();
   }, [session?.user?.id]);
 
   useEffect(() => {
