@@ -937,47 +937,41 @@ const CreateEvent = () => {
 
             <div className="flex-1 space-y-4">
 
-              {/* Post as — only shown when user owns at least one community */}
-              {ownedGroups.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Post as</label>
-                  <div className="flex flex-col gap-2">
-                    {/* My Profile option */}
-                    <button
-                      type="button"
-                      onClick={() => setCommunityId(null)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${communityId === null ? "border-black bg-black/5" : "border-gray-200 bg-white hover:border-gray-300"}`}
-                    >
-                      {myProfile?.avatar_url ? (
-                        <img src={myProfile.avatar_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          <User className="h-4 w-4 text-gray-500" />
-                        </div>
-                      )}
-                      <span className="text-sm font-medium flex-1 text-left">{myProfile?.name || "My Profile"}</span>
-                      {communityId === null && <div className="w-4 h-4 rounded-full bg-black flex-shrink-0" />}
-                    </button>
-                    {/* Community options */}
-                    {ownedGroups.map((g) => (
-                      <button
-                        key={g.id}
-                        type="button"
-                        onClick={() => setCommunityId(g.id)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${communityId === g.id ? "border-black bg-black/5" : "border-gray-200 bg-white hover:border-gray-300"}`}
+              {/* Post as — dropdown, always shown (personal profile + any groups) */}
+              {(() => {
+                const selectedGroup = ownedGroups.find((g) => g.id === communityId);
+                const selectedAvatar = communityId === null ? myProfile?.avatar_url : selectedGroup?.avatar_url;
+                const selectedName   = communityId === null ? (myProfile?.name || "My Profile") : (selectedGroup?.name || "");
+                return (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Post as</label>
+                    <div className="relative">
+                      <select
+                        value={communityId ?? ""}
+                        onChange={(e) => setCommunityId(e.target.value === "" ? null : e.target.value)}
+                        className="w-full h-12 pl-11 pr-9 rounded-xl border border-gray-300 bg-white text-sm font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
                       >
-                        {g.avatar_url ? (
-                          <img src={g.avatar_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        <option value="">{myProfile?.name || "My Profile"}</option>
+                        {ownedGroups.map((g) => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                      {/* Avatar overlay */}
+                      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                        {selectedAvatar ? (
+                          <img src={selectedAvatar} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-sm">👥</div>
+                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                            {selectedName.charAt(0).toUpperCase()}
+                          </div>
                         )}
-                        <span className="text-sm font-medium flex-1 text-left">{g.name}</span>
-                        {communityId === g.id && <div className="w-4 h-4 rounded-full bg-black flex-shrink-0" />}
-                      </button>
-                    ))}
+                      </div>
+                      {/* Chevron */}
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Event Title */}
               <div className="space-y-2">
