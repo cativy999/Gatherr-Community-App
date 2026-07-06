@@ -427,7 +427,7 @@ const Wards = () => {
                 {thisWeek.length > 0 ? (
                   <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
-                      <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+                      <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
                     ))}
                   </div>
                 ) : (
@@ -449,7 +449,7 @@ const Wards = () => {
   {nextWeek.length > 0 ? (
     <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       {nextWeek.map((event) => (
-        <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+        <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
       ))}
     </div>
   ) : (
@@ -467,7 +467,7 @@ const Wards = () => {
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
           <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {evts.map((event) => (
-              <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
+              <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
             ))}
           </div>
         </div>

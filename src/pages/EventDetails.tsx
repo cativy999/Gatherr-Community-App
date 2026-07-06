@@ -1743,25 +1743,41 @@ const EventDetails = () => {
               <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Host</h2>
               <div className="flex items-center gap-2">
                 {communityGroup ? (
-                  communityGroup.avatar_url ? (
-                    <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">👥</div>
-                  )
-                ) : creatorAvatar ? (
-                  <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/group/${communityGroup.id}`)}
+                    className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left"
+                  >
+                    {communityGroup.avatar_url ? (
+                      <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">👥</div>
+                    )}
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Hosted by <span className="font-semibold text-foreground underline underline-offset-2">{communityGroup.name}</span>
+                      </span>
+                      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
+                    </div>
+                  </button>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
+                  <>
+                    {creatorAvatar ? (
+                      <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Hosted by <span className="font-semibold text-foreground">{creatorName}</span>
+                      </span>
+                      {creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
+                      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
+                    </div>
+                  </>
                 )}
-                <div>
-                  <span className="text-sm text-muted-foreground">
-                    Hosted by <span className="font-semibold text-foreground">{communityGroup ? communityGroup.name : creatorName}</span>
-                  </span>
-                  {!communityGroup && creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
-                  <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
-                </div>
               </div>
               {/* Co-hosts — visible to every visitor, read-only. Mirrors the host's
                   own name + ward display above so co-hosts get the same billing. */}

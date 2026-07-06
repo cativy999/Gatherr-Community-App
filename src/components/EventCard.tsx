@@ -33,6 +33,7 @@ interface EventCardProps {
   creatorWard?: string;
   communityName?: string;
   communityAvatar?: string | null;
+  communityId?: string | null;
   isSaved?: boolean;
   onToggleSave?: (id: string, e: React.MouseEvent) => void;
 }
@@ -140,7 +141,7 @@ const getInitialColor = (name: string) => {
   return '#94A3B8';
 };
 
-const EventCard = ({ event, creatorWard, communityName, communityAvatar, isSaved = false, onToggleSave }: EventCardProps) => {
+const EventCard = ({ event, creatorWard, communityName, communityAvatar, communityId, isSaved = false, onToggleSave }: EventCardProps) => {
   const navigate = useNavigate();
   const [attendeeAvatars, setAttendeeAvatars] = useState<{url: string | null; name: string}[]>([]);
 
@@ -278,14 +279,18 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, isSaved
       <div className="min-w-0 px-1 pt-2 space-y-1.5">
         <h3 className="font-bold text-sm leading-tight text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</h3>
         {communityName && (
-          <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => { if (communityId) { e.stopPropagation(); navigate(`/group/${communityId}`); } }}
+            className={`flex items-center gap-1.5 text-left ${communityId ? "cursor-pointer hover:opacity-70 transition-opacity" : "cursor-default"}`}
+          >
             {communityAvatar ? (
               <img src={communityAvatar} className="w-4 h-4 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
             ) : (
               <span className="text-[10px]">👥</span>
             )}
             <span className="text-xs font-normal text-gray-500 truncate">{communityName}</span>
-          </div>
+          </button>
         )}
         {event.virtual_link && (
           <div className="flex items-center gap-1 text-muted-foreground">
