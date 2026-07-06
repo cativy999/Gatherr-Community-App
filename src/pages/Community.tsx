@@ -31,10 +31,16 @@ const Community = () => {
             maskImage: "linear-gradient(to right, transparent 0%, transparent 25%, black 40%, black 60%, transparent 75%, transparent 100%)",
           }}
         />
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
             Community
           </h1>
+          <button
+            onClick={() => navigate("/my-published-groups")}
+            className="text-sm font-medium text-primary hover:underline underline-offset-2"
+          >
+            Manage Groups
+          </button>
         </div>
       </header>
 

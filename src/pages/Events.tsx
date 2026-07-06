@@ -122,8 +122,14 @@ const Events = () => {
           className="absolute inset-0 -z-10 bg-white/[0.96] backdrop-blur-sm md:backdrop-blur-md md:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_15%,black_30%,black_70%,transparent_85%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,transparent_15%,black_30%,black_70%,transparent_85%,transparent_100%)]"
         />
         <div className="px-5 py-3">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>My Events</h1>
+            <button
+              onClick={() => navigate("/my-published-events")}
+              className="text-sm font-medium text-primary hover:underline underline-offset-2"
+            >
+              Published Events
+            </button>
           </div>
         </div>
         <div className="pb-3">
