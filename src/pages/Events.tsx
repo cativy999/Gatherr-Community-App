@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ThumbsUp, Smile, Heart, Clock } from "lucide-react";
+import { Loader2, ThumbsUp, Smile, Heart, Clock, MoreVertical } from "lucide-react";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
 import VideoBackground from "@/components/VideoBackground";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import ShareMenu from "@/components/ShareMenu";
 
 const tabs = [
   { id: "going", label: "Going", icon: ThumbsUp },
@@ -20,6 +21,8 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -125,11 +128,21 @@ const Events = () => {
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>My Events</h1>
             <button
-              onClick={() => navigate("/my-published-events")}
-              className="text-sm font-medium text-primary hover:underline underline-offset-2"
+              ref={menuRef}
+              onClick={() => setMenuOpen((o) => !o)}
+              className="p-1.5 rounded-full hover:bg-accent transition-colors"
+              aria-label="More options"
             >
-              Published Events
+              <MoreVertical className="h-5 w-5 text-muted-foreground" />
             </button>
+            <ShareMenu
+              open={menuOpen}
+              onClose={() => setMenuOpen(false)}
+              triggerRef={menuRef}
+              items={[
+                { label: "Published Events", onClick: () => navigate("/my-published-events") },
+              ]}
+            />
           </div>
         </div>
         <div className="pb-3">

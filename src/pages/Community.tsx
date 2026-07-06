@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, MoreVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import VideoBackground from "@/components/VideoBackground";
+import ShareMenu from "@/components/ShareMenu";
 
 const Community = () => {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     supabase
@@ -36,11 +39,21 @@ const Community = () => {
             Community
           </h1>
           <button
-            onClick={() => navigate("/my-published-groups")}
-            className="text-sm font-medium text-primary hover:underline underline-offset-2"
+            ref={menuRef}
+            onClick={() => setMenuOpen((o) => !o)}
+            className="p-1.5 rounded-full hover:bg-accent transition-colors"
+            aria-label="More options"
           >
-            Manage Groups
+            <MoreVertical className="h-5 w-5 text-muted-foreground" />
           </button>
+          <ShareMenu
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            triggerRef={menuRef}
+            items={[
+              { label: "Manage Groups", onClick: () => navigate("/my-published-groups") },
+            ]}
+          />
         </div>
       </header>
 
