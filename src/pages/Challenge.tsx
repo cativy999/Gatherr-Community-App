@@ -384,7 +384,7 @@ const Challenge = () => {
               </button>
               <button
                 onClick={() => {
-                  const text = `I've walked ${mySteps.toLocaleString()} steps on the Pioneer Trail Challenge! 🥾 Join me on Gatherr and let's walk to Salt Lake City together.`;
+                  const text = `I've walked ${mySteps.toLocaleString()} steps on the Pioneer Trail Challenge! 🥾 Join me on Beyond Sunday and let's walk to Salt Lake City together.`;
                   const url = "https://gatherr-one.vercel.app/challenge";
                   if (navigator.share) {
                     navigator.share({ title: "Pioneer Trail Challenge", text, url }).catch(() => {});

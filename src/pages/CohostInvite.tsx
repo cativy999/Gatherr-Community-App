@@ -103,7 +103,7 @@ const CohostInvite = () => {
         <p className="text-lg font-semibold">Invite not found</p>
         <p className="text-sm text-muted-foreground">{error ?? "This invite link isn't valid."}</p>
         <button onClick={() => navigate("/wards")} className="mt-4 px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold">
-          Go to Gatherr
+          Go to Beyond Sunday
         </button>
       </div>
     );
@@ -115,7 +115,7 @@ const CohostInvite = () => {
         <p className="text-lg font-semibold">This invite link has been turned off</p>
         <p className="text-sm text-muted-foreground">Ask the host of "{info.event_title}" for a new link.</p>
         <button onClick={() => navigate("/wards")} className="mt-4 px-5 py-2.5 rounded-full bg-black text-white text-sm font-semibold">
-          Go to Gatherr
+          Go to Beyond Sunday
         </button>
       </div>
     );

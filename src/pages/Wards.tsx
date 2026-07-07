@@ -408,9 +408,9 @@ const Wards = () => {
                     <button
                       onClick={() => {
                         const url = window.location.href;
-                        const text = "Check out these LDS singles events on Gatherr! 🎉";
+                        const text = "Check out these events on Beyond Sunday! 🎉";
                         if (navigator.share) {
-                          navigator.share({ title: "Gatherr Events", text, url }).catch(() => {});
+                          navigator.share({ title: "Beyond Sunday Events", text, url }).catch(() => {});
                         } else {
                           navigator.clipboard.writeText(url);
                           toast.success("Link copied!");

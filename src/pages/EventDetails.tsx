@@ -862,7 +862,7 @@ const EventDetails = () => {
     const link = await ensureInviteLink();
     if (!link) return;
     if (navigator.share) {
-      navigator.share({ title: `Co-host "${event.title}" on Gatherr`, url: link }).catch(() => {});
+      navigator.share({ title: `Co-host "${event.title}" on Beyond Sunday`, url: link }).catch(() => {});
     } else {
       navigator.clipboard.writeText(link);
       toast.success("Invite link copied!");
