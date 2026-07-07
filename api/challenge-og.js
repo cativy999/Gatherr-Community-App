@@ -9,7 +9,7 @@ export default function handler(req, res) {
   }
 
   const title = "Pioneer Trail Challenge 🥾";
-  const description = "Walk 2.6 million steps together from Nauvoo to Salt Lake City. Join the challenge on Gatherr!";
+  const description = "Walk 2.6 million steps together from Nauvoo to Salt Lake City. Join the challenge on Beyond Sunday!";
   const image = `${BASE_URL}/pioneertrailstepchallenge.png`;
   const url = `${BASE_URL}/challenge`;
 

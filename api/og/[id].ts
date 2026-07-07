@@ -24,8 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .single();
 
   const baseUrl = "https://gatherr-one.vercel.app";
-  const title  = event?.title || "Gatherr Event";
-  const image  = event?.image_url || `${baseUrl}/Gatherr.jpg`;
+  const title  = event?.title || "Beyond Sunday Event";
+  const image  = event?.image_url || `${baseUrl}/byond%20sunsay%20Ig%202.png`;
 
   // Preserve any cache-busting query params (e.g. ?v=5) in og:url so
   // Messenger/Facebook treat each cache-busted link as a distinct object
@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
   }
   const when = dateStr && timeStr ? `${dateStr} at ${timeStr}` : dateStr || timeStr;
-  const rawDesc = event?.description ? event.description.slice(0, 160) : `Join us on Gatherr`;
+  const rawDesc = event?.description ? event.description.slice(0, 160) : `Join us on Beyond Sunday`;
   const description = [when, event?.location, rawDesc].filter(Boolean).join(" · ");
 
   // ?direct=1 bypasses this rewrite so the React SPA loads normally
@@ -67,11 +67,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>${esc(title)} | Gatherr</title>
+  <title>${esc(title)} | Beyond Sunday</title>
   <meta name="description" content="${esc(description)}"/>
 
   <meta property="og:type"        content="website"/>
-  <meta property="og:site_name"   content="Gatherr"/>
+  <meta property="og:site_name"   content="Beyond Sunday"/>
   <meta property="og:url"         content="${esc(url)}"/>
   <meta property="og:title"       content="${esc(title)}"/>
   <meta property="og:description" content="${esc(description)}"/>

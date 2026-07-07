@@ -30,14 +30,14 @@ export default async function handler(req, res) {
 
   const eventDateObj = event.date ? (() => { const [y,m,d] = event.date.split("-").map(Number); return new Date(y, m-1, d); })() : null;
 const datePrefix = eventDateObj ? eventDateObj.toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" }) : "";
-const title = datePrefix ? `${datePrefix} · ${event.title ?? "Gatherrr Event"}` : event.title ?? "Gatherrr Event";
+const title = datePrefix ? `${datePrefix} · ${event.title ?? "Beyond Sunday Event"}` : event.title ?? "Beyond Sunday Event";
   const dateFormatted = event.date
     ? new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : "";
   const description = dateFormatted
     ? `${dateFormatted} · ${event.description?.slice(0, 100) ?? ""}`
     : event.description?.slice(0, 150) ?? "Join us for this event!";
-  const image = event.image_url ?? "https://gatherr-one.vercel.app/Gatherrlogo.png";
+  const image = event.image_url ?? "https://gatherr-one.vercel.app/byond%20sunsay%20Ig%202.png";
 
   res.setHeader("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>
@@ -48,7 +48,7 @@ const title = datePrefix ? `${datePrefix} · ${event.title ?? "Gatherrr Event"}`
     <meta property="og:image" content="${image}" />
     <meta property="og:url" content="${url}" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Gatherrr" />
+    <meta property="og:site_name" content="Beyond Sunday" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
