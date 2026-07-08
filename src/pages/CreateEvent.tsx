@@ -1005,7 +1005,7 @@ const CreateEvent = () => {
                           {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
                         </span>
                         {endDate ? (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEndDate(""); }} className="p-0.5 rounded-full hover:bg-gray-100">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEndDate(""); }} className="relative z-10 p-0.5 rounded-full hover:bg-gray-100">
                             <X className="h-4 w-4 text-muted-foreground" />
                           </button>
                         ) : (
