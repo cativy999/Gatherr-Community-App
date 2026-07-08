@@ -152,6 +152,8 @@ const CreateEvent = () => {
   const [groupAssignmentEnabled, setGroupAssignmentEnabled] = useState(false);
   const [groupTheme, setGroupTheme] = useState<"pizza" | "weather" | "taco" | null>(null);
   const [numGroups, setNumGroups] = useState(4);
+  const groupThemeExpandRef = useRef<HTMLDivElement>(null);
+  const groupNumPickerRef = useRef<HTMLDivElement>(null);
   const GROUP_THEMES = {
     pizza:   { label: "Pizza",        emoji: "🍕", groups: ["Extra Saucy","Half Baked","Well Done","Burnt Edges","Deep Dish","Thin Crust","Stuffed Crust","Extra Crispy","Double Pepperoni"] },
     weather: { label: "Weather",      emoji: "⛈️", groups: ["Sunshine","Rainbow","Thunder","Lightning","Drizzle","Blizzard","Fog","Frost","Tornado"] },
@@ -161,6 +163,20 @@ const CreateEvent = () => {
   const [maxAgeOpen, setMaxAgeOpen] = useState(false);
   const minAgeRef = useRef<HTMLDivElement>(null);
   const maxAgeRef = useRef<HTMLDivElement>(null);
+
+  // Scroll newly revealed group-assignment content into view
+  useEffect(() => {
+    if (groupAssignmentEnabled) {
+      setTimeout(() => groupThemeExpandRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+    }
+  }, [groupAssignmentEnabled]);
+
+  useEffect(() => {
+    if (groupTheme) {
+      setTimeout(() => groupNumPickerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+    }
+  }, [groupTheme]);
+
   const [locationSearch, setLocationSearch] = useState("");
   const [savedAddresses, setSavedAddresses] = useState<{display: string, city: string, lat: number, lng: number, count: number}[]>(() => {
     try { return JSON.parse(localStorage.getItem("address_history") || "[]"); }
@@ -1577,7 +1593,7 @@ const CreateEvent = () => {
                 </div>
 
                 {groupAssignmentEnabled && (
-                  <div className="space-y-4">
+                  <div className="space-y-4" ref={groupThemeExpandRef}>
                     {/* Theme cards */}
                     <div className="grid grid-cols-3 gap-2">
                       {(Object.entries(GROUP_THEMES) as [keyof typeof GROUP_THEMES, typeof GROUP_THEMES[keyof typeof GROUP_THEMES]][]).map(([key, theme]) => {
@@ -1609,7 +1625,7 @@ const CreateEvent = () => {
 
                     {/* Number of groups */}
                     {groupTheme && (
-                      <div className="space-y-2">
+                      <div className="space-y-2" ref={groupNumPickerRef}>
                         <label className="text-sm font-medium">Number of Groups</label>
                         <div className="flex gap-2 flex-wrap">
                           {[2,3,4,5,6,7,8,9].map(n => (
