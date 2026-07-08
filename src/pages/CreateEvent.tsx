@@ -147,6 +147,16 @@ const CreateEvent = () => {
   const [noImageConfirmOpen, setNoImageConfirmOpen] = useState(false);
   const [minAge, setMinAge] = useState<string>("");
   const [maxAge, setMaxAge] = useState<string>("");
+
+  // Group Assignment
+  const [groupAssignmentEnabled, setGroupAssignmentEnabled] = useState(false);
+  const [groupTheme, setGroupTheme] = useState<"pizza" | "weather" | "taco" | null>(null);
+  const [numGroups, setNumGroups] = useState(4);
+  const GROUP_THEMES = {
+    pizza:   { label: "Pizza",        emoji: "🍕", groups: ["Extra Saucy","Half Baked","Well Done","Burnt Edges","Deep Dish","Thin Crust","Stuffed Crust","Extra Crispy","Double Pepperoni"] },
+    weather: { label: "Weather",      emoji: "⛈️", groups: ["Sunshine","Rainbow","Thunder","Lightning","Drizzle","Blizzard","Fog","Frost","Tornado"] },
+    taco:    { label: "Taco Tuesday", emoji: "🌮", groups: ["Extra Cilantro","No Onions Please","Hot Sauce Enthusiast","Guac Costs Extra","Double Meat","Verde Sauce","Extra Crunchy","Loaded","Taco Supreme"] },
+  } as const;
   const [minAgeOpen, setMinAgeOpen] = useState(false);
   const [maxAgeOpen, setMaxAgeOpen] = useState(false);
   const minAgeRef = useRef<HTMLDivElement>(null);
@@ -1551,6 +1561,76 @@ const CreateEvent = () => {
                   </div>
 
                 </div>
+              </div>
+
+              {/* Group Assignment */}
+              <div className="space-y-4 pb-12">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Group Assignment</label>
+                  <button
+                    type="button"
+                    onClick={() => { setGroupAssignmentEnabled(v => !v); if (groupAssignmentEnabled) { setGroupTheme(null); setNumGroups(4); } }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${groupAssignmentEnabled ? "bg-black" : "bg-gray-200"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${groupAssignmentEnabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </div>
+
+                {groupAssignmentEnabled && (
+                  <div className="space-y-4">
+                    {/* Theme cards */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {(Object.entries(GROUP_THEMES) as [keyof typeof GROUP_THEMES, typeof GROUP_THEMES[keyof typeof GROUP_THEMES]][]).map(([key, theme]) => {
+                        const selected = groupTheme === key;
+                        return (
+                          <div key={key} className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setGroupTheme(selected ? null : key)}
+                              className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 transition-all ${selected ? "border-black bg-black text-white" : "border-gray-200 bg-white text-black"}`}
+                            >
+                              <span className="text-xl">{theme.emoji}</span>
+                              <span className="text-xs font-semibold leading-tight text-center">{theme.label}</span>
+                            </button>
+                            {selected && (
+                              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-1.5">
+                                {theme.groups.slice(0, numGroups).map(g => (
+                                  <div key={g} className="text-xs text-gray-700 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
+                                    {g}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Number of groups */}
+                    {groupTheme && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Number of Groups</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {[2,3,4,5,6,7,8,9].map(n => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => setNumGroups(n)}
+                              className={`w-10 h-10 rounded-full text-sm font-semibold border-2 transition-all ${numGroups === n ? "bg-black text-white border-black" : "bg-white text-black border-gray-200"}`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      Anyone who RSVPs "Going" will be randomly assigned to one of these groups and will be able to see their assigned group.
+                    </p>
+                  </div>
+                )}
               </div>
 
 
