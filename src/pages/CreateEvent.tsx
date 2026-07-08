@@ -998,7 +998,7 @@ const CreateEvent = () => {
                   <span className="text-sm font-medium shrink-0 text-muted-foreground">–</span>
                   <div className="relative flex-1">
                     <div className="relative cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
-                      <input ref={endDateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      <input ref={endDateRef} type="date" className={`absolute inset-0 opacity-0 h-full cursor-pointer ${endDate ? "right-10" : "w-full"}`}
                         value={endDate} onChange={(e) => setEndDate(e.target.value)} min={date || undefined} />
                       <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
                         <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
