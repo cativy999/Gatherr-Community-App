@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User, X } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -996,14 +996,22 @@ const CreateEvent = () => {
                     </div>
                   </div>
                   <span className="text-sm font-medium shrink-0 text-muted-foreground">–</span>
-                  <div className="relative flex-1 cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
-                    <input ref={endDateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      value={endDate} onChange={(e) => setEndDate(e.target.value)} min={date || undefined} />
-                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                      <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
-                        {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
-                      </span>
-                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="relative flex-1">
+                    <div className="relative cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
+                      <input ref={endDateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        value={endDate} onChange={(e) => setEndDate(e.target.value)} min={date || undefined} />
+                      <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
+                        <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
+                          {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
+                        </span>
+                        {endDate ? (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setEndDate(""); }} className="p-0.5 rounded-full hover:bg-gray-100">
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        ) : (
+                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
