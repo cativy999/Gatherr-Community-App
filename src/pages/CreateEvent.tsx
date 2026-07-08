@@ -154,6 +154,7 @@ const CreateEvent = () => {
   const [numGroups, setNumGroups] = useState(4);
   const groupThemeExpandRef = useRef<HTMLDivElement>(null);
   const groupNumPickerRef = useRef<HTMLDivElement>(null);
+  const groupHelperTextRef = useRef<HTMLDivElement>(null);
   const GROUP_THEMES = {
     pizza:   { label: "Pizza",        emoji: "🍕", groups: ["Extra Saucy","Half Baked","Well Done","Burnt Edges","Deep Dish","Thin Crust","Stuffed Crust","Extra Crispy","Double Pepperoni"] },
     weather: { label: "Weather",      emoji: "⛈️", groups: ["Sunshine","Rainbow","Thunder","Lightning","Drizzle","Blizzard","Fog","Frost","Tornado"] },
@@ -173,7 +174,7 @@ const CreateEvent = () => {
 
   useEffect(() => {
     if (groupTheme) {
-      setTimeout(() => groupNumPickerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+      setTimeout(() => groupHelperTextRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
     }
   }, [groupTheme]);
 
@@ -1580,7 +1581,7 @@ const CreateEvent = () => {
               </div>
 
               {/* Group Assignment */}
-              <div className="space-y-4 pb-12">
+              <div className="space-y-4 pb-40">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">Group Assignment</label>
                   <button
@@ -1645,6 +1646,7 @@ const CreateEvent = () => {
                     <p className="text-xs text-muted-foreground">
                       Anyone who RSVPs "Going" will be randomly assigned to one of these groups and will be able to see their assigned group.
                     </p>
+                    <div ref={groupHelperTextRef} />
                   </div>
                 )}
               </div>
