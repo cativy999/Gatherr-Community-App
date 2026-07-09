@@ -85,21 +85,12 @@ const FeedbackButton = () => {
             </button>
 
             {/* Header */}
-            <div className="flex items-start gap-3">
-              <img
-                src={PEI_PHOTO}
-                alt="Pei"
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <p className="text-sm font-bold text-gray-900">Hey, I'm Pei 👋</p>
-                <p className="text-xs text-gray-500 mt-0.5">App Developer</p>
-              </div>
+            <div>
+              <p className="text-base font-bold text-gray-900">Share Your Feedback</p>
             </div>
 
             <p className="text-sm text-gray-700 leading-relaxed">
-              Thank you so much for spending your time on the app! Your insights and feedback are truly valuable to me. I'd love to hear what you think — anything at all.
+              Thank you for taking the time to use Beyond Sunday. Your feedback, ideas, and suggestions help us improve the app and build a better community experience. We'd love to hear what you think.
             </p>
 
             {submitted ? (
