@@ -1,4 +1,4 @@
-import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Video } from "lucide-react";
+import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Video, Popcorn, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -153,6 +153,8 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
     icecream: IceCreamCone,
     salad: Salad,
     catered: HandPlatter,
+    popcorn: Popcorn,
+    bbq: Flame,
   };
 
   useEffect(() => {
