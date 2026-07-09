@@ -1174,14 +1174,33 @@ const CreateEvent = () => {
                       <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
                         {locationSearching && <div className="flex items-center justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
 
-                        {/* Use exactly what was typed */}
+                        {/* Use exactly what was typed — geocode it first so we get lat/lng */}
                         {locationSearch.trim() && (
                           <button type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               setAddress(locationSearch);
                               setLocationSearch(locationSearch);
                               setLocation(locationSearch);
                               setLocationOpen(false);
+                              // Geocode the typed address so the map and location filtering work
+                              try {
+                                const res = await fetch(
+                                  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)}&format=json&addressdetails=1&limit=1`,
+                                  { headers: { "Accept-Language": "en" } }
+                                );
+                                const data = await res.json();
+                                if (data[0]) {
+                                  const item = data[0];
+                                  const lat = parseFloat(item.lat);
+                                  const lng = parseFloat(item.lon);
+                                  const a = item.address || {};
+                                  const cityName = a.city || a.town || a.village || a.county || "";
+                                  const state = a.state || "";
+                                  setLat(lat);
+                                  setLng(lng);
+                                  setLocation(cityName && state ? `${cityName}, ${state}` : locationSearch);
+                                }
+                              } catch { /* silently fall back to no map */ }
                             }}
                             className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-b border-border">
                             <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
