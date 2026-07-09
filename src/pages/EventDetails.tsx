@@ -1134,9 +1134,9 @@ const EventDetails = () => {
             {isHostOrCohost && (
               <button
                 onClick={() => navigate(`/create-event/${id}`)}
-                className="absolute bottom-3 right-3 p-2 bg-white/30 backdrop-blur-md rounded-full hover:bg-white/50 transition-colors"
+                className="absolute bottom-3 right-3 p-2 bg-white/70 backdrop-blur-md rounded-full ring-1 ring-gray-300 hover:bg-white/90 transition-colors shadow-sm"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                 </svg>
               </button>

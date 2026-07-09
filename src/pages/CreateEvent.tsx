@@ -307,6 +307,7 @@ const CreateEvent = () => {
         { id: "burgers", icon: Hamburger,   label: "Burgers" },
         { id: "bbq",     icon: Flame,       label: "BBQ" },
         { id: "catered", icon: HandPlatter, label: "Catered" },
+        { id: "popcorn", icon: Popcorn,     label: "Popcorn" },
       ],
     },
     {
@@ -315,7 +316,6 @@ const CreateEvent = () => {
         { id: "drinks",   icon: CupSoda,      label: "Drinks" },
         { id: "cookies",  icon: Cookie,       label: "Cookies" },
         { id: "icecream", icon: IceCreamCone, label: "Ice Cream" },
-        { id: "popcorn",  icon: Popcorn,      label: "Popcorn" },
         { id: "salad",    icon: Salad,        label: "Salad" },
       ],
     },
