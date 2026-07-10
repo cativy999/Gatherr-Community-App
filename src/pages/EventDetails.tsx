@@ -1865,8 +1865,8 @@ const EventDetails = () => {
           )}
 
 {/* Carpool */}
-          {!event.virtual_link && event.id && (
-            <CarpoolSection eventId={event.id} />
+          {!event?.virtual_link && id && (
+            <CarpoolSection eventId={id} />
           )}
 
 {/* Comments */}
