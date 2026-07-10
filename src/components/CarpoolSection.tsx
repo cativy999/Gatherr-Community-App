@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Phone } from "lucide-react";
 
 interface CarpoolPost {
   id: string;
@@ -13,6 +13,7 @@ interface CarpoolPost {
   pickup_offered: boolean;
   seats: number | null;
   departure_window: string | null;
+  phone_number: string | null;
   lat: number | null;
   lng: number | null;
   distance?: number;
@@ -25,6 +26,7 @@ interface CarpoolRequest {
   carpool_post_id: string;
   requester_user_id: string;
   status: "pending" | "accepted" | "declined";
+  phone_number: string | null;
   profile?: { name: string; avatar_url: string | null };
 }
 
@@ -59,6 +61,19 @@ function Avatar({ url, name, size = 9 }: { url: string | null; name: string; siz
   );
 }
 
+function PhoneLink({ number, label }: { number: string; label: string }) {
+  return (
+    <a
+      href={`tel:${number.replace(/\D/g, "")}`}
+      className="flex items-center gap-2 text-sm text-blue-600 font-medium"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Phone className="h-3.5 w-3.5" />
+      {label}: {number}
+    </a>
+  );
+}
+
 export default function CarpoolSection({ eventId }: { eventId: string }) {
   const { session } = useAuth();
   const { locationLat, locationLng } = useLocation();
@@ -72,6 +87,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [modal, setModal] = useState<"rider" | "driver" | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<CarpoolPost | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  // Request confirm sheet (shows phone input before submitting)
+  const [requestConfirmDriver, setRequestConfirmDriver] = useState<CarpoolPost | null>(null);
+  const [riderPhone, setRiderPhone] = useState("");
 
   // Rider form
   const [hasCar, setHasCar] = useState<boolean | null>(null);
@@ -81,6 +99,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [seats, setSeats] = useState(3);
   const [departure, setDeparture] = useState<string | null>(null);
   const [pickupOffered, setPickupOffered] = useState<boolean | null>(null);
+  const [driverPhone, setDriverPhone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,13 +120,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
     if (!rows) { setLoading(false); return; }
 
-    // Fetch requests counts
     const postIds = rows.map((r: any) => r.id);
     const { data: allRequests } = postIds.length
       ? await supabase.from("carpool_requests").select("*").in("carpool_post_id", postIds)
       : { data: [] };
 
-    // Fetch profiles
     const uids = [...new Set(rows.map((r: any) => r.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -131,6 +148,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         pickup_offered: row.pickup_offered ?? false,
         seats: row.seats,
         departure_window: row.departure_window,
+        phone_number: row.phone_number ?? null,
         lat: row.lat,
         lng: row.lng,
         seats_taken: accepted,
@@ -148,7 +166,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     const mine = userId ? (mapped.find((p) => p.user_id === userId) ?? null) : null;
     setMyPost(mine);
 
-    // Load my request (to any driver)
     if (userId && postIds.length) {
       const req = (allRequests ?? []).find(
         (r: any) => r.requester_user_id === userId
@@ -156,7 +173,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       setMyRequest(req ?? null);
     }
 
-    // Load requests for my driver post + their profiles
     if (mine?.type === "driver") {
       const reqs = (allRequests ?? []).filter(
         (r: any) => r.carpool_post_id === mine.id
@@ -173,6 +189,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         setDriverRequests(
           reqs.map((r: any) => ({
             ...r,
+            phone_number: r.phone_number ?? null,
             profile: reqProfileMap[r.requester_user_id] ?? { name: "Someone", avatar_url: null },
           }))
         );
@@ -186,15 +203,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const submitRider = async () => {
     if (!userId || hasCar === null) return;
-    // If has car, they must choose meet/pickup. If no car, pickup_needed is always true.
     if (hasCar === true && pickupNeeded === null) return;
     setSubmitting(true);
     const actualPickupNeeded = hasCar ? (pickupNeeded ?? false) : true;
     await supabase.from("carpool_posts").upsert(
-      { event_id: eventId, user_id: userId, type: "rider", has_car: hasCar,
+      {
+        event_id: eventId, user_id: userId, type: "rider", has_car: hasCar,
         pickup_needed: actualPickupNeeded,
         seats: null, departure_window: null, pickup_offered: false,
-        lat: locationLat, lng: locationLng },
+        lat: locationLat, lng: locationLng,
+      },
       { onConflict: "event_id,user_id" }
     );
     setModal(null); setHasCar(null); setPickupNeeded(null); setSubmitting(false);
@@ -205,18 +223,41 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     if (!userId || !departure || pickupOffered === null) return;
     setSubmitting(true);
     await supabase.from("carpool_posts").upsert(
-      { event_id: eventId, user_id: userId, type: "driver", has_car: true,
+      {
+        event_id: eventId, user_id: userId, type: "driver", has_car: true,
         pickup_needed: false, pickup_offered: pickupOffered,
         seats, departure_window: departure,
-        lat: locationLat, lng: locationLng, status: "active" },
+        phone_number: driverPhone.trim() || null,
+        lat: locationLat, lng: locationLng,
+      },
       { onConflict: "event_id,user_id" }
     );
-    setModal(null); setDeparture(null); setSeats(3); setPickupOffered(null); setSubmitting(false);
+    setModal(null); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); setSubmitting(false);
     fetchAll();
   };
 
   const cancelPost = async () => {
     if (!myPost) return;
+
+    // If driver, notify all accepted riders first
+    if (myPost.type === "driver") {
+      const accepted = driverRequests.filter((r) => r.status === "accepted");
+      if (accepted.length) {
+        const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+          supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+          supabase.from("events").select("title").eq("id", eventId).single(),
+        ]);
+        const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
+        const notifs = accepted.map((r) => ({
+          user_id: r.requester_user_id,
+          type: "carpool_cancelled",
+          message: `${myProfile?.name ?? "Your driver"} cancelled their ride offer${eventTitle}. You may need to find another way.`,
+          event_id: eventId,
+        }));
+        await supabase.from("notifications").insert(notifs);
+      }
+    }
+
     await supabase.from("carpool_posts").delete().eq("id", myPost.id);
     setMyPost(null); setManageOpen(false);
     fetchAll();
@@ -224,6 +265,21 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const cancelRequest = async () => {
     if (!myRequest) return;
+    // Notify driver that a seat opened back up
+    const driverPost = posts.find((p) => p.id === myRequest.carpool_post_id);
+    if (driverPost && myRequest.status === "accepted") {
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
+      await supabase.from("notifications").insert({
+        user_id: driverPost.user_id,
+        type: "carpool_cancelled",
+        message: `${myProfile?.name ?? "A rider"} can no longer make the ride${eventTitle}. A seat has opened up.`,
+        event_id: eventId,
+      });
+    }
     await supabase.from("carpool_requests").delete().eq("id", myRequest.id);
     setMyRequest(null);
     setSelectedDriver(null);
@@ -235,7 +291,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setSubmitting(true);
     const { data: req } = await supabase
       .from("carpool_requests")
-      .insert({ carpool_post_id: driverPost.id, requester_user_id: userId, status: "pending" })
+      .insert({
+        carpool_post_id: driverPost.id,
+        requester_user_id: userId,
+        status: "pending",
+        phone_number: riderPhone.trim() || null,
+      })
       .select()
       .single();
 
@@ -254,6 +315,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       });
     }
     setSubmitting(false);
+    setRequestConfirmDriver(null);
+    setRiderPhone("");
     setSelectedDriver(null);
     fetchAll();
   };
@@ -337,7 +400,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </button>
               </div>
             </div>
-            {/* Accepted riders */}
             {myPost.type === "driver" && acceptedRequests.length > 0 && (
               <div className="px-3 pb-3 flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Riders:</span>
@@ -361,7 +423,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               🙋 I need a ride
             </button>
             <button
-              onClick={() => { setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); }}
+              onClick={() => { setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
               className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
             >
               🚗 I can drive
@@ -395,10 +457,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       {isDriver
                         ? `🚗 ${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`
                         : post.has_car
-                        ? "🚗 Has car · Open to driving"
-                        : post.pickup_needed
-                        ? "🙋 Needs pickup"
-                        : "🙋 Can meet driver"}
+                        ? "🚗 Has car · Can meet driver"
+                        : "🙋 Needs pickup"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -420,7 +480,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       </div>
 
       {/* ── Driver detail sheet ── */}
-      {selectedDriver && (
+      {selectedDriver && !requestConfirmDriver && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setSelectedDriver(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -454,6 +514,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </div>
             </div>
 
+            {/* Show driver phone only if rider's request was accepted */}
+            {myRequestForSelected?.status === "accepted" && selectedDriver.phone_number && (
+              <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+                <PhoneLink number={selectedDriver.phone_number} label="Driver" />
+              </div>
+            )}
+
             {!myPost || myPost.user_id === userId ? (
               myRequestForSelected ? (
                 <div className="space-y-2">
@@ -468,16 +535,23 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       Cancel request
                     </button>
                   )}
+                  {myRequestForSelected.status === "accepted" && (
+                    <button
+                      onClick={cancelRequest}
+                      className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium"
+                    >
+                      Cancel my spot
+                    </button>
+                  )}
                 </div>
               ) : myPost?.type === "driver" ? (
                 <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
               ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
                 <button
-                  onClick={() => requestRide(selectedDriver)}
-                  disabled={submitting}
-                  className="w-full h-12 rounded-xl bg-black text-white font-semibold text-sm disabled:opacity-40"
+                  onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
+                  className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
                 >
-                  {submitting ? "Sending…" : "Request a Ride"}
+                  Request a Ride
                 </button>
               ) : (
                 <div className="w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold bg-gray-100 text-gray-400">
@@ -485,6 +559,39 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* ── Request confirm sheet (phone number) ── */}
+      {requestConfirmDriver && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setRequestConfirmDriver(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold">Request a ride from {requestConfirmDriver.profile.name}</h3>
+              <button onClick={() => setRequestConfirmDriver(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <p className="text-xs text-muted-foreground">Shared with the driver only if they accept you.</p>
+              <input
+                type="tel"
+                value={riderPhone}
+                onChange={(e) => setRiderPhone(e.target.value)}
+                placeholder="(555) 000-0000"
+                className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors"
+              />
+            </div>
+
+            <button
+              onClick={() => requestRide(requestConfirmDriver)}
+              disabled={submitting}
+              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40"
+            >
+              {submitting ? "Sending…" : "Send Request"}
+            </button>
           </div>
         </div>
       )}
@@ -513,7 +620,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     {pendingRequests.map((req) => (
                       <div key={req.id} className="flex items-center gap-3">
                         <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                        <p className="flex-1 text-sm font-medium">{req.profile?.name}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{req.profile?.name}</p>
+                          {req.phone_number && (
+                            <PhoneLink number={req.phone_number} label="Phone" />
+                          )}
+                        </div>
                         <button onClick={() => respondToRequest(req.id, "declined")} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium">Decline</button>
                         <button onClick={() => respondToRequest(req.id, "accepted")} className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium">Accept</button>
                       </div>
@@ -524,10 +636,17 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   <>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">In your car</p>
                     {acceptedRequests.map((req) => (
-                      <div key={req.id} className="flex items-center gap-3">
-                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                        <p className="flex-1 text-sm font-medium">{req.profile?.name}</p>
-                        <span className="text-xs text-green-600 font-semibold">✓ Accepted</span>
+                      <div key={req.id} className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{req.profile?.name}</p>
+                            {req.phone_number && (
+                              <PhoneLink number={req.phone_number} label="Phone" />
+                            )}
+                          </div>
+                          <span className="text-xs text-green-600 font-semibold shrink-0">✓ Accepted</span>
+                        </div>
                       </div>
                     ))}
                   </>
@@ -552,7 +671,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <button onClick={() => setModal(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
 
-            {/* Step 1: Do you have a car? */}
             <div className="space-y-3">
               <p className="text-sm font-semibold text-gray-700">Do you have a car?</p>
               <div className="flex flex-col gap-2">
@@ -563,7 +681,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   <button key={label} type="button"
                     onClick={() => {
                       setHasCar(val);
-                      // No car → automatically needs pickup; reset if switching
                       if (!val) setPickupNeeded(true);
                       else setPickupNeeded(null);
                     }}
@@ -574,7 +691,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </div>
             </div>
 
-            {/* Step 2: only shown if they have a car — can they meet the driver? */}
             {hasCar === true && (
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Can you meet the driver, or need pickup?</p>
@@ -593,10 +709,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </div>
             )}
 
-            {/* No car — show auto-set info */}
             {hasCar === false && (
               <p className="text-xs text-muted-foreground bg-gray-50 rounded-xl px-4 py-3">
-                Since you don't have a car, you'll be marked as needing pickup. A driver will reach out once they accept your request.
+                Since you don't have a car, you'll be marked as needing pickup.
               </p>
             )}
 
@@ -618,8 +733,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <h3 className="text-base font-bold">I can drive</h3>
               <button onClick={() => setModal(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
+
             <div className="space-y-3">
-              <p className="text-sm font-medium">How many seats can you offer?</p>
+              <p className="text-sm font-semibold text-gray-700">How many seats can you offer?</p>
               <div className="flex gap-2">
                 {[1,2,3,4,5,6].map((n) => (
                   <button key={n} type="button" onClick={() => setSeats(n)}
@@ -629,6 +745,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 ))}
               </div>
             </div>
+
             <div className="space-y-3">
               <p className="text-sm font-semibold text-gray-700">Rough departure time</p>
               <div className="grid grid-cols-2 gap-2">
@@ -640,6 +757,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 ))}
               </div>
             </div>
+
             <div className="space-y-3">
               <p className="text-sm font-semibold text-gray-700">Will you pick riders up?</p>
               <div className="flex flex-col gap-2">
@@ -654,9 +772,22 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 ))}
               </div>
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <p className="text-xs text-muted-foreground">Shared only with riders you accept.</p>
+              <input
+                type="tel"
+                value={driverPhone}
+                onChange={(e) => setDriverPhone(e.target.value)}
+                placeholder="(555) 000-0000"
+                className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors"
+              />
+            </div>
+
             <button onClick={submitDriver}
               disabled={submitting || !departure || pickupOffered === null}
-              className="w-full h-12 rounded-xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40 transition-opacity">
               {submitting ? "Posting…" : "Post"}
             </button>
           </div>
