@@ -481,7 +481,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Driver detail sheet ── */}
       {selectedDriver && !requestConfirmDriver && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setSelectedDriver(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setSelectedDriver(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -565,7 +565,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Request confirm sheet (phone number) ── */}
       {requestConfirmDriver && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setRequestConfirmDriver(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setRequestConfirmDriver(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -598,7 +598,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Manage requests sheet (driver) ── */}
       {manageOpen && myPost?.type === "driver" && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setManageOpen(false)}>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setManageOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -663,7 +663,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Rider form ── */}
       {modal === "rider" && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -726,7 +726,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Driver form ── */}
       {modal === "driver" && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
