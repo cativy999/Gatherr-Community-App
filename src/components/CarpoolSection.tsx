@@ -240,14 +240,17 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       .single();
 
     if (req) {
-      // Notify the driver
-      const { data: myProfile } = await supabase
-        .from("profiles").select("name").eq("user_id", userId).single();
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
       await supabase.from("notifications").insert({
         user_id: driverPost.user_id,
         type: "carpool_request",
-        message: `${myProfile?.name ?? "Someone"} requested a ride from you`,
+        message: `${myProfile?.name ?? "Someone"} requested a ride from you${eventTitle}`,
         reference_id: req.id,
+        event_id: eventId,
       });
     }
     setSubmitting(false);
@@ -257,18 +260,21 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const respondToRequest = async (requestId: string, status: "accepted" | "declined") => {
     await supabase.from("carpool_requests").update({ status }).eq("id", requestId);
-    // Notify requester
     const req = driverRequests.find((r) => r.id === requestId);
     if (req) {
-      const { data: myProfile } = await supabase
-        .from("profiles").select("name").eq("user_id", userId!).single();
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
       await supabase.from("notifications").insert({
         user_id: req.requester_user_id,
         type: status === "accepted" ? "carpool_accepted" : "carpool_declined",
         message: status === "accepted"
-          ? `${myProfile?.name ?? "Your driver"} accepted your ride request! 🚗`
-          : `${myProfile?.name ?? "Your driver"} couldn't take your ride request.`,
+          ? `${myProfile?.name ?? "Your driver"} accepted your ride request${eventTitle} 🚗`
+          : `${myProfile?.name ?? "Your driver"} couldn't take your ride request${eventTitle}.`,
         reference_id: requestId,
+        event_id: eventId,
       });
     }
     fetchAll();

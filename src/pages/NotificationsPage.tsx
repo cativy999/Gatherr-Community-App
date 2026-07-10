@@ -1,4 +1,4 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -61,18 +61,24 @@ const NotificationsPage = () => {
                     navigate(`/event/${n.event_id}`);
                   }
                 }}
+                disabled={!n.event_id && n.type !== "group_coadmin_invite"}
                 className={`w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/40 ${!n.read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}
               >
-                <span className="text-xl mt-0.5 flex-shrink-0">
-                  {n.type === "mention" ? "🏷️"
-                    : n.type === "like" ? "❤️"
-                    : n.type === "reply" ? "💬"
-                    : n.type === "cohost_accepted" ? "🤝"
-                    : n.type === "ward_request" ? "🏛️"
-                    : n.type === "group_coadmin_invite" ? "👑"
-                    : n.type === "group_coadmin_accepted" ? "✅"
-                    : n.type === "group_coadmin_declined" ? "👋"
-                    : "🔔"}
+                <span className="mt-0.5 flex-shrink-0 flex items-center justify-center w-7 h-7">
+                  {n.type === "carpool_request" || n.type === "carpool_accepted" || n.type === "carpool_declined"
+                    ? <Car className="h-5 w-5 text-gray-700" strokeWidth={2} />
+                    : <span className="text-xl">
+                        {n.type === "mention" ? "🏷️"
+                          : n.type === "like" ? "❤️"
+                          : n.type === "reply" ? "💬"
+                          : n.type === "cohost_accepted" ? "🤝"
+                          : n.type === "ward_request" ? "🏛️"
+                          : n.type === "group_coadmin_invite" ? "👑"
+                          : n.type === "group_coadmin_accepted" ? "✅"
+                          : n.type === "group_coadmin_declined" ? "👋"
+                          : "🔔"}
+                      </span>
+                  }
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-snug">{n.message}</p>
