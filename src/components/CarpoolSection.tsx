@@ -221,6 +221,14 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     fetchAll();
   };
 
+  const cancelRequest = async () => {
+    if (!myRequest) return;
+    await supabase.from("carpool_requests").delete().eq("id", myRequest.id);
+    setMyRequest(null);
+    setSelectedDriver(null);
+    fetchAll();
+  };
+
   const requestRide = async (driverPost: CarpoolPost) => {
     if (!userId) return;
     setSubmitting(true);
@@ -314,7 +322,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     {pendingRequests.length} request{pendingRequests.length !== 1 ? "s" : ""}
                   </button>
                 )}
-                {myPost.type === "driver" && pendingRequests.length === 0 && (
+                {myPost.type === "driver" && (
                   <button onClick={() => setManageOpen(true)} className="text-xs text-gray-500 font-medium hover:underline">
                     Manage
                   </button>
@@ -443,8 +451,18 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
             {!myPost || myPost.user_id === userId ? (
               myRequestForSelected ? (
-                <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
-                  {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Request sent — waiting for driver"}
+                <div className="space-y-2">
+                  <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
+                    {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Request sent — waiting for driver"}
+                  </div>
+                  {myRequestForSelected.status !== "accepted" && (
+                    <button
+                      onClick={cancelRequest}
+                      className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium"
+                    >
+                      Cancel request
+                    </button>
+                  )}
                 </div>
               ) : myPost?.type === "driver" ? (
                 <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
