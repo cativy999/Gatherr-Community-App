@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import AddressLink from "@/components/AddressLink";
 import ShareMenu from "@/components/ShareMenu";
+import CarpoolSection from "@/components/CarpoolSection";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -1861,6 +1862,11 @@ const EventDetails = () => {
                 </div>
               </div>
             </div>
+          )}
+
+{/* Carpool */}
+          {!event.virtual_link && event.id && (
+            <CarpoolSection eventId={event.id} />
           )}
 
 {/* Comments */}
