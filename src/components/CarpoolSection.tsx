@@ -558,19 +558,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               ) : myPost?.type === "driver" ? (
                 <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
+              ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
+                <button
+                  onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
+                  className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
+                >
+                  Request a Ride
+                </button>
               ) : (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
-                    className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
-                  >
-                    {(seatsLeft(selectedDriver) ?? 0) === 0 ? "Request Anyway" : "Request a Ride"}
-                  </button>
-                  {(seatsLeft(selectedDriver) ?? 0) === 0 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      Car is full — the driver may open more seats later
-                    </p>
-                  )}
+                <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
+                  🔒 Car is full
                 </div>
               )
             ) : null}
