@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { X } from "lucide-react";
 
@@ -36,7 +36,7 @@ function fmtDist(km: number) {
 }
 
 export default function CarpoolSection({ eventId }: { eventId: string }) {
-  const session = useSession();
+  const { session } = useAuth();
   const { locationLat, locationLng } = useLocation();
   const userId = session?.user?.id;
 
