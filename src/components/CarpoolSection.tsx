@@ -97,7 +97,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       .from("carpool_posts")
       .select("*")
       .eq("event_id", eventId)
-      .eq("status", "active")
       .order("created_at", { ascending: true });
 
     if (!rows) { setLoading(false); return; }
@@ -216,7 +215,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const cancelPost = async () => {
     if (!myPost) return;
-    await supabase.from("carpool_posts").update({ status: "cancelled" }).eq("id", myPost.id);
+    await supabase.from("carpool_posts").delete().eq("id", myPost.id);
     setMyPost(null); setManageOpen(false);
     fetchAll();
   };
