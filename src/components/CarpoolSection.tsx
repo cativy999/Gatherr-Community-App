@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { X, ChevronRight, Phone } from "lucide-react";
+import { X, ChevronRight, Phone, Car } from "lucide-react";
 
 interface CarpoolPost {
   id: string;
@@ -48,29 +48,43 @@ function fmtDist(km: number) {
 }
 
 function Avatar({ url, name, size = 9 }: { url: string | null; name: string; size?: number }) {
+  const sz = `w-${size} h-${size}`;
   return (
-    <div className={`w-${size} h-${size} rounded-full bg-gray-200 overflow-hidden shrink-0`}>
-      {url ? (
-        <img src={url} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-500">
-          {name[0]}
-        </div>
-      )}
+    <div className={`${sz} rounded-full bg-gray-200 overflow-hidden shrink-0`}>
+      {url
+        ? <img src={url} className="w-full h-full object-cover" />
+        : <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-500">{name[0]}</div>
+      }
     </div>
   );
 }
 
 function PhoneLink({ number, label }: { number: string; label: string }) {
   return (
-    <a
-      href={`tel:${number.replace(/\D/g, "")}`}
-      className="flex items-center gap-2 text-sm text-blue-600 font-medium"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Phone className="h-3.5 w-3.5" />
-      {label}: {number}
+    <a href={`tel:${number.replace(/\D/g, "")}`}
+      className="flex items-center gap-1.5 text-xs text-blue-600 font-medium"
+      onClick={(e) => e.stopPropagation()}>
+      <Phone className="h-3 w-3" />{label}: {number}
     </a>
+  );
+}
+
+// Reusable sheet wrapper — renders at z-[70] so it stacks above the main carpool sheet
+function Sheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-10 md:pb-6 max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold">{title}</h3>
+          <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -83,38 +97,37 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [myPost, setMyPost] = useState<CarpoolPost | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Modals
+  // Main carpool sheet
+  const [carpoolOpen, setCarpoolOpen] = useState(false);
+
+  // Sub-sheets (stack above carpool sheet at z-[70])
   const [modal, setModal] = useState<"rider" | "driver" | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<CarpoolPost | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
-  // Request confirm sheet (shows phone input before submitting)
   const [requestConfirmDriver, setRequestConfirmDriver] = useState<CarpoolPost | null>(null);
   const [riderPhone, setRiderPhone] = useState("");
 
-  // Rider form
+  // Rider form state
   const [hasCar, setHasCar] = useState<boolean | null>(null);
   const [pickupNeeded, setPickupNeeded] = useState<boolean | null>(null);
 
-  // Driver form
+  // Driver form state
   const [seats, setSeats] = useState(3);
   const [departure, setDeparture] = useState<string | null>(null);
   const [pickupOffered, setPickupOffered] = useState<boolean | null>(null);
   const [driverPhone, setDriverPhone] = useState("");
-
-  // Manage: live seat editing
-  const [editingSeats, setEditingSeats] = useState<number | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
 
   // Requests
   const [myRequest, setMyRequest] = useState<CarpoolRequest | null>(null);
   const [driverRequests, setDriverRequests] = useState<CarpoolRequest[]>([]);
+  const [editingSeats, setEditingSeats] = useState<number | null>(null);
 
   useEffect(() => { fetchAll(); }, [eventId, userId]);
 
   const fetchAll = async () => {
     setLoading(true);
-
     const { data: rows } = await supabase
       .from("carpool_posts")
       .select("*")
@@ -130,36 +143,24 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
     const uids = [...new Set(rows.map((r: any) => r.user_id))];
     const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, name, avatar_url")
-      .in("user_id", uids);
+      .from("profiles").select("user_id, name, avatar_url").in("user_id", uids);
 
-    const profileMap = Object.fromEntries(
-      (profiles ?? []).map((p: any) => [p.user_id, p])
-    );
+    const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
 
     const mapped: CarpoolPost[] = rows.map((row: any) => {
       const accepted = (allRequests ?? []).filter(
         (r: any) => r.carpool_post_id === row.id && r.status === "accepted"
       ).length;
       return {
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        has_car: row.has_car,
-        pickup_needed: row.pickup_needed,
+        id: row.id, user_id: row.user_id, type: row.type,
+        has_car: row.has_car, pickup_needed: row.pickup_needed,
         pickup_offered: row.pickup_offered ?? false,
-        seats: row.seats,
-        departure_window: row.departure_window,
+        seats: row.seats, departure_window: row.departure_window,
         phone_number: row.phone_number ?? null,
-        lat: row.lat,
-        lng: row.lng,
-        seats_taken: accepted,
+        lat: row.lat, lng: row.lng, seats_taken: accepted,
         profile: profileMap[row.user_id] ?? { name: "Someone", avatar_url: null },
-        distance:
-          locationLat && locationLng && row.lat && row.lng
-            ? haversineKm(locationLat, locationLng, row.lat, row.lng)
-            : undefined,
+        distance: locationLat && locationLng && row.lat && row.lng
+          ? haversineKm(locationLat, locationLng, row.lat, row.lng) : undefined,
       };
     });
 
@@ -170,52 +171,38 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setMyPost(mine);
 
     if (userId && postIds.length) {
-      const req = (allRequests ?? []).find(
-        (r: any) => r.requester_user_id === userId
-      );
+      const req = (allRequests ?? []).find((r: any) => r.requester_user_id === userId);
       setMyRequest(req ?? null);
     }
 
     if (mine?.type === "driver") {
-      const reqs = (allRequests ?? []).filter(
-        (r: any) => r.carpool_post_id === mine.id
-      );
+      const reqs = (allRequests ?? []).filter((r: any) => r.carpool_post_id === mine.id);
       if (reqs.length) {
         const reqUids = reqs.map((r: any) => r.requester_user_id);
         const { data: reqProfiles } = await supabase
-          .from("profiles")
-          .select("user_id, name, avatar_url")
-          .in("user_id", reqUids);
-        const reqProfileMap = Object.fromEntries(
-          (reqProfiles ?? []).map((p: any) => [p.user_id, p])
-        );
-        setDriverRequests(
-          reqs.map((r: any) => ({
-            ...r,
-            phone_number: r.phone_number ?? null,
-            profile: reqProfileMap[r.requester_user_id] ?? { name: "Someone", avatar_url: null },
-          }))
-        );
-      } else {
-        setDriverRequests([]);
-      }
+          .from("profiles").select("user_id, name, avatar_url").in("user_id", reqUids);
+        const reqProfileMap = Object.fromEntries((reqProfiles ?? []).map((p: any) => [p.user_id, p]));
+        setDriverRequests(reqs.map((r: any) => ({
+          ...r, phone_number: r.phone_number ?? null,
+          profile: reqProfileMap[r.requester_user_id] ?? { name: "Someone", avatar_url: null },
+        })));
+      } else { setDriverRequests([]); }
     }
 
     setLoading(false);
   };
 
+  // ── Actions ──────────────────────────────────────────────────────────────
+
   const submitRider = async () => {
     if (!userId || hasCar === null) return;
     if (hasCar === true && pickupNeeded === null) return;
     setSubmitting(true);
-    const actualPickupNeeded = hasCar ? (pickupNeeded ?? false) : true;
     await supabase.from("carpool_posts").upsert(
-      {
-        event_id: eventId, user_id: userId, type: "rider", has_car: hasCar,
-        pickup_needed: actualPickupNeeded,
+      { event_id: eventId, user_id: userId, type: "rider", has_car: hasCar,
+        pickup_needed: hasCar ? (pickupNeeded ?? false) : true,
         seats: null, departure_window: null, pickup_offered: false,
-        lat: locationLat, lng: locationLng,
-      },
+        lat: locationLat, lng: locationLng },
       { onConflict: "event_id,user_id" }
     );
     setModal(null); setHasCar(null); setPickupNeeded(null); setSubmitting(false);
@@ -226,13 +213,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     if (!userId || !departure || pickupOffered === null) return;
     setSubmitting(true);
     await supabase.from("carpool_posts").upsert(
-      {
-        event_id: eventId, user_id: userId, type: "driver", has_car: true,
+      { event_id: eventId, user_id: userId, type: "driver", has_car: true,
         pickup_needed: false, pickup_offered: pickupOffered,
         seats, departure_window: departure,
         phone_number: driverPhone.trim() || null,
-        lat: locationLat, lng: locationLng,
-      },
+        lat: locationLat, lng: locationLng },
       { onConflict: "event_id,user_id" }
     );
     setModal(null); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); setSubmitting(false);
@@ -241,8 +226,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const cancelPost = async () => {
     if (!myPost) return;
-
-    // If driver, notify all accepted riders first
     if (myPost.type === "driver") {
       const accepted = driverRequests.filter((r) => r.status === "accepted");
       if (accepted.length) {
@@ -250,43 +233,37 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           supabase.from("profiles").select("name").eq("user_id", userId!).single(),
           supabase.from("events").select("title").eq("id", eventId).single(),
         ]);
-        const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
-        const notifs = accepted.map((r) => ({
-          user_id: r.requester_user_id,
-          type: "carpool_cancelled",
-          message: `${myProfile?.name ?? "Your driver"} cancelled their ride offer${eventTitle}. You may need to find another way.`,
-          event_id: eventId,
-        }));
-        await supabase.from("notifications").insert(notifs);
+        const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+        await supabase.from("notifications").insert(
+          accepted.map((r) => ({
+            user_id: r.requester_user_id, type: "carpool_cancelled",
+            message: `${myProfile?.name ?? "Your driver"} cancelled their ride offer${ev}. You may need to find another way.`,
+            event_id: eventId,
+          }))
+        );
       }
     }
-
     await supabase.from("carpool_posts").delete().eq("id", myPost.id);
-    setMyPost(null); setManageOpen(false);
-    fetchAll();
+    setMyPost(null); setManageOpen(false); fetchAll();
   };
 
   const cancelRequest = async () => {
     if (!myRequest) return;
-    // Notify driver that a seat opened back up
     const driverPost = posts.find((p) => p.id === myRequest.carpool_post_id);
     if (driverPost && myRequest.status === "accepted") {
       const [{ data: myProfile }, { data: eventData }] = await Promise.all([
         supabase.from("profiles").select("name").eq("user_id", userId!).single(),
         supabase.from("events").select("title").eq("id", eventId).single(),
       ]);
-      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
       await supabase.from("notifications").insert({
-        user_id: driverPost.user_id,
-        type: "carpool_cancelled",
-        message: `${myProfile?.name ?? "A rider"} can no longer make the ride${eventTitle}. A seat has opened up.`,
+        user_id: driverPost.user_id, type: "carpool_cancelled",
+        message: `${myProfile?.name ?? "A rider"} can no longer make the ride${ev}. A seat has opened up.`,
         event_id: eventId,
       });
     }
     await supabase.from("carpool_requests").delete().eq("id", myRequest.id);
-    setMyRequest(null);
-    setSelectedDriver(null);
-    fetchAll();
+    setMyRequest(null); setSelectedDriver(null); fetchAll();
   };
 
   const requestRide = async (driverPost: CarpoolPost) => {
@@ -294,40 +271,21 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setSubmitting(true);
     const { data: req } = await supabase
       .from("carpool_requests")
-      .insert({
-        carpool_post_id: driverPost.id,
-        requester_user_id: userId,
-        status: "pending",
-        phone_number: riderPhone.trim() || null,
-      })
-      .select()
-      .single();
-
+      .insert({ carpool_post_id: driverPost.id, requester_user_id: userId, status: "pending", phone_number: riderPhone.trim() || null })
+      .select().single();
     if (req) {
       const [{ data: myProfile }, { data: eventData }] = await Promise.all([
         supabase.from("profiles").select("name").eq("user_id", userId).single(),
         supabase.from("events").select("title").eq("id", eventId).single(),
       ]);
-      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
       await supabase.from("notifications").insert({
-        user_id: driverPost.user_id,
-        type: "carpool_request",
-        message: `${myProfile?.name ?? "Someone"} requested a ride from you${eventTitle}`,
-        reference_id: req.id,
-        event_id: eventId,
+        user_id: driverPost.user_id, type: "carpool_request",
+        message: `${myProfile?.name ?? "Someone"} requested a ride from you${ev}`,
+        reference_id: req.id, event_id: eventId,
       });
     }
-    setSubmitting(false);
-    setRequestConfirmDriver(null);
-    setRiderPhone("");
-    setSelectedDriver(null);
-    fetchAll();
-  };
-
-  const updateSeats = async (newSeats: number) => {
-    if (!myPost) return;
-    setEditingSeats(newSeats);
-    await supabase.from("carpool_posts").update({ seats: newSeats }).eq("id", myPost.id);
+    setSubmitting(false); setRequestConfirmDriver(null); setRiderPhone(""); setSelectedDriver(null);
     fetchAll();
   };
 
@@ -339,35 +297,48 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         supabase.from("profiles").select("name").eq("user_id", userId!).single(),
         supabase.from("events").select("title").eq("id", eventId).single(),
       ]);
-      const eventTitle = eventData?.title ? ` for "${eventData.title}"` : "";
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
       await supabase.from("notifications").insert({
         user_id: req.requester_user_id,
         type: status === "accepted" ? "carpool_accepted" : "carpool_declined",
         message: status === "accepted"
-          ? `${myProfile?.name ?? "Your driver"} accepted your ride request${eventTitle} 🚗`
-          : `${myProfile?.name ?? "Your driver"} couldn't take your ride request${eventTitle}.`,
-        reference_id: requestId,
-        event_id: eventId,
+          ? `${myProfile?.name ?? "Your driver"} accepted your ride request${ev} 🚗`
+          : `${myProfile?.name ?? "Your driver"} couldn't take your ride request${ev}.`,
+        reference_id: requestId, event_id: eventId,
       });
     }
     fetchAll();
   };
 
+  const updateSeats = async (newSeats: number) => {
+    if (!myPost) return;
+    setEditingSeats(newSeats);
+    await supabase.from("carpool_posts").update({ seats: newSeats }).eq("id", myPost.id);
+    fetchAll();
+  };
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+
   const pendingRequests = driverRequests.filter((r) => r.status === "pending");
   const acceptedRequests = driverRequests.filter((r) => r.status === "accepted");
-
+  const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId);
+  const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId);
   const myRequestForSelected = selectedDriver
-    ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null
-    : null;
+    ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
 
   const seatsLeft = (post: CarpoolPost) =>
     post.type === "driver" && post.seats !== null
-      ? Math.max(0, post.seats - post.seats_taken)
-      : null;
+      ? Math.max(0, post.seats - post.seats_taken) : null;
 
+  // ── Summary numbers ───────────────────────────────────────────────────────
+  const driverCount = posts.filter((p) => p.type === "driver").length;
+  const riderCount = posts.filter((p) => p.type === "rider").length;
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="space-y-4">
+      {/* ── Inline summary on event page ── */}
+      <div className="space-y-3">
         <h2
           className="text-[16px] font-bold pb-2 border-b"
           style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: "rgba(0,0,0,0.1)" }}
@@ -375,473 +346,508 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           Carpool 🚗
         </h2>
 
-        {/* My post */}
-        {myPost ? (
-          <div className="rounded-xl bg-gray-50 border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between p-3">
-              <div>
-                <p className="text-sm font-semibold">
-                  {myPost.type === "driver"
-                    ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                    : "You need a ride"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {myPost.type === "driver"
-                    ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick riders up" : "Riders meet you"}`
-                    : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
+        {loading ? (
+          <p className="text-xs text-muted-foreground">Loading...</p>
+        ) : (
+          <>
+            {/* My post status */}
+            {myPost && (
+              <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {myPost.type === "driver"
+                      ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                      : "You need a ride"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {myPost.type === "driver"
+                      ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
+                      : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
+                  </p>
+                </div>
                 {myPost.type === "driver" && pendingRequests.length > 0 && (
-                  <button
-                    onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
-                    className="text-xs font-semibold text-white bg-black px-3 py-1.5 rounded-full"
-                  >
-                    {pendingRequests.length} request{pendingRequests.length !== 1 ? "s" : ""}
-                  </button>
+                  <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full">
+                    {pendingRequests.length} new
+                  </span>
                 )}
-                {myPost.type === "driver" && (
-                  <button onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }} className="text-xs text-gray-500 font-medium hover:underline">
-                    Manage
-                  </button>
-                )}
-                <button onClick={cancelPost} className="text-xs text-red-500 font-medium hover:underline">
-                  Cancel
-                </button>
-              </div>
-            </div>
-            {myPost.type === "driver" && acceptedRequests.length > 0 && (
-              <div className="px-3 pb-3 flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Riders:</span>
-                {acceptedRequests.map((r) => (
-                  <div key={r.id} title={r.profile?.name} className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
-                    {r.profile?.avatar_url
-                      ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">{r.profile?.name[0]}</div>
-                    }
-                  </div>
-                ))}
               </div>
             )}
-          </div>
-        ) : session ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
-              className="flex-1 h-11 rounded-xl border-2 border-black text-sm font-semibold hover:bg-black hover:text-white transition-colors"
-            >
-              🙋 I need a ride
-            </button>
-            <button
-              onClick={() => { setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
-              className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-            >
-              🚗 I can drive
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground text-center py-2">Sign in to join carpool</p>
-        )}
 
-        {/* Posts list */}
-        {loading ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
-        ) : posts.filter(p => p.user_id !== userId).length === 0 && !myPost ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No carpool posts yet — be the first!</p>
-        ) : (
-          <div className="space-y-2">
-            {posts.filter(p => p.user_id !== userId).map((post) => {
-              const left = seatsLeft(post);
-              const isDriver = post.type === "driver";
-              const myReqForThis = myRequest?.carpool_post_id === post.id ? myRequest : null;
-              return (
-                <button
-                  key={post.id}
-                  onClick={() => isDriver ? setSelectedDriver(post) : undefined}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 text-left transition-colors ${isDriver ? "hover:border-gray-300 hover:bg-gray-100 cursor-pointer" : "cursor-default"}`}
-                >
-                  <Avatar url={post.profile.avatar_url} name={post.profile.name} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{post.profile.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {isDriver
-                        ? `🚗 ${left === 0 ? "Full" : `${left} seat${left !== 1 ? "s" : ""} left`} · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`
-                        : post.has_car
-                        ? "🚗 Has car · Can meet driver"
-                        : "🙋 Needs pickup"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {post.distance !== undefined && (
-                      <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>
-                    )}
-                    {myReqForThis && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
-                        {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
+            {/* Count summary */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                {driverCount === 0 && riderCount === 0 ? (
+                  <span>No carpool posts yet</span>
+                ) : (
+                  <>
+                    {driverCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Car className="h-3.5 w-3.5" />
+                        {driverCount} {driverCount === 1 ? "driver" : "drivers"}
                       </span>
                     )}
-                    {isDriver && !myReqForThis && <ChevronRight className="h-4 w-4 text-gray-400" />}
-                  </div>
+                    {driverCount > 0 && riderCount > 0 && <span className="text-gray-300">·</span>}
+                    {riderCount > 0 && (
+                      <span>🙋 {riderCount} need a ride</span>
+                    )}
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => setCarpoolOpen(true)}
+                className="text-sm font-semibold text-black flex items-center gap-1 hover:opacity-70 transition-opacity"
+              >
+                {myPost ? "Open" : "Join"} <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* If no post yet, show quick action buttons */}
+            {!myPost && session && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setCarpoolOpen(true); setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
+                  className="flex-1 h-11 rounded-xl border-2 border-black text-sm font-semibold hover:bg-black hover:text-white transition-colors"
+                >
+                  🙋 I need a ride
                 </button>
-              );
-            })}
-          </div>
+                <button
+                  onClick={() => { setCarpoolOpen(true); setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
+                  className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                >
+                  🚗 I can drive
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* ── Driver detail sheet ── */}
-      {selectedDriver && !requestConfirmDriver && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setSelectedDriver(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">Ride offer</h3>
-              <button onClick={() => setSelectedDriver(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Avatar url={selectedDriver.profile.avatar_url} name={selectedDriver.profile.name} size={12} />
+      {/* ── Main carpool full sheet (z-[60]) ── */}
+      {carpoolOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setCarpoolOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-t-2xl md:rounded-2xl flex flex-col"
+            style={{ maxHeight: "90vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Sheet header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b shrink-0">
               <div>
-                <p className="font-semibold">{selectedDriver.profile.name}</p>
-                {selectedDriver.distance !== undefined && (
-                  <p className="text-xs text-muted-foreground">{fmtDist(selectedDriver.distance)} from you</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className={`text-lg font-bold ${seatsLeft(selectedDriver) === 0 ? "text-red-500" : ""}`}>
-                  {seatsLeft(selectedDriver) === 0 ? "Full" : seatsLeft(selectedDriver)}
+                <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                  Carpool 🚗
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {driverCount > 0 || riderCount > 0
+                    ? `${driverCount} ${driverCount === 1 ? "driver" : "drivers"} · ${riderCount} need a ride`
+                    : "Be the first to post"}
                 </p>
-                <p className="text-xs text-muted-foreground">seats left</p>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="text-sm font-semibold">{selectedDriver.departure_window}</p>
-                <p className="text-xs text-muted-foreground">departure</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="text-sm font-semibold">{selectedDriver.pickup_offered ? "Picks up" : "Meet there"}</p>
-                <p className="text-xs text-muted-foreground">pickup</p>
-              </div>
+              <button onClick={() => setCarpoolOpen(false)}>
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
             </div>
 
-            {/* Show driver phone only if rider's request was accepted */}
-            {myRequestForSelected?.status === "accepted" && selectedDriver.phone_number && (
-              <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                <PhoneLink number={selectedDriver.phone_number} label="Driver" />
-              </div>
-            )}
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 pb-10">
 
-            {!myPost || myPost.user_id === userId ? (
-              myRequestForSelected ? (
-                <div className="space-y-2">
-                  <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
-                    {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Request sent — waiting for driver"}
-                  </div>
-                  {myRequestForSelected.status !== "accepted" && (
-                    <button
-                      onClick={cancelRequest}
-                      className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium"
-                    >
-                      Cancel request
-                    </button>
-                  )}
-                  {myRequestForSelected.status === "accepted" && (
-                    <button
-                      onClick={cancelRequest}
-                      className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium"
-                    >
-                      Cancel my spot
-                    </button>
-                  )}
-                </div>
-              ) : myPost?.type === "driver" ? (
-                <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
-              ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
-                <button
-                  onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
-                  className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
-                >
-                  Request a Ride
-                </button>
-              ) : (
-                <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
-                  🔒 Car is full
-                </div>
-              )
-            ) : null}
-          </div>
-        </div>
-      )}
-
-      {/* ── Request confirm sheet (phone number) ── */}
-      {requestConfirmDriver && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setRequestConfirmDriver(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">Request a ride from {requestConfirmDriver.profile.name}</h3>
-              <button onClick={() => setRequestConfirmDriver(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
-              <p className="text-xs text-muted-foreground">Shared with the driver only if they accept you.</p>
-              <input
-                type="tel"
-                value={riderPhone}
-                onChange={(e) => setRiderPhone(e.target.value)}
-                placeholder="(555) 000-0000"
-                className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors"
-              />
-            </div>
-
-            <button
-              onClick={() => requestRide(requestConfirmDriver)}
-              disabled={submitting}
-              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40"
-            >
-              {submitting ? "Sending…" : "Send Request"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Manage requests sheet (driver) ── */}
-      {manageOpen && myPost?.type === "driver" && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setManageOpen(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">Manage Ride</h3>
-              <button onClick={() => setManageOpen(false)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            {/* Seat editor */}
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">Seats offered</p>
-                  <p className="text-xs text-muted-foreground">{myPost.departure_window} · {myPost.pickup_offered ? "You pick up" : "Riders meet you"}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) - 1; if (n >= acceptedRequests.length) updateSeats(n); }}
-                    disabled={(editingSeats ?? myPost.seats ?? 3) <= acceptedRequests.length}
-                    className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
-                  >−</button>
-                  <span className="text-xl font-bold w-5 text-center">{editingSeats ?? myPost.seats}</span>
-                  <button
-                    onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) + 1; if (n <= 8) updateSeats(n); }}
-                    disabled={(editingSeats ?? myPost.seats ?? 3) >= 8}
-                    className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
-                  >+</button>
-                </div>
-              </div>
-              {/* Seat fill bar */}
-              <div className="flex gap-1">
-                {Array.from({ length: editingSeats ?? myPost.seats ?? 3 }).map((_, i) => (
-                  <div key={i} className={`flex-1 h-2 rounded-full ${i < acceptedRequests.length ? "bg-black" : "bg-gray-200"}`} />
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {acceptedRequests.length} of {editingSeats ?? myPost.seats} seats filled
-                {acceptedRequests.length === (editingSeats ?? myPost.seats) && " · Car is full 🔒"}
-              </p>
-            </div>
-
-            {driverRequests.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
-            ) : (
-              <div className="space-y-3">
-                {pendingRequests.length > 0 && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending</p>
-                      {acceptedRequests.length === (editingSeats ?? myPost.seats) && (
-                        <p className="text-xs text-amber-600 font-medium">Tap + above to open a spot</p>
-                      )}
+              {/* My post */}
+              {myPost ? (
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden">
+                  <div className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {myPost.type === "driver"
+                          ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                          : "You need a ride"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {myPost.type === "driver"
+                          ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
+                          : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
+                      </p>
                     </div>
-                    {pendingRequests.map((req) => (
-                      <div key={req.id} className="flex items-center gap-3">
-                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                    <div className="flex items-center gap-3">
+                      {myPost.type === "driver" && (
+                        <button
+                          onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
+                          className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-full"
+                        >
+                          {pendingRequests.length > 0 ? `${pendingRequests.length} request${pendingRequests.length !== 1 ? "s" : ""}` : "Manage"}
+                        </button>
+                      )}
+                      <button onClick={cancelPost} className="text-xs text-red-500 font-medium">Cancel</button>
+                    </div>
+                  </div>
+                  {myPost.type === "driver" && acceptedRequests.length > 0 && (
+                    <div className="px-4 pb-3 flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Riders:</span>
+                      {acceptedRequests.map((r) => (
+                        <div key={r.id} title={r.profile?.name} className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
+                          {r.profile?.avatar_url
+                            ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* My pending request status */}
+                  {myPost.type === "rider" && myRequest && (
+                    <div className="px-4 pb-3">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "accepted" ? "bg-green-100 text-green-700" : myRequest.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                        {myRequest.status === "accepted" ? "✓ Ride confirmed!" : myRequest.status === "declined" ? "Request declined" : "⏳ Request pending"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : session ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
+                    className="flex-1 h-12 rounded-xl border-2 border-black text-sm font-semibold hover:bg-black hover:text-white transition-colors"
+                  >
+                    🙋 I need a ride
+                  </button>
+                  <button
+                    onClick={() => { setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
+                    className="flex-1 h-12 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                  >
+                    🚗 I can drive
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-2">Sign in to join carpool</p>
+              )}
+
+              {/* Drivers section */}
+              {drivers.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Offering rides · {drivers.length}
+                  </p>
+                  {drivers.map((post) => {
+                    const left = seatsLeft(post);
+                    const myReqForThis = myRequest?.carpool_post_id === post.id ? myRequest : null;
+                    return (
+                      <button
+                        key={post.id}
+                        onClick={() => setSelectedDriver(post)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 text-left hover:border-gray-300 hover:bg-gray-100 transition-colors"
+                      >
+                        <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{req.profile?.name}</p>
-                          {req.phone_number && (
-                            <PhoneLink number={req.phone_number} label="Phone" />
+                          <p className="text-sm font-semibold truncate">{post.profile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {left === 0 ? "Full 🔒" : `${left} seat${left !== 1 ? "s" : ""} left`}
+                            {" · "}{post.departure_window}
+                            {" · "}{post.pickup_offered ? "Picks you up" : "Meet driver"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {post.distance !== undefined && (
+                            <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>
+                          )}
+                          {myReqForThis ? (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                              {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
+                            </span>
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           )}
                         </div>
-                        <button onClick={() => respondToRequest(req.id, "declined")} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium shrink-0">Decline</button>
-                        <button
-                          onClick={() => respondToRequest(req.id, "accepted")}
-                          disabled={acceptedRequests.length >= (editingSeats ?? myPost.seats ?? 0)}
-                          className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium shrink-0 disabled:opacity-40"
-                        >Accept</button>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Riders section */}
+              {riders.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Need a ride · {riders.length}
+                  </p>
+                  {riders.map((post) => (
+                    <div key={post.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <Avatar url={post.profile.avatar_url} name={post.profile.name} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{post.profile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {post.has_car ? "🚗 Has car · Can meet driver" : "🙋 Needs pickup"}
+                        </p>
                       </div>
-                    ))}
-                  </>
-                )}
-                {acceptedRequests.length > 0 && (
-                  <>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">In your car</p>
-                    {acceptedRequests.map((req) => (
-                      <div key={req.id} className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{req.profile?.name}</p>
-                            {req.phone_number && (
-                              <PhoneLink number={req.phone_number} label="Phone" />
-                            )}
-                          </div>
-                          <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-
-            <button onClick={cancelPost} className="w-full h-11 rounded-xl border border-red-200 text-red-500 text-sm font-semibold">
-              Cancel my ride offer
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Rider form ── */}
-      {modal === "rider" && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">I need a ride</h3>
-              <button onClick={() => setModal(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">Do you have a car?</p>
-              <div className="flex flex-col gap-2">
-                {[
-                  { label: "Yes — but I'd rather not drive", val: true },
-                  { label: "No car", val: false },
-                ].map(({ label, val }) => (
-                  <button key={label} type="button"
-                    onClick={() => {
-                      setHasCar(val);
-                      if (!val) setPickupNeeded(true);
-                      else setPickupNeeded(null);
-                    }}
-                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${hasCar === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {hasCar === true && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Can you meet the driver, or need pickup?</p>
-                <div className="flex flex-col gap-2">
-                  {[
-                    { label: "I can meet the driver 📍", val: false },
-                    { label: "I need to be picked up 🚪", val: true },
-                  ].map(({ label, val }) => (
-                    <button key={label} type="button"
-                      onClick={() => setPickupNeeded(val)}
-                      className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupNeeded === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                      {label}
-                    </button>
+                      {post.distance !== undefined && (
+                        <span className="text-xs text-muted-foreground shrink-0">{fmtDist(post.distance)}</span>
+                      )}
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {hasCar === false && (
-              <p className="text-xs text-muted-foreground bg-gray-50 rounded-xl px-4 py-3">
-                Since you don't have a car, you'll be marked as needing pickup.
-              </p>
-            )}
-
-            <button onClick={submitRider}
-              disabled={submitting || hasCar === null || (hasCar === true && pickupNeeded === null)}
-              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40 transition-opacity">
-              {submitting ? "Posting…" : "Post"}
-            </button>
+              {driverCount === 0 && riderCount === 0 && !myPost && (
+                <p className="text-sm text-muted-foreground text-center py-6">No carpool posts yet — be the first!</p>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Driver form ── */}
-      {modal === "driver" && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setModal(null)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-28 md:pb-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      {/* ── Sub-sheets (z-[70], stack above carpool sheet) ── */}
+
+      {/* Driver detail */}
+      {selectedDriver && !requestConfirmDriver && (
+        <Sheet onClose={() => setSelectedDriver(null)} title="Ride offer">
+          <div className="flex items-center gap-3">
+            <Avatar url={selectedDriver.profile.avatar_url} name={selectedDriver.profile.name} size={12} />
+            <div>
+              <p className="font-semibold">{selectedDriver.profile.name}</p>
+              {selectedDriver.distance !== undefined && (
+                <p className="text-xs text-muted-foreground">{fmtDist(selectedDriver.distance)} from you</p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <p className={`text-lg font-bold ${seatsLeft(selectedDriver) === 0 ? "text-red-500" : ""}`}>
+                {seatsLeft(selectedDriver) === 0 ? "Full" : seatsLeft(selectedDriver)}
+              </p>
+              <p className="text-xs text-muted-foreground">seats left</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <p className="text-sm font-semibold">{selectedDriver.departure_window}</p>
+              <p className="text-xs text-muted-foreground">departure</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <p className="text-sm font-semibold">{selectedDriver.pickup_offered ? "Picks up" : "Meet there"}</p>
+              <p className="text-xs text-muted-foreground">pickup</p>
+            </div>
+          </div>
+          {myRequestForSelected?.status === "accepted" && selectedDriver.phone_number && (
+            <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+              <PhoneLink number={selectedDriver.phone_number} label="Driver" />
+            </div>
+          )}
+          {!myPost || myPost.user_id === userId ? (
+            myRequestForSelected ? (
+              <div className="space-y-2">
+                <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
+                  {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Waiting for driver"}
+                </div>
+                <button onClick={cancelRequest} className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
+                  {myRequestForSelected.status === "accepted" ? "Cancel my spot" : "Cancel request"}
+                </button>
+              </div>
+            ) : myPost?.type === "driver" ? (
+              <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
+            ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
+              <button
+                onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
+                className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
+              >
+                Request a Ride
+              </button>
+            ) : (
+              <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
+                🔒 Car is full
+              </div>
+            )
+          ) : null}
+        </Sheet>
+      )}
+
+      {/* Request confirm (phone) */}
+      {requestConfirmDriver && (
+        <Sheet onClose={() => setRequestConfirmDriver(null)} title={`Request from ${requestConfirmDriver.profile.name}`}>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <p className="text-xs text-muted-foreground">Shared with the driver only if they accept you.</p>
+            <input type="tel" value={riderPhone} onChange={(e) => setRiderPhone(e.target.value)}
+              placeholder="(555) 000-0000"
+              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors" />
+          </div>
+          <button onClick={() => requestRide(requestConfirmDriver)} disabled={submitting}
+            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+            {submitting ? "Sending…" : "Send Request"}
+          </button>
+        </Sheet>
+      )}
+
+      {/* Manage sheet (driver) */}
+      {manageOpen && myPost?.type === "driver" && (
+        <Sheet onClose={() => setManageOpen(false)} title="Manage Ride">
+          {/* Seat editor */}
+          <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">I can drive</h3>
-              <button onClick={() => setModal(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">How many seats can you offer?</p>
-              <div className="flex gap-2">
-                {[1,2,3,4,5,6].map((n) => (
-                  <button key={n} type="button" onClick={() => setSeats(n)}
-                    className={`w-10 h-10 rounded-full border-2 text-sm font-semibold transition-all ${seats === n ? "bg-black text-white border-black" : "border-gray-200"}`}>
-                    {n}
-                  </button>
-                ))}
+              <div>
+                <p className="text-sm font-semibold">Seats offered</p>
+                <p className="text-xs text-muted-foreground">{myPost.departure_window} · {myPost.pickup_offered ? "You pick up" : "Riders meet you"}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) - 1; if (n >= acceptedRequests.length) updateSeats(n); }}
+                  disabled={(editingSeats ?? myPost.seats ?? 3) <= acceptedRequests.length}
+                  className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                >−</button>
+                <span className="text-xl font-bold w-5 text-center">{editingSeats ?? myPost.seats}</span>
+                <button
+                  onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) + 1; if (n <= 8) updateSeats(n); }}
+                  disabled={(editingSeats ?? myPost.seats ?? 3) >= 8}
+                  className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                >+</button>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">Rough departure time</p>
-              <div className="grid grid-cols-2 gap-2">
-                {["Morning", "Afternoon", "Evening", "Flexible"].map((d) => (
-                  <button key={d} type="button" onClick={() => setDeparture(d)}
-                    className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all ${departure === d ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                    {d}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-1">
+              {Array.from({ length: editingSeats ?? myPost.seats ?? 3 }).map((_, i) => (
+                <div key={i} className={`flex-1 h-2 rounded-full ${i < acceptedRequests.length ? "bg-black" : "bg-gray-200"}`} />
+              ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              {acceptedRequests.length} of {editingSeats ?? myPost.seats} seats filled
+              {acceptedRequests.length === (editingSeats ?? myPost.seats) && " · Car is full 🔒"}
+            </p>
+          </div>
 
+          {driverRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
+          ) : (
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">Will you pick riders up?</p>
+              {pendingRequests.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending</p>
+                    {acceptedRequests.length === (editingSeats ?? myPost.seats) && (
+                      <p className="text-xs text-amber-600 font-medium">Tap + to open a spot</p>
+                    )}
+                  </div>
+                  {pendingRequests.map((req) => (
+                    <div key={req.id} className="flex items-center gap-3">
+                      <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{req.profile?.name}</p>
+                        {req.phone_number && <PhoneLink number={req.phone_number} label="Phone" />}
+                      </div>
+                      <button onClick={() => respondToRequest(req.id, "declined")} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium shrink-0">Decline</button>
+                      <button
+                        onClick={() => respondToRequest(req.id, "accepted")}
+                        disabled={acceptedRequests.length >= (editingSeats ?? myPost.seats ?? 0)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium shrink-0 disabled:opacity-40"
+                      >Accept</button>
+                    </div>
+                  ))}
+                </>
+              )}
+              {acceptedRequests.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">In your car</p>
+                  {acceptedRequests.map((req) => (
+                    <div key={req.id} className="flex items-center gap-3">
+                      <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{req.profile?.name}</p>
+                        {req.phone_number && <PhoneLink number={req.phone_number} label="Phone" />}
+                      </div>
+                      <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+          <button onClick={cancelPost} className="w-full h-11 rounded-xl border border-red-200 text-red-500 text-sm font-semibold">
+            Cancel my ride offer
+          </button>
+        </Sheet>
+      )}
+
+      {/* Rider form */}
+      {modal === "rider" && (
+        <Sheet onClose={() => setModal(null)} title="I need a ride">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Do you have a car?</p>
+            <div className="flex flex-col gap-2">
+              {[{ label: "Yes — but I'd rather not drive", val: true }, { label: "No car", val: false }].map(({ label, val }) => (
+                <button key={label} type="button"
+                  onClick={() => { setHasCar(val); if (!val) setPickupNeeded(true); else setPickupNeeded(null); }}
+                  className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${hasCar === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {hasCar === true && (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-700">Can you meet the driver, or need pickup?</p>
               <div className="flex flex-col gap-2">
-                {[
-                  { label: "Yes, I'll pick people up 🚗", val: true },
-                  { label: "Riders meet me at a spot 📍", val: false },
-                ].map(({ label, val }) => (
-                  <button key={label} type="button" onClick={() => setPickupOffered(val)}
-                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupOffered === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
+                {[{ label: "I can meet the driver 📍", val: false }, { label: "I need to be picked up 🚪", val: true }].map(({ label, val }) => (
+                  <button key={label} type="button" onClick={() => setPickupNeeded(val)}
+                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupNeeded === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
+          )}
+          {hasCar === false && (
+            <p className="text-xs text-muted-foreground bg-gray-50 rounded-xl px-4 py-3">
+              Since you don't have a car, you'll be marked as needing pickup.
+            </p>
+          )}
+          <button onClick={submitRider}
+            disabled={submitting || hasCar === null || (hasCar === true && pickupNeeded === null)}
+            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+            {submitting ? "Posting…" : "Post"}
+          </button>
+        </Sheet>
+      )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
-              <p className="text-xs text-muted-foreground">Shared only with riders you accept.</p>
-              <input
-                type="tel"
-                value={driverPhone}
-                onChange={(e) => setDriverPhone(e.target.value)}
-                placeholder="(555) 000-0000"
-                className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors"
-              />
+      {/* Driver form */}
+      {modal === "driver" && (
+        <Sheet onClose={() => setModal(null)} title="I can drive">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-700">How many seats can you offer?</p>
+            <div className="flex gap-2">
+              {[1,2,3,4,5,6].map((n) => (
+                <button key={n} type="button" onClick={() => setSeats(n)}
+                  className={`w-10 h-10 rounded-full border-2 text-sm font-semibold transition-all ${seats === n ? "bg-black text-white border-black" : "border-gray-200"}`}>
+                  {n}
+                </button>
+              ))}
             </div>
-
-            <button onClick={submitDriver}
-              disabled={submitting || !departure || pickupOffered === null}
-              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40 transition-opacity">
-              {submitting ? "Posting…" : "Post"}
-            </button>
           </div>
-        </div>
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Rough departure time</p>
+            <div className="grid grid-cols-2 gap-2">
+              {["Morning", "Afternoon", "Evening", "Flexible"].map((d) => (
+                <button key={d} type="button" onClick={() => setDeparture(d)}
+                  className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all ${departure === d ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Will you pick riders up?</p>
+            <div className="flex flex-col gap-2">
+              {[{ label: "Yes, I'll pick people up 🚗", val: true }, { label: "Riders meet me at a spot 📍", val: false }].map(({ label, val }) => (
+                <button key={label} type="button" onClick={() => setPickupOffered(val)}
+                  className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupOffered === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <p className="text-xs text-muted-foreground">Shared only with riders you accept.</p>
+            <input type="tel" value={driverPhone} onChange={(e) => setDriverPhone(e.target.value)}
+              placeholder="(555) 000-0000"
+              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors" />
+          </div>
+          <button onClick={submitDriver} disabled={submitting || !departure || pickupOffered === null}
+            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+            {submitting ? "Posting…" : "Post"}
+          </button>
+        </Sheet>
       )}
     </>
   );
