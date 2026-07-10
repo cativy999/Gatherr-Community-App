@@ -101,6 +101,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [pickupOffered, setPickupOffered] = useState<boolean | null>(null);
   const [driverPhone, setDriverPhone] = useState("");
 
+  // Manage: live seat editing
+  const [editingSeats, setEditingSeats] = useState<number | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
 
   // Requests
@@ -321,6 +324,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     fetchAll();
   };
 
+  const updateSeats = async (newSeats: number) => {
+    if (!myPost) return;
+    setEditingSeats(newSeats);
+    await supabase.from("carpool_posts").update({ seats: newSeats }).eq("id", myPost.id);
+    fetchAll();
+  };
+
   const respondToRequest = async (requestId: string, status: "accepted" | "declined") => {
     await supabase.from("carpool_requests").update({ status }).eq("id", requestId);
     const req = driverRequests.find((r) => r.id === requestId);
@@ -384,14 +394,14 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <div className="flex items-center gap-3">
                 {myPost.type === "driver" && pendingRequests.length > 0 && (
                   <button
-                    onClick={() => setManageOpen(true)}
+                    onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
                     className="text-xs font-semibold text-white bg-black px-3 py-1.5 rounded-full"
                   >
                     {pendingRequests.length} request{pendingRequests.length !== 1 ? "s" : ""}
                   </button>
                 )}
                 {myPost.type === "driver" && (
-                  <button onClick={() => setManageOpen(true)} className="text-xs text-gray-500 font-medium hover:underline">
+                  <button onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }} className="text-xs text-gray-500 font-medium hover:underline">
                     Manage
                   </button>
                 )}
@@ -455,7 +465,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     <p className="text-sm font-semibold truncate">{post.profile.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {isDriver
-                        ? `🚗 ${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`
+                        ? `🚗 ${left === 0 ? "Full" : `${left} seat${left !== 1 ? "s" : ""} left`} · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`
                         : post.has_car
                         ? "🚗 Has car · Can meet driver"
                         : "🙋 Needs pickup"}
@@ -501,7 +511,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="text-lg font-bold">{seatsLeft(selectedDriver)}</p>
+                <p className={`text-lg font-bold ${seatsLeft(selectedDriver) === 0 ? "text-red-500" : ""}`}>
+                  {seatsLeft(selectedDriver) === 0 ? "Full" : seatsLeft(selectedDriver)}
+                </p>
                 <p className="text-xs text-muted-foreground">seats left</p>
               </div>
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -546,16 +558,19 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               ) : myPost?.type === "driver" ? (
                 <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
-              ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
-                <button
-                  onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
-                  className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
-                >
-                  Request a Ride
-                </button>
               ) : (
-                <div className="w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold bg-gray-100 text-gray-400">
-                  No seats left
+                <div className="space-y-2">
+                  <button
+                    onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
+                    className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
+                  >
+                    {(seatsLeft(selectedDriver) ?? 0) === 0 ? "Request Anyway" : "Request a Ride"}
+                  </button>
+                  {(seatsLeft(selectedDriver) ?? 0) === 0 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Car is full — the driver may open more seats later
+                    </p>
+                  )}
                 </div>
               )
             ) : null}
@@ -606,8 +621,37 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <button onClick={() => setManageOpen(false)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
 
-            <div className="text-sm text-muted-foreground">
-              {seatsLeft(myPost)} of {myPost.seats} seats left · {myPost.departure_window} · {myPost.pickup_offered ? "You pick up" : "Riders meet you"}
+            {/* Seat editor */}
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Seats offered</p>
+                  <p className="text-xs text-muted-foreground">{myPost.departure_window} · {myPost.pickup_offered ? "You pick up" : "Riders meet you"}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) - 1; if (n >= acceptedRequests.length) updateSeats(n); }}
+                    disabled={(editingSeats ?? myPost.seats ?? 3) <= acceptedRequests.length}
+                    className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                  >−</button>
+                  <span className="text-xl font-bold w-5 text-center">{editingSeats ?? myPost.seats}</span>
+                  <button
+                    onClick={() => { const n = (editingSeats ?? myPost.seats ?? 3) + 1; if (n <= 8) updateSeats(n); }}
+                    disabled={(editingSeats ?? myPost.seats ?? 3) >= 8}
+                    className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                  >+</button>
+                </div>
+              </div>
+              {/* Seat fill bar */}
+              <div className="flex gap-1">
+                {Array.from({ length: editingSeats ?? myPost.seats ?? 3 }).map((_, i) => (
+                  <div key={i} className={`flex-1 h-2 rounded-full ${i < acceptedRequests.length ? "bg-black" : "bg-gray-200"}`} />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {acceptedRequests.length} of {editingSeats ?? myPost.seats} seats filled
+                {acceptedRequests.length === (editingSeats ?? myPost.seats) && " · Car is full 🔒"}
+              </p>
             </div>
 
             {driverRequests.length === 0 ? (
@@ -616,7 +660,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <div className="space-y-3">
                 {pendingRequests.length > 0 && (
                   <>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending</p>
+                      {acceptedRequests.length === (editingSeats ?? myPost.seats) && (
+                        <p className="text-xs text-amber-600 font-medium">Tap + above to open a spot</p>
+                      )}
+                    </div>
                     {pendingRequests.map((req) => (
                       <div key={req.id} className="flex items-center gap-3">
                         <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
@@ -626,8 +675,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                             <PhoneLink number={req.phone_number} label="Phone" />
                           )}
                         </div>
-                        <button onClick={() => respondToRequest(req.id, "declined")} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium">Decline</button>
-                        <button onClick={() => respondToRequest(req.id, "accepted")} className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium">Accept</button>
+                        <button onClick={() => respondToRequest(req.id, "declined")} className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium shrink-0">Decline</button>
+                        <button
+                          onClick={() => respondToRequest(req.id, "accepted")}
+                          disabled={acceptedRequests.length >= (editingSeats ?? myPost.seats ?? 0)}
+                          className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium shrink-0 disabled:opacity-40"
+                        >Accept</button>
                       </div>
                     ))}
                   </>
@@ -645,7 +698,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                               <PhoneLink number={req.phone_number} label="Phone" />
                             )}
                           </div>
-                          <span className="text-xs text-green-600 font-semibold shrink-0">✓ Accepted</span>
+                          <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
                         </div>
                       </div>
                     ))}
