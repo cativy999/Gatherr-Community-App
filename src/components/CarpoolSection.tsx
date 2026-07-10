@@ -186,13 +186,15 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const submitRider = async () => {
     if (!userId || hasCar === null) return;
-    if (!hasCar && pickupNeeded === null) return;
+    // If has car, they must choose meet/pickup. If no car, pickup_needed is always true.
+    if (hasCar === true && pickupNeeded === null) return;
     setSubmitting(true);
+    const actualPickupNeeded = hasCar ? (pickupNeeded ?? false) : true;
     await supabase.from("carpool_posts").upsert(
       { event_id: eventId, user_id: userId, type: "rider", has_car: hasCar,
-        pickup_needed: hasCar ? false : (pickupNeeded ?? false),
+        pickup_needed: actualPickupNeeded,
         seats: null, departure_window: null, pickup_offered: false,
-        lat: locationLat, lng: locationLng, status: "active" },
+        lat: locationLat, lng: locationLng },
       { onConflict: "event_id,user_id" }
     );
     setModal(null); setHasCar(null); setPickupNeeded(null); setSubmitting(false);
@@ -307,9 +309,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {myPost.type === "driver"
                     ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick riders up" : "Riders meet you"}`
-                    : myPost.has_car
-                    ? "Has car · Open to driving"
-                    : myPost.pickup_needed ? "Needs pickup" : "Can meet driver"}
+                    : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -545,35 +545,58 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <h3 className="text-base font-bold">I need a ride</h3>
               <button onClick={() => setModal(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
+
+            {/* Step 1: Do you have a car? */}
             <div className="space-y-3">
-              <p className="text-sm font-medium">Do you have a car?</p>
-              <div className="flex gap-2">
-                {[{ label: "Yes, I have a car", val: true }, { label: "No car", val: false }].map(({ label, val }) => (
+              <p className="text-sm font-semibold text-gray-700">Do you have a car?</p>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: "Yes — but I'd rather not drive", val: true },
+                  { label: "No car", val: false },
+                ].map(({ label, val }) => (
                   <button key={label} type="button"
-                    onClick={() => { setHasCar(val); setPickupNeeded(null); }}
-                    className={`flex-1 h-11 rounded-xl border-2 text-sm font-semibold transition-all ${hasCar === val ? "bg-black text-white border-black" : "border-gray-200"}`}>
+                    onClick={() => {
+                      setHasCar(val);
+                      // No car → automatically needs pickup; reset if switching
+                      if (!val) setPickupNeeded(true);
+                      else setPickupNeeded(null);
+                    }}
+                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${hasCar === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
-            {hasCar === false && (
+
+            {/* Step 2: only shown if they have a car — can they meet the driver? */}
+            {hasCar === true && (
               <div className="space-y-3">
-                <p className="text-sm font-medium">Can you get to the driver, or need pickup?</p>
+                <p className="text-sm font-semibold text-gray-700">Can you meet the driver, or need pickup?</p>
                 <div className="flex flex-col gap-2">
-                  {[{ label: "I can meet the driver 📍", val: false }, { label: "I need to be picked up 🚪", val: true }].map(({ label, val }) => (
+                  {[
+                    { label: "I can meet the driver 📍", val: false },
+                    { label: "I need to be picked up 🚪", val: true },
+                  ].map(({ label, val }) => (
                     <button key={label} type="button"
                       onClick={() => setPickupNeeded(val)}
-                      className={`w-full h-12 rounded-xl border-2 text-sm font-semibold transition-all ${pickupNeeded === val ? "bg-black text-white border-black" : "border-gray-200"}`}>
+                      className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupNeeded === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
                       {label}
                     </button>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* No car — show auto-set info */}
+            {hasCar === false && (
+              <p className="text-xs text-muted-foreground bg-gray-50 rounded-xl px-4 py-3">
+                Since you don't have a car, you'll be marked as needing pickup. A driver will reach out once they accept your request.
+              </p>
+            )}
+
             <button onClick={submitRider}
-              disabled={submitting || hasCar === null || (hasCar === false && pickupNeeded === null)}
-              className="w-full h-12 rounded-xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+              disabled={submitting || hasCar === null || (hasCar === true && pickupNeeded === null)}
+              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40 transition-opacity">
               {submitting ? "Posting…" : "Post"}
             </button>
           </div>
@@ -601,25 +624,25 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </div>
             </div>
             <div className="space-y-3">
-              <p className="text-sm font-medium">Rough departure time</p>
+              <p className="text-sm font-semibold text-gray-700">Rough departure time</p>
               <div className="grid grid-cols-2 gap-2">
                 {["Morning", "Afternoon", "Evening", "Flexible"].map((d) => (
                   <button key={d} type="button" onClick={() => setDeparture(d)}
-                    className={`h-11 rounded-xl border-2 text-sm font-semibold transition-all ${departure === d ? "bg-black text-white border-black" : "border-gray-200"}`}>
+                    className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all ${departure === d ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
                     {d}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-3">
-              <p className="text-sm font-medium">Will you pick riders up?</p>
+              <p className="text-sm font-semibold text-gray-700">Will you pick riders up?</p>
               <div className="flex flex-col gap-2">
                 {[
                   { label: "Yes, I'll pick people up 🚗", val: true },
-                  { label: "Riders meet me 📍", val: false },
+                  { label: "Riders meet me at a spot 📍", val: false },
                 ].map(({ label, val }) => (
                   <button key={label} type="button" onClick={() => setPickupOffered(val)}
-                    className={`w-full h-12 rounded-xl border-2 text-sm font-semibold transition-all ${pickupOffered === val ? "bg-black text-white border-black" : "border-gray-200"}`}>
+                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupOffered === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
                     {label}
                   </button>
                 ))}
