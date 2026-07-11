@@ -97,13 +97,27 @@ const Welcome = () => {
     if (otp.trim().length < 4) { setOtpError("Enter the code from your email."); return; }
     setVerifying(true);
     setOtpError("");
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "email" });
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "magiclink" });
     setVerifying(false);
     if (error) {
-      setOtpError("That code didn't work. Double-check it or resend.");
+      setOtpError("Code didn't work — it may have expired or been used. Try resending.");
     }
     // On success the AuthContext session listener fires automatically and
     // App.tsx handles the redirect — no manual navigate needed here.
+  };
+
+  const handleResend = async () => {
+    setLoading(true);
+    setOtpError("");
+    setOtp("");
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setLoading(false);
+    if (error) {
+      setOtpError(error.message);
+    }
   };
 
   // HOME SCREEN
@@ -228,12 +242,21 @@ const Welcome = () => {
         <p className="text-xs text-muted-foreground">
           Can't find it? Check your spam folder 📬
         </p>
-        <button
-          onClick={() => { setStep("email"); setError(""); setOtp(""); setOtpError(""); }}
-          className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
-        >
-          Use a different email
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={handleResend}
+            disabled={loading}
+            className="text-sm font-medium text-primary hover:underline transition-colors disabled:opacity-50"
+          >
+            {loading ? "Sending…" : "Resend code"}
+          </button>
+          <button
+            onClick={() => { setStep("email"); setError(""); setOtp(""); setOtpError(""); }}
+            className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
+          >
+            Use a different email
+          </button>
+        </div>
       </div>
     </div>
   );
