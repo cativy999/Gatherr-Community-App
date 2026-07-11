@@ -367,11 +367,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           <>
             {/* My status — compact */}
             {myPost && (
-              <div className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`flex items-center justify-between rounded-2xl px-4 py-3 border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
+                <div className="flex items-center gap-3 min-w-0">
                   {myConfirmedDriver ? (
-                    <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                    <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
+                      <Check className="h-5 w-5 text-white" strokeWidth={3} />
                     </div>
                   ) : myPost.type === "driver" ? (
                     <Car className="h-4 w-4 text-gray-500 shrink-0" />
@@ -704,6 +704,15 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </div>
             ) : myPost?.type === "driver" ? (
               <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
+            ) : myConfirmedDriver ? (
+              <div className="space-y-2">
+                <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400 cursor-not-allowed">
+                  Request a Ride
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  You already have a ride to this event. You can only request one ride.
+                </p>
+              </div>
             ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
               <button
                 onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
