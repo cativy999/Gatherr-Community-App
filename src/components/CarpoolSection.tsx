@@ -27,6 +27,7 @@ interface CarpoolRequest {
   requester_user_id: string;
   status: "pending" | "accepted" | "declined";
   phone_number: string | null;
+  driver_initiated: boolean;
   profile?: { name: string; avatar_url: string | null };
 }
 
@@ -100,9 +101,10 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   // Main carpool sheet
   const [carpoolOpen, setCarpoolOpen] = useState(false);
 
-  // Sub-sheets (stack above carpool sheet at z-[70])
+  // Sub-sheets
   const [modal, setModal] = useState<"rider" | "driver" | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<CarpoolPost | null>(null);
+  const [selectedRider, setSelectedRider] = useState<CarpoolPost | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [requestConfirmDriver, setRequestConfirmDriver] = useState<CarpoolPost | null>(null);
   const [riderPhone, setRiderPhone] = useState("");
@@ -118,12 +120,14 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [driverPhone, setDriverPhone] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [offerSubmitting, setOfferSubmitting] = useState(false);
 
   // Requests
   const [myRequest, setMyRequest] = useState<CarpoolRequest | null>(null);
+  const [myAcceptedRide, setMyAcceptedRide] = useState<CarpoolRequest | null>(null);
+  const [pendingOffersToMe, setPendingOffersToMe] = useState<any[]>([]);
   const [driverRequests, setDriverRequests] = useState<CarpoolRequest[]>([]);
   const [editingSeats, setEditingSeats] = useState<number | null>(null);
-  // Set of rider user_ids who already have a confirmed (accepted) ride
   const [confirmedRiderIds, setConfirmedRiderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchAll(); }, [eventId, userId]);
@@ -178,9 +182,24 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     const mine = userId ? (mapped.find((p) => p.user_id === userId) ?? null) : null;
     setMyPost(mine);
 
-    if (userId && postIds.length) {
-      const req = (allRequests ?? []).find((r: any) => r.requester_user_id === userId);
-      setMyRequest(req ?? null);
+    if (userId) {
+      // My outgoing request (I chose a driver and requested)
+      const outgoing = (allRequests ?? []).find(
+        (r: any) => r.requester_user_id === userId && !r.driver_initiated
+      ) ?? null;
+      setMyRequest(outgoing);
+
+      // Any accepted ride — either I requested and got accepted, or a driver offered and I accepted
+      const accepted = (allRequests ?? []).find(
+        (r: any) => r.requester_user_id === userId && r.status === "accepted"
+      ) ?? null;
+      setMyAcceptedRide(accepted);
+
+      // Pending driver offers TO me (driver reached out proactively)
+      const offers = (allRequests ?? [])
+        .filter((r: any) => r.requester_user_id === userId && r.driver_initiated && r.status === "pending")
+        .map((r: any) => ({ ...r, driverPost: mapped.find((p) => p.id === r.carpool_post_id) ?? null }));
+      setPendingOffersToMe(offers);
     }
 
     if (mine?.type === "driver") {
@@ -191,7 +210,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           .from("profiles").select("user_id, name, avatar_url").in("user_id", reqUids);
         const reqProfileMap = Object.fromEntries((reqProfiles ?? []).map((p: any) => [p.user_id, p]));
         setDriverRequests(reqs.map((r: any) => ({
-          ...r, phone_number: r.phone_number ?? null,
+          ...r,
+          driver_initiated: r.driver_initiated ?? false,
+          phone_number: r.phone_number ?? null,
           profile: reqProfileMap[r.requester_user_id] ?? { name: "Someone", avatar_url: null },
         })));
       } else { setDriverRequests([]); }
@@ -256,9 +277,10 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   };
 
   const cancelRequest = async () => {
-    if (!myRequest) return;
-    const driverPost = posts.find((p) => p.id === myRequest.carpool_post_id);
-    if (driverPost && myRequest.status === "accepted") {
+    const rideToCancel = myRequest ?? myAcceptedRide;
+    if (!rideToCancel) return;
+    const driverPost = posts.find((p) => p.id === rideToCancel.carpool_post_id);
+    if (driverPost && rideToCancel.status === "accepted") {
       const [{ data: myProfile }, { data: eventData }] = await Promise.all([
         supabase.from("profiles").select("name").eq("user_id", userId!).single(),
         supabase.from("events").select("title").eq("id", eventId).single(),
@@ -270,8 +292,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         event_id: eventId,
       });
     }
-    await supabase.from("carpool_requests").delete().eq("id", myRequest.id);
-    setMyRequest(null); setSelectedDriver(null); fetchAll();
+    await supabase.from("carpool_requests").delete().eq("id", rideToCancel.id);
+    setMyRequest(null); setMyAcceptedRide(null); setSelectedDriver(null); fetchAll();
   };
 
   const requestRide = async (driverPost: CarpoolPost) => {
@@ -279,7 +301,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setSubmitting(true);
     const { data: req } = await supabase
       .from("carpool_requests")
-      .insert({ carpool_post_id: driverPost.id, requester_user_id: userId, status: "pending", phone_number: riderPhone.trim() || null })
+      .insert({ carpool_post_id: driverPost.id, requester_user_id: userId, status: "pending",
+        phone_number: riderPhone.trim() || null, driver_initiated: false })
       .select().single();
     if (req) {
       const [{ data: myProfile }, { data: eventData }] = await Promise.all([
@@ -294,6 +317,65 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       });
     }
     setSubmitting(false); setRequestConfirmDriver(null); setRiderPhone(""); setSelectedDriver(null);
+    fetchAll();
+  };
+
+  // Driver proactively offers a ride to someone in the "Need a ride" list
+  const offerRide = async (riderPost: CarpoolPost) => {
+    if (!userId || !myPost) return;
+    setOfferSubmitting(true);
+    const { data: offer } = await supabase
+      .from("carpool_requests")
+      .insert({
+        carpool_post_id: myPost.id,
+        requester_user_id: riderPost.user_id,
+        status: "pending",
+        driver_initiated: true,
+      })
+      .select().single();
+    if (offer) {
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+      await supabase.from("notifications").insert({
+        user_id: riderPost.user_id, type: "carpool_offer",
+        message: `${myProfile?.name ?? "A driver"} offered you a ride${ev} 🚗`,
+        event_id: eventId,
+      });
+    }
+    setOfferSubmitting(false); setSelectedRider(null);
+    fetchAll();
+  };
+
+  // Rider responds to a driver's proactive offer
+  const respondToOffer = async (offer: any, accept: boolean) => {
+    if (accept) {
+      await supabase.from("carpool_requests").update({ status: "accepted" }).eq("id", offer.id);
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+      await supabase.from("notifications").insert({
+        user_id: offer.driverPost?.user_id, type: "carpool_accepted",
+        message: `${myProfile?.name ?? "A rider"} accepted your ride offer${ev} 🎉`,
+        event_id: eventId,
+      });
+    } else {
+      await supabase.from("carpool_requests").delete().eq("id", offer.id);
+      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+        supabase.from("events").select("title").eq("id", eventId).single(),
+      ]);
+      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+      await supabase.from("notifications").insert({
+        user_id: offer.driverPost?.user_id, type: "carpool_declined",
+        message: `${myProfile?.name ?? "A rider"} declined your ride offer${ev}.`,
+        event_id: eventId,
+      });
+    }
     fetchAll();
   };
 
@@ -327,27 +409,35 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const pendingRequests = driverRequests.filter((r) => r.status === "pending");
+  // Rider-initiated requests in the driver's manage sheet
+  const pendingRiderRequests = driverRequests.filter((r) => r.status === "pending" && !r.driver_initiated);
+  // Driver-initiated offers awaiting rider response
+  const pendingOffersSent = driverRequests.filter((r) => r.status === "pending" && r.driver_initiated);
   const acceptedRequests = driverRequests.filter((r) => r.status === "accepted");
+
   const seatsLeft = (post: CarpoolPost) =>
     post.type === "driver" && post.seats !== null
       ? Math.max(0, post.seats - post.seats_taken) : null;
 
-  // Only show drivers with seats still available
+  // Only show drivers with seats still available (excluding self)
   const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId && (seatsLeft(p) ?? 0) > 0);
-  // Hide riders who already have a confirmed ride
+  // Hide riders who already have a confirmed ride (excluding self)
   const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId && !confirmedRiderIds.has(p.user_id));
+
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
 
-  // Driver post that has accepted the current user as a rider
-  const myConfirmedDriver = myRequest?.status === "accepted"
-    ? posts.find((p) => p.id === myRequest.carpool_post_id) ?? null
+  // Confirmed driver — either I requested + got accepted, or driver offered + I accepted
+  const myConfirmedDriver = myAcceptedRide
+    ? posts.find((p) => p.id === myAcceptedRide.carpool_post_id) ?? null
     : null;
 
-  // ── Summary numbers (available drivers only) ──────────────────────────────
   const availableDriverCount = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0).length;
   const riderCount = posts.filter((p) => p.type === "rider").length;
+
+  // Has this driver already sent an offer to a specific rider?
+  const alreadyOffered = (riderUserId: string) =>
+    driverRequests.some((r) => r.requester_user_id === riderUserId && r.driver_initiated);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -386,9 +476,10 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                         ? "Ride confirmed"
                         : myRequest?.status === "declined"
                         ? "Request declined"
-                        : myRequest ? "Request pending…" : "Looking for a ride"}
+                        : myRequest ? "Request pending…"
+                        : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
+                        : "Looking for a ride"}
                     </p>
-                    {/* Driver: show accepted rider avatars */}
                     {myPost.type === "driver" && acceptedRequests.length > 0 && (
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-xs text-muted-foreground">Riders:</span>
@@ -413,9 +504,14 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     )}
                   </div>
                 </div>
-                {myPost.type === "driver" && pendingRequests.length > 0 && (
+                {myPost.type === "driver" && pendingRiderRequests.length > 0 && (
                   <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full shrink-0 ml-2">
-                    {pendingRequests.length} new
+                    {pendingRiderRequests.length} new
+                  </span>
+                )}
+                {myPost.type === "rider" && pendingOffersToMe.length > 0 && !myConfirmedDriver && (
+                  <span className="text-xs font-semibold text-white bg-blue-500 px-2.5 py-1 rounded-full shrink-0 ml-2">
+                    {pendingOffersToMe.length} offer{pendingOffersToMe.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -510,7 +606,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                           onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
                           className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-full"
                         >
-                          {pendingRequests.length > 0 ? `${pendingRequests.length} request${pendingRequests.length !== 1 ? "s" : ""}` : "Manage"}
+                          {pendingRiderRequests.length > 0 ? `${pendingRiderRequests.length} request${pendingRiderRequests.length !== 1 ? "s" : ""}` : "Manage"}
                         </button>
                       )}
                       <button onClick={cancelPost} className="text-xs text-red-500 font-medium">Cancel</button>
@@ -528,7 +624,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       ))}
                     </div>
                   )}
-                  {/* Rider: confirmed — big green checkmark hero */}
+                  {/* Rider: confirmed */}
                   {myPost.type === "rider" && myConfirmedDriver && (
                     <div className="mx-4 mb-4 rounded-2xl bg-green-50 border border-green-200 p-5 flex flex-col items-center text-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-md">
@@ -558,7 +654,43 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       </button>
                     </div>
                   )}
-                  {/* Rider: pending/declined */}
+                  {/* Rider: pending offers from drivers */}
+                  {myPost.type === "rider" && !myConfirmedDriver && pendingOffersToMe.length > 0 && (
+                    <div className="mx-4 mb-4 space-y-3">
+                      <p className="text-xs font-semibold text-gray-700">Ride offers for you</p>
+                      {pendingOffersToMe.map((offer) => (
+                        <div key={offer.id} className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              url={offer.driverPost?.profile?.avatar_url ?? null}
+                              name={offer.driverPost?.profile?.name ?? "Driver"}
+                            />
+                            <div>
+                              <p className="text-sm font-semibold">{offer.driverPost?.profile?.name ?? "A driver"} offered you a ride</p>
+                              <p className="text-xs text-muted-foreground">
+                                {offer.driverPost?.departure_window} · {offer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => respondToOffer(offer, false)}
+                              className="flex-1 h-10 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              Decline
+                            </button>
+                            <button
+                              onClick={() => respondToOffer(offer, true)}
+                              className="flex-1 h-10 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Rider: pending/declined request */}
                   {myPost.type === "rider" && myRequest && !myConfirmedDriver && (
                     <div className="px-4 pb-3">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
@@ -631,21 +763,40 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-gray-900">
                     Need a ride <span className="text-muted-foreground font-normal">· {riders.length}</span>
+                    {myPost?.type === "driver" && (
+                      <span className="text-xs font-normal text-blue-600 ml-2">· tap to offer a ride</span>
+                    )}
                   </p>
-                  {riders.map((post) => (
-                    <div key={post.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white shadow-sm">
-                      <Avatar url={post.profile.avatar_url} name={post.profile.name} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{post.profile.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {post.has_car ? "Has car · Can meet driver" : "Needs pickup"}
-                        </p>
+                  {riders.map((post) => {
+                    const isDriver = myPost?.type === "driver";
+                    const offered = isDriver && alreadyOffered(post.user_id);
+                    const card = (
+                      <div className={`flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${isDriver ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : "border-gray-200"}`}>
+                        <Avatar url={post.profile.avatar_url} name={post.profile.name} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{post.profile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {post.has_car ? "Has car · Can meet driver" : "Needs pickup"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {post.distance !== undefined && (
+                            <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>
+                          )}
+                          {isDriver && (
+                            offered
+                              ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Offered</span>
+                              : <ChevronRight className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
                       </div>
-                      {post.distance !== undefined && (
-                        <span className="text-xs text-muted-foreground shrink-0">{fmtDist(post.distance)}</span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                    return isDriver ? (
+                      <button key={post.id} onClick={() => setSelectedRider(post)} className="w-full">{card}</button>
+                    ) : (
+                      <div key={post.id}>{card}</div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -659,7 +810,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Sub-sheets (z-[70], stack above carpool sheet) ── */}
 
-      {/* Driver detail */}
+      {/* Driver detail (rider tapping a driver card) */}
       {selectedDriver && !requestConfirmDriver && (
         <Sheet onClose={() => setSelectedDriver(null)} title="Ride offer">
           <div className="flex items-center gap-3">
@@ -729,6 +880,51 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         </Sheet>
       )}
 
+      {/* Rider detail (driver tapping a rider card to offer a ride) */}
+      {selectedRider && myPost?.type === "driver" && (
+        <Sheet onClose={() => setSelectedRider(null)} title="Offer a ride">
+          <div className="flex items-center gap-3">
+            <Avatar url={selectedRider.profile.avatar_url} name={selectedRider.profile.name} size={12} />
+            <div>
+              <p className="font-semibold">{selectedRider.profile.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedRider.has_car ? "Has car · Can meet you" : "Needs pickup"}
+                {selectedRider.distance !== undefined && ` · ${fmtDist(selectedRider.distance)} away`}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+              <p className="text-sm font-semibold">{selectedRider.pickup_needed ? "Needs pickup" : "Can meet"}</p>
+              <p className="text-xs text-muted-foreground">pickup</p>
+            </div>
+            {selectedRider.distance !== undefined && (
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-sm font-semibold">{fmtDist(selectedRider.distance)}</p>
+                <p className="text-xs text-muted-foreground">from you</p>
+              </div>
+            )}
+          </div>
+          {alreadyOffered(selectedRider.user_id) ? (
+            <div className="w-full h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-sm font-semibold text-blue-700">
+              ✓ Offer sent — waiting for their reply
+            </div>
+          ) : (seatsLeft(myPost) ?? 0) <= 0 ? (
+            <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
+              🔒 Your car is full
+            </div>
+          ) : (
+            <button
+              onClick={() => offerRide(selectedRider)}
+              disabled={offerSubmitting}
+              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40"
+            >
+              {offerSubmitting ? "Sending…" : `Offer a ride to ${selectedRider.profile.name.split(" ")[0]}`}
+            </button>
+          )}
+        </Sheet>
+      )}
+
       {/* Request confirm (phone) */}
       {requestConfirmDriver && (
         <Sheet onClose={() => setRequestConfirmDriver(null)} title={`Request from ${requestConfirmDriver.profile.name}`}>
@@ -785,15 +981,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
           ) : (
             <div className="space-y-3">
-              {pendingRequests.length > 0 && (
+              {/* Incoming requests (riders who tapped your card) */}
+              {pendingRiderRequests.length > 0 && (
                 <>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pending</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Requests from riders</p>
                     {acceptedRequests.length === (editingSeats ?? myPost.seats) && (
                       <p className="text-xs text-amber-600 font-medium">Tap + to open a spot</p>
                     )}
                   </div>
-                  {pendingRequests.map((req) => (
+                  {pendingRiderRequests.map((req) => (
                     <div key={req.id} className="flex items-center gap-3">
                       <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
                       <div className="flex-1 min-w-0">
@@ -810,6 +1007,25 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   ))}
                 </>
               )}
+
+              {/* Offers sent (driver reached out, awaiting rider response) */}
+              {pendingOffersSent.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">Offers you sent · waiting on reply</p>
+                  {pendingOffersSent.map((req) => (
+                    <div key={req.id} className="flex items-center gap-3">
+                      <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{req.profile?.name}</p>
+                        <p className="text-xs text-muted-foreground">Waiting for their reply…</p>
+                      </div>
+                      <span className="text-xs font-semibold text-blue-600 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 shrink-0">Offered</span>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Confirmed riders */}
               {acceptedRequests.length > 0 && (
                 <>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">In your car</p>
