@@ -326,6 +326,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
 
+  // Driver post that has accepted the current user as a rider
+  const myConfirmedDriver = myRequest?.status === "accepted"
+    ? posts.find((p) => p.id === myRequest.carpool_post_id) ?? null
+    : null;
+
   const seatsLeft = (post: CarpoolPost) =>
     post.type === "driver" && post.seats !== null
       ? Math.max(0, post.seats - post.seats_taken) : null;
@@ -353,17 +358,30 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             {/* My post status */}
             {myPost && (
               <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold">
-                    {myPost.type === "driver"
-                      ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                      : "You need a ride"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {myPost.type === "driver"
-                      ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
-                      : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
-                  </p>
+                <div className="flex items-center gap-3 min-w-0">
+                  {myConfirmedDriver && (
+                    <Avatar url={myConfirmedDriver.profile.avatar_url} name={myConfirmedDriver.profile.name} size={8} />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">
+                      {myPost.type === "driver"
+                        ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                        : myConfirmedDriver
+                        ? `✓ Ride confirmed`
+                        : "You need a ride"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {myPost.type === "driver"
+                        ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
+                        : myConfirmedDriver
+                        ? `${myConfirmedDriver.profile.name} · ${myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}`
+                        : myRequest?.status === "declined"
+                        ? "Request declined — try another driver"
+                        : myRequest
+                        ? "⏳ Waiting for driver to accept"
+                        : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
+                    </p>
+                  </div>
                 </div>
                 {myPost.type === "driver" && pendingRequests.length > 0 && (
                   <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full">
@@ -491,11 +509,30 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       ))}
                     </div>
                   )}
-                  {/* My pending request status */}
-                  {myPost.type === "rider" && myRequest && (
+                  {/* Rider: confirmed driver card */}
+                  {myPost.type === "rider" && myConfirmedDriver && (
+                    <div className="mx-4 mb-4 rounded-xl bg-green-50 border border-green-200 p-3 space-y-2">
+                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Your ride</p>
+                      <div className="flex items-center gap-3">
+                        <Avatar url={myConfirmedDriver.profile.avatar_url} name={myConfirmedDriver.profile.name} size={10} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold">{myConfirmedDriver.profile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                          </p>
+                          {myConfirmedDriver.phone_number && (
+                            <PhoneLink number={myConfirmedDriver.phone_number} label="Driver" />
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={cancelRequest} className="text-xs text-red-500 font-medium">Cancel my spot</button>
+                    </div>
+                  )}
+                  {/* Rider: pending/declined status */}
+                  {myPost.type === "rider" && myRequest && !myConfirmedDriver && (
                     <div className="px-4 pb-3">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "accepted" ? "bg-green-100 text-green-700" : myRequest.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
-                        {myRequest.status === "accepted" ? "✓ Ride confirmed!" : myRequest.status === "declined" ? "Request declined" : "⏳ Request pending"}
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                        {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Request pending"}
                       </span>
                     </div>
                   )}
