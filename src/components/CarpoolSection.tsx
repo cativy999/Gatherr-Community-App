@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { X, ChevronRight, Phone, Car } from "lucide-react";
+import { X, ChevronRight, Phone, Car, Check } from "lucide-react";
 
 interface CarpoolPost {
   id: string;
@@ -123,6 +123,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [myRequest, setMyRequest] = useState<CarpoolRequest | null>(null);
   const [driverRequests, setDriverRequests] = useState<CarpoolRequest[]>([]);
   const [editingSeats, setEditingSeats] = useState<number | null>(null);
+  // Set of rider user_ids who already have a confirmed (accepted) ride
+  const [confirmedRiderIds, setConfirmedRiderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchAll(); }, [eventId, userId]);
 
@@ -140,6 +142,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     const { data: allRequests } = postIds.length
       ? await supabase.from("carpool_requests").select("*").in("carpool_post_id", postIds)
       : { data: [] };
+
+    // Riders who already have an accepted request — hide them from the "need a ride" list
+    const acceptedRequesterIds = new Set<string>(
+      (allRequests ?? []).filter((r: any) => r.status === "accepted").map((r: any) => r.requester_user_id)
+    );
+    setConfirmedRiderIds(acceptedRequesterIds);
 
     const uids = [...new Set(rows.map((r: any) => r.user_id))];
     const { data: profiles } = await supabase
@@ -321,8 +329,14 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const pendingRequests = driverRequests.filter((r) => r.status === "pending");
   const acceptedRequests = driverRequests.filter((r) => r.status === "accepted");
-  const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId);
-  const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId);
+  const seatsLeft = (post: CarpoolPost) =>
+    post.type === "driver" && post.seats !== null
+      ? Math.max(0, post.seats - post.seats_taken) : null;
+
+  // Only show drivers with seats still available
+  const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId && (seatsLeft(p) ?? 0) > 0);
+  // Hide riders who already have a confirmed ride
+  const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId && !confirmedRiderIds.has(p.user_id));
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
 
@@ -331,12 +345,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     ? posts.find((p) => p.id === myRequest.carpool_post_id) ?? null
     : null;
 
-  const seatsLeft = (post: CarpoolPost) =>
-    post.type === "driver" && post.seats !== null
-      ? Math.max(0, post.seats - post.seats_taken) : null;
-
-  // ── Summary numbers ───────────────────────────────────────────────────────
-  const driverCount = posts.filter((p) => p.type === "driver").length;
+  // ── Summary numbers (available drivers only) ──────────────────────────────
+  const availableDriverCount = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0).length;
   const riderCount = posts.filter((p) => p.type === "rider").length;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -355,71 +365,80 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           <p className="text-xs text-muted-foreground">Loading...</p>
         ) : (
           <>
-            {/* My post status */}
+            {/* My status — compact */}
             {myPost && (
-              <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  {myConfirmedDriver && (
-                    <Avatar url={myConfirmedDriver.profile.avatar_url} name={myConfirmedDriver.profile.name} size={8} />
+              <div className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {myConfirmedDriver ? (
+                    <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                    </div>
+                  ) : myPost.type === "driver" ? (
+                    <Car className="h-4 w-4 text-gray-500 shrink-0" />
+                  ) : (
+                    <span className="text-sm shrink-0">🙋</span>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-semibold truncate">
                       {myPost.type === "driver"
-                        ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                        ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
                         : myConfirmedDriver
-                        ? `✓ Ride confirmed`
-                        : "You need a ride"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {myPost.type === "driver"
-                        ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
-                        : myConfirmedDriver
-                        ? `${myConfirmedDriver.profile.name} · ${myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}`
+                        ? "Ride confirmed"
                         : myRequest?.status === "declined"
-                        ? "Request declined — try another driver"
-                        : myRequest
-                        ? "⏳ Waiting for driver to accept"
-                        : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
+                        ? "Request declined"
+                        : myRequest ? "Request pending…" : "Looking for a ride"}
                     </p>
+                    {/* Driver: show accepted rider avatars */}
+                    {myPost.type === "driver" && acceptedRequests.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-muted-foreground">Riders:</span>
+                        {acceptedRequests.map((r) => (
+                          <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
+                            {r.profile?.avatar_url
+                              ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
+                              : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {myConfirmedDriver && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                          {myConfirmedDriver.profile.avatar_url
+                            ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                            : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
+                        </span>
+                        {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {myPost.type === "driver" && pendingRequests.length > 0 && (
-                  <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full shrink-0 ml-2">
                     {pendingRequests.length} new
                   </span>
                 )}
               </div>
             )}
 
-            {/* Count summary */}
+            {/* Count + open button */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                {driverCount === 0 && riderCount === 0 ? (
-                  <span>No carpool posts yet</span>
-                ) : (
-                  <>
-                    {driverCount > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Car className="h-3.5 w-3.5" />
-                        {driverCount} {driverCount === 1 ? "driver" : "drivers"}
-                      </span>
-                    )}
-                    {driverCount > 0 && riderCount > 0 && <span className="text-gray-300">·</span>}
-                    {riderCount > 0 && (
-                      <span>🙋 {riderCount} need a ride</span>
-                    )}
-                  </>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                {availableDriverCount === 0 && riderCount === 0
+                  ? "No carpool activity yet"
+                  : [
+                      availableDriverCount > 0 && `${availableDriverCount} ${availableDriverCount === 1 ? "driver" : "drivers"} available`,
+                      riderCount > 0 && `${riderCount} need a ride`,
+                    ].filter(Boolean).join(" · ")}
+              </p>
               <button
                 onClick={() => setCarpoolOpen(true)}
-                className="text-sm font-semibold text-black flex items-center gap-1 hover:opacity-70 transition-opacity"
+                className="text-sm font-semibold text-black flex items-center gap-0.5 hover:opacity-60 transition-opacity shrink-0 ml-3"
               >
-                {myPost ? "Open" : "Join"} <ChevronRight className="h-4 w-4" />
+                {myPost ? "Manage" : "View"} <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
-            {/* If no post yet, show quick action buttons */}
             {!myPost && session && (
               <div className="flex gap-2">
                 <button
@@ -456,8 +475,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   Carpool 🚗
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {driverCount > 0 || riderCount > 0
-                    ? `${driverCount} ${driverCount === 1 ? "driver" : "drivers"} · ${riderCount} need a ride`
+                  {availableDriverCount > 0 || riderCount > 0
+                    ? [availableDriverCount > 0 && `${availableDriverCount} ${availableDriverCount === 1 ? "driver" : "drivers"} available`, riderCount > 0 && `${riderCount} need a ride`].filter(Boolean).join(" · ")
                     : "Be the first to post"}
                 </p>
               </div>
@@ -509,30 +528,41 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       ))}
                     </div>
                   )}
-                  {/* Rider: confirmed driver card */}
+                  {/* Rider: confirmed — big green checkmark hero */}
                   {myPost.type === "rider" && myConfirmedDriver && (
-                    <div className="mx-4 mb-4 rounded-xl bg-green-50 border border-green-200 p-3 space-y-2">
-                      <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Your ride</p>
-                      <div className="flex items-center gap-3">
-                        <Avatar url={myConfirmedDriver.profile.avatar_url} name={myConfirmedDriver.profile.name} size={10} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold">{myConfirmedDriver.profile.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
-                          </p>
-                          {myConfirmedDriver.phone_number && (
-                            <PhoneLink number={myConfirmedDriver.phone_number} label="Driver" />
-                          )}
-                        </div>
+                    <div className="mx-4 mb-4 rounded-2xl bg-green-50 border border-green-200 p-5 flex flex-col items-center text-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-md">
+                        <Check className="h-8 w-8 text-white" strokeWidth={3} />
                       </div>
-                      <button onClick={cancelRequest} className="text-xs text-red-500 font-medium">Cancel my spot</button>
+                      <div>
+                        <p className="text-base font-bold text-green-800">Ride confirmed!</p>
+                        <p className="text-sm text-green-700 flex items-center justify-center gap-1.5 mt-1">
+                          <span className="inline-flex w-5 h-5 rounded-full bg-white border border-green-200 overflow-hidden shrink-0">
+                            {myConfirmedDriver.profile.avatar_url
+                              ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                              : <span className="flex items-center justify-center w-full h-full text-[9px] font-bold text-green-700">{myConfirmedDriver.profile.name[0]}</span>}
+                          </span>
+                          {myConfirmedDriver.profile.name}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                        </p>
+                        {myConfirmedDriver.phone_number && (
+                          <div className="mt-2">
+                            <PhoneLink number={myConfirmedDriver.phone_number} label="Driver" />
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={cancelRequest} className="text-xs text-red-500 font-medium mt-1">
+                        Cancel my spot
+                      </button>
                     </div>
                   )}
-                  {/* Rider: pending/declined status */}
+                  {/* Rider: pending/declined */}
                   {myPost.type === "rider" && myRequest && !myConfirmedDriver && (
                     <div className="px-4 pb-3">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
-                        {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Request pending"}
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                        {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Waiting for driver"}
                       </span>
                     </div>
                   )}
@@ -559,8 +589,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {/* Drivers section */}
               {drivers.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Offering rides · {drivers.length}
+                  <p className="text-sm font-semibold text-gray-900">
+                    Offering rides <span className="text-muted-foreground font-normal">· {drivers.length}</span>
                   </p>
                   {drivers.map((post) => {
                     const left = seatsLeft(post);
@@ -569,15 +599,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                       <button
                         key={post.id}
                         onClick={() => setSelectedDriver(post)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100 text-left hover:border-gray-300 hover:bg-gray-100 transition-colors"
+                        className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 transition-colors shadow-sm"
                       >
                         <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{post.profile.name}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {left === 0 ? "Full 🔒" : `${left} seat${left !== 1 ? "s" : ""} left`}
-                            {" · "}{post.departure_window}
-                            {" · "}{post.pickup_offered ? "Picks you up" : "Meet driver"}
+                            {`${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -585,7 +613,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                             <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>
                           )}
                           {myReqForThis ? (
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
                               {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
                             </span>
                           ) : (
@@ -601,16 +629,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {/* Riders section */}
               {riders.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Need a ride · {riders.length}
+                  <p className="text-sm font-semibold text-gray-900">
+                    Need a ride <span className="text-muted-foreground font-normal">· {riders.length}</span>
                   </p>
                   {riders.map((post) => (
-                    <div key={post.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div key={post.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white shadow-sm">
                       <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{post.profile.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {post.has_car ? "🚗 Has car · Can meet driver" : "🙋 Needs pickup"}
+                          {post.has_car ? "Has car · Can meet driver" : "Needs pickup"}
                         </p>
                       </div>
                       {post.distance !== undefined && (
@@ -621,7 +649,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )}
 
-              {driverCount === 0 && riderCount === 0 && !myPost && (
+              {availableDriverCount === 0 && riderCount === 0 && !myPost && (
                 <p className="text-sm text-muted-foreground text-center py-6">No carpool posts yet — be the first!</p>
               )}
             </div>
