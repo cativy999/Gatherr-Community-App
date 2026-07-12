@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { X, ChevronRight, Phone, Car, Check } from "lucide-react";
+import { X, ChevronRight, Phone, Car, Check, MoreVertical } from "lucide-react";
 
 interface CarpoolPost {
   id: string;
@@ -70,7 +70,7 @@ function PhoneLink({ number, label }: { number: string; label: string }) {
   );
 }
 
-// Reusable sheet wrapper — renders at z-[70] so it stacks above the main carpool sheet
+// Reusable sheet wrapper — z-[70] stacks above main carpool sheet
 function Sheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center" onClick={onClose}>
@@ -106,8 +106,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [selectedDriver, setSelectedDriver] = useState<CarpoolPost | null>(null);
   const [selectedRider, setSelectedRider] = useState<CarpoolPost | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [myPostMenuOpen, setMyPostMenuOpen] = useState(false); // ⋮ options on event page card
   const [requestConfirmDriver, setRequestConfirmDriver] = useState<CarpoolPost | null>(null);
   const [riderPhone, setRiderPhone] = useState("");
+
+  // Accept offer flow (rider accepting driver's proactive offer — needs phone number)
+  const [acceptingOffer, setAcceptingOffer] = useState<any | null>(null);
+  const [offerAcceptPhone, setOfferAcceptPhone] = useState("");
 
   // Rider form state
   const [hasCar, setHasCar] = useState<boolean | null>(null);
@@ -147,7 +152,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       ? await supabase.from("carpool_requests").select("*").in("carpool_post_id", postIds)
       : { data: [] };
 
-    // Riders who already have an accepted request — hide them from the "need a ride" list
     const acceptedRequesterIds = new Set<string>(
       (allRequests ?? []).filter((r: any) => r.status === "accepted").map((r: any) => r.requester_user_id)
     );
@@ -156,7 +160,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     const uids = [...new Set(rows.map((r: any) => r.user_id))];
     const { data: profiles } = await supabase
       .from("profiles").select("user_id, name, avatar_url").in("user_id", uids);
-
     const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
 
     const mapped: CarpoolPost[] = rows.map((row: any) => {
@@ -183,19 +186,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setMyPost(mine);
 
     if (userId) {
-      // My outgoing request (I chose a driver and requested)
       const outgoing = (allRequests ?? []).find(
         (r: any) => r.requester_user_id === userId && !r.driver_initiated
       ) ?? null;
       setMyRequest(outgoing);
 
-      // Any accepted ride — either I requested and got accepted, or a driver offered and I accepted
       const accepted = (allRequests ?? []).find(
         (r: any) => r.requester_user_id === userId && r.status === "accepted"
       ) ?? null;
       setMyAcceptedRide(accepted);
 
-      // Pending driver offers TO me (driver reached out proactively)
       const offers = (allRequests ?? [])
         .filter((r: any) => r.requester_user_id === userId && r.driver_initiated && r.status === "pending")
         .map((r: any) => ({ ...r, driverPost: mapped.find((p) => p.id === r.carpool_post_id) ?? null }));
@@ -221,7 +221,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     setLoading(false);
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   const submitRider = async () => {
     if (!userId || hasCar === null) return;
@@ -273,7 +273,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       }
     }
     await supabase.from("carpool_posts").delete().eq("id", myPost.id);
-    setMyPost(null); setManageOpen(false); fetchAll();
+    setMyPost(null); setManageOpen(false); setMyPostMenuOpen(false); fetchAll();
   };
 
   const cancelRequest = async () => {
@@ -293,7 +293,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       });
     }
     await supabase.from("carpool_requests").delete().eq("id", rideToCancel.id);
-    setMyRequest(null); setMyAcceptedRide(null); setSelectedDriver(null); fetchAll();
+    setMyRequest(null); setMyAcceptedRide(null); setSelectedDriver(null); setMyPostMenuOpen(false); fetchAll();
   };
 
   const requestRide = async (driverPost: CarpoolPost) => {
@@ -320,18 +320,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     fetchAll();
   };
 
-  // Driver proactively offers a ride to someone in the "Need a ride" list
   const offerRide = async (riderPost: CarpoolPost) => {
     if (!userId || !myPost) return;
     setOfferSubmitting(true);
     const { data: offer } = await supabase
       .from("carpool_requests")
-      .insert({
-        carpool_post_id: myPost.id,
-        requester_user_id: riderPost.user_id,
-        status: "pending",
-        driver_initiated: true,
-      })
+      .insert({ carpool_post_id: myPost.id, requester_user_id: riderPost.user_id,
+        status: "pending", driver_initiated: true })
       .select().single();
     if (offer) {
       const [{ data: myProfile }, { data: eventData }] = await Promise.all([
@@ -349,33 +344,40 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     fetchAll();
   };
 
-  // Rider responds to a driver's proactive offer
-  const respondToOffer = async (offer: any, accept: boolean) => {
-    if (accept) {
-      await supabase.from("carpool_requests").update({ status: "accepted" }).eq("id", offer.id);
-      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
-        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
-        supabase.from("events").select("title").eq("id", eventId).single(),
-      ]);
-      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
-      await supabase.from("notifications").insert({
-        user_id: offer.driverPost?.user_id, type: "carpool_accepted",
-        message: `${myProfile?.name ?? "A rider"} accepted your ride offer${ev} 🎉`,
-        event_id: eventId,
-      });
-    } else {
-      await supabase.from("carpool_requests").delete().eq("id", offer.id);
-      const [{ data: myProfile }, { data: eventData }] = await Promise.all([
-        supabase.from("profiles").select("name").eq("user_id", userId!).single(),
-        supabase.from("events").select("title").eq("id", eventId).single(),
-      ]);
-      const ev = eventData?.title ? ` for "${eventData.title}"` : "";
-      await supabase.from("notifications").insert({
-        user_id: offer.driverPost?.user_id, type: "carpool_declined",
-        message: `${myProfile?.name ?? "A rider"} declined your ride offer${ev}.`,
-        event_id: eventId,
-      });
-    }
+  // Rider accepts a driver's proactive offer — collects phone number first
+  const acceptOffer = async () => {
+    if (!acceptingOffer) return;
+    setSubmitting(true);
+    await supabase.from("carpool_requests")
+      .update({ status: "accepted", phone_number: offerAcceptPhone.trim() || null })
+      .eq("id", acceptingOffer.id);
+    const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+      supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+      supabase.from("events").select("title").eq("id", eventId).single(),
+    ]);
+    const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+    await supabase.from("notifications").insert({
+      user_id: acceptingOffer.driverPost?.user_id, type: "carpool_accepted",
+      message: `${myProfile?.name ?? "A rider"} accepted your ride offer${ev} 🎉`,
+      event_id: eventId,
+    });
+    setSubmitting(false); setAcceptingOffer(null); setOfferAcceptPhone(""); setMyPostMenuOpen(false);
+    fetchAll();
+  };
+
+  const declineOffer = async (offer: any) => {
+    await supabase.from("carpool_requests").delete().eq("id", offer.id);
+    const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+      supabase.from("profiles").select("name").eq("user_id", userId!).single(),
+      supabase.from("events").select("title").eq("id", eventId).single(),
+    ]);
+    const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+    await supabase.from("notifications").insert({
+      user_id: offer.driverPost?.user_id, type: "carpool_declined",
+      message: `${myProfile?.name ?? "A rider"} declined your ride offer${ev}.`,
+      event_id: eventId,
+    });
+    setMyPostMenuOpen(false);
     fetchAll();
   };
 
@@ -409,9 +411,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  // Rider-initiated requests in the driver's manage sheet
   const pendingRiderRequests = driverRequests.filter((r) => r.status === "pending" && !r.driver_initiated);
-  // Driver-initiated offers awaiting rider response
   const pendingOffersSent = driverRequests.filter((r) => r.status === "pending" && r.driver_initiated);
   const acceptedRequests = driverRequests.filter((r) => r.status === "accepted");
 
@@ -419,15 +419,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     post.type === "driver" && post.seats !== null
       ? Math.max(0, post.seats - post.seats_taken) : null;
 
-  // Only show drivers with seats still available (excluding self)
   const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId && (seatsLeft(p) ?? 0) > 0);
-  // Hide riders who already have a confirmed ride (excluding self)
   const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId && !confirmedRiderIds.has(p.user_id));
-
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
 
-  // Confirmed driver — either I requested + got accepted, or driver offered + I accepted
   const myConfirmedDriver = myAcceptedRide
     ? posts.find((p) => p.id === myAcceptedRide.carpool_post_id) ?? null
     : null;
@@ -435,9 +431,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const availableDriverCount = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0).length;
   const riderCount = posts.filter((p) => p.type === "rider").length;
 
-  // Has this driver already sent an offer to a specific rider?
   const alreadyOffered = (riderUserId: string) =>
     driverRequests.some((r) => r.requester_user_id === riderUserId && r.driver_initiated);
+
+  // Badge count for the ⋮ menu — pending requests (driver) or pending offers (rider)
+  const myPostBadge = myPost?.type === "driver"
+    ? pendingRiderRequests.length
+    : pendingOffersToMe.length;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -455,65 +455,73 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           <p className="text-xs text-muted-foreground">Loading...</p>
         ) : (
           <>
-            {/* My status — compact */}
+            {/* My status card with ⋮ menu */}
             {myPost && (
-              <div className={`flex items-center justify-between rounded-2xl px-4 py-3 border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
-                <div className="flex items-center gap-3 min-w-0">
-                  {myConfirmedDriver ? (
-                    <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
-                      <Check className="h-5 w-5 text-white" strokeWidth={3} />
-                    </div>
-                  ) : myPost.type === "driver" ? (
-                    <Car className="h-4 w-4 text-gray-500 shrink-0" />
-                  ) : (
-                    <span className="text-sm shrink-0">🙋</span>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">
-                      {myPost.type === "driver"
-                        ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                        : myConfirmedDriver
-                        ? "Ride confirmed"
-                        : myRequest?.status === "declined"
-                        ? "Request declined"
-                        : myRequest ? "Request pending…"
-                        : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
-                        : "Looking for a ride"}
-                    </p>
-                    {myPost.type === "driver" && acceptedRequests.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs text-muted-foreground">Riders:</span>
-                        {acceptedRequests.map((r) => (
-                          <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
-                            {r.profile?.avatar_url
-                              ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
-                              : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {myConfirmedDriver && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                          {myConfirmedDriver.profile.avatar_url
-                            ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
-                            : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
-                        </span>
-                        {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
-                      </p>
-                    )}
+              <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
+                {/* Left: icon */}
+                {myConfirmedDriver ? (
+                  <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
+                    <Check className="h-5 w-5 text-white" strokeWidth={3} />
                   </div>
+                ) : myPost.type === "driver" ? (
+                  <Car className="h-4 w-4 text-gray-500 shrink-0" />
+                ) : (
+                  <span className="text-sm shrink-0">🙋</span>
+                )}
+
+                {/* Middle: status */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">
+                    {myPost.type === "driver"
+                      ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                      : myConfirmedDriver
+                      ? "Ride confirmed"
+                      : myRequest?.status === "declined"
+                      ? "Request declined"
+                      : myRequest ? "Request pending…"
+                      : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
+                      : "Looking for a ride"}
+                  </p>
+                  {/* Driver: accepted rider avatars */}
+                  {myPost.type === "driver" && acceptedRequests.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-muted-foreground">Riders:</span>
+                      {acceptedRequests.map((r) => (
+                        <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
+                          {r.profile?.avatar_url
+                            ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Rider: confirmed driver info */}
+                  {myConfirmedDriver && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                        {myConfirmedDriver.profile.avatar_url
+                          ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                          : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
+                      </span>
+                      {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                    </p>
+                  )}
                 </div>
-                {myPost.type === "driver" && pendingRiderRequests.length > 0 && (
-                  <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full shrink-0 ml-2">
-                    {pendingRiderRequests.length} new
-                  </span>
-                )}
-                {myPost.type === "rider" && pendingOffersToMe.length > 0 && !myConfirmedDriver && (
-                  <span className="text-xs font-semibold text-white bg-blue-500 px-2.5 py-1 rounded-full shrink-0 ml-2">
-                    {pendingOffersToMe.length} offer{pendingOffersToMe.length !== 1 ? "s" : ""}
-                  </span>
-                )}
+
+                {/* Right: badge + ⋮ */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {myPostBadge > 0 && (
+                    <span className="text-xs font-semibold text-white bg-black px-2 py-0.5 rounded-full">
+                      {myPostBadge}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }}
+                    className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
+                  >
+                    <MoreVertical className="h-4 w-4 text-gray-500" />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -531,7 +539,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 onClick={() => setCarpoolOpen(true)}
                 className="text-sm font-semibold text-black flex items-center gap-0.5 hover:opacity-60 transition-opacity shrink-0 ml-3"
               >
-                {myPost ? "Manage" : "View"} <ChevronRight className="h-4 w-4" />
+                Open <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
@@ -555,7 +563,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         )}
       </div>
 
-      {/* ── Main carpool full sheet (z-[60]) ── */}
+      {/* ── Main carpool sheet (z-[60]) — just the lists ── */}
       {carpoolOpen && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setCarpoolOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
@@ -564,7 +572,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             style={{ maxHeight: "90vh" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Sheet header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b shrink-0">
               <div>
                 <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
@@ -581,125 +588,10 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               </button>
             </div>
 
-            {/* Scrollable body */}
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 pb-10">
 
-              {/* My post */}
-              {myPost ? (
-                <div className="rounded-2xl bg-gray-50 border border-gray-200 overflow-hidden">
-                  <div className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {myPost.type === "driver"
-                          ? `You're offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                          : "You need a ride"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {myPost.type === "driver"
-                          ? `${myPost.departure_window} · ${myPost.pickup_offered ? "You pick up" : "Riders meet you"}`
-                          : myPost.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {myPost.type === "driver" && (
-                        <button
-                          onClick={() => { setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
-                          className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-full"
-                        >
-                          {pendingRiderRequests.length > 0 ? `${pendingRiderRequests.length} request${pendingRiderRequests.length !== 1 ? "s" : ""}` : "Manage"}
-                        </button>
-                      )}
-                      <button onClick={cancelPost} className="text-xs text-red-500 font-medium">Cancel</button>
-                    </div>
-                  </div>
-                  {myPost.type === "driver" && acceptedRequests.length > 0 && (
-                    <div className="px-4 pb-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Riders:</span>
-                      {acceptedRequests.map((r) => (
-                        <div key={r.id} title={r.profile?.name} className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
-                          {r.profile?.avatar_url
-                            ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Rider: confirmed */}
-                  {myPost.type === "rider" && myConfirmedDriver && (
-                    <div className="mx-4 mb-4 rounded-2xl bg-green-50 border border-green-200 p-5 flex flex-col items-center text-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-md">
-                        <Check className="h-8 w-8 text-white" strokeWidth={3} />
-                      </div>
-                      <div>
-                        <p className="text-base font-bold text-green-800">Ride confirmed!</p>
-                        <p className="text-sm text-green-700 flex items-center justify-center gap-1.5 mt-1">
-                          <span className="inline-flex w-5 h-5 rounded-full bg-white border border-green-200 overflow-hidden shrink-0">
-                            {myConfirmedDriver.profile.avatar_url
-                              ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
-                              : <span className="flex items-center justify-center w-full h-full text-[9px] font-bold text-green-700">{myConfirmedDriver.profile.name[0]}</span>}
-                          </span>
-                          {myConfirmedDriver.profile.name}
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
-                        </p>
-                        {myConfirmedDriver.phone_number && (
-                          <div className="mt-2">
-                            <PhoneLink number={myConfirmedDriver.phone_number} label="Driver" />
-                          </div>
-                        )}
-                      </div>
-                      <button onClick={cancelRequest} className="text-xs text-red-500 font-medium mt-1">
-                        Cancel my spot
-                      </button>
-                    </div>
-                  )}
-                  {/* Rider: pending offers from drivers */}
-                  {myPost.type === "rider" && !myConfirmedDriver && pendingOffersToMe.length > 0 && (
-                    <div className="mx-4 mb-4 space-y-3">
-                      <p className="text-xs font-semibold text-gray-700">Ride offers for you</p>
-                      {pendingOffersToMe.map((offer) => (
-                        <div key={offer.id} className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar
-                              url={offer.driverPost?.profile?.avatar_url ?? null}
-                              name={offer.driverPost?.profile?.name ?? "Driver"}
-                            />
-                            <div>
-                              <p className="text-sm font-semibold">{offer.driverPost?.profile?.name ?? "A driver"} offered you a ride</p>
-                              <p className="text-xs text-muted-foreground">
-                                {offer.driverPost?.departure_window} · {offer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => respondToOffer(offer, false)}
-                              className="flex-1 h-10 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
-                            >
-                              Decline
-                            </button>
-                            <button
-                              onClick={() => respondToOffer(offer, true)}
-                              className="flex-1 h-10 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Rider: pending/declined request */}
-                  {myPost.type === "rider" && myRequest && !myConfirmedDriver && (
-                    <div className="px-4 pb-3">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
-                        {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Waiting for driver"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ) : session ? (
+              {/* Post buttons (only for users who haven't posted) */}
+              {!myPost && session && (
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
@@ -714,11 +606,12 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     🚗 I can drive
                   </button>
                 </div>
-              ) : (
+              )}
+              {!session && (
                 <p className="text-sm text-muted-foreground text-center py-2">Sign in to join carpool</p>
               )}
 
-              {/* Drivers section */}
+              {/* Drivers offering rides */}
               {drivers.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-gray-900">
@@ -758,7 +651,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )}
 
-              {/* Riders section */}
+              {/* Riders needing a ride */}
               {riders.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-gray-900">
@@ -808,9 +701,164 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         </div>
       )}
 
-      {/* ── Sub-sheets (z-[70], stack above carpool sheet) ── */}
+      {/* ── ⋮ Options sheet (from event page card) ── */}
+      {myPostMenuOpen && myPost && (
+        <Sheet onClose={() => setMyPostMenuOpen(false)} title="Carpool options">
+          {/* DRIVER options */}
+          {myPost.type === "driver" && (
+            <div className="space-y-2">
+              <button
+                onClick={() => { setMyPostMenuOpen(false); setManageOpen(true); setEditingSeats(myPost.seats ?? 3); }}
+                className="w-full flex items-center justify-between h-14 px-4 rounded-2xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                <span>Manage ride</span>
+                {pendingRiderRequests.length > 0 && (
+                  <span className="text-xs font-semibold text-white bg-black px-2.5 py-1 rounded-full">
+                    {pendingRiderRequests.length} new
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={cancelPost}
+                className="w-full h-14 px-4 rounded-2xl border border-red-200 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+              >
+                Cancel my ride offer
+              </button>
+            </div>
+          )}
 
-      {/* Driver detail (rider tapping a driver card) */}
+          {/* RIDER options */}
+          {myPost.type === "rider" && (
+            <div className="space-y-2">
+              {/* Confirmed ride */}
+              {myConfirmedDriver && (
+                <>
+                  <div className="rounded-2xl bg-green-50 border border-green-200 p-4 text-center space-y-1">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                      </div>
+                      <p className="text-sm font-bold text-green-800">Ride confirmed</p>
+                    </div>
+                    <p className="text-xs text-green-700">
+                      {myConfirmedDriver.profile.name} · {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                    </p>
+                    {myConfirmedDriver.phone_number && (
+                      <div className="flex justify-center mt-1">
+                        <PhoneLink number={myConfirmedDriver.phone_number} label="Driver" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={cancelRequest}
+                    className="w-full h-14 px-4 rounded-2xl border border-red-200 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Cancel my spot
+                  </button>
+                </>
+              )}
+
+              {/* Pending offers from drivers */}
+              {!myConfirmedDriver && pendingOffersToMe.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ride offers for you</p>
+                  {pendingOffersToMe.map((offer) => (
+                    <div key={offer.id} className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          url={offer.driverPost?.profile?.avatar_url ?? null}
+                          name={offer.driverPost?.profile?.name ?? "Driver"}
+                        />
+                        <div>
+                          <p className="text-sm font-semibold">{offer.driverPost?.profile?.name ?? "A driver"} offered you a ride</p>
+                          <p className="text-xs text-muted-foreground">
+                            {offer.driverPost?.departure_window} · {offer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => declineOffer(offer)}
+                          className="flex-1 h-10 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          onClick={() => { setAcceptingOffer(offer); setOfferAcceptPhone(""); }}
+                          className="flex-1 h-10 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                        >
+                          Accept
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Pending request */}
+              {!myConfirmedDriver && myRequest && pendingOffersToMe.length === 0 && (
+                <>
+                  <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                    {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Waiting for driver to accept"}
+                  </div>
+                  <button
+                    onClick={cancelRequest}
+                    className="w-full h-14 px-4 rounded-2xl border border-red-200 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Cancel request
+                  </button>
+                </>
+              )}
+
+              {/* No request yet */}
+              {!myConfirmedDriver && !myRequest && pendingOffersToMe.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  Open the carpool list to request a ride from a driver.
+                </p>
+              )}
+            </div>
+          )}
+        </Sheet>
+      )}
+
+      {/* ── Accept offer — phone number prompt ── */}
+      {acceptingOffer && (
+        <Sheet onClose={() => { setAcceptingOffer(null); setOfferAcceptPhone(""); }} title="Accept ride offer">
+          <div className="flex items-center gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+            <Avatar
+              url={acceptingOffer.driverPost?.profile?.avatar_url ?? null}
+              name={acceptingOffer.driverPost?.profile?.name ?? "Driver"}
+              size={10}
+            />
+            <div>
+              <p className="text-sm font-semibold">{acceptingOffer.driverPost?.profile?.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {acceptingOffer.driverPost?.departure_window} · {acceptingOffer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <p className="text-xs text-muted-foreground">Shared with the driver so they can coordinate pickup.</p>
+            <input
+              type="tel"
+              value={offerAcceptPhone}
+              onChange={(e) => setOfferAcceptPhone(e.target.value)}
+              placeholder="(555) 000-0000"
+              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors"
+            />
+          </div>
+          <button
+            onClick={acceptOffer}
+            disabled={submitting}
+            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40"
+          >
+            {submitting ? "Confirming…" : "Confirm ride"}
+          </button>
+        </Sheet>
+      )}
+
+      {/* ── Driver detail sheet ── */}
       {selectedDriver && !requestConfirmDriver && (
         <Sheet onClose={() => setSelectedDriver(null)} title="Ride offer">
           <div className="flex items-center gap-3">
@@ -843,44 +891,42 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               <PhoneLink number={selectedDriver.phone_number} label="Driver" />
             </div>
           )}
-          {!myPost || myPost.user_id === userId ? (
-            myRequestForSelected ? (
-              <div className="space-y-2">
-                <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
-                  {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Waiting for driver"}
-                </div>
-                <button onClick={cancelRequest} className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
-                  {myRequestForSelected.status === "accepted" ? "Cancel my spot" : "Cancel request"}
-                </button>
+          {myRequestForSelected ? (
+            <div className="space-y-2">
+              <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
+                {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Waiting for driver"}
               </div>
-            ) : myPost?.type === "driver" ? (
-              <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
-            ) : myConfirmedDriver ? (
-              <div className="space-y-2">
-                <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400 cursor-not-allowed">
-                  Request a Ride
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  You already have a ride to this event. You can only request one ride.
-                </p>
-              </div>
-            ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
-              <button
-                onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
-                className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
-              >
-                Request a Ride
+              <button onClick={cancelRequest} className="w-full h-10 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
+                {myRequestForSelected.status === "accepted" ? "Cancel my spot" : "Cancel request"}
               </button>
-            ) : (
-              <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
-                🔒 Car is full
+            </div>
+          ) : myPost?.type === "driver" ? (
+            <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
+          ) : myConfirmedDriver ? (
+            <div className="space-y-2">
+              <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400 cursor-not-allowed">
+                Request a Ride
               </div>
-            )
-          ) : null}
+              <p className="text-xs text-muted-foreground text-center">
+                You already have a ride to this event. You can only request one ride.
+              </p>
+            </div>
+          ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
+            <button
+              onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
+              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm"
+            >
+              Request a Ride
+            </button>
+          ) : (
+            <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">
+              🔒 Car is full
+            </div>
+          )}
         </Sheet>
       )}
 
-      {/* Rider detail (driver tapping a rider card to offer a ride) */}
+      {/* ── Rider detail sheet (driver offering) ── */}
       {selectedRider && myPost?.type === "driver" && (
         <Sheet onClose={() => setSelectedRider(null)} title="Offer a ride">
           <div className="flex items-center gap-3">
@@ -925,7 +971,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         </Sheet>
       )}
 
-      {/* Request confirm (phone) */}
+      {/* ── Request confirm (phone) ── */}
       {requestConfirmDriver && (
         <Sheet onClose={() => setRequestConfirmDriver(null)} title={`Request from ${requestConfirmDriver.profile.name}`}>
           <div className="space-y-2">
@@ -942,10 +988,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         </Sheet>
       )}
 
-      {/* Manage sheet (driver) */}
+      {/* ── Manage sheet (driver) ── */}
       {manageOpen && myPost?.type === "driver" && (
         <Sheet onClose={() => setManageOpen(false)} title="Manage Ride">
-          {/* Seat editor */}
           <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -981,7 +1026,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
           ) : (
             <div className="space-y-3">
-              {/* Incoming requests (riders who tapped your card) */}
               {pendingRiderRequests.length > 0 && (
                 <>
                   <div className="flex items-center justify-between">
@@ -1007,11 +1051,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   ))}
                 </>
               )}
-
-              {/* Offers sent (driver reached out, awaiting rider response) */}
               {pendingOffersSent.length > 0 && (
                 <>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">Offers you sent · waiting on reply</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">Offers sent · waiting on reply</p>
                   {pendingOffersSent.map((req) => (
                     <div key={req.id} className="flex items-center gap-3">
                       <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
@@ -1024,8 +1066,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   ))}
                 </>
               )}
-
-              {/* Confirmed riders */}
               {acceptedRequests.length > 0 && (
                 <>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-2">In your car</p>
@@ -1043,13 +1083,10 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               )}
             </div>
           )}
-          <button onClick={cancelPost} className="w-full h-11 rounded-xl border border-red-200 text-red-500 text-sm font-semibold">
-            Cancel my ride offer
-          </button>
         </Sheet>
       )}
 
-      {/* Rider form */}
+      {/* ── Rider form ── */}
       {modal === "rider" && (
         <Sheet onClose={() => setModal(null)} title="I need a ride">
           <div className="space-y-3">
@@ -1090,7 +1127,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         </Sheet>
       )}
 
-      {/* Driver form */}
+      {/* ── Driver form ── */}
       {modal === "driver" && (
         <Sheet onClose={() => setModal(null)} title="I can drive">
           <div className="space-y-3">
