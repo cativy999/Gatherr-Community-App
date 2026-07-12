@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
@@ -71,9 +72,9 @@ function PhoneLink({ number, label }: { number: string; label: string }) {
 }
 
 function Sheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
+  return createPortal(
+    <div className="fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }} onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
       <div
         className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-10 md:pb-6 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -84,7 +85,8 @@ function Sheet({ onClose, title, children }: { onClose: () => void; title: strin
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -610,29 +612,33 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {acceptedRequests.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    In your car · {acceptedRequests.length}
+                    In your car · {acceptedRequests.length} {acceptedRequests.length === 1 ? "passenger" : "passengers"}
                   </p>
                   {acceptedRequests.map((req) => (
-                    <div key={req.id} className="rounded-xl bg-green-50 border border-green-100 p-3 space-y-2">
+                    <div key={req.id} className="rounded-xl bg-green-50 border border-green-100 p-3">
                       <div className="flex items-center gap-3">
-                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                        {/* Avatar with checkmark badge */}
+                        <div className="relative shrink-0">
+                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-white flex items-center justify-center">
+                            <Check className="h-2 w-2 text-white" strokeWidth={3} />
+                          </div>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{req.profile?.name}</p>
                           {req.phone_number
                             ? <PhoneLink number={req.phone_number} label="Phone" />
-                            : <p className="text-xs text-muted-foreground">No phone number yet</p>}
+                            : <p className="text-xs text-muted-foreground">No phone yet</p>}
                         </div>
-                        <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
+                        {!req.phone_number && (
+                          phoneRequestSent.has(req.requester_user_id)
+                            ? <span className="text-xs text-green-600 font-medium shrink-0">✓ Sent</span>
+                            : <button
+                                onClick={() => sendPhoneRequest(req)}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 font-medium hover:bg-gray-50 transition-colors shrink-0"
+                              >Ask for #</button>
+                        )}
                       </div>
-                      {!req.phone_number && (
-                        <button
-                          onClick={() => sendPhoneRequest(req)}
-                          disabled={phoneRequestSent.has(req.requester_user_id)}
-                          className="w-full h-8 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                        >
-                          {phoneRequestSent.has(req.requester_user_id) ? "✓ Request sent" : "Ask for phone number"}
-                        </button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -707,25 +713,24 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )}
 
-              {/* Add phone number (rider has confirmed ride but no phone on record) */}
+              {/* Add phone number — shown right under the confirmed card when missing */}
               {myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
-                <div className="space-y-2 p-3 rounded-xl bg-amber-50 border border-amber-100">
-                  <p className="text-xs font-semibold text-amber-800">Your driver would like your phone number</p>
-                  <p className="text-xs text-amber-700">So they can text you to coordinate pickup.</p>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground px-1">Add your phone number so your driver can reach you</p>
                   <div className="flex gap-2">
                     <input
                       type="tel"
                       value={riderPhoneInput}
                       onChange={(e) => setRiderPhoneInput(e.target.value)}
                       placeholder="(555) 000-0000"
-                      className="flex-1 h-10 rounded-xl border-2 border-amber-200 px-3 text-sm focus:border-black focus:outline-none transition-colors bg-white"
+                      className="flex-1 h-11 rounded-xl border-2 border-gray-200 px-3 text-sm focus:border-black focus:outline-none transition-colors"
                     />
                     <button
                       onClick={updateRiderPhone}
                       disabled={submitting || !riderPhoneInput.trim()}
-                      className="px-4 h-10 rounded-xl bg-black text-white text-xs font-semibold disabled:opacity-40 shrink-0"
+                      className="px-4 h-11 rounded-xl bg-black text-white text-sm font-semibold disabled:opacity-40 shrink-0"
                     >
-                      {submitting ? "…" : "Save"}
+                      {submitting ? "…" : "Send"}
                     </button>
                   </div>
                 </div>
@@ -777,8 +782,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       )}
 
       {/* ── Main carpool sheet — See all ── */}
-      {carpoolOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" onClick={() => setCarpoolOpen(false)}>
+      {carpoolOpen && createPortal(
+        <div className="fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9998 }} onClick={() => setCarpoolOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative w-full max-w-2xl bg-white rounded-t-2xl md:rounded-2xl flex flex-col"
             style={{ maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
@@ -886,7 +891,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Driver detail sheet ── */}
