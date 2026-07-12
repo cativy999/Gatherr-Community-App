@@ -489,8 +489,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             {/* My status card */}
             {myPost && (
               <div className={`rounded-2xl border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
-                {/* Status row */}
-                <div className="flex items-center gap-3 px-4 py-3">
+                {/* Status row — tappable (same as ⋮) */}
+                <div
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-t-2xl transition-colors ${myConfirmedDriver ? "hover:bg-green-100/60" : "hover:bg-gray-50"}`}
+                  onClick={() => setMyPostMenuOpen(true)}
+                >
                   {myConfirmedDriver ? (
                     <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
                       <Check className="h-5 w-5 text-white" strokeWidth={3} />
