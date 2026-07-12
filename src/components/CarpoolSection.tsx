@@ -906,7 +906,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             </div>
           </div>
         </div>
-        </div>
         </>,
         document.body
       )}
