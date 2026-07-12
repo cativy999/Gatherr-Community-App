@@ -555,7 +555,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── ⋮ Options sheet ── */}
       {myPostMenuOpen && myPost && (
-        <Sheet onClose={() => setMyPostMenuOpen(false)} title={myPost.type === "driver" ? "Carpool management" : "Carpool options"}>
+        <Sheet onClose={() => setMyPostMenuOpen(false)} title={myPost.type === "driver" ? "Carpool Management" : "Carpool options"}>
           {/* DRIVER options */}
           {myPost.type === "driver" && (
             <div className="space-y-4">
@@ -796,80 +796,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             </div>
 
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 pb-10">
-
-              {/* Driver: seat bar + incoming requests — right at the top */}
-              {myPost?.type === "driver" && (
-                <div className="space-y-3">
-                  {/* Compact seat bar */}
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                    <div className="flex gap-1 flex-1">
-                      {Array.from({ length: currentSeats }).map((_, i) => (
-                        <div key={i} className={`flex-1 h-1.5 rounded-full ${i < acceptedRequests.length ? "bg-black" : "bg-gray-200"}`} />
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {acceptedRequests.length}/{currentSeats} seats · {myPost.departure_window}
-                    </span>
-                  </div>
-
-                  {/* Pending ride requests */}
-                  {pendingRiderRequests.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Ride requests · {pendingRiderRequests.length}
-                      </p>
-                      {pendingRiderRequests.map((req) => (
-                        <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
-                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{req.profile?.name}</p>
-                            {req.phone_number && <PhoneLink number={req.phone_number} label="Phone" />}
-                          </div>
-                          <button onClick={() => respondToRequest(req.id, "declined")}
-                            className="text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium shrink-0">Decline</button>
-                          <button onClick={() => respondToRequest(req.id, "accepted")}
-                            disabled={acceptedRequests.length >= currentSeats}
-                            className="text-xs px-3 py-1.5 rounded-full bg-black text-white font-medium shrink-0 disabled:opacity-40">Accept</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Offers sent, awaiting reply */}
-                  {pendingOffersSent.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Offers sent · waiting on reply</p>
-                      {pendingOffersSent.map((req) => (
-                        <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
-                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{req.profile?.name}</p>
-                            <p className="text-xs text-muted-foreground">Waiting for their reply…</p>
-                          </div>
-                          <span className="text-xs font-semibold text-blue-600 px-2 py-0.5 rounded-full bg-blue-100 border border-blue-200 shrink-0">Offered</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Accepted riders */}
-                  {acceptedRequests.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">In your car</p>
-                      {acceptedRequests.map((req) => (
-                        <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-100">
-                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{req.profile?.name}</p>
-                            {req.phone_number && <PhoneLink number={req.phone_number} label="Phone" />}
-                          </div>
-                          <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Post buttons for users without a post */}
               {!myPost && session && (
