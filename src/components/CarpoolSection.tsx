@@ -71,21 +71,33 @@ function PhoneLink({ number, label }: { number: string; label: string }) {
   );
 }
 
+const SHEET_STYLES = `
+  @keyframes cp-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes cp-fade-scale { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes cp-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .cp-panel { animation: cp-slide-up 0.32s cubic-bezier(0.32,0.72,0,1); }
+  .cp-backdrop { animation: cp-fade-in 0.2s ease-out; }
+  @media (min-width: 768px) { .cp-panel { animation: cp-fade-scale 0.2s ease-out; } }
+`;
+
 function Sheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return createPortal(
-    <div className="fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }} onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50" />
-      <div
-        className="relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-10 md:pb-6 max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold">{title}</h3>
-          <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
+    <>
+      <style>{SHEET_STYLES}</style>
+      <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }} onClick={onClose}>
+        <div className="absolute inset-0 bg-black/50" />
+        <div
+          className="cp-panel relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-10 md:pb-6 max-h-[85vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold">{title}</h3>
+            <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
+          </div>
+          {children}
         </div>
-        {children}
       </div>
-    </div>,
+    </>,
     document.body
   );
 }
@@ -441,7 +453,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     ? posts.find((p) => p.id === myAcceptedRide.carpool_post_id) ?? null : null;
 
   const availableDriverCount = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0).length;
-  const riderCount = posts.filter((p) => p.type === "rider").length;
+  const riderCount = posts.filter((p) => p.type === "rider" && !confirmedRiderIds.has(p.user_id)).length;
   const alreadyOffered = (riderUserId: string) =>
     driverRequests.some((r) => r.requester_user_id === riderUserId && r.driver_initiated);
 
@@ -783,9 +795,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── Main carpool sheet — See all ── */}
       {carpoolOpen && createPortal(
-        <div className="fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9998 }} onClick={() => setCarpoolOpen(false)}>
+        <>
+          <style>{SHEET_STYLES}</style>
+          <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9998 }} onClick={() => setCarpoolOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div className="relative w-full max-w-2xl bg-white rounded-t-2xl md:rounded-2xl flex flex-col"
+          <div className="cp-panel relative w-full max-w-2xl bg-white rounded-t-2xl md:rounded-2xl flex flex-col"
             style={{ maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
 
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b shrink-0">
@@ -891,7 +905,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               )}
             </div>
           </div>
-        </div>,
+        </div>
+        </div>
+        </>,
         document.body
       )}
 
