@@ -75,8 +75,10 @@ const SHEET_STYLES = `
   @keyframes cp-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
   @keyframes cp-fade-scale { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   @keyframes cp-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes cp-item-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   .cp-panel { animation: cp-slide-up 0.32s cubic-bezier(0.32,0.72,0,1); }
   .cp-backdrop { animation: cp-fade-in 0.2s ease-out; }
+  .cp-item { animation: cp-item-in 0.28s ease-out both; }
   @media (min-width: 768px) { .cp-panel { animation: cp-fade-scale 0.2s ease-out; } }
 `;
 
@@ -837,12 +839,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   <p className="text-sm font-semibold text-gray-900">
                     Offering rides <span className="text-muted-foreground font-normal">· {drivers.length}</span>
                   </p>
-                  {drivers.map((post) => {
+                  {drivers.map((post, i) => {
                     const left = seatsLeft(post);
                     const myReqForThis = myRequest?.carpool_post_id === post.id ? myRequest : null;
                     return (
                       <button key={post.id} onClick={() => setSelectedDriver(post)}
-                        className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 transition-colors shadow-sm">
+                        className="cp-item w-full flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 transition-colors shadow-sm"
+                        style={{ animationDelay: `${i * 60}ms` }}>
                         <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{post.profile.name}</p>
@@ -873,11 +876,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     Need a ride <span className="text-muted-foreground font-normal">· {riders.length}</span>
                     {myPost?.type === "driver" && <span className="text-xs font-normal text-blue-600 ml-2">· tap to offer a ride</span>}
                   </p>
-                  {riders.map((post) => {
+                  {riders.map((post, i) => {
                     const isDriver = myPost?.type === "driver";
                     const offered = isDriver && alreadyOffered(post.user_id);
+                    const delay = (drivers.length + i) * 60;
                     const card = (
-                      <div className={`flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${isDriver ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : "border-gray-200"}`}>
+                      <div className={`cp-item flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${isDriver ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : "border-gray-200"}`}
+                        style={{ animationDelay: `${delay}ms` }}>
                         <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{post.profile.name}</p>
