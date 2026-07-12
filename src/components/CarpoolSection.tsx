@@ -448,7 +448,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       ? Math.max(0, post.seats - post.seats_taken) : null;
 
   const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId && (seatsLeft(p) ?? 0) > 0);
-  const riders = posts.filter((p) => p.type === "rider" && p.user_id !== userId && !confirmedRiderIds.has(p.user_id));
+  const riders = posts.filter((p) => p.type === "rider" && !confirmedRiderIds.has(p.user_id));
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
   const myConfirmedDriver = myAcceptedRide
@@ -576,7 +576,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           {myPost.type === "driver" && (
             <div className="space-y-4">
               {/* Inline seat editor */}
-              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+              <div className="cp-item bg-gray-50 rounded-2xl p-4 space-y-3" style={{ animationDelay: "0ms" }}>
                 <p className="text-sm font-semibold">Seats offered</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -609,8 +609,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Offers sent · {pendingOffersSent.length}
                   </p>
-                  {pendingOffersSent.map((req) => (
-                    <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                  {pendingOffersSent.map((req, i) => (
+                    <div key={req.id} className="cp-item flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100"
+                      style={{ animationDelay: `${(i + 1) * 60}ms` }}>
                       <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{req.profile?.name}</p>
@@ -628,8 +629,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     In your car · {acceptedRequests.length} {acceptedRequests.length === 1 ? "passenger" : "passengers"}
                   </p>
-                  {acceptedRequests.map((req) => (
-                    <div key={req.id} className="rounded-xl bg-green-50 border border-green-100 p-3">
+                  {acceptedRequests.map((req, i) => (
+                    <div key={req.id} className="cp-item rounded-xl bg-green-50 border border-green-100 p-3"
+                      style={{ animationDelay: `${(pendingOffersSent.length + i + 1) * 60}ms` }}>
                       <div className="flex items-center gap-3">
                         {/* Avatar with checkmark badge */}
                         <div className="relative shrink-0">
@@ -878,27 +880,34 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   </p>
                   {riders.map((post, i) => {
                     const isDriver = myPost?.type === "driver";
-                    const offered = isDriver && alreadyOffered(post.user_id);
+                    const isMe = post.user_id === userId;
+                    const offered = isDriver && !isMe && alreadyOffered(post.user_id);
+                    const tappable = isDriver && !isMe;
                     const delay = (drivers.length + i) * 60;
                     const card = (
-                      <div className={`cp-item flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${isDriver ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : "border-gray-200"}`}
+                      <div className={`cp-item flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${tappable ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : isMe ? "border-black/20 bg-gray-50" : "border-gray-200"}`}
                         style={{ animationDelay: `${delay}ms` }}>
                         <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{post.profile.name}</p>
+                          <p className="text-sm font-semibold truncate flex items-center gap-1.5">
+                            {post.profile.name}
+                            {isMe && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {post.has_car ? "Has car · Can meet driver" : "Needs pickup"}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {post.distance !== undefined && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
-                          {isDriver && (offered
-                            ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Offered</span>
-                            : <ChevronRight className="h-4 w-4 text-gray-400" />)}
+                          {post.distance !== undefined && !isMe && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
+                          {isMe
+                            ? <span className="text-xs text-muted-foreground">In queue</span>
+                            : isDriver && (offered
+                              ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Offered</span>
+                              : <ChevronRight className="h-4 w-4 text-gray-400" />)}
                         </div>
                       </div>
                     );
-                    return isDriver
+                    return tappable
                       ? <button key={post.id} onClick={() => setSelectedRider(post)} className="w-full">{card}</button>
                       : <div key={post.id}>{card}</div>;
                   })}
