@@ -119,6 +119,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   const [submitting, setSubmitting] = useState(false);
   const [offerSubmitting, setOfferSubmitting] = useState(false);
+  const [phoneRequestSent, setPhoneRequestSent] = useState<Set<string>>(new Set());
+  const [riderPhoneInput, setRiderPhoneInput] = useState("");
 
   const [myRequest, setMyRequest] = useState<CarpoolRequest | null>(null);
   const [myAcceptedRide, setMyAcceptedRide] = useState<CarpoolRequest | null>(null);
@@ -392,6 +394,33 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     fetchAll();
   };
 
+  const sendPhoneRequest = async (req: CarpoolRequest) => {
+    if (!userId) return;
+    const [{ data: myProfile }, { data: eventData }] = await Promise.all([
+      supabase.from("profiles").select("name").eq("user_id", userId).single(),
+      supabase.from("events").select("title").eq("id", eventId).single(),
+    ]);
+    const ev = eventData?.title ? ` for "${eventData.title}"` : "";
+    await supabase.from("notifications").insert({
+      user_id: req.requester_user_id,
+      type: "carpool_phone_request",
+      message: `${myProfile?.name ?? "Your driver"} would like your phone number to coordinate the carpool${ev} — tap to add it`,
+      event_id: eventId,
+    });
+    setPhoneRequestSent((prev) => new Set([...prev, req.requester_user_id]));
+  };
+
+  const updateRiderPhone = async () => {
+    if (!myAcceptedRide || !riderPhoneInput.trim()) return;
+    setSubmitting(true);
+    await supabase.from("carpool_requests")
+      .update({ phone_number: riderPhoneInput.trim() })
+      .eq("id", myAcceptedRide.id);
+    setSubmitting(false);
+    setRiderPhoneInput("");
+    fetchAll();
+  };
+
   // ── Derived ───────────────────────────────────────────────────────────────
 
   const pendingRiderRequests = driverRequests.filter((r) => r.status === "pending" && !r.driver_initiated);
@@ -526,7 +555,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
       {/* ── ⋮ Options sheet ── */}
       {myPostMenuOpen && myPost && (
-        <Sheet onClose={() => setMyPostMenuOpen(false)} title="Carpool options">
+        <Sheet onClose={() => setMyPostMenuOpen(false)} title={myPost.type === "driver" ? "Carpool management" : "Carpool options"}>
           {/* DRIVER options */}
           {myPost.type === "driver" && (
             <div className="space-y-4">
@@ -558,6 +587,57 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   ))}
                 </div>
               </div>
+              {/* Offers sent — awaiting reply */}
+              {pendingOffersSent.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Offers sent · {pendingOffersSent.length}
+                  </p>
+                  {pendingOffersSent.map((req) => (
+                    <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{req.profile?.name}</p>
+                        <p className="text-xs text-muted-foreground">Waiting for their reply…</p>
+                      </div>
+                      <span className="text-xs font-semibold text-blue-600 px-2 py-0.5 rounded-full bg-blue-100 border border-blue-200 shrink-0">Offered</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* In your car */}
+              {acceptedRequests.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    In your car · {acceptedRequests.length}
+                  </p>
+                  {acceptedRequests.map((req) => (
+                    <div key={req.id} className="rounded-xl bg-green-50 border border-green-100 p-3 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{req.profile?.name}</p>
+                          {req.phone_number
+                            ? <PhoneLink number={req.phone_number} label="Phone" />
+                            : <p className="text-xs text-muted-foreground">No phone number yet</p>}
+                        </div>
+                        <span className="text-xs text-green-600 font-semibold shrink-0">✓ In</span>
+                      </div>
+                      {!req.phone_number && (
+                        <button
+                          onClick={() => sendPhoneRequest(req)}
+                          disabled={phoneRequestSent.has(req.requester_user_id)}
+                          className="w-full h-8 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                          {phoneRequestSent.has(req.requester_user_id) ? "✓ Request sent" : "Ask for phone number"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Small cancel link */}
               <div className="text-center pt-1">
                 <button onClick={cancelPost} className="text-xs text-red-400 hover:text-red-600 transition-colors">
@@ -624,6 +704,30 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {!myConfirmedDriver && myRequest && (
                 <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
                   {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Waiting for driver to accept"}
+                </div>
+              )}
+
+              {/* Add phone number (rider has confirmed ride but no phone on record) */}
+              {myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
+                <div className="space-y-2 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                  <p className="text-xs font-semibold text-amber-800">Your driver would like your phone number</p>
+                  <p className="text-xs text-amber-700">So they can text you to coordinate pickup.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      value={riderPhoneInput}
+                      onChange={(e) => setRiderPhoneInput(e.target.value)}
+                      placeholder="(555) 000-0000"
+                      className="flex-1 h-10 rounded-xl border-2 border-amber-200 px-3 text-sm focus:border-black focus:outline-none transition-colors bg-white"
+                    />
+                    <button
+                      onClick={updateRiderPhone}
+                      disabled={submitting || !riderPhoneInput.trim()}
+                      className="px-4 h-10 rounded-xl bg-black text-white text-xs font-semibold disabled:opacity-40 shrink-0"
+                    >
+                      {submitting ? "…" : "Save"}
+                    </button>
+                  </div>
                 </div>
               )}
 
