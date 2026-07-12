@@ -97,7 +97,7 @@ const Welcome = () => {
     if (otp.trim().length < 4) { setOtpError("Enter the code from your email."); return; }
     setVerifying(true);
     setOtpError("");
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "magiclink" });
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp.trim(), type: "email" });
     setVerifying(false);
     if (error) {
       setOtpError("Code didn't work — it may have expired or been used. Try resending.");

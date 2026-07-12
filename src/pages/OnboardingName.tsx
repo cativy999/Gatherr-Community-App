@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 
 const OnboardingName = () => {
   const navigate = useNavigate();
@@ -66,15 +65,6 @@ const OnboardingName = () => {
         >
           Skip
         </Button>
-        <button
-          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate("/");
-          }}
-        >
-          Sign out and use a different account
-        </button>
       </div>
     </div>
   );

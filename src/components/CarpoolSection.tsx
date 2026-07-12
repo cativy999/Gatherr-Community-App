@@ -80,6 +80,9 @@ const SHEET_STYLES = `
   .cp-backdrop { animation: cp-fade-in 0.2s ease-out; }
   .cp-item { animation: cp-item-in 0.28s ease-out both; }
   @media (min-width: 768px) { .cp-panel { animation: cp-fade-scale 0.2s ease-out; } }
+  /* Suppress stacking-context interference from sticky header when any carpool modal is open */
+  html.cp-modal-open header { z-index: 0 !important; }
+  html.cp-modal-open header button { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 `;
 
 function Sheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
@@ -145,6 +148,15 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [confirmedRiderIds, setConfirmedRiderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchAll(); }, [eventId, userId]);
+
+  // Toggle a class on <html> whenever any carpool sheet is open so the
+  // EventDetails sticky header (which has backdrop-filter) doesn't composite
+  // above our portal overlay.
+  const anySheetOpen = carpoolOpen || myPostMenuOpen || !!selectedDriver || !!selectedRider || !!requestConfirmDriver || !!acceptingOffer;
+  useEffect(() => {
+    document.documentElement.classList.toggle("cp-modal-open", anySheetOpen);
+    return () => { document.documentElement.classList.remove("cp-modal-open"); };
+  }, [anySheetOpen]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -476,62 +488,88 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           <>
             {/* My status card */}
             {myPost && (
-              <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
-                {myConfirmedDriver ? (
-                  <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
-                    <Check className="h-5 w-5 text-white" strokeWidth={3} />
-                  </div>
-                ) : myPost.type === "driver" ? (
-                  <Car className="h-4 w-4 text-gray-500 shrink-0" />
-                ) : (
-                  <span className="text-sm shrink-0">🙋</span>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">
-                    {myPost.type === "driver"
-                      ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                      : myConfirmedDriver ? "Ride confirmed"
-                      : myRequest?.status === "declined" ? "Request declined"
-                      : myRequest ? "Request pending…"
-                      : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
-                      : "Looking for a ride"}
-                  </p>
-                  {myPost.type === "driver" && acceptedRequests.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-muted-foreground">Riders:</span>
-                      {acceptedRequests.map((r) => (
-                        <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
-                          {r.profile?.avatar_url
-                            ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
-                        </div>
-                      ))}
+              <div className={`rounded-2xl border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
+                {/* Status row */}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  {myConfirmedDriver ? (
+                    <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
+                      <Check className="h-5 w-5 text-white" strokeWidth={3} />
                     </div>
+                  ) : myPost.type === "driver" ? (
+                    <Car className="h-4 w-4 text-gray-500 shrink-0" />
+                  ) : (
+                    <span className="text-sm shrink-0">🙋</span>
                   )}
-                  {myConfirmedDriver && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                        {myConfirmedDriver.profile.avatar_url
-                          ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
-                          : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
-                      </span>
-                      {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">
+                      {myPost.type === "driver"
+                        ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
+                        : myConfirmedDriver ? "Ride confirmed"
+                        : myRequest?.status === "declined" ? "Request declined"
+                        : myRequest ? "Request pending…"
+                        : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
+                        : "Looking for a ride"}
                     </p>
-                  )}
+                    {myPost.type === "driver" && acceptedRequests.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-xs text-muted-foreground">Riders:</span>
+                        {acceptedRequests.map((r) => (
+                          <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
+                            {r.profile?.avatar_url
+                              ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
+                              : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {myConfirmedDriver && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                          {myConfirmedDriver.profile.avatar_url
+                            ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                            : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
+                        </span>
+                        {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    {myPostBadge > 0 && (
+                      <span className="text-xs font-semibold text-white bg-black px-2 py-0.5 rounded-full">{myPostBadge}</span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }}
+                      className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
+                    >
+                      <MoreVertical className="h-4 w-4 text-gray-500" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  {myPostBadge > 0 && (
-                    <span className="text-xs font-semibold text-white bg-black px-2 py-0.5 rounded-full">{myPostBadge}</span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }}
-                    className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
-                  >
-                    <MoreVertical className="h-4 w-4 text-gray-500" />
-                  </button>
-                </div>
+                {/* Inline phone input — shown when rider has a confirmed seat but no phone on file */}
+                {myPost.type === "rider" && myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
+                  <div className="px-4 pb-3 border-t border-green-100">
+                    <p className="text-xs text-muted-foreground pt-2 pb-1.5">Share your phone so your driver can reach you</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={riderPhoneInput}
+                        onChange={(e) => setRiderPhoneInput(e.target.value)}
+                        placeholder="(555) 000-0000"
+                        className="flex-1 h-9 rounded-xl border border-green-200 bg-white px-3 text-sm focus:border-green-500 focus:outline-none transition-colors"
+                      />
+                      <button
+                        onClick={updateRiderPhone}
+                        disabled={submitting || !riderPhoneInput.trim()}
+                        className="px-3 h-9 rounded-xl bg-green-600 text-white text-xs font-semibold disabled:opacity-40 shrink-0 whitespace-nowrap hover:bg-green-700 transition-colors"
+                      >
+                        {submitting ? "…" : "Send to driver"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

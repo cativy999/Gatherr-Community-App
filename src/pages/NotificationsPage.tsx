@@ -65,7 +65,7 @@ const NotificationsPage = () => {
                 className={`w-full flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-accent/40 ${!n.read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}`}
               >
                 <span className="mt-0.5 flex-shrink-0 flex items-center justify-center w-7 h-7">
-                  {n.type === "carpool_request" || n.type === "carpool_accepted" || n.type === "carpool_declined" || n.type === "carpool_cancelled" || n.type === "carpool_offer" || n.type === "carpool_phone_request"
+                  {n.type === "carpool_request" || n.type === "carpool_accepted" || n.type === "carpool_declined" || n.type === "carpool_cancelled"
                     ? <Car className="h-5 w-5 text-gray-700" strokeWidth={2} />
                     : <span className="text-xl">
                         {n.type === "mention" ? "🏷️"
