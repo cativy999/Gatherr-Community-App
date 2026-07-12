@@ -447,7 +447,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     post.type === "driver" && post.seats !== null
       ? Math.max(0, post.seats - post.seats_taken) : null;
 
-  const drivers = posts.filter((p) => p.type === "driver" && p.user_id !== userId && (seatsLeft(p) ?? 0) > 0);
+  const drivers = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0);
   const riders = posts.filter((p) => p.type === "rider" && !confirmedRiderIds.has(p.user_id));
   const myRequestForSelected = selectedDriver
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
@@ -843,30 +843,38 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   </p>
                   {drivers.map((post, i) => {
                     const left = seatsLeft(post);
-                    const myReqForThis = myRequest?.carpool_post_id === post.id ? myRequest : null;
-                    return (
-                      <button key={post.id} onClick={() => setSelectedDriver(post)}
-                        className="cp-item w-full flex items-center gap-3 p-3.5 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 transition-colors shadow-sm"
+                    const isMe = post.user_id === userId;
+                    const myReqForThis = !isMe && myRequest?.carpool_post_id === post.id ? myRequest : null;
+                    const inner = (
+                      <div className={`cp-item w-full flex items-center gap-3 p-3.5 rounded-2xl border bg-white text-left shadow-sm ${isMe ? "border-black/20 bg-gray-50" : "border-gray-200 hover:border-gray-400 transition-colors"}`}
                         style={{ animationDelay: `${i * 60}ms` }}>
                         <Avatar url={post.profile.avatar_url} name={post.profile.name} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{post.profile.name}</p>
+                          <p className="text-sm font-semibold truncate flex items-center gap-1.5">
+                            {post.profile.name}
+                            {isMe && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {`${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks you up" : "Meet driver"}`}
+                            {`${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks up" : "Meet there"}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {post.distance !== undefined && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
-                          {myReqForThis ? (
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
-                              {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
-                            </span>
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          )}
+                          {!isMe && post.distance !== undefined && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
+                          {isMe
+                            ? <span className="text-xs text-muted-foreground">Your ride</span>
+                            : myReqForThis ? (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
+                                {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
+                              </span>
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-400" />
+                            )}
                         </div>
-                      </button>
+                      </div>
                     );
+                    return isMe
+                      ? <div key={post.id}>{inner}</div>
+                      : <button key={post.id} onClick={() => setSelectedDriver(post)} className="w-full">{inner}</button>;
                   })}
                 </div>
               )}
