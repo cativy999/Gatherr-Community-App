@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -1177,13 +1178,14 @@ const EventDetails = () => {
             )}
           </div>
 
-          {/* Lightbox overlay — mobile only, sits above RSVP bar and everything else */}
-          {imageExpanded && event.image_url && (
+          {/* Lightbox — portalled to document.body so it escapes the page's
+              stacking context and truly covers the sticky header + RSVP bar */}
+          {imageExpanded && event.image_url && createPortal(
             <div
               className="fixed inset-0 z-[200] bg-black/90 flex flex-col md:hidden"
               onClick={() => setImageExpanded(false)}
             >
-              {/* Close button — 24px from top, leaves 24px gap to image */}
+              {/* Close button — 24px from top, 24px gap to image */}
               <div className="flex justify-end px-6 pt-6 pb-6 flex-shrink-0">
                 <button
                   className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
@@ -1192,7 +1194,7 @@ const EventDetails = () => {
                   <span className="text-white text-xl leading-none">✕</span>
                 </button>
               </div>
-              {/* Image — fills remaining height, starts 24px below close button */}
+              {/* Image fills remaining height */}
               <div
                 className="flex-1 px-4 pb-4 overflow-hidden flex items-start justify-center"
                 onClick={(e) => e.stopPropagation()}
@@ -1204,7 +1206,8 @@ const EventDetails = () => {
                   style={{ maxHeight: "100%" }}
                 />
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Category + Age + Title */}
