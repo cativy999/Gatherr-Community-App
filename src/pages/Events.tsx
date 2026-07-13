@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ThumbsUp, Smile, Heart, Clock, MoreVertical } from "lucide-react";
+import { ThumbsUp, Smile, Heart, Clock, MoreVertical } from "lucide-react";
 import TimelineSection, { groupByWeek } from "@/components/TimelineSection";
 import VideoBackground from "@/components/VideoBackground";
 import { supabase } from "@/lib/supabase";
@@ -173,8 +173,26 @@ const Events = () => {
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto">
           {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="space-y-8">
+              {[["This Week", 3], ["Next Week", 2]].map(([label, count]) => (
+                <div key={label as string} className="space-y-3">
+                  <div className="sk h-5 w-24" />
+                  <div
+                    className="flex gap-4 overflow-x-auto -mx-5 px-5 md:grid md:grid-cols-4 md:mx-0 md:px-0"
+                    style={{ scrollbarWidth: "none" }}
+                  >
+                    {Array.from({ length: count as number }).map((_, i) => (
+                      <div key={i} className="flex-shrink-0 w-[180px] md:w-auto rounded-2xl overflow-hidden border border-border bg-card">
+                        <div className="sk h-28 rounded-none" style={{ borderRadius: 0 }} />
+                        <div className="p-3 space-y-2">
+                          <div className="sk h-4 w-3/4" />
+                          <div className="sk h-3 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : events.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground space-y-2">

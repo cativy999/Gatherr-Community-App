@@ -503,6 +503,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const myPostBadge = myPost?.type === "driver" ? pendingRiderRequests.length : pendingOffersToMe.length;
   const currentSeats = editingSeats ?? myPost?.seats ?? 3;
 
+  // ── Hide when there is zero carpool activity ──────────────────────────────
+  // Don't render anything if loading is done, the user has no post, and no
+  // one else has posted — an empty carpool section adds no value.
+  if (!loading && posts.length === 0 && !myPost) return null;
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
