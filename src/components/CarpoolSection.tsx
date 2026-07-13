@@ -594,23 +594,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   </div>
                 </div>
 
-                {/* Cancel/remove — visible on card without opening ⋮ */}
-                {myPost.type === "rider" && !myConfirmedDriver && (
-                  <div
-                    className="px-4 pb-3 text-center border-t border-gray-100"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={myRequest ? cancelRequest : cancelPost}
-                      className="text-xs text-red-400 hover:text-red-600 transition-colors pt-2 inline-block"
-                    >
-                      {myRequest
-                        ? (myRequest.status === "declined" ? "Dismiss" : "Cancel request")
-                        : "Remove"}
-                    </button>
-                  </div>
-                )}
-
                 {/* Inline phone input — shown when rider has a confirmed seat but no phone on file */}
                 {myPost.type === "rider" && myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
                   <div className="px-4 pb-3 border-t border-green-100">
