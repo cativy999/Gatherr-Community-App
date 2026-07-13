@@ -594,17 +594,19 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   </div>
                 </div>
 
-                {/* Cancel request — visible on card for pending/declined, no need to open ⋮ */}
-                {myPost.type === "rider" && !myConfirmedDriver && myRequest && (
+                {/* Cancel/remove — visible on card without opening ⋮ */}
+                {myPost.type === "rider" && !myConfirmedDriver && (
                   <div
                     className="px-4 pb-3 text-center border-t border-gray-100"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
-                      onClick={cancelRequest}
+                      onClick={myRequest ? cancelRequest : cancelPost}
                       className="text-xs text-red-400 hover:text-red-600 transition-colors pt-2 inline-block"
                     >
-                      {myRequest.status === "declined" ? "Dismiss" : "Cancel request"}
+                      {myRequest
+                        ? (myRequest.status === "declined" ? "Dismiss" : "Cancel request")
+                        : "Remove"}
                     </button>
                   </div>
                 )}
@@ -897,14 +899,17 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )}
 
-              {/* Small cancel link */}
-              {(myConfirmedDriver || myRequest) && (
-                <div className="text-center pt-1">
-                  <button onClick={cancelRequest} className="text-xs text-red-400 hover:text-red-600 transition-colors">
-                    {myConfirmedDriver ? "Cancel my spot" : "Cancel request"}
-                  </button>
-                </div>
-              )}
+              {/* Cancel / remove — always available for rider posts */}
+              <div className="text-center pt-1">
+                <button
+                  onClick={myConfirmedDriver || myRequest ? cancelRequest : cancelPost}
+                  className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                >
+                  {myConfirmedDriver ? "Cancel my spot"
+                    : myRequest ? (myRequest.status === "declined" ? "Dismiss" : "Cancel request")
+                    : "Remove 'looking for a ride'"}
+                </button>
+              </div>
 
               {!myConfirmedDriver && !myRequest && pendingOffersToMe.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-2">

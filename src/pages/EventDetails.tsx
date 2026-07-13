@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History } from "lucide-react";
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, Check, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -2174,7 +2174,7 @@ const EventDetails = () => {
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   size="lg"
-                  className="rounded-full bg-black text-white border border-black hover:bg-black/90"
+                  className={`rounded-full border transition-colors ${rsvpStatus === "going" ? "bg-green-500 text-white border-green-500 hover:bg-green-600" : "bg-black text-white border-black hover:bg-black/90"}`}
                   disabled={!!rsvpLoading}
                   onClick={() => handleRsvp("going")}
                 >
@@ -2182,14 +2182,14 @@ const EventDetails = () => {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "going" && <CheckCircle2 className="h-4 w-4" />}
-                      Going
+                      {rsvpStatus === "going" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "going" ? "I'm going!" : "Going"}
                     </>
                   )}
                 </Button>
                 <Button
                   size="lg"
-                  className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
+                  className={`rounded-full border transition-colors ${rsvpStatus === "interested" ? "bg-green-50 text-green-700 border-green-400 hover:bg-green-100" : "bg-white text-black border-black hover:bg-gray-50"}`}
                   disabled={!!rsvpLoading}
                   onClick={() => handleRsvp("interested")}
                 >
@@ -2197,8 +2197,8 @@ const EventDetails = () => {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "interested" && <CheckCircle2 className="h-4 w-4" />}
-                      Interested
+                      {rsvpStatus === "interested" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "interested" ? "Interested ✓" : "Interested"}
                     </>
                   )}
                 </Button>
@@ -2249,28 +2249,28 @@ const EventDetails = () => {
                 <button
                   onClick={() => handleRsvp("going")}
                   disabled={!!rsvpLoading}
-                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-black text-white whitespace-nowrap disabled:opacity-60"
+                  className={`flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${rsvpStatus === "going" ? "bg-green-500 text-white border-green-500 hover:bg-green-600" : "bg-black text-white border-black hover:bg-black/90"}`}
                 >
                   {rsvpLoading === "going" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "going" && <CheckCircle2 className="h-4 w-4" />}
-                      Going
+                      {rsvpStatus === "going" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "going" ? "I'm going!" : "Going"}
                     </>
                   )}
                 </button>
                 <button
                   onClick={() => handleRsvp("interested")}
                   disabled={!!rsvpLoading}
-                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-white text-black whitespace-nowrap disabled:opacity-60"
+                  className={`flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${rsvpStatus === "interested" ? "bg-green-50 text-green-700 border-green-400 hover:bg-green-100" : "bg-white text-black border-black hover:bg-gray-50"}`}
                 >
                   {rsvpLoading === "interested" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "interested" && <CheckCircle2 className="h-4 w-4" />}
-                      Interested
+                      {rsvpStatus === "interested" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "interested" ? "Interested ✓" : "Interested"}
                     </>
                   )}
                 </button>
