@@ -905,8 +905,41 @@ const EventDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="relative flex min-h-screen flex-col pb-24" style={{ fontFamily: "'Inter', sans-serif" }}>
+        {/* ambient bg placeholder */}
+        <div className="fixed inset-0 -z-10 bg-gray-50" />
+        {/* sticky header */}
+        <header className="sticky top-0 z-10 px-4 py-3">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="sk w-10 h-10 rounded-full" />
+            <div className="sk w-10 h-10 rounded-full" />
+          </div>
+        </header>
+        <main className="flex-1 px-5 py-4 max-w-5xl mx-auto w-full">
+          {/* cover image */}
+          <div className="sk w-full h-64 rounded-2xl mb-6" />
+          {/* title */}
+          <div className="sk h-7 w-3/4 mb-3" />
+          <div className="sk h-5 w-1/2 mb-6" />
+          {/* info chips */}
+          <div className="space-y-2.5 mb-6">
+            <div className="sk h-4 w-2/3" />
+            <div className="sk h-4 w-1/2" />
+            <div className="sk h-4 w-3/5" />
+          </div>
+          {/* RSVP buttons */}
+          <div className="flex gap-3 mb-6">
+            <div className="sk flex-1 h-12 rounded-full" />
+            <div className="sk flex-1 h-12 rounded-full" />
+          </div>
+          {/* description */}
+          <div className="space-y-2">
+            <div className="sk h-3.5 w-full" />
+            <div className="sk h-3.5 w-full" />
+            <div className="sk h-3.5 w-5/6" />
+            <div className="sk h-3.5 w-3/4" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -2174,7 +2207,7 @@ const EventDetails = () => {
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   size="lg"
-                  className={`rounded-full border transition-colors ${rsvpStatus === "going" ? "bg-green-500 text-white border-green-500 hover:bg-green-600" : "bg-black text-white border-black hover:bg-black/90"}`}
+                  className="rounded-full bg-black text-white border border-black hover:bg-black/90"
                   disabled={!!rsvpLoading}
                   onClick={() => handleRsvp("going")}
                 >
@@ -2182,25 +2215,20 @@ const EventDetails = () => {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "going" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "going" && <Check className="h-4 w-4 text-green-400" />}
                       {rsvpStatus === "going" ? "I'm going!" : "Going"}
                     </>
                   )}
                 </Button>
                 <Button
                   size="lg"
-                  className={`rounded-full border transition-colors ${rsvpStatus === "interested" ? "bg-green-50 text-green-700 border-green-400 hover:bg-green-100" : "bg-white text-black border-black hover:bg-gray-50"}`}
+                  className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
                   disabled={!!rsvpLoading}
                   onClick={() => handleRsvp("interested")}
                 >
                   {rsvpLoading === "interested" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {rsvpStatus === "interested" && <Check className="h-4 w-4" />}
-                      {rsvpStatus === "interested" ? "Interested ✓" : "Interested"}
-                    </>
-                  )}
+                  ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
                 </Button>
               </div>
             )}
@@ -2249,13 +2277,13 @@ const EventDetails = () => {
                 <button
                   onClick={() => handleRsvp("going")}
                   disabled={!!rsvpLoading}
-                  className={`flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${rsvpStatus === "going" ? "bg-green-500 text-white border-green-500 hover:bg-green-600" : "bg-black text-white border-black hover:bg-black/90"}`}
+                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-black text-white whitespace-nowrap disabled:opacity-60 hover:bg-black/90"
                 >
                   {rsvpLoading === "going" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {rsvpStatus === "going" && <Check className="h-4 w-4" />}
+                      {rsvpStatus === "going" && <Check className="h-4 w-4 text-green-400" />}
                       {rsvpStatus === "going" ? "I'm going!" : "Going"}
                     </>
                   )}
@@ -2263,16 +2291,11 @@ const EventDetails = () => {
                 <button
                   onClick={() => handleRsvp("interested")}
                   disabled={!!rsvpLoading}
-                  className={`flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border whitespace-nowrap disabled:opacity-60 ${rsvpStatus === "interested" ? "bg-green-50 text-green-700 border-green-400 hover:bg-green-100" : "bg-white text-black border-black hover:bg-gray-50"}`}
+                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-white text-black whitespace-nowrap disabled:opacity-60 hover:bg-gray-50"
                 >
                   {rsvpLoading === "interested" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {rsvpStatus === "interested" && <Check className="h-4 w-4" />}
-                      {rsvpStatus === "interested" ? "Interested ✓" : "Interested"}
-                    </>
-                  )}
+                  ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
                 </button>
               </div>
             )}

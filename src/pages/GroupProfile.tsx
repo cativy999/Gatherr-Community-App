@@ -282,7 +282,27 @@ const GroupProfile = () => {
       });
   }, [id]);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading...</div>;
+  if (loading) return (
+    <div className="flex min-h-screen flex-col bg-background pb-24">
+      {/* banner */}
+      <div className="sk w-full h-52 rounded-none" style={{ borderRadius: 0 }} />
+      {/* avatar */}
+      <div className="flex justify-center -mt-10 mb-4">
+        <div className="sk w-20 h-20 rounded-full border-4 border-white" />
+      </div>
+      {/* name + member count */}
+      <div className="flex flex-col items-center gap-2 px-6 mb-6">
+        <div className="sk h-6 w-40" />
+        <div className="sk h-4 w-24" />
+      </div>
+      {/* event cards */}
+      <div className="px-5 space-y-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="sk h-24 w-full rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
   if (!group) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Group not found</div>;
 
   const { thisWeek, nextWeek, later } = groupByWeek(events);

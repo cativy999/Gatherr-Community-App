@@ -7,7 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, memo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import Welcome from "./pages/Welcome";
@@ -132,6 +132,16 @@ const ContentLayout = ({ children }: { children: ReactNode }) => {
   return <div className={showSidebar ? "md:pl-24" : ""}>{children}</div>;
 };
 
+// Wraps routes so every navigation triggers a slide-in from the right
+const PageTransition = ({ children }: { children: ReactNode }) => {
+  const location = useLocation();
+  return (
+    <div key={location.key} className="page-enter">
+      {children}
+    </div>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -144,6 +154,7 @@ const App = () => (
               <AuthListener />
               <DesktopSidebarLayout />
               <ContentLayout>
+              <PageTransition>
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />
@@ -175,6 +186,7 @@ const App = () => (
                 <Route path="/cohost-invite/:token" element={<CohostInvite />} />
                 <Route path="/group-admin-invite/:inviteId" element={<GroupAdminInvite />} />
               </Routes>
+              </PageTransition>
               </ContentLayout>
               <AppLayout />
               <FeedbackButton />
