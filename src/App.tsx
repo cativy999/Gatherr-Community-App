@@ -101,7 +101,9 @@ const AuthListener = () => {
 };
 
 const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
-const hideNavPatterns = ["/create-event", "/cohost-invite", "/group-admin-invite"];
+// /event/ is here because EventDetails has its own RSVP bottom bar (Going/Interested)
+// that occupies the bottom slot — the global BottomNav would conflict with it.
+const hideNavPatterns = ["/create-event", "/cohost-invite", "/group-admin-invite", "/event/"];
 
 const AppLayout = () => {
   const { session } = useAuth();
