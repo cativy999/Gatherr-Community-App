@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, CheckCircle2, Copy, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, Copy, MoreHorizontal, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -256,8 +256,17 @@ const PublishedEventsPage = () => {
       <main className="flex-1 px-5 py-4">
         <div className="max-w-4xl mx-auto">
           {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-card rounded-2xl overflow-hidden border border-border flex flex-col">
+                  <div className="sk w-full h-28 rounded-none" style={{ borderRadius: 0 }} />
+                  <div className="p-3 flex flex-col gap-2">
+                    <div className="sk h-4 w-3/4" />
+                    <div className="sk h-3 w-1/2" />
+                    <div className="sk h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : events.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
