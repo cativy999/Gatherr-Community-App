@@ -1155,11 +1155,11 @@ const EventDetails = () => {
                 <span className="text-muted-foreground">No image</span>
               </div>
             )}
-            {/* Expand icon */}
+            {/* Expand icon — mobile only */}
             {event.image_url && (
               <button
                 onClick={() => setImageExpanded(true)}
-                className="absolute top-3 left-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors"
+                className="md:hidden absolute top-3 left-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors"
               >
                 <Expand className="h-4 w-4 text-gray-700" />
               </button>
@@ -1177,23 +1177,33 @@ const EventDetails = () => {
             )}
           </div>
 
-          {/* Lightbox overlay */}
+          {/* Lightbox overlay — mobile only, sits above RSVP bar and everything else */}
           {imageExpanded && event.image_url && (
             <div
-              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[200] bg-black/90 flex flex-col md:hidden"
               onClick={() => setImageExpanded(false)}
             >
-              <img
-                src={event.image_url}
-                alt={event.title}
-                className="max-w-full max-h-full rounded-2xl object-contain"
-              />
-              <button
-                className="absolute top-5 right-5 p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-                onClick={() => setImageExpanded(false)}
+              {/* Close button — 24px from top, leaves 24px gap to image */}
+              <div className="flex justify-end px-6 pt-6 pb-6 flex-shrink-0">
+                <button
+                  className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setImageExpanded(false); }}
+                >
+                  <span className="text-white text-xl leading-none">✕</span>
+                </button>
+              </div>
+              {/* Image — fills remaining height, starts 24px below close button */}
+              <div
+                className="flex-1 px-4 pb-4 overflow-hidden flex items-start justify-center"
+                onClick={(e) => e.stopPropagation()}
               >
-                <span className="text-white text-lg leading-none">✕</span>
-              </button>
+                <img
+                  src={event.image_url}
+                  alt={event.title}
+                  className="w-full rounded-2xl object-contain"
+                  style={{ maxHeight: "100%" }}
+                />
+              </div>
             </div>
           )}
 
