@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -115,6 +115,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const [posts, setPosts] = useState<CarpoolPost[]>([]);
   const [myPost, setMyPost] = useState<CarpoolPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const autoRsvpDone = useRef(false); // fire auto-RSVP at most once per mount
 
   const [carpoolOpen, setCarpoolOpen] = useState(false);
   const [modal, setModal] = useState<"rider" | "driver" | null>(null);
@@ -214,6 +215,19 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       ) ?? null;
       setMyAcceptedRide(accepted);
 
+      // Auto-RSVP confirmed rider as "going" (fires once per mount, only if no RSVP exists)
+      if (accepted && !autoRsvpDone.current) {
+        autoRsvpDone.current = true;
+        const { data: existingRsvp } = await supabase
+          .from("rsvps").select("id").eq("event_id", eventId).eq("user_id", userId).maybeSingle();
+        if (!existingRsvp) {
+          await supabase.from("rsvps").upsert(
+            { event_id: eventId, user_id: userId, status: "going" },
+            { onConflict: "user_id,event_id" }
+          );
+        }
+      }
+
       const offers = (allRequests ?? [])
         .filter((r: any) => r.requester_user_id === userId && r.driver_initiated && r.status === "pending")
         .map((r: any) => ({ ...r, driverPost: mapped.find((p) => p.id === r.carpool_post_id) ?? null }));
@@ -264,6 +278,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         phone_number: driverPhone.trim() || null,
         lat: locationLat, lng: locationLng },
       { onConflict: "event_id,user_id" }
+    );
+    // Driver is clearly attending — auto-RSVP as "going" if not already
+    await supabase.from("rsvps").upsert(
+      { event_id: eventId, user_id: userId, status: "going" },
+      { onConflict: "user_id,event_id" }
     );
     setModal(null); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); setSubmitting(false);
     fetchAll();
@@ -374,6 +393,13 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       message: `${myProfile?.name ?? "A rider"} accepted your ride offer${ev} 🎉`,
       event_id: eventId,
     });
+    // Rider just confirmed they're going — auto-RSVP as "going" if not already
+    if (userId) {
+      await supabase.from("rsvps").upsert(
+        { event_id: eventId, user_id: userId, status: "going" },
+        { onConflict: "user_id,event_id" }
+      );
+    }
     setSubmitting(false); setAcceptingOffer(null); setOfferAcceptPhone(""); setMyPostMenuOpen(false);
     fetchAll();
   };
@@ -567,6 +593,21 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     </button>
                   </div>
                 </div>
+
+                {/* Cancel request — visible on card for pending/declined, no need to open ⋮ */}
+                {myPost.type === "rider" && !myConfirmedDriver && myRequest && (
+                  <div
+                    className="px-4 pb-3 text-center border-t border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={cancelRequest}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors pt-2 inline-block"
+                    >
+                      {myRequest.status === "declined" ? "Dismiss" : "Cancel request"}
+                    </button>
+                  </div>
+                )}
 
                 {/* Inline phone input — shown when rider has a confirmed seat but no phone on file */}
                 {myPost.type === "rider" && myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
