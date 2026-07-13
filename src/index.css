@@ -6,27 +6,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Page slide-in transition ─────────────────────────────────────────────── */
-/* Forward navigation: slide in from right */
-@keyframes page-enter {
-  from { opacity: 0; transform: translateX(22px); }
-  to   { opacity: 1; transform: none; }
-  /* ⚠️ "none" not "translateX(0)" — translateX(0) still creates a containing
-       block that breaks position:fixed children (RSVP bar etc.)           */
+/* ── Page transition ──────────────────────────────────────────────────────── */
+/*
+  IMPORTANT: We only animate opacity on the outer wrapper, NEVER transform.
+  Any CSS transform on a parent creates a new containing block for
+  position:fixed descendants, which breaks the floating RSVP bar and any
+  other fixed elements inside the page. Opacity is safe — it never creates
+  a containing block.
+
+  The slide "feel" comes from the inner .page-slide-content div (which wraps
+  only the scrollable content, not the fixed bar) via translateX.
+*/
+
+/* Outer wrapper — opacity only, no transform */
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-.page-enter {
-  animation: page-enter 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  /* ⚠️ No will-change:transform here — that would permanently create a new
-       containing block and break every position:fixed descendant           */
+.page-enter,
+.page-slide-from-left {
+  animation: page-fade-in 0.18s ease-out both;
 }
 
-/* Back navigation: slide in from left */
-@keyframes page-enter-left {
-  from { opacity: 0; transform: translateX(-22px); }
+/* Inner content slide — forward (right → left) */
+@keyframes slide-from-right {
+  from { opacity: 0; transform: translateX(20px); }
   to   { opacity: 1; transform: none; }
 }
-.page-slide-from-left {
-  animation: page-enter-left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+.page-enter .page-slide-content {
+  animation: slide-from-right 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Inner content slide — back (left → right) */
+@keyframes slide-from-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: none; }
+}
+.page-slide-from-left .page-slide-content {
+  animation: slide-from-left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* ── Skeleton pulse ───────────────────────────────────────────────────────── */
