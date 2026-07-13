@@ -465,6 +465,9 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     ? myRequest?.carpool_post_id === selectedDriver.id ? myRequest : null : null;
   const myConfirmedDriver = myAcceptedRide
     ? posts.find((p) => p.id === myAcceptedRide.carpool_post_id) ?? null : null;
+  // Driver the rider has a pending/declined request with
+  const requestedDriver = myRequest
+    ? posts.find((p) => p.id === myRequest.carpool_post_id) ?? null : null;
 
   const availableDriverCount = posts.filter((p) => p.type === "driver" && (seatsLeft(p) ?? 0) > 0).length;
   const riderCount = posts.filter((p) => p.type === "rider" && !confirmedRiderIds.has(p.user_id)).length;
@@ -500,6 +503,8 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                     </div>
                   ) : myPost.type === "driver" ? (
                     <Car className="h-4 w-4 text-gray-500 shrink-0" />
+                  ) : requestedDriver ? (
+                    <Avatar url={requestedDriver.profile.avatar_url} name={requestedDriver.profile.name} size={9} />
                   ) : (
                     <span className="text-sm shrink-0">🙋</span>
                   )}
@@ -534,6 +539,18 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                             : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
                         </span>
                         {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
+                      </p>
+                    )}
+                    {/* Show driver name + status for pending/declined requests */}
+                    {!myConfirmedDriver && myRequest && requestedDriver && (
+                      <p className="text-xs mt-0.5 flex items-center gap-1">
+                        <span className={myRequest.status === "declined" ? "text-red-500" : "text-amber-600"}>
+                          {requestedDriver.profile.name}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className={myRequest.status === "declined" ? "text-red-500" : "text-muted-foreground"}>
+                          {myRequest.status === "declined" ? "Declined" : "Waiting on their reply"}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -644,6 +661,37 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                   ))}
                 </div>
               </div>
+              {/* Pending ride requests from riders — Accept / Decline */}
+              {pendingRiderRequests.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Requests · {pendingRiderRequests.length}
+                  </p>
+                  {pendingRiderRequests.map((req, i) => (
+                    <div key={req.id} className="cp-item rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2.5"
+                      style={{ animationDelay: `${(i + 1) * 60}ms` }}>
+                      <div className="flex items-center gap-3">
+                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{req.profile?.name}</p>
+                          <p className="text-xs text-muted-foreground">Requesting a seat</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => respondToRequest(req.id, "declined")}
+                          className="flex-1 h-9 rounded-xl border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 transition-colors"
+                        >Decline</button>
+                        <button
+                          onClick={() => respondToRequest(req.id, "accepted")}
+                          className="flex-1 h-9 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                        >Accept</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Offers sent — awaiting reply */}
               {pendingOffersSent.length > 0 && (
                 <div className="space-y-2">
@@ -763,10 +811,25 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                 </div>
               )}
 
-              {/* Pending outgoing request status */}
+              {/* Pending outgoing request — show the driver */}
               {!myConfirmedDriver && myRequest && (
-                <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${myRequest.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
-                  {myRequest.status === "declined" ? "Request declined — try another driver" : "⏳ Waiting for driver to accept"}
+                <div className={`rounded-2xl border p-4 space-y-2 ${myRequest.status === "declined" ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"}`}>
+                  {requestedDriver ? (
+                    <div className="flex items-center gap-3">
+                      <Avatar url={requestedDriver.profile.avatar_url} name={requestedDriver.profile.name} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{requestedDriver.profile.name}</p>
+                        {requestedDriver.departure_window && (
+                          <p className="text-xs text-muted-foreground">
+                            {requestedDriver.departure_window} · {requestedDriver.pickup_offered ? "Will pick you up" : "Meet them there"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                  <p className={`text-xs font-medium ${myRequest.status === "declined" ? "text-red-600" : "text-amber-700"}`}>
+                    {myRequest.status === "declined" ? "❌ They couldn't take your request — try another driver" : "⏳ Waiting for them to accept your request"}
+                  </p>
                 </div>
               )}
 
