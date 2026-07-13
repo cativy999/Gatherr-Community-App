@@ -132,11 +132,25 @@ const ContentLayout = ({ children }: { children: ReactNode }) => {
   return <div className={showSidebar ? "md:pl-24" : ""}>{children}</div>;
 };
 
-// Wraps routes so every navigation triggers a slide-in from the right
+// Wraps routes so every navigation triggers a directional slide.
+// Direction is detected synchronously (no useState flash) via history.state.idx —
+// React Router increments idx on every push and decrements on pop (back).
 const PageTransition = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const prevIdxRef = useRef<number>(window.history.state?.idx ?? 0);
+  const animClassRef = useRef<string>("page-enter");
+
+  const currentIdx = window.history.state?.idx ?? 0;
+  if (currentIdx !== prevIdxRef.current) {
+    // Going back → slide in from left; going forward → slide in from right
+    animClassRef.current = currentIdx < prevIdxRef.current
+      ? "page-slide-from-left"
+      : "page-enter";
+    prevIdxRef.current = currentIdx;
+  }
+
   return (
-    <div key={location.key} className="page-enter">
+    <div key={location.key} className={animClassRef.current}>
       {children}
     </div>
   );

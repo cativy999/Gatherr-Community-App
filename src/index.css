@@ -7,21 +7,26 @@
 @tailwind utilities;
 
 /* ── Page slide-in transition ─────────────────────────────────────────────── */
+/* Forward navigation: slide in from right */
 @keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateX(22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(22px); }
+  to   { opacity: 1; transform: none; }
+  /* ⚠️ "none" not "translateX(0)" — translateX(0) still creates a containing
+       block that breaks position:fixed children (RSVP bar etc.)           */
+}
+.page-enter {
+  animation: page-enter 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  /* ⚠️ No will-change:transform here — that would permanently create a new
+       containing block and break every position:fixed descendant           */
 }
 
-.page-enter {
-  animation: page-enter 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-  /* Keep stacking context self-contained so fixed children still anchor to viewport */
-  will-change: transform;
+/* Back navigation: slide in from left */
+@keyframes page-enter-left {
+  from { opacity: 0; transform: translateX(-22px); }
+  to   { opacity: 1; transform: none; }
+}
+.page-slide-from-left {
+  animation: page-enter-left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* ── Skeleton pulse ───────────────────────────────────────────────────────── */
