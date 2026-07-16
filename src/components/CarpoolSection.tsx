@@ -1037,7 +1037,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
                             {isMe && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {post.has_car ? "Has car · Can meet driver" : "Needs pickup"}
+                            {post.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -1135,7 +1135,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             <div>
               <p className="font-semibold">{selectedRider.profile.name}</p>
               <p className="text-xs text-muted-foreground">
-                {selectedRider.has_car ? "Has car · Can meet you" : "Needs pickup"}
+                {selectedRider.pickup_needed ? "Needs pickup" : "Has car · Can meet you"}
                 {selectedRider.distance !== undefined && ` · ${fmtDist(selectedRider.distance)} away`}
               </p>
             </div>
