@@ -176,18 +176,17 @@ const Events = () => {
             <div className="space-y-8">
               {[["This Week", 3], ["Next Week", 2]].map(([label, count]) => (
                 <div key={label as string} className="space-y-3">
-                  <div className="sk h-5 w-24" />
-                  <div
-                    className="flex gap-4 overflow-x-auto -mx-5 px-5 md:grid md:grid-cols-4 md:mx-0 md:px-0"
-                    style={{ scrollbarWidth: "none" }}
-                  >
+                  <div className="sk h-4 w-20 rounded-lg" />
+                  <div className="space-y-3">
                     {Array.from({ length: count as number }).map((_, i) => (
-                      <div key={i} className="flex-shrink-0 w-[65vw] md:w-auto">
-                        <div className="sk h-44 w-full rounded-2xl" />
-                        <div className="px-1 pt-2 space-y-1.5">
+                      <div key={i} className="flex items-center gap-3 bg-card rounded-2xl p-3" style={{ border: '1px solid hsl(0deg 0% 70% / 0.4)' }}>
+                        <div className="flex-1 space-y-2 min-w-0">
+                          <div className="sk h-3 w-1/4 rounded-lg" />
                           <div className="sk h-4 w-3/4 rounded-lg" />
                           <div className="sk h-3 w-1/2 rounded-lg" />
+                          <div className="sk h-3 w-1/4 rounded-lg" />
                         </div>
+                        <div className="sk w-16 h-16 rounded-xl flex-shrink-0" />
                       </div>
                     ))}
                   </div>
