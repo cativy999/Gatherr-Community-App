@@ -159,8 +159,10 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
   );
 };
 
+const isMobile = () => window.innerWidth < 768;
+
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(isMobile);
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
