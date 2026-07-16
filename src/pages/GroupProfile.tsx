@@ -79,32 +79,6 @@ const GroupProfile = () => {
       }
     };
 
-    const drawLogoWatermark = async () => {
-      await new Promise<void>((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          const logoW = 320;
-          const logoH = (img.height / img.width) * logoW;
-          const tmp = document.createElement("canvas");
-          tmp.width = logoW;
-          tmp.height = logoH;
-          const tctx = tmp.getContext("2d")!;
-          tctx.drawImage(img, 0, 0, logoW, logoH);
-          tctx.globalCompositeOperation = "source-in";
-          tctx.fillStyle = "white";
-          tctx.fillRect(0, 0, logoW, logoH);
-
-          ctx.globalAlpha = 0.55;
-          ctx.drawImage(tmp, 90, 90, logoW, logoH);
-          ctx.globalAlpha = 1;
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = "/BeyondSundaySplashLogo.png";
-      });
-    };
-
     const doShare = async () => {
       return new Promise<void>((resolve) => {
         canvas.toBlob(async (blob) => {
@@ -149,7 +123,6 @@ const GroupProfile = () => {
     }
 
     drawOverlayAndText();
-    await drawLogoWatermark();
     await doShare();
   };
 
