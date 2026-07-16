@@ -406,12 +406,11 @@ const Wards = () => {
                     style={{ scrollbarWidth: "none" }}
                   >
                     {Array.from({ length: count as number }).map((_, i) => (
-                      <div key={i} className="flex-shrink-0 w-[160px] md:w-auto rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
-                        <div className="sk h-28 rounded-none" style={{ borderRadius: 0 }} />
-                        <div className="p-3 space-y-2">
-                          <div className="sk h-4 w-3/4" />
-                          <div className="sk h-3 w-1/2" />
-                          <div className="sk h-3 w-1/3" />
+                      <div key={i} className="flex-shrink-0 w-[65vw] md:w-auto">
+                        <div className="sk h-44 w-full rounded-2xl" />
+                        <div className="px-1 pt-2 space-y-1.5">
+                          <div className="sk h-4 w-3/4 rounded-lg" />
+                          <div className="sk h-3 w-1/2 rounded-lg" />
                         </div>
                       </div>
                     ))}
