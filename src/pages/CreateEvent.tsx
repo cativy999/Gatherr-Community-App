@@ -207,7 +207,8 @@ const CreateEvent = () => {
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringDay, setRecurringDay] = useState("Sunday");
+  const [recurringDays, setRecurringDays] = useState<string[]>(["Sunday"]);
+  const [recurringWeekOfMonth, setRecurringWeekOfMonth] = useState<number | null>(null);
   const [scanning, setScanning] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -368,7 +369,12 @@ const CreateEvent = () => {
       setSelectedFoods(data.food ?? []);
       setFoodProvided((data.food ?? []).length > 0);
       setIsRecurring(data.is_recurring ?? false);
-      setRecurringDay(data.recurring_day ?? "Sunday");
+      setRecurringDays(
+        data.recurring_days?.length ? data.recurring_days
+        : data.recurring_day ? [data.recurring_day]
+        : ["Sunday"]
+      );
+      setRecurringWeekOfMonth(data.recurring_week_of_month ?? null);
       setTimezone(data.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
       setAdditionalInfo(data.additional_info ?? []);
       setCommunityId(data.community_id ?? null);
@@ -710,7 +716,9 @@ const CreateEvent = () => {
       food: selectedFoods, virtual_link: virtualLink || null,
       social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
       is_recurring: isRecurring,
-      recurring_day: isRecurring ? recurringDay : null,
+      recurring_days: isRecurring ? recurringDays : null,
+      recurring_day: isRecurring ? (recurringDays[0] ?? null) : null,
+      recurring_week_of_month: isRecurring ? recurringWeekOfMonth : null,
       timezone: timezone || null,
       additional_info: additionalInfo.filter(item => item.title.trim()).length > 0
         ? additionalInfo.filter(item => item.title.trim())
@@ -1106,21 +1114,42 @@ const CreateEvent = () => {
                 </button>
               </div>
 
-              {/* Day of week picker + time — shown when recurring */}
+              {/* Day of week picker + week-of-month + time — shown when recurring */}
               {isRecurring && (
                 <div className="space-y-4">
+                  {/* Day multi-select */}
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Repeats every</p>
+                    <p className="text-sm font-medium">Day(s)</p>
                     <div className="flex gap-2 flex-wrap">
                       {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => {
                         const full = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" }[d]!;
+                        const selected = recurringDays.includes(full);
                         return (
-                          <button key={d} type="button" onClick={() => setRecurringDay(full)}
-                            className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${recurringDay === full ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
+                          <button key={d} type="button"
+                            onClick={() => setRecurringDays(prev =>
+                              selected
+                                ? prev.length > 1 ? prev.filter(x => x !== full) : prev
+                                : [...prev, full]
+                            )}
+                            className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${selected ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
                             {d}
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Week of month — only meaningful for single-day selections */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Frequency</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {([{ label: "Every week", val: null }, { label: "1st", val: 1 }, { label: "2nd", val: 2 }, { label: "3rd", val: 3 }, { label: "4th", val: 4 }] as { label: string; val: number | null }[]).map(({ label, val }) => (
+                        <button key={label} type="button"
+                          onClick={() => setRecurringWeekOfMonth(val)}
+                          className={`h-10 px-3 rounded-xl text-sm font-semibold border transition-all ${recurringWeekOfMonth === val ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
+                          {label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 

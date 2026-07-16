@@ -2,6 +2,7 @@ import { Heart, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlat
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getRecurringLabel } from "@/lib/recurring";
 
 interface EventCardProps {
   event: {
@@ -25,6 +26,8 @@ interface EventCardProps {
     end_date?: string | null;
     is_recurring?: boolean;
     recurring_day?: string | null;
+    recurring_days?: string[] | null;
+    recurring_week_of_month?: number | null;
     location?: string | null;
     lat?: number | null;
     lng?: number | null;
@@ -184,7 +187,7 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
   const [y, m, d] = event.date.split("-").map(Number);
   const startDateObj = new Date(y, m - 1, d);
   const dateLine = event.is_recurring
-    ? `Every ${event.recurring_day}`
+    ? getRecurringLabel(event)
     : event.end_date
     ? (() => {
         const [ey, em, ed] = event.end_date.split("-").map(Number);

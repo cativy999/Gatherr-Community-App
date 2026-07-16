@@ -34,6 +34,8 @@ type Event = {
   duration?: string;
   is_recurring?: boolean;
   recurring_day?: string | null;
+  recurring_days?: string[] | null;
+  recurring_week_of_month?: number | null;
   timezone?: string | null;
   community_id?: string | null;
 };
@@ -83,7 +85,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, timezone, community_id")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id")
         .eq("status", "published")
         .eq("category", "ward")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
@@ -280,9 +282,11 @@ const Wards = () => {
 
     evts.forEach((e) => {
       if (e.is_recurring) {
-        const recurringDayNum = e.recurring_day ? (DAY_NUM[e.recurring_day] ?? -1) : -1;
-        // Only show in This Week if the recurring day hasn't passed yet this week (>= today)
-        if (recurringDayNum >= todayDayNum) thisWeek.push(e);
+        // Support multi-day: check if ANY of the recurring days hasn't passed yet this week
+        const days = e.recurring_days?.length ? e.recurring_days : (e.recurring_day ? [e.recurring_day] : []);
+        const dayNums = days.map(d => DAY_NUM[d] ?? -1).filter(n => n >= 0);
+        const hasRemainingDayThisWeek = dayNums.some(n => n >= todayDayNum);
+        if (hasRemainingDayThisWeek) thisWeek.push(e);
         // Always show in Next Week
         nextWeek.push(e);
         return;
