@@ -4,12 +4,16 @@ interface SplashScreenProps {
   onFinish: () => void;
 }
 
-const HOLD_MS = 1600;
-const EXIT_MS = 700;
+const HOLD_MS = 1800;
+const EXIT_MS = 500;
 
 const SplashScreen = ({ onFinish }: SplashScreenProps) => {
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
+
+  // Detect dark mode from the <html> class (Tailwind class-based dark mode)
+  const isDark = document.documentElement.classList.contains("dark")
+    || window.matchMedia("(prefers-color-scheme: dark)").matches;
 
   useEffect(() => {
     const showTimer = requestAnimationFrame(() => setVisible(true));
@@ -28,67 +32,26 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "#ffffff",
-        overflow: "hidden",
+        background: isDark ? "#111111" : "#ffffff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: exiting ? 0 : 1,
+        transition: `opacity ${EXIT_MS}ms ease`,
       }}
     >
-      {/* Striped background band */}
-      <div
+      <img
+        src="/spashscreen.png"
+        alt="Beyond Sunday"
         style={{
-          position: "absolute",
-          left: 0,
-          top: "58%",
-          width: "100%",
-          height: "48%",
-          transform: exiting ? "translateY(140%)" : "translateY(0)",
+          width: 120,
+          height: 120,
+          borderRadius: 28,
+          transform: visible ? "scale(1)" : "scale(0.82)",
           opacity: visible ? 1 : 0,
-          transition: `transform ${EXIT_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease`,
+          transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease",
         }}
-      >
-        <img
-          src="/Background.png"
-          alt=""
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-        />
-      </div>
-
-      {/* Beyond Sunday logo */}
-      <div
-        style={{
-          position: "absolute",
-          left: "9%",
-          top: "18%",
-          width: "82%",
-          transform: exiting ? "translateX(-160%)" : visible ? "translateX(0)" : "translateX(-30px)",
-          opacity: visible ? 1 : 0,
-          transition: `transform ${EXIT_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms ease`,
-        }}
-      >
-        <img
-          src="/BeyondSundaySplashLogo.png"
-          alt="Beyond Sunday"
-          style={{ width: "100%", height: "auto", display: "block" }}
-        />
-      </div>
-
-      {/* Splash items (umbrella, bike, skateboard) */}
-      <div
-        style={{
-          position: "absolute",
-          left: "9%",
-          top: "53%",
-          width: "82%",
-          transform: exiting ? "translateX(160%)" : visible ? "translateX(0)" : "translateX(30px)",
-          opacity: visible ? 1 : 0,
-          transition: `transform ${EXIT_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 500ms ease`,
-        }}
-      >
-        <img
-          src="/SplashItems.png"
-          alt=""
-          style={{ width: "100%", height: "auto", display: "block" }}
-        />
-      </div>
+      />
     </div>
   );
 };
