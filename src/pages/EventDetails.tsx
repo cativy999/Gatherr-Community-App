@@ -637,7 +637,9 @@ const EventDetails = () => {
       const maxW = canvas.width - pad * 2;
       const titleY = wrapText(event.title || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
 
-      const dateStr = eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      const dateStr = event.is_recurring && event.recurring_day
+        ? `Every ${event.recurring_day}`
+        : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
       ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.fillText(dateStr, pad, titleY + 80);
