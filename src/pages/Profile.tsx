@@ -20,6 +20,7 @@ const Profile = () => {
   const [publishedCount, setPublishedCount] = useState(0);
   const [groupCount, setGroupCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [adminActivityCount, setAdminActivityCount] = useState(0);
   const [pastEvents, setPastEvents] = useState<{ event_id: string; image_url: string; title: string }[]>([]);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +73,18 @@ const Profile = () => {
         .eq("read", false);
       setUnreadCount(nCount ?? 0);
 
+      // Admin activity badge — count new signups/events/feedback since last admin visit
+      if (user.email === ADMIN_EMAIL) {
+        const lastVisited = localStorage.getItem("admin_lastVisited");
+        if (lastVisited) {
+          const [{ count: newProfiles }, { count: newEvents }, { count: newFeedback }] = await Promise.all([
+            supabase.from("profiles").select("user_id", { count: "exact", head: true }).gt("created_at", lastVisited),
+            supabase.from("events").select("id", { count: "exact", head: true }).gt("created_at", lastVisited),
+            supabase.from("feedback").select("id", { count: "exact", head: true }).gt("created_at", lastVisited),
+          ]);
+          setAdminActivityCount((newProfiles ?? 0) + (newEvents ?? 0) + (newFeedback ?? 0));
+        }
+      }
 
       // Last 10 past events user RSVPed to
       const today = new Date().toISOString().split("T")[0];
@@ -180,6 +193,7 @@ const Profile = () => {
           {
             icon: ShieldCheck,
             label: "Admin Dashboard",
+            badge: adminActivityCount > 0 ? adminActivityCount : null,
             onPress: () => navigate("/admin"),
           },
         ]

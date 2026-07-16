@@ -109,6 +109,8 @@ const Admin = () => {
 
     const fetchAll = async () => {
       setLoading(true);
+      // Stamp visit time so Profile badge can compute "new since last visit"
+      localStorage.setItem("admin_lastVisited", new Date().toISOString());
 
       // Profiles (signups). created_at may or may not exist on this table —
       // fall back gracefully if the column isn't there.
