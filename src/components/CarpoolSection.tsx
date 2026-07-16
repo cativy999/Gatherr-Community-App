@@ -503,11 +503,6 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const myPostBadge = myPost?.type === "driver" ? pendingRiderRequests.length : pendingOffersToMe.length;
   const currentSeats = editingSeats ?? myPost?.seats ?? 3;
 
-  // ── Hide when there is zero carpool activity ──────────────────────────────
-  // Don't render anything if loading is done, the user has no post, and no
-  // one else has posted — an empty carpool section adds no value.
-  if (!loading && posts.length === 0 && !myPost) return null;
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
@@ -628,18 +623,20 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 {availableDriverCount === 0 && riderCount === 0
-                  ? "No carpool activity yet"
+                  ? posts.length === 0 && !myPost ? "Be the first to post!" : "No carpool activity yet"
                   : [
                       availableDriverCount > 0 && `${availableDriverCount} ${availableDriverCount === 1 ? "driver" : "drivers"} available`,
                       riderCount > 0 && `${riderCount} need a ride`,
                     ].filter(Boolean).join(" · ")}
               </p>
-              <button
-                onClick={() => setCarpoolOpen(true)}
-                className="text-sm font-semibold text-black flex items-center gap-0.5 hover:opacity-60 transition-opacity shrink-0 ml-3"
-              >
-                See all <ChevronRight className="h-4 w-4" />
-              </button>
+              {posts.length > 0 || myPost ? (
+                <button
+                  onClick={() => setCarpoolOpen(true)}
+                  className="text-sm font-semibold text-black flex items-center gap-0.5 hover:opacity-60 transition-opacity shrink-0 ml-3"
+                >
+                  See all <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
 
             {!myPost && session && (
