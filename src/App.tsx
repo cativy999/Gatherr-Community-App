@@ -7,9 +7,10 @@ import BottomNav from "@/components/BottomNav";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
-import { useEffect, useRef, type ReactNode, memo } from "react";
+import { useEffect, useRef, useState, type ReactNode, memo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import SplashScreen from "@/components/SplashScreen";
 import Welcome from "./pages/Welcome";
 import OnboardingAge from "./pages/OnboardingAge";
 import Wards from "./pages/Wards";
@@ -158,7 +159,9 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const App = () => (
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
@@ -166,6 +169,7 @@ const App = () => (
           <UserProfileProvider>
             <Toaster />
             <Sonner duration={1400} />
+            {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
             <BrowserRouter>
               <AuthListener />
               <DesktopSidebarLayout />
@@ -212,6 +216,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
