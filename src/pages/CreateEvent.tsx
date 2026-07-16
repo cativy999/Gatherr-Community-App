@@ -19,6 +19,7 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { getRecurringLabelFull } from "@/lib/recurring";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -1139,9 +1140,9 @@ const CreateEvent = () => {
                     </div>
                   </div>
 
-                  {/* Week of month — only meaningful for single-day selections */}
+                  {/* Week of month */}
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Frequency</p>
+                    <p className="text-sm font-medium">Which week of the month?</p>
                     <div className="flex gap-2 flex-wrap">
                       {([{ label: "Every week", val: null }, { label: "1st", val: 1 }, { label: "2nd", val: 2 }, { label: "3rd", val: 3 }, { label: "4th", val: 4 }] as { label: string; val: number | null }[]).map(({ label, val }) => (
                         <button key={label} type="button"
@@ -1151,6 +1152,10 @@ const CreateEvent = () => {
                         </button>
                       ))}
                     </div>
+                    {/* Live preview */}
+                    <p className="text-xs text-muted-foreground pt-0.5">
+                      Shows as: <span className="font-medium text-foreground">{getRecurringLabelFull({ recurring_days: recurringDays, recurring_week_of_month: recurringWeekOfMonth })}</span>
+                    </p>
                   </div>
 
                   {/* Time pickers for recurring event */}

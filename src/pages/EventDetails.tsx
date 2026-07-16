@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddressLink from "@/components/AddressLink";
 import ShareMenu from "@/components/ShareMenu";
 import CarpoolSection from "@/components/CarpoolSection";
-import { getRecurringLabel } from "@/lib/recurring";
+import { getRecurringLabel, getRecurringLabelFull } from "@/lib/recurring";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -639,7 +639,7 @@ const EventDetails = () => {
       const titleY = wrapText(event.title || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
 
       const dateStr = event.is_recurring
-        ? getRecurringLabel(event)
+        ? getRecurringLabelFull(event)
         : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
       ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -1032,7 +1032,7 @@ const EventDetails = () => {
     const fmtTime = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
     let dateStr: string;
     if (event.is_recurring) {
-      dateStr = getRecurringLabel(event);
+      dateStr = getRecurringLabelFull(event);
     } else if (event.end_date) {
       const [ey, em, ed] = event.end_date.split("-").map(Number);
       const endDateObj = new Date(ey, em - 1, ed);
@@ -1334,7 +1334,7 @@ const EventDetails = () => {
               <div className="flex flex-col gap-1.5 flex-1">
                 <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
                   {event.is_recurring
-                    ? getRecurringLabel(event)
+                    ? getRecurringLabelFull(event)
                     : event.end_date
                     ? (() => {
                         const [ey, em, ed] = event.end_date.split("-").map(Number);

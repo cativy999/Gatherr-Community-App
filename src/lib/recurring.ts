@@ -24,13 +24,40 @@ export function getRecurringDays(event: RecurringFields): string[] {
 }
 
 /**
- * Returns a human-readable label for a recurring event.
+ * Returns a compact card label for a recurring event.
  * Examples:
  *   "Every Wednesday"
  *   "Every Mon & Wed"
- *   "4th Thursday of the month"
+ *   "3rd Wed · monthly"
+ *   "4th Thu · monthly"
  */
 export function getRecurringLabel(event: RecurringFields): string {
+  const days = getRecurringDays(event);
+  if (!days.length) return "Recurring";
+
+  const week = event.recurring_week_of_month;
+
+  // For weekly events use full day name(s); for nth-week use abbreviations to save space
+  const daysStr = week
+    ? days.map((d) => SHORT[d] ?? d).join(" & ")
+    : days.length === 1
+    ? days[0]
+    : days.map((d) => SHORT[d] ?? d).join(" & ");
+
+  if (!week) return `Every ${daysStr}`;
+
+  const nth = ["", "1st", "2nd", "3rd", "4th"][week] ?? `${week}th`;
+  return `${nth} ${daysStr} · monthly`;
+}
+
+/**
+ * Returns a full descriptive label for use in previews and detail views.
+ * Examples:
+ *   "Every Wednesday"
+ *   "Every Mon & Wed"
+ *   "3rd Wednesday of each month"
+ */
+export function getRecurringLabelFull(event: RecurringFields): string {
   const days = getRecurringDays(event);
   if (!days.length) return "Recurring";
 
@@ -43,5 +70,5 @@ export function getRecurringLabel(event: RecurringFields): string {
   if (!week) return `Every ${daysStr}`;
 
   const nth = ["", "1st", "2nd", "3rd", "4th"][week] ?? `${week}th`;
-  return `${nth} ${daysStr} of the month`;
+  return `${nth} ${daysStr} of each month`;
 }
