@@ -36,6 +36,7 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        paddingBottom: "22%",
         opacity: exiting ? 0 : 1,
         transition: `opacity ${EXIT_MS}ms ease`,
       }}
