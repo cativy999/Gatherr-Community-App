@@ -33,8 +33,25 @@
 
   <style>
     body { background: #ffffff; }
+    @media (prefers-color-scheme: dark) { body { background: #111111; } }
+    #native-splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+      padding-bottom: 22%;
+    }
+    @media (prefers-color-scheme: dark) {
+      #native-splash { background: #111111; }
+    }
+    /* Only show on mobile screens */
+    @media (min-width: 768px) {
+      #native-splash { display: none; }
+    }
   </style>
   <body>
+    <div id="native-splash">
+      <img src="/spashscreen.png" width="120" height="120" style="border-radius:28px;" />
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -8,19 +8,19 @@ const HOLD_MS = 1800;
 const EXIT_MS = 500;
 
 const SplashScreen = ({ onFinish }: SplashScreenProps) => {
-  const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
 
-  // Detect dark mode from the <html> class (Tailwind class-based dark mode)
   const isDark = document.documentElement.classList.contains("dark")
     || window.matchMedia("(prefers-color-scheme: dark)").matches;
 
   useEffect(() => {
-    const showTimer = requestAnimationFrame(() => setVisible(true));
+    // Hide the static HTML splash that showed before React loaded
+    const htmlSplash = document.getElementById("native-splash");
+    if (htmlSplash) htmlSplash.style.display = "none";
+
     const exitTimer = setTimeout(() => setExiting(true), HOLD_MS);
     const finishTimer = setTimeout(() => onFinish(), HOLD_MS + EXIT_MS);
     return () => {
-      cancelAnimationFrame(showTimer);
       clearTimeout(exitTimer);
       clearTimeout(finishTimer);
     };
@@ -48,9 +48,6 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
           width: 120,
           height: 120,
           borderRadius: 28,
-          transform: visible ? "scale(1)" : "scale(0.82)",
-          opacity: visible ? 1 : 0,
-          transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease",
         }}
       />
     </div>
