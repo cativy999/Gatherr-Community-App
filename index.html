@@ -6,6 +6,7 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="theme-color" content="#4D4DDB" />
+    <meta name="color-scheme" content="light" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
         <title>Beyond Sunday</title>
     <meta name="description" content="Where LDS singles gather, connect and have fun. Find events, create events, join events. All in one place." />
@@ -32,16 +33,12 @@
   </head>
 
   <style>
-    body { background: #ffffff; }
-    @media (prefers-color-scheme: dark) { body { background: #111111; } }
+    body { background: #ffffff; color-scheme: light; }
     #native-splash {
       position: fixed; inset: 0; z-index: 9999;
       background: #ffffff;
       display: flex; align-items: center; justify-content: center;
       padding-bottom: 22%;
-    }
-    @media (prefers-color-scheme: dark) {
-      #native-splash { background: #111111; }
     }
     /* Only show on mobile screens */
     @media (min-width: 768px) {
