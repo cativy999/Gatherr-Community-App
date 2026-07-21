@@ -274,7 +274,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000" }}>
           <audio
             ref={audioRef}
-            src="/Step%20Challenge/WEARETHEGOOD%20-%20Bad%20Girls%20-%20No%20Lead%20Vocals.mp3"
+            src="/Step%20Challenge/luis_humanoide-the-heroic-cowboy-cinematic-western-music-509976.mp3"
             loop
             muted={muted}
           />
