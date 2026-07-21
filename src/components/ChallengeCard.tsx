@@ -64,6 +64,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const [showVideo, setShowVideo] = useState(false);
   const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     onHasJoinedChange?.(hasJoined);
@@ -90,13 +91,18 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       });
   }, [userId]);
 
-  // Lock body scroll while video overlay is open
+  // Lock body scroll while video overlay is open; sync audio with video
   useEffect(() => {
     if (showVideo) {
       document.body.style.overflow = "hidden";
       videoRef.current?.play().catch(() => {});
+      audioRef.current?.play().catch(() => {});
     } else {
       document.body.style.overflow = "";
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
     return () => { document.body.style.overflow = ""; };
   }, [showVideo]);
@@ -121,9 +127,17 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setMuted(videoRef.current.muted);
+    const next = !muted;
+    setMuted(next);
+    if (audioRef.current) audioRef.current.muted = next;
+  };
+
+  const closeOverlay = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setShowVideo(false);
   };
 
   return (
@@ -258,6 +272,12 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       {/* ── Full-screen video overlay (mobile only) ── */}
       {showVideo && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000" }}>
+          <audio
+            ref={audioRef}
+            src="/Step%20Challenge/WEARETHEGOOD%20-%20Bad%20Girls%20-%20No%20Lead%20Vocals.mp3"
+            loop
+            muted={muted}
+          />
           <video
             ref={videoRef}
             src={VIDEO_SRC}
@@ -272,7 +292,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "45%", background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%)", pointerEvents: "none" }} />
 
           {/* Close (top right) */}
-          <button onClick={() => setShowVideo(false)}
+          <button onClick={closeOverlay}
             style={{ position: "absolute", top: 52, right: 20, width: 40, height: 40, borderRadius: "50%", background: "rgba(0,0,0,0.45)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <X size={20} color="#fff" />
           </button>
@@ -286,7 +306,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           {/* Log Your Steps button */}
           <div style={{ position: "absolute", bottom: 60, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
             <button
-              onClick={() => { setShowVideo(false); navigate("/challenge"); }}
+              onClick={() => { closeOverlay(); navigate("/challenge"); }}
               style={{ background: "#fff", color: "#000", fontSize: 17, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", border: "none", borderRadius: 50, padding: "18px 48px", cursor: "pointer" }}
             >
               Log Your Steps
