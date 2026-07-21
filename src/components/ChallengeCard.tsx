@@ -307,7 +307,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           <div style={{ position: "absolute", bottom: 60, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
             <button
               onClick={() => { closeOverlay(); navigate("/challenge"); }}
-              style={{ background: "#fff", color: "#000", fontSize: 17, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", border: "none", borderRadius: 50, padding: "18px 48px", cursor: "pointer" }}
+              style={{ background: "#2E0F02", color: "#fff", fontSize: 17, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", border: "none", borderRadius: 50, padding: "18px 48px", cursor: "pointer" }}
             >
               Log Your Steps
             </button>
