@@ -5,9 +5,9 @@ import { supabase } from "@/lib/supabase";
 import VideoBackground from "@/components/VideoBackground";
 
 const WARDS = [
-  { id: "santa-monica", name: "YSA Santa Monica Ward", address: "3400 Sawtelle Blvd, Los Angeles, CA" },
-  { id: "south-bay", name: "YSA South Bay Ward", address: "2615 Marine Ave, Gardena, CA" },
-  { id: "glendale", name: "SA Glendale Ward", address: "1130 E Chevy Chase Dr, Glendale, CA" },
+  { id: "6ce56e22-5eea-4c53-ade0-069c5cf67f67", name: "YSA Santa Monica Ward", address: "3400 Sawtelle Blvd, Los Angeles, CA" },
+  { id: "9f294607-b74a-4ca2-8935-895cf23c6d37", name: "YSA South Bay Ward", address: "2615 Marine Ave, Gardena, CA" },
+  { id: "9c0a1145-e9a2-48d4-b31b-4ac6df608f15", name: "Glendale SA Ward", address: "1130 E Chevy Chase Dr, Glendale, CA" },
 ];
 
 const GROUPS = [
@@ -135,7 +135,7 @@ const Search = () => {
             {WARDS.map((ward) => (
               <button
                 key={ward.id}
-                onClick={() => navigate(`/ward/${ward.id}`)}
+                onClick={() => navigate(`/group/${ward.id}`)}
                 className="w-full flex items-center gap-3 bg-card rounded-2xl p-4 hover:shadow-md transition-shadow text-left"
               >
                 <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0" />
@@ -181,7 +181,7 @@ const Search = () => {
                 {filteredWards.map((ward) => (
                   <button
                     key={ward.id}
-                    onClick={() => navigate(`/ward/${ward.id}`)}
+                    onClick={() => navigate(`/group/${ward.id}`)}
                     className="w-full flex items-center gap-3 bg-card rounded-2xl p-4 hover:shadow-md transition-shadow text-left"
                   >
                     <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0" />

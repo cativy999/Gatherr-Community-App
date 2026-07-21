@@ -1,13 +1,10 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
 
-// Map slug → search keyword used to find the community by name
-const SLUG_TO_KEYWORD: Record<string, string> = {
-  "santa-monica": "Santa Monica",
-  "south-bay": "South Bay",
-  "glendale": "Glendale",
+const SLUG_TO_GROUP_ID: Record<string, string> = {
+  "santa-monica": "6ce56e22-5eea-4c53-ade0-069c5cf67f67",
+  "south-bay":    "9f294607-b74a-4ca2-8935-895cf23c6d37",
+  "glendale":     "9c0a1145-e9a2-48d4-b31b-4ac6df608f15",
 };
 
 const WardProfile = () => {
@@ -15,34 +12,15 @@ const WardProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!slug) return;
-
-    const keyword = SLUG_TO_KEYWORD[slug] ?? slug;
-
-    const findAndRedirect = async () => {
-      const { data } = await supabase
-        .from("communities")
-        .select("id")
-        .ilike("name", `%${keyword}%`)
-        .limit(1)
-        .single();
-
-      if (data?.id) {
-        navigate(`/group/${data.id}`, { replace: true });
-      } else {
-        // Community not found — go back
-        navigate(-1);
-      }
-    };
-
-    findAndRedirect();
+    const groupId = SLUG_TO_GROUP_ID[slug ?? ""];
+    if (groupId) {
+      navigate(`/group/${groupId}`, { replace: true });
+    } else {
+      navigate(-1);
+    }
   }, [slug, navigate]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  );
+  return null;
 };
 
 export default WardProfile;
