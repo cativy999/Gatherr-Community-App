@@ -22,10 +22,26 @@ const Search = () => {
   const [activeChip, setActiveChip] = useState<"wards" | "groups">("wards");
   const [eventResults, setEventResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [wardAvatars, setWardAvatars] = useState<Record<string, string | null>>({});
 
   // Auto focus on mount
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Fetch avatar_url for each ward from the groups table
+  useEffect(() => {
+    const ids = WARDS.map((w) => w.id);
+    supabase
+      .from("groups")
+      .select("id, avatar_url")
+      .in("id", ids)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string | null> = {};
+        data.forEach((g: any) => { map[g.id] = g.avatar_url ?? null; });
+        setWardAvatars(map);
+      });
   }, []);
 
   // Search events from Supabase when query changes
@@ -138,7 +154,11 @@ const Search = () => {
                 onClick={() => navigate(`/group/${ward.id}`)}
                 className="w-full flex items-center gap-3 bg-card rounded-2xl p-4 hover:shadow-md transition-shadow text-left"
               >
-                <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0" />
+                <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0 overflow-hidden">
+                  {wardAvatars[ward.id] && (
+                    <img src={wardAvatars[ward.id]!} alt={ward.name} className="w-full h-full object-cover" />
+                  )}
+                </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{ward.name}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
