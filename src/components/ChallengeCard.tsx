@@ -62,6 +62,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -138,6 +139,20 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       audioRef.current.currentTime = 0;
     }
     setShowVideo(false);
+    setIsExiting(false);
+  };
+
+  const handleLogSteps = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsExiting(true);
+    setTimeout(() => {
+      setShowVideo(false);
+      setIsExiting(false);
+      navigate("/challenge");
+    }, 650);
   };
 
   return (
@@ -272,6 +287,23 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       {/* ── Full-screen video overlay (mobile only) ── */}
       {showVideo && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#000" }}>
+          <style>{`
+            @keyframes circleReveal {
+              from { clip-path: circle(0% at 50% 88%); }
+              to   { clip-path: circle(150% at 50% 88%); }
+            }
+          `}</style>
+
+          {/* Circle reveal that bursts open when tapping Log Your Steps */}
+          {isExiting && (
+            <div style={{
+              position: "absolute", inset: 0, zIndex: 10,
+              background: "#F1E6C6",
+              animation: "circleReveal 0.65s cubic-bezier(0.4, 0, 0.6, 1) forwards",
+              pointerEvents: "none",
+            }} />
+          )}
+
           <audio
             ref={audioRef}
             src="/Step%20Challenge/luis_humanoide-the-heroic-cowboy-cinematic-western-music-509976.mp3"
@@ -306,7 +338,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           {/* Log Your Steps button */}
           <div style={{ position: "absolute", bottom: 60, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
             <button
-              onClick={() => { closeOverlay(); navigate("/challenge"); }}
+              onClick={handleLogSteps}
               style={{ background: "#2E0F02", color: "#fff", fontSize: 17, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", border: "none", borderRadius: 50, padding: "18px 48px", cursor: "pointer" }}
             >
               Log Your Steps
