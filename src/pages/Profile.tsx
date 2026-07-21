@@ -9,8 +9,6 @@ import { toast } from "sonner";
 import VideoBackground from "@/components/VideoBackground";
 import { createPortal } from "react-dom";
 
-const QR_URL = "https://gatherr-one.vercel.app";
-
 const QRModal = ({ onClose }: { onClose: () => void }) => {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -19,39 +17,28 @@ const QRModal = ({ onClose }: { onClose: () => void }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
       onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-3xl p-6 max-w-xs w-full flex flex-col items-center gap-4 shadow-2xl"
+        className="relative max-w-sm w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          className="absolute -top-3 -right-3 z-10 p-2 rounded-full bg-white shadow-lg hover:bg-gray-100 transition-colors"
+          aria-label="Close"
         >
-          <X className="h-4 w-4 text-gray-600" />
+          <X className="h-5 w-5 text-gray-700" />
         </button>
 
-        {/* Logo */}
-        <img src="/spashscreen.png" alt="Beyond Sunday" className="w-16 h-16 rounded-2xl" />
-
-        <div className="text-center">
-          <p className="font-bold text-lg" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Beyond Sunday</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Scan to join the community</p>
-        </div>
-
-        {/* QR code via Google Charts API */}
-        <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-inner">
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(QR_URL)}&color=4D4DDB&bgcolor=ffffff&margin=1`}
-            alt="QR Code"
-            className="w-48 h-48"
-          />
-        </div>
-
-        <p className="text-xs text-muted-foreground">gatherr-one.vercel.app</p>
+        {/* The card we designed */}
+        <img
+          src="/beyondsunday_card.png"
+          alt="Beyond Sunday QR Code"
+          className="w-full rounded-3xl shadow-2xl"
+        />
       </div>
     </div>,
     document.body
