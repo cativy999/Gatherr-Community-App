@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2, ShieldCheck } from "lucide-react";
+import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2, ShieldCheck, QrCode, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -7,11 +7,62 @@ import { ADMIN_EMAIL } from "@/lib/admin";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import VideoBackground from "@/components/VideoBackground";
+import { createPortal } from "react-dom";
+
+const QR_URL = "https://gatherr-one.vercel.app";
+
+const QRModal = ({ onClose }: { onClose: () => void }) => {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-3xl p-6 max-w-xs w-full flex flex-col items-center gap-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          <X className="h-4 w-4 text-gray-600" />
+        </button>
+
+        {/* Logo */}
+        <img src="/spashscreen.png" alt="Beyond Sunday" className="w-16 h-16 rounded-2xl" />
+
+        <div className="text-center">
+          <p className="font-bold text-lg" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Beyond Sunday</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Scan to join the community</p>
+        </div>
+
+        {/* QR code via Google Charts API */}
+        <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-inner">
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(QR_URL)}&color=4D4DDB&bgcolor=ffffff&margin=1`}
+            alt="QR Code"
+            className="w-48 h-48"
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground">gatherr-one.vercel.app</p>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 const Profile = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const user = session?.user;
+  const [showQR, setShowQR] = useState(false);
 
   const [name, setName] = useState("");
   const [ward, setWard] = useState("");
@@ -205,10 +256,19 @@ const Profile = () => {
       <VideoBackground />
       {/* Header */}
       <header className="px-5 py-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Profile</h1>
+          <button
+            onClick={() => setShowQR(true)}
+            className="p-2 rounded-full hover:bg-white/40 transition-colors"
+            aria-label="Show QR code"
+          >
+            <QrCode className="h-6 w-6" />
+          </button>
         </div>
       </header>
+
+      {showQR && <QRModal onClose={() => setShowQR(false)} />}
 
       <div className="max-w-4xl mx-auto w-full px-5">
 
