@@ -210,7 +210,6 @@ const PublishedEventsPage = () => {
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-muted-foreground">{label}</span>
-          <div className="flex-1 h-px bg-border" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {items.map((e) => <EventCard key={e.id} event={e} />)}
@@ -223,7 +222,7 @@ const PublishedEventsPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-10">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <div className="flex items-center gap-3 max-w-4xl mx-auto px-5 py-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-accent transition-colors">
             <ArrowLeft className="h-5 w-5" />
