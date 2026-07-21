@@ -50,7 +50,8 @@ interface ChallengeCardProps {
   onHasJoinedChange?: (joined: boolean) => void;
 }
 
-const VIDEO_SRC = "/Step%20Challenge/Mobile%20Firefly%20A%20cinematic%20wide%20shot%20of%20a%20group%20of%20pioneers%20walking%20forward%20together%20across%20an%20open%20landsca.mp4";
+const MOBILE_VIDEO_SRC = "/Step%20Challenge/Mobile%20Firefly%20A%20cinematic%20wide%20shot%20of%20a%20group%20of%20pioneers%20walking%20forward%20together%20across%20an%20open%20landsca.mp4";
+const DESKTOP_VIDEO_SRC = "/Step%20Challenge/DesktopFirefly%20A%20cinematic%20wide%20shot%20of%20a%20group%20of%20pioneers%20walking%20forward%20together%20across%20an%20open%20landsca%20(1).mp4";
 
 const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const navigate = useNavigate();
@@ -114,16 +115,13 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const pioneerPct = Math.max(5, Math.min(88, pct));
 
   const isMobile = window.innerWidth < 768;
+  const videoSrc = isMobile ? MOBILE_VIDEO_SRC : DESKTOP_VIDEO_SRC;
 
-  const handleClick = () => {
-    if (isMobile) setShowVideo(true);
-    else navigate("/challenge");
-  };
+  const handleClick = () => setShowVideo(true);
 
   const handleBtn = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isMobile) setShowVideo(true);
-    else navigate("/challenge");
+    setShowVideo(true);
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -312,7 +310,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           />
           <video
             ref={videoRef}
-            src={VIDEO_SRC}
+            src={videoSrc}
             autoPlay
             loop
             playsInline
