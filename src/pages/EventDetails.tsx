@@ -2089,11 +2089,8 @@ const EventDetails = () => {
           {/* Similar Events */}
           {similarEvents.length > 0 && (
             <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+              <div className="pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
                 <h2 className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Similar Events</h2>
-                <button onClick={() => navigate("/wards")} className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                  See all →
-                </button>
               </div>
               <div className="flex gap-3 overflow-x-auto -mx-6 px-6 pb-2" style={{ scrollbarWidth: 'none' }}>
                 {similarEvents.map((e) => {

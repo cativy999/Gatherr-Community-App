@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, Star, X, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAuthGate } from "@/hooks/useAuthGate";
 
 const TRAIL_STEPS = 2_600_000;
 const STEPS_PER_MILE = 2000;
@@ -58,7 +57,6 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
-  const { requireAuth, GateSheet } = useAuthGate();
 
   const [totalSteps, setTotalSteps] = useState<number | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
@@ -119,11 +117,11 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const isMobile = window.innerWidth < 768;
   const videoSrc = isMobile ? MOBILE_VIDEO_SRC : DESKTOP_VIDEO_SRC;
 
-  const handleClick = () => requireAuth(() => setShowVideo(true));
+  const handleClick = () => setShowVideo(true);
 
   const handleBtn = (e: React.MouseEvent) => {
     e.stopPropagation();
-    requireAuth(() => setShowVideo(true));
+    setShowVideo(true);
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -143,6 +141,13 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   };
 
   const handleLogSteps = () => {
+    if (!session) {
+      // Guest — send to login
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+      setShowVideo(false);
+      navigate("/");
+      return;
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -157,7 +162,6 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
 
   return (
     <>
-      {GateSheet}
       <div
         onClick={handleClick}
         style={{
@@ -342,7 +346,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
               onClick={handleLogSteps}
               style={{ background: "#2E0F02", color: "#fff", fontSize: 17, fontWeight: 700, fontFamily: "'Hanken Grotesk', sans-serif", border: "none", borderRadius: 50, padding: "18px 48px", cursor: "pointer" }}
             >
-              Log Your Steps
+              {session ? "Log Your Steps" : "Login to Participate"}
             </button>
           </div>
         </div>,
