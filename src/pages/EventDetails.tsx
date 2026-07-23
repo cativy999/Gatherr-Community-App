@@ -12,6 +12,7 @@ import AddressLink from "@/components/AddressLink";
 import ShareMenu from "@/components/ShareMenu";
 import CarpoolSection from "@/components/CarpoolSection";
 import { getRecurringLabel, getRecurringLabelFull } from "@/lib/recurring";
+import { useAuthGate } from "@/hooks/useAuthGate";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -106,6 +107,7 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const { requireAuth, GateSheet } = useAuthGate();
   const isGuest = !session;
 
   const [event, setEvent] = useState<any>(null);
@@ -452,7 +454,7 @@ const EventDetails = () => {
   };
 
   const handleRsvp = async (status: "going" | "interested") => {
-    if (!userId) { toast.error("Please log in to RSVP"); return; }
+    if (!userId) { requireAuth(); return; }
     setRsvpLoading(status);
     try {
       if (rsvpStatus === status) {
@@ -1027,6 +1029,7 @@ const EventDetails = () => {
       className="relative flex min-h-screen flex-col pb-24"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      {GateSheet}
       {/* Full-bleed ambient background — fixed so it extends under the desktop
           sidebar too, instead of stopping at the content column's left edge. */}
       <div

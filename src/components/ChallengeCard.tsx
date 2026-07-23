@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, Star, X, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthGate } from "@/hooks/useAuthGate";
 
 const TRAIL_STEPS = 2_600_000;
 const STEPS_PER_MILE = 2000;
@@ -57,6 +58,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const { requireAuth, GateSheet } = useAuthGate();
 
   const [totalSteps, setTotalSteps] = useState<number | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
@@ -117,11 +119,11 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const isMobile = window.innerWidth < 768;
   const videoSrc = isMobile ? MOBILE_VIDEO_SRC : DESKTOP_VIDEO_SRC;
 
-  const handleClick = () => setShowVideo(true);
+  const handleClick = () => requireAuth(() => setShowVideo(true));
 
   const handleBtn = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowVideo(true);
+    requireAuth(() => setShowVideo(true));
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -155,6 +157,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
 
   return (
     <>
+      {GateSheet}
       <div
         onClick={handleClick}
         style={{

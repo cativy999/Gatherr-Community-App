@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2, ShieldCheck, QrCode, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_EMAIL } from "@/lib/admin";
@@ -47,9 +47,12 @@ const QRModal = ({ onClose }: { onClose: () => void }) => {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading: sessionLoading } = useAuth();
   const user = session?.user;
   const [showQR, setShowQR] = useState(false);
+
+  // Redirect guests straight to login
+  if (!sessionLoading && !session) return <Navigate to="/" replace />;
 
   const [name, setName] = useState("");
   const [ward, setWard] = useState("");

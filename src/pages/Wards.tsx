@@ -60,8 +60,7 @@ const Wards = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [stepChallengeJoined, setStepChallengeJoined] = useState(false);
-  const [signInDismissed, setSignInDismissed] = useState(false);
-  const isLoggedIn = !!session || signInDismissed;
+  const isLoggedIn = true;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation, locationLat, locationLng } = useLocation();
@@ -518,28 +517,6 @@ const Wards = () => {
         </div>
       </main>
 
-      {/* Floating sign-in card for guests — fixed so it stays visible while scrolling */}
-      {!session && !signInDismissed && (
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50 pointer-events-auto">
-          <div className="bg-white rounded-2xl shadow-2xl p-5 text-center space-y-3 max-w-sm w-full border border-gray-100">
-            <p className="font-bold text-lg" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>See what's coming up 👀</p>
-            <img src="/Nonlogginpopup.png" alt="Upcoming events preview" className="w-full rounded-xl object-cover" />
-            <p className="text-sm text-muted-foreground">Sign in to see all events, RSVP, and connect with your community</p>
-            <button
-              onClick={() => navigate("/")}
-              className="w-full py-3 bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setSignInDismissed(true)}
-              className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );

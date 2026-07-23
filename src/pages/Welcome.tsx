@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type Step = "home" | "email" | "sent" | "verified";
 
@@ -57,6 +58,7 @@ const MarqueeBanner = () => {
 };
 
 const Welcome = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("home");
   const [email, setEmail] = useState(localStorage.getItem("last_used_email") || "");
   const [loading, setLoading] = useState(false);
@@ -159,6 +161,14 @@ const Welcome = () => {
         <p className="text-center text-sm text-muted-foreground pt-4">
           By continuing, you agree to our <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.
         </p>
+        <div className="text-center pt-2">
+          <button
+            onClick={() => navigate("/wards")}
+            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+          >
+            Skip for now
+          </button>
+        </div>
       </div>
       </div>
     </div>

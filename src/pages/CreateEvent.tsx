@@ -20,7 +20,7 @@ import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { getRecurringLabelFull } from "@/lib/recurring";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -750,6 +750,9 @@ const CreateEvent = () => {
     }
     setLoading(false);
   };
+
+  // Guests can't create or edit events
+  if (!sessionLoading && !session) return <Navigate to="/" replace />;
 
   if (isAuthorized === null) {
     return (
