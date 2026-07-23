@@ -1888,8 +1888,8 @@ const EventDetails = () => {
             </div>
           )}
 
-{/* Carpool */}
-          {!event?.virtual_link && id && (
+{/* Carpool — only show to logged-in users */}
+          {session && !event?.virtual_link && id && (
             <CarpoolSection eventId={id} />
           )}
 
