@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, MoreVertical, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, MoreVertical, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { isOwnerUserId } from "@/lib/admin";
@@ -61,10 +61,65 @@ const LodgingOption = () => {
     { name: "Bedroom 1", size: "large", sleeps: 2 },
   ]);
   const [saving, setSaving] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
   const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
 
   // Guard
   if (!isOwnerUserId(session?.user?.id)) return <Navigate to="/wards" replace />;
+
+  // ── Auto-fill from URL via microlink ─────
+  const handleAutoFill = async () => {
+    const url = propertyUrl.trim();
+    if (!url) { toast.error("Paste a URL first"); return; }
+    setFetchLoading(true);
+    try {
+      const res = await fetch(
+        `https://api.microlink.io?url=${encodeURIComponent(url)}`
+      );
+      const json = await res.json();
+      if (json.status !== "success" || !json.data) {
+        toast.error("Couldn't fetch details — fill in manually");
+        return;
+      }
+      const { title, description, image } = json.data;
+      let filled = 0;
+
+      // Property name: strip "Airbnb | " prefix and junk after "·"
+      if (title && !propertyName) {
+        const cleaned = title
+          .replace(/^Airbnb\s*\|\s*/i, "")
+          .split("·")[0]
+          .trim();
+        if (cleaned) { setPropertyName(cleaned); filled++; }
+      }
+
+      // Hero image
+      if (image?.url && !imageUrl) {
+        setImageUrl(image.url);
+        filled++;
+      }
+
+      // Max guest count from title or description
+      const combined = `${title ?? ""} ${description ?? ""}`;
+      const guestMatch = combined.match(/(\d+)\s+guests?/i);
+      if (guestMatch) {
+        const cap = parseInt(guestMatch[1]);
+        setMaxCapacity(cap);
+        setGuestsAssigned((prev) => Math.min(prev, cap));
+        filled++;
+      }
+
+      if (filled > 0) {
+        toast.success(`Auto-filled ${filled} field${filled > 1 ? "s" : ""} — review and adjust`);
+      } else {
+        toast.info("Nothing new to fill in — details already set");
+      }
+    } catch {
+      toast.error("Couldn't reach the URL — fill in manually");
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   // ── Load existing option ──────────────────
   useEffect(() => {
@@ -261,6 +316,21 @@ const LodgingOption = () => {
             placeholder={ph.url}
             className="w-full h-11 px-4 rounded-xl border border-border bg-card text-sm outline-none focus:border-primary transition-colors"
           />
+          {/* Auto-fill button — only for Airbnb/hotel URLs */}
+          {currentType !== "custom" && propertyUrl.trim() && (
+            <button
+              onClick={handleAutoFill}
+              disabled={fetchLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {fetchLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {fetchLoading ? "Fetching details…" : "Auto-fill name & photo from URL"}
+            </button>
+          )}
         </div>
 
         {/* Total cost + Nights */}
