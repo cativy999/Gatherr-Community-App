@@ -163,7 +163,11 @@ const LodgingSetup = () => {
           .from("lodging_groups")
           .update({ group_name: groupName || "My Lodging Group", people_count: peopleCount, rules })
           .eq("id", groupId);
-        if (error) { toast.error("Failed to save"); return null; }
+        if (error) {
+          console.error("lodging_groups update error:", error);
+          toast.error(error.message || "Failed to save");
+          return null;
+        }
         return groupId;
       } else {
         const { data, error } = await supabase
@@ -177,10 +181,18 @@ const LodgingSetup = () => {
           })
           .select("id")
           .single();
-        if (error || !data) { toast.error("Failed to save"); return null; }
+        if (error || !data) {
+          console.error("lodging_groups insert error:", error);
+          toast.error(error?.message || "Failed to save — did you run the SQL in Supabase?");
+          return null;
+        }
         setGroupId(data.id);
         return data.id;
       }
+    } catch (e: any) {
+      console.error("saveGroup exception:", e);
+      toast.error(e?.message || "Unexpected error");
+      return null;
     } finally {
       setSaving(false);
     }
