@@ -37,6 +37,8 @@ import OOTDHome from "./pages/OOTDHome";
 import OOTDReview from "./pages/OOTDReview";
 import CohostInvite from "./pages/CohostInvite";
 import GroupAdminInvite from "./pages/GroupAdminInvite";
+import LodgingSetup from "./pages/LodgingSetup";
+import LodgingOption from "./pages/LodgingOption";
 import FeedbackButton from "@/components/FeedbackButton";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -207,6 +209,10 @@ const App = () => {
                 <Route path="/group/:id" element={<GroupProfile />} />
                 <Route path="/cohost-invite/:token" element={<CohostInvite />} />
                 <Route path="/group-admin-invite/:inviteId" element={<GroupAdminInvite />} />
+                {/* Lodging — feature flagged to admin/owner accounts */}
+                <Route path="/event/:eventId/lodging/:groupId" element={<LodgingSetup />} />
+                <Route path="/event/:eventId/lodging/:groupId/option/new/:type" element={<LodgingOption />} />
+                <Route path="/event/:eventId/lodging/:groupId/option/:optionId/edit" element={<LodgingOption />} />
               </Routes>
               </PageTransition>
               </ContentLayout>

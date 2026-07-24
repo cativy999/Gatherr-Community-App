@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddressLink from "@/components/AddressLink";
 import ShareMenu from "@/components/ShareMenu";
 import CarpoolSection from "@/components/CarpoolSection";
+import LodgingSection from "@/components/LodgingSection";
 import { getRecurringLabel, getRecurringLabelFull } from "@/lib/recurring";
 import { useAuthGate } from "@/hooks/useAuthGate";
 
@@ -1892,6 +1893,9 @@ const EventDetails = () => {
           {session && !event?.virtual_link && id && (
             <CarpoolSection eventId={id} />
           )}
+
+          {/* Lodging — feature-flagged to owner accounts */}
+          {id && <LodgingSection eventId={id} />}
 
 {/* Comments */}
           <div className="space-y-6 pt-4">
