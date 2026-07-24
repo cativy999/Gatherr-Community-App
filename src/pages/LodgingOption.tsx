@@ -165,7 +165,11 @@ const LodgingOption = () => {
   const totalCostNum = parseFloat(totalCost) || 0;
   const nightsNum = parseInt(nights) || 1;
   const perNight = totalCostNum > 0 ? totalCostNum / nightsNum : 0;
-  const perPersonPerNight = perNight > 0 && guestsAssigned > 0 ? perNight / guestsAssigned : 0;
+  // Room's share of total = (sleeps in room / total guests assigned) × total property cost
+  const roomCostForStay = (space: SleepingSpace) =>
+    totalCostNum > 0 && guestsAssigned > 0
+      ? (space.sleeps / guestsAssigned) * totalCostNum
+      : 0;
 
   // ── Save ──────────────────────────────────
   const handleSave = async () => {
@@ -397,7 +401,7 @@ const LodgingOption = () => {
           </p>
 
           {sleepingSpaces.map((space, idx) => {
-            const roomTotalPerNight = perPersonPerNight * space.sleeps;
+            const roomTotal = roomCostForStay(space);
             return (
               <div key={idx} className="rounded-2xl border border-border bg-card overflow-hidden">
                 {/* Room name row */}
@@ -473,23 +477,15 @@ const LodgingOption = () => {
                   </div>
                 </div>
 
-                {/* Per-room pricing rows */}
-                {totalCostNum > 0 && (
+                {/* Per-room total cost */}
+                {totalCostNum > 0 && roomTotal > 0 && (
                   <>
                     <div className="h-px bg-border mx-4" />
-                    <div className="px-4 py-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Per person / night</span>
-                        <span className="text-sm text-muted-foreground">
-                          ${perPersonPerNight.toFixed(0)}/person
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Total</span>
-                        <span className="text-sm font-bold">
-                          ${roomTotalPerNight.toFixed(0)} / per person
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-muted-foreground">Room total</span>
+                      <span className="text-sm font-bold">
+                        ${roomTotal.toFixed(0)} for {nightsNum} {nightsNum === 1 ? "night" : "nights"}
+                      </span>
                     </div>
                   </>
                 )}
