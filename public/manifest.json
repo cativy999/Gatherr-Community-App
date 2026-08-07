@@ -4,8 +4,8 @@
   "description": "Where LDS singles gather, connect and have fun. Find events, create events, join events.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1F4E5B",
-  "theme_color": "#1F4E5B",
+  "background_color": "#FAF6F0",
+  "theme_color": "#FAF6F0",
   "icons": [
     {
       "src": "/icons/icon-192.png",
