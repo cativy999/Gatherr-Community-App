@@ -1,6 +1,7 @@
+import { CE_BG,CE_LIGHT } from '../tokens';
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, MoreVertical, Trash2, Loader2 } from "lucide-react";
+import { ChevronLeft, MoreVertical, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { isOwnerUserId } from "@/lib/admin";
@@ -8,6 +9,15 @@ import { toast } from "sonner";
 
 type RoomSize = "large" | "medium" | "small";
 type OptionType = "airbnb" | "hotel" | "custom";
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const ICON_BG = "#E4DCCF";
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const DIVIDER = CE_LIGHT;
+const SERIF   = "'EB Garamond', Georgia, serif";
 
 interface SleepingSpace {
   id?: string;
@@ -165,7 +175,6 @@ const LodgingOption = () => {
   const totalCostNum = parseFloat(totalCost) || 0;
   const nightsNum = parseInt(nights) || 1;
   const perNight = totalCostNum > 0 ? totalCostNum / nightsNum : 0;
-  // Room's share of total = (sleeps in room / total guests assigned) × total property cost
   const roomCostForStay = (space: SleepingSpace) =>
     totalCostNum > 0 && guestsAssigned > 0
       ? (space.sleeps / guestsAssigned) * totalCostNum
@@ -227,49 +236,45 @@ const LodgingOption = () => {
 
   const currentType = displayType;
   const ph = TYPE_PLACEHOLDERS[currentType];
-  const headerTitle = propertyName || TYPE_LABELS[currentType];
 
   return (
-    <div className="min-h-screen bg-background pb-28">
-      {/* datalist for room name suggestions */}
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 112 }}>
       <datalist id="room-presets">
         {ROOM_PRESETS.map((r) => <option key={r} value={r} />)}
       </datalist>
 
-      {/* ── Desktop: two-column wrapper ── */}
+      {/* Desktop two-column wrapper */}
       <div className="md:grid md:grid-cols-2 md:min-h-screen">
 
-        {/* ════════════════════════════════
-            LEFT COLUMN: image + listing info
-            ════════════════════════════════ */}
-        <div className="md:border-r md:border-border">
+        {/* ══ LEFT COLUMN: image + listing info ══ */}
+        <div style={{ borderRight: `1px solid ${DIVIDER}` }}>
           {/* Back button */}
-          <div className="px-5 pt-6 pb-3 flex items-center gap-2">
+          <div className="px-5 pt-6 pb-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+              style={{ background: ICON_BG }}
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
             </button>
             {fetchLoading && (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />
+              <Loader2 className="h-4 w-4 animate-spin ml-auto" style={{ color: MID }} />
             )}
           </div>
 
           {/* Hero image */}
-          <div className="w-full aspect-video md:aspect-[4/3] overflow-hidden bg-muted relative">
+          <div className="w-full aspect-video md:aspect-[4/3] overflow-hidden relative" style={{ background: ICON_BG }}>
             {imageUrl ? (
               <img src={imageUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                 <span className="text-6xl">
                   {currentType === "hotel" ? "🏨" : currentType === "custom" ? "📍" : "🏡"}
                 </span>
                 {fetchLoading ? (
-                  <p className="text-xs animate-pulse">Fetching photo…</p>
+                  <p className="text-xs animate-pulse" style={{ color: MID }}>Fetching photo…</p>
                 ) : (
-                  <p className="text-xs">
+                  <p className="text-xs" style={{ color: MID }}>
                     {currentType === "custom" ? "Custom location" : "Paste a URL to auto-fill"}
                   </p>
                 )}
@@ -277,23 +282,29 @@ const LodgingOption = () => {
             )}
           </div>
 
-          {/* Property info below hero */}
+          {/* Property info */}
           <div className="px-5 py-5 space-y-5">
-            {/* Property name — large, editable */}
+            {/* Property name */}
             <div>
               <input
                 type="text"
                 value={propertyName}
                 onChange={(e) => setPropertyName(e.target.value)}
                 placeholder={ph.name}
-                className="w-full text-2xl font-bold bg-transparent outline-none border-b-2 border-transparent focus:border-foreground/20 transition-colors pb-1 placeholder:text-muted-foreground/40"
-                style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}
+                className="w-full text-2xl font-bold bg-transparent outline-none pb-1 transition-colors"
+                style={{
+                  fontFamily: SERIF,
+                  color: DARK,
+                  borderBottom: `2px solid ${DIVIDER}`,
+                }}
+                onFocus={(e) => (e.target.style.borderBottomColor = TEAL)}
+                onBlur={(e) => (e.target.style.borderBottomColor = DIVIDER)}
               />
             </div>
 
-            {/* Listing URL (auto-fills name & photo) */}
+            {/* Listing URL */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: MID }}>
                 {currentType === "custom" ? "Address" : "Listing URL"}
               </label>
               <div className="relative">
@@ -302,16 +313,17 @@ const LodgingOption = () => {
                   value={propertyUrl}
                   onChange={(e) => setPropertyUrl(e.target.value)}
                   placeholder={ph.url}
-                  className="w-full h-11 px-4 rounded-xl border border-border bg-card text-sm outline-none focus:ring-1 focus:ring-foreground/30 transition-all pr-10"
+                  className="w-full h-11 px-4 rounded-xl text-sm outline-none transition-all pr-10"
+                  style={{ border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK }}
                 />
                 {fetchLoading && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-4 w-4 animate-spin" style={{ color: MID }} />
                   </div>
                 )}
               </div>
               {currentType !== "custom" && !propertyUrl && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: MID }}>
                   Paste the link — name &amp; photo fill in automatically
                 </p>
               )}
@@ -321,38 +333,46 @@ const LodgingOption = () => {
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="Photo URL (auto-filled)"
-                  className="w-full h-9 px-3 rounded-lg border border-border bg-muted/40 text-xs outline-none focus:ring-1 focus:ring-foreground/30 transition-all text-muted-foreground"
+                  className="w-full h-9 px-3 rounded-lg text-xs outline-none transition-all"
+                  style={{ border: `1px solid ${DIVIDER}`, background: ICON_BG, color: MID }}
                 />
               )}
             </div>
 
             {/* Guests Assigned */}
-            <div className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-border bg-card">
+            <div
+              className="flex items-center justify-between px-4 py-3.5 rounded-xl"
+              style={{ border: `1px solid ${DIVIDER}`, background: "#fff" }}
+            >
               <div>
-                <p className="text-sm font-semibold">Guests Assigned</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Max capacity: {maxCapacity} guests</p>
+                <p className="text-sm font-semibold" style={{ color: DARK }}>Guests Assigned</p>
+                <p className="text-xs mt-0.5" style={{ color: MID }}>Max capacity: {maxCapacity} guests</p>
               </div>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setGuestsAssigned((c) => Math.max(1, c - 1))}
-                  className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors text-lg font-light"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70 text-lg"
+                  style={{ border: `1px solid ${DIVIDER}`, color: DARK }}
                 >
                   −
                 </button>
-                <span className="text-base font-semibold w-5 text-center tabular-nums">{guestsAssigned}</span>
+                <span className="text-base font-semibold w-5 text-center tabular-nums" style={{ color: DARK }}>
+                  {guestsAssigned}
+                </span>
                 <button
                   onClick={() => setGuestsAssigned((c) => Math.min(maxCapacity, c + 1))}
-                  className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors text-lg font-light"
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70 text-lg"
+                  style={{ border: `1px solid ${DIVIDER}`, color: DARK }}
                 >
                   +
                 </button>
               </div>
             </div>
 
-            {/* Cost + Nights (two fields) */}
+            {/* Cost + Nights */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: MID }}>
                   Total Cost ($)
                 </label>
                 <input
@@ -361,11 +381,12 @@ const LodgingOption = () => {
                   onChange={(e) => setTotalCost(e.target.value)}
                   placeholder="2250"
                   min="0"
-                  className="w-full h-11 px-4 rounded-xl border border-border bg-card text-sm outline-none focus:ring-1 focus:ring-foreground/30 transition-all"
+                  className="w-full h-11 px-4 rounded-xl text-sm outline-none transition-all"
+                  style={{ border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK }}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: MID }}>
                   Nights
                 </label>
                 <input
@@ -374,17 +395,19 @@ const LodgingOption = () => {
                   onChange={(e) => setNights(e.target.value)}
                   placeholder="2"
                   min="1"
-                  className="w-full h-11 px-4 rounded-xl border border-border bg-card text-sm outline-none focus:ring-1 focus:ring-foreground/30 transition-all"
+                  className="w-full h-11 px-4 rounded-xl text-sm outline-none transition-all"
+                  style={{ border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK }}
                 />
               </div>
             </div>
 
-            {/* Desktop-only Save button */}
+            {/* Desktop Save button */}
             <div className="hidden md:block pt-2">
               <button
                 onClick={handleSave}
                 disabled={saving || !propertyName.trim()}
-                className="w-full py-4 rounded-full bg-foreground text-background text-sm font-semibold hover:opacity-85 transition-opacity disabled:opacity-50"
+                className="w-full py-4 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+                style={{ background: TEAL }}
               >
                 {saving ? "Saving…" : "Save Option"}
               </button>
@@ -392,18 +415,20 @@ const LodgingOption = () => {
           </div>
         </div>
 
-        {/* ════════════════════════════════
-            RIGHT COLUMN: sleeping spaces + pricing
-            ════════════════════════════════ */}
+        {/* ══ RIGHT COLUMN: sleeping spaces + pricing ══ */}
         <div className="px-5 py-6 space-y-4">
-          <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: MID }}>
             Sleeping Spaces / Rooms
           </p>
 
           {sleepingSpaces.map((space, idx) => {
             const roomTotal = roomCostForStay(space);
             return (
-              <div key={idx} className="rounded-2xl border border-border bg-card overflow-hidden">
+              <div
+                key={idx}
+                className="rounded-2xl overflow-hidden"
+                style={{ border: `1px solid ${DIVIDER}`, background: "#fff" }}
+              >
                 {/* Room name row */}
                 <div className="flex items-center gap-2 px-4 py-3.5">
                   <input
@@ -412,20 +437,24 @@ const LodgingOption = () => {
                     value={space.name}
                     onChange={(e) => updateSpace(idx, { name: e.target.value })}
                     placeholder="e.g. Master Bedroom"
-                    className="flex-1 text-sm font-semibold bg-transparent outline-none min-w-0 placeholder:text-muted-foreground/40"
+                    className="flex-1 text-sm font-semibold bg-transparent outline-none min-w-0"
+                    style={{ color: DARK }}
                   />
                   <div className="relative flex-shrink-0">
                     <button
                       onClick={() => setOpenMenuIdx(openMenuIdx === idx ? null : idx)}
-                      className="p-1 rounded-full hover:bg-muted transition-colors"
+                      className="p-1 rounded-full transition-opacity hover:opacity-70"
                     >
-                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                      <MoreVertical className="h-4 w-4" style={{ color: MID }} />
                     </button>
                     {openMenuIdx === idx && (
-                      <div className="absolute right-0 top-7 z-20 bg-popover border border-border rounded-xl shadow-xl p-1 min-w-[130px]">
+                      <div
+                        className="absolute right-0 top-7 z-20 rounded-xl shadow-xl p-1 min-w-[130px]"
+                        style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
+                      >
                         <button
                           onClick={() => removeSpace(idx)}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-500 transition-opacity hover:opacity-70"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Delete room
                         </button>
@@ -434,22 +463,22 @@ const LodgingOption = () => {
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="h-px bg-border" />
+                <div style={{ height: 1, background: DIVIDER }} />
 
                 {/* Room size row */}
                 <div className="flex items-center gap-4 px-4 py-3">
-                  <span className="text-sm text-muted-foreground w-20 flex-shrink-0">Room Size</span>
+                  <span className="text-sm w-20 flex-shrink-0" style={{ color: MID }}>Room Size</span>
                   <div className="flex gap-1.5">
                     {(["large", "medium", "small"] as RoomSize[]).map((s) => (
                       <button
                         key={s}
                         onClick={() => updateSpace(idx, { size: s })}
-                        className={`px-3.5 py-1 rounded-full text-xs font-medium transition-all ${
+                        className="px-3.5 py-1 rounded-full text-xs font-medium transition-all"
+                        style={
                           space.size === s
-                            ? "bg-foreground text-background border border-foreground"
-                            : "border border-border text-foreground/70 hover:bg-muted"
-                        }`}
+                            ? { background: TEAL, color: "#fff", border: `1px solid ${TEAL}` }
+                            : { border: `1px solid ${DIVIDER}`, color: MID, background: "#fff" }
+                        }
                       >
                         {s.charAt(0).toUpperCase() + s.slice(1)}
                       </button>
@@ -459,31 +488,35 @@ const LodgingOption = () => {
 
                 {/* Sleeps row */}
                 <div className="flex items-center gap-4 px-4 py-3">
-                  <span className="text-sm text-muted-foreground w-20 flex-shrink-0">Sleeps</span>
+                  <span className="text-sm w-20 flex-shrink-0" style={{ color: MID }}>Sleeps</span>
                   <div className="flex items-center gap-4 ml-auto">
                     <button
                       onClick={() => updateSpace(idx, { sleeps: Math.max(1, space.sleeps - 1) })}
-                      className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors text-lg font-light"
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70 text-lg"
+                      style={{ border: `1px solid ${DIVIDER}`, color: DARK }}
                     >
                       −
                     </button>
-                    <span className="text-sm font-semibold w-4 text-center tabular-nums">{space.sleeps}</span>
+                    <span className="text-sm font-semibold w-4 text-center tabular-nums" style={{ color: DARK }}>
+                      {space.sleeps}
+                    </span>
                     <button
                       onClick={() => updateSpace(idx, { sleeps: space.sleeps + 1 })}
-                      className="w-9 h-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors text-lg font-light"
+                      className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70 text-lg"
+                      style={{ border: `1px solid ${DIVIDER}`, color: DARK }}
                     >
                       +
                     </button>
                   </div>
                 </div>
 
-                {/* Per-room total cost */}
+                {/* Per-room cost */}
                 {totalCostNum > 0 && roomTotal > 0 && (
                   <>
-                    <div className="h-px bg-border mx-4" />
+                    <div style={{ height: 1, background: DIVIDER, marginLeft: 16, marginRight: 16 }} />
                     <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-sm text-muted-foreground">Room total</span>
-                      <span className="text-sm font-bold">
+                      <span className="text-sm" style={{ color: MID }}>Room total</span>
+                      <span className="text-sm font-bold" style={{ color: DARK }}>
                         ${roomTotal.toFixed(0)} for {nightsNum} {nightsNum === 1 ? "night" : "nights"}
                       </span>
                     </div>
@@ -493,25 +526,26 @@ const LodgingOption = () => {
             );
           })}
 
-          {/* Add Sleeping Space button */}
+          {/* Add Sleeping Space */}
           <button
             onClick={addSpace}
-            className="w-full py-3.5 rounded-2xl border border-foreground text-sm font-semibold text-foreground hover:bg-muted/40 transition-colors"
+            className="w-full py-3.5 rounded-2xl text-sm font-semibold transition-opacity hover:opacity-70"
+            style={{ border: `1.5px solid ${DIVIDER}`, color: DARK, background: "#fff" }}
           >
             + Add Sleeping Space
           </button>
 
           {/* Pricing Summary */}
           {totalCostNum > 0 && (
-            <div className="rounded-2xl bg-muted/50 border border-border px-4 py-4">
-              <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase mb-3">
+            <div className="rounded-2xl px-4 py-4" style={{ background: ICON_BG, border: `1px solid ${DIVIDER}` }}>
+              <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: MID }}>
                 Pricing Summary
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm" style={{ color: MID }}>
                   ${perNight.toFixed(0)} / night
                 </span>
-                <span className="text-sm font-bold">
+                <span className="text-sm font-bold" style={{ color: DARK }}>
                   ${totalCostNum.toLocaleString()} total ({nightsNum} {nightsNum === 1 ? "night" : "nights"})
                 </span>
               </div>
@@ -521,11 +555,15 @@ const LodgingOption = () => {
       </div>
 
       {/* Mobile sticky Save button */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-background/95 backdrop-blur-sm border-t border-border md:hidden">
+      <div
+        className="fixed bottom-0 left-0 right-0 p-5 md:hidden"
+        style={{ background: BG, borderTop: `1px solid ${DIVIDER}` }}
+      >
         <button
           onClick={handleSave}
           disabled={saving || !propertyName.trim()}
-          className="w-full py-4 rounded-full bg-foreground text-background text-sm font-semibold hover:opacity-85 transition-opacity disabled:opacity-50"
+          className="w-full py-4 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+          style={{ background: TEAL }}
         >
           {saving ? "Saving…" : "Save Option"}
         </button>

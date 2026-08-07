@@ -5,12 +5,27 @@ import { useLocation } from "@/contexts/LocationContext";
 interface LocationSelectorProps {
   value: string;
   onChange: (location: string) => void;
+  /** Controlled open state — when provided, the built-in trigger button is hidden */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Which edge the dropdown aligns to (default: "right") */
+  dropdownAlign?: "left" | "right";
 }
 
-const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
+const LocationSelector = ({
+  value,
+  onChange,
+  open: controlledOpen,
+  onOpenChange,
+  dropdownAlign = "right",
+}: LocationSelectorProps) => {
   const { setLocationCoords, clearLocation, detectedLocation, detectedLat, detectedLng, restoreDetectedLocation } = useLocation();
   const isEverywhere = value === "Everywhere";
-  const [isOpen, setIsOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = isControlled ? controlledOpen! : internalOpen;
+
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
   const [searching, setSearching] = useState(false);
@@ -18,34 +33,38 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const closeDropdown = () => {
+    if (isControlled) onOpenChange?.(false);
+    else setInternalOpen(false);
+    setSearch("");
+    setResults([]);
+  };
+
+  const toggleDropdown = () => {
+    if (isControlled) onOpenChange?.(!isOpen);
+    else setInternalOpen((v) => !v);
+  };
+
   const handleEverywhere = () => {
     clearLocation();
     onChange("Everywhere");
-    setIsOpen(false);
-    setSearch("");
-    setResults([]);
+    closeDropdown();
   };
 
   const handleMyLocation = () => {
     restoreDetectedLocation();
     if (detectedLocation) onChange(detectedLocation);
-    setIsOpen(false);
-    setSearch("");
-    setResults([]);
+    closeDropdown();
   };
 
   const preventZoom = () => {
     const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0');
-    }
+    if (viewport) viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0');
   };
 
   const resetZoom = () => {
     const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes');
-    }
+    if (viewport) viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes');
   };
 
   useEffect(() => {
@@ -55,14 +74,12 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setSearch("");
-        setResults([]);
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isControlled, onOpenChange]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -82,14 +99,8 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
           const label = place && place !== state
             ? `${place}, ${state || country}`
             : (state || item.display_name.split(",")[0]);
-          return {
-            label,
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-            isState: !place || place === state,
-          };
+          return { label, lat: parseFloat(item.lat), lng: parseFloat(item.lon), isState: !place || place === state };
         }).filter(Boolean);
-        // Deduplicate by label
         const seen = new Set();
         const unique = locations.filter((l: any) => {
           if (seen.has(l.label)) return false;
@@ -104,36 +115,38 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
     }, 400);
   }, [search]);
 
-  // Show "My Location" only when user is on Everywhere and we have a detected location
   const showMyLocation = isEverywhere && detectedLocation && detectedLocation !== "Everywhere";
+  const alignClass = dropdownAlign === "left" ? "left-0" : "right-0";
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
-        onClick={() => {
-          preventZoom();
-          setIsOpen(!isOpen);
-        }}
-        className="flex flex-col items-center"
-      >
-        <span className="text-xs text-muted-foreground font-medium">Location</span>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <Navigation className="h-4 w-4 text-foreground" />
-          <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-            {value}
-          </span>
-          <ChevronDown className="h-4 w-4 text-foreground" />
-          {!isEverywhere && (
-            <X
-              className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
-              onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
-            />
-          )}
-        </div>
-      </button>
 
+      {/* Default trigger — hidden in controlled mode */}
+      {!isControlled && (
+        <button
+          onClick={() => { preventZoom(); toggleDropdown(); }}
+          className="flex flex-col items-center"
+        >
+          <span className="text-xs text-muted-foreground font-medium">Location</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Navigation className="h-4 w-4 text-foreground" />
+            <span className="text-base font-semibold text-foreground truncate max-w-[160px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+              {value}
+            </span>
+            <ChevronDown className="h-4 w-4 text-foreground" />
+            {!isEverywhere && (
+              <X
+                className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground flex-shrink-0"
+                onClick={(e) => { e.stopPropagation(); handleEverywhere(); }}
+              />
+            )}
+          </div>
+        </button>
+      )}
+
+      {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-64 bg-card border border-border rounded-2xl shadow-lg z-30 overflow-hidden">
+        <div className={`absolute top-full ${alignClass} mt-2 w-64 bg-card border border-border rounded-2xl shadow-lg z-30 overflow-hidden`}>
           <div className="p-3 border-b border-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -166,9 +179,7 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
                 onClick={() => {
                   onChange(loc.label);
                   setLocationCoords(loc.lat, loc.lng);
-                  setIsOpen(false);
-                  setSearch("");
-                  setResults([]);
+                  closeDropdown();
                 }}
                 className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 ${
                   value === loc.label ? "text-primary font-semibold" : "text-foreground"
@@ -179,7 +190,6 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
               </button>
             ))}
 
-            {/* Everywhere pinned at bottom */}
             <button
               onClick={handleEverywhere}
               className={`w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-t border-border ${
@@ -190,7 +200,6 @@ const LocationSelector = ({ value, onChange }: LocationSelectorProps) => {
               Everywhere
             </button>
 
-            {/* My Location — only shown when currently on Everywhere */}
             {showMyLocation && (
               <button
                 onClick={handleMyLocation}

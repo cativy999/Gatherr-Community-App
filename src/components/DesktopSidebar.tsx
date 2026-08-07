@@ -1,3 +1,4 @@
+import { CE_ERROR } from '../tokens';
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { House, Calendar1, Plus, UsersRound, Search, User } from "lucide-react";
@@ -50,30 +51,64 @@ const DesktopSidebar = () => {
     return () => clearInterval(interval);
   }, [session?.user?.id]);
 
+  const ICON_COLOR        = "#5E5F60";  // inactive gray
+  const ICON_COLOR_ACTIVE = "#2C2523";  // active dark
+
   return (
     <>
+      <style>{`
+        @keyframes draw-icon {
+          from { stroke-dashoffset: 1; }
+          to   { stroke-dashoffset: 0; }
+        }
+        .home-path-1,.home-path-2,
+        .cal-rect,.cal-p1,.cal-p2,.cal-p3,.cal-p4,
+        .plus-p1,.plus-p2,
+        .users-c,.users-p1,.users-p2,
+        .search-c,.search-p,
+        .profile-c {
+          stroke-dasharray: 1; stroke-dashoffset: 0;
+        }
+        .home-drawing .home-path-1 { animation: draw-icon 0.5s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .home-drawing .home-path-2 { animation: draw-icon 0.3s cubic-bezier(0.4,0,0.2,1) 0.4s both; }
+        .cal-drawing .cal-rect { animation: draw-icon 0.45s cubic-bezier(0.4,0,0.2,1) both; }
+        .cal-drawing .cal-p1   { animation: draw-icon 0.15s cubic-bezier(0.4,0,0.2,1) 0.35s both; }
+        .cal-drawing .cal-p2   { animation: draw-icon 0.15s cubic-bezier(0.4,0,0.2,1) 0.42s both; }
+        .cal-drawing .cal-p3   { animation: draw-icon 0.2s  cubic-bezier(0.4,0,0.2,1) 0.52s both; }
+        .cal-drawing .cal-p4   { animation: draw-icon 0.2s  cubic-bezier(0.4,0,0.2,1) 0.65s both; }
+        .plus-drawing .plus-p1 { animation: draw-icon 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+        .plus-drawing .plus-p2 { animation: draw-icon 0.25s cubic-bezier(0.4,0,0.2,1) 0.18s both; }
+        .users-drawing .users-c  { animation: draw-icon 0.3s  cubic-bezier(0.4,0,0.2,1) both; }
+        .users-drawing .users-p1 { animation: draw-icon 0.3s  cubic-bezier(0.4,0,0.2,1) 0.25s both; }
+        .users-drawing .users-p2 { animation: draw-icon 0.25s cubic-bezier(0.4,0,0.2,1) 0.5s both; }
+        .search-drawing .search-c { animation: draw-icon 0.4s  cubic-bezier(0.4,0,0.2,1) both; }
+        .search-drawing .search-p { animation: draw-icon 0.15s cubic-bezier(0.4,0,0.2,1) 0.38s both; }
+        .profile-drawing .profile-c { animation: draw-icon 0.45s cubic-bezier(0.4,0,0.2,1) both; }
+      `}</style>
       <aside
         className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30"
         style={{
           width: 96,
           overflow: "visible",
-          background: "transparent",
+          background: "#ffffff",
+          borderRight: "1px solid #E4DCCF",
         }}
       >
-        {/* Gather logo → home */}
+        {/* Logo → home */}
         <div
-          className="cursor-pointer flex items-center"
-          style={{ paddingLeft: 20, paddingRight: 16, paddingTop: 44, paddingBottom: 40 }}
+          className="cursor-pointer flex items-center justify-center"
+          style={{ paddingTop: 32, paddingBottom: 32 }}
           onClick={() => navigate("/wards")}
         >
-          <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" style={{ height: 70, width: "auto", objectFit: "contain" }} />
+          <img src="/Newbyondsundayicon.png" alt="Beyond Sunday" style={{ height: 44, width: "auto", objectFit: "contain" }} />
         </div>
 
         {/* Nav items */}
-        <div className="flex flex-col" style={{ gap: 8, overflow: "visible" }}>
+        <div className="flex flex-col items-center" style={{ gap: 20, overflow: "visible" }}>
           {NAV_ITEMS.map((item) => {
             const isActive = !!item.path && pathname === item.path;
             const isHovered = hoveredItem === item.id;
+            const iconColor = isActive ? ICON_COLOR_ACTIVE : ICON_COLOR;
 
             return (
               <div
@@ -87,56 +122,36 @@ const DesktopSidebar = () => {
                 style={{
                   position: "relative",
                   height: 44,
-                  // Explicit width = just the icon zone so click/hover area never bleeds into content
-                  width: 56,
+                  width: 48,
                   cursor: "pointer",
                   overflow: "visible",
-                  marginLeft: 12,
+                  borderRadius: 100,
                 }}
               >
-                {/* Expanding pill background — absolute, visual only, no click capture */}
+                {/* Pill background on hover/active */}
                 <div
                   style={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: 44,
-                    width: isHovered ? 200 : 56,
-                    background: isHovered ? "#ffffff" : "transparent",
-                    borderRadius: 10,
-                    transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), background 0.15s ease",
-                    zIndex: 0,
+                    inset: 0,
+                    borderRadius: 100,
+                    background: isActive ? "#F5F1EC" : "transparent",
+                    transition: "background 0.15s ease",
                     pointerEvents: "none",
                   }}
                 />
 
-                {/* Row: icon + label — absolute so it doesn't expand the parent's hit area */}
+                {/* Icon centered */}
                 <div
                   style={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
-                    zIndex: 1,
+                    inset: 0,
                     display: "flex",
                     alignItems: "center",
-                    height: 44,
-                    width: 200,
-                    pointerEvents: "none",
+                    justifyContent: "center",
                   }}
                 >
-                  {/* Icon — re-enable pointer events so cursor:pointer works */}
-                  <div
-                    style={{
-                      position: "relative",
-                      width: 56,
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      pointerEvents: "auto",
-                    }}
-                  >
-                    {item.id === "profile" && avatarUrl ? (
+                  {item.id === "profile" && avatarUrl ? (
+                    <div style={{ position: "relative" }}>
                       <img
                         src={avatarUrl}
                         referrerPolicy="no-referrer"
@@ -145,64 +160,74 @@ const DesktopSidebar = () => {
                           height: 26,
                           borderRadius: "50%",
                           objectFit: "cover",
-                          outline: isActive ? "2px solid hsl(var(--primary))" : "none",
+                          outline: isActive ? `2px solid ${ICON_COLOR_ACTIVE}` : "none",
                         }}
                       />
-                    ) : (
-                      <item.icon
-                        style={{ width: 24, height: 24 }}
-                        color={isActive ? "hsl(var(--primary))" : "hsl(var(--foreground))"}
-                        strokeWidth={isActive ? 2.5 : 2}
-                      />
-                    )}
-                    {item.id === "profile" && unreadCount > 0 && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          right: 6,
-                          minWidth: 16,
-                          height: 16,
-                          background: "#ef4444",
-                          color: "#fff",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "0 3px",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Label — slides in, pointer-events none so clicks pass through to content */}
-                  <div
-                    style={{
-                      overflow: "hidden",
-                      maxWidth: isHovered ? 160 : 0,
-                      opacity: isHovered ? 1 : 0,
-                      transition: "max-width 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease",
-                      whiteSpace: "nowrap",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 500,
-                        color: "hsl(var(--foreground))",
-                        paddingRight: 16,
-                        fontFamily: "'Hanken Grotesk', sans-serif",
-                      }}
+                      {unreadCount > 0 && (
+                        <span style={{
+                          position: "absolute", top: -2, right: -4,
+                          minWidth: 14, height: 14,
+                          background: CE_ERROR, color: "#fff",
+                          fontSize: 9, fontWeight: 700, borderRadius: "50%",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          padding: "0 2px", lineHeight: 1,
+                        }}>
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  ) : item.id === "home" ? (
+                    <svg
+                      className={isHovered ? "home-drawing" : ""}
+                      viewBox="0 0 24 24"
+                      style={{ width: 22, height: 22 }}
+                      fill="none"
+                      stroke={iconColor}
+                      strokeWidth={isActive ? 2.5 : 2.2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      {item.label}
-                    </span>
-                  </div>
+                      <path
+                        className="home-path-1"
+                        pathLength="1"
+                        d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                      />
+                      <path
+                        className="home-path-2"
+                        pathLength="1"
+                        d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"
+                      />
+                    </svg>
+                  ) : item.id === "calendar" ? (
+                    <svg className={isHovered ? "cal-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <rect className="cal-rect" pathLength="1" x="3" y="4" width="18" height="18" rx="2" />
+                      <path className="cal-p1" pathLength="1" d="M8 2v4" />
+                      <path className="cal-p2" pathLength="1" d="M16 2v4" />
+                      <path className="cal-p3" pathLength="1" d="M3 10h18" />
+                      <path className="cal-p4" pathLength="1" d="M11 14h1v4" />
+                    </svg>
+                  ) : item.id === "plus" ? (
+                    <svg className={isHovered ? "plus-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <path className="plus-p1" pathLength="1" d="M5 12h14" />
+                      <path className="plus-p2" pathLength="1" d="M12 5v14" />
+                    </svg>
+                  ) : item.id === "community" ? (
+                    <svg className={isHovered ? "users-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle className="users-c" pathLength="1" cx="10" cy="8" r="5" />
+                      <path className="users-p1" pathLength="1" d="M18 21a8 8 0 0 0-16 0" />
+                      <path className="users-p2" pathLength="1" d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+                    </svg>
+                  ) : item.id === "search" ? (
+                    <svg className={isHovered ? "search-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle className="search-c" pathLength="1" cx="11" cy="11" r="8" />
+                      <path className="search-p" pathLength="1" d="m21 21-4.34-4.34" />
+                    </svg>
+                  ) : (
+                    <svg className={isHovered ? "profile-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle className="profile-c" pathLength="1" cx="12" cy="7" r="4" />
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    </svg>
+                  )}
                 </div>
               </div>
             );

@@ -1,7 +1,6 @@
-import { Input } from "@/components/ui/input";
+import { CE_BG,CE_LIGHT } from '../tokens';
 import { Slider } from "@/components/ui/slider";
 import { MapPin, ChevronLeft, Check, X, Loader2, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
@@ -9,6 +8,14 @@ import { useLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const ICON_BG = "#E4DCCF";
+const DIVIDER = CE_LIGHT;
 
 interface LocationResult {
   display_name: string;
@@ -22,33 +29,30 @@ const AccountInfo = () => {
   const { setLocation: setGlobalLocation } = useLocation();
 
   const user = session?.user;
-  const avatar = user?.user_metadata?.avatar_url;
 
-  const [name, setName] = useState("");
+  const [name, setName]         = useState("");
   const [location, setLocation] = useState("");
-  const [ward, setWard] = useState("");
-  const [age, setAge] = useState<string>("");
-  const [tempAge, setTempAge] = useState<string>("");
+  const [ward, setWard]         = useState("");
+  const [age, setAge]           = useState<string>("");
+  const [tempAge, setTempAge]   = useState<string>("");
   const [ageRange, setAgeRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing]   = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
   const [tempRange, setTempRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]     = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
   const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U";
-
   useEffect(() => {
     if (!user) return;
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("name, location, ward, preferred_age_min, preferred_age_max, avatar_url, age")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
+    supabase
+      .from("profiles")
+      .select("name, location, ward, preferred_age_min, preferred_age_max, age")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
         setName(data.name ?? "");
         setLocation(data.location || "");
         setWard(data.ward || "");
@@ -57,9 +61,7 @@ const AccountInfo = () => {
         const max = data.preferred_age_max ?? preferredAgeMax;
         setAgeRange([min, max]);
         setTempRange([min, max]);
-      }
-    };
-    fetchProfile();
+      });
   }, [user]);
 
   const searchLocations = useCallback(async (query: string) => {
@@ -69,35 +71,31 @@ const AccountInfo = () => {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`
       );
-      const data = await res.json();
-      setLocationResults(data);
+      setLocationResults(await res.json());
     } catch { setLocationResults([]); }
     setLocationLoading(false);
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       if (editing === "location") searchLocations(locationSearch);
     }, 400);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [locationSearch, editing, searchLocations]);
 
-  const formatLocation = (result: LocationResult) => {
-    const parts = result.display_name.split(", ");
-    if (parts.length >= 3) return `${parts[0]}, ${parts[parts.length - 2]}`;
-    return parts.slice(0, 2).join(", ");
+  const formatLocation = (r: LocationResult) => {
+    const parts = r.display_name.split(", ");
+    return parts.length >= 3 ? `${parts[0]}, ${parts[parts.length - 2]}` : parts.slice(0, 2).join(", ");
   };
 
   const startEdit = (field: string) => {
-    if (field === "ageRange") setTempRange([...ageRange]);
+    if (field === "ageRange")   setTempRange([...ageRange]);
     else if (field === "location") { setLocationSearch(""); setLocationResults([]); }
-    else if (field === "name") setTempValue(name);
-    else if (field === "ward") setTempValue(ward);
-    else if (field === "age") setTempAge(age);
+    else if (field === "name")  setTempValue(name);
+    else if (field === "ward")  setTempValue(ward);
+    else if (field === "age")   setTempAge(age);
     setEditing(field);
   };
-
-  const cancelEdit = () => setEditing(null);
 
   const saveField = async (field: string) => {
     if (!user) return;
@@ -150,107 +148,198 @@ const AccountInfo = () => {
   };
 
   const fields = [
-    { key: "name", label: "Name", value: name },
-    { key: "age", label: "Age", value: age },
-    { key: "location", label: "Location", value: location },
-    { key: "ward", label: "LDS Ward", value: ward },
+    { key: "name",     label: "Name",      value: name },
+    { key: "age",      label: "Age",       value: age },
+    { key: "location", label: "Location",  value: location },
+    { key: "ward",     label: "LDS Ward",  value: ward },
     { key: "ageRange", label: "Age Range", value: `${ageRange[0]}–${ageRange[1]}` },
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-border px-4 py-4">
-        <div className="flex items-center gap-3 max-w-2xl mx-auto">
-          <button onClick={() => navigate("/profile")} className="p-1 -ml-1 rounded-full hover:bg-accent transition-colors">
-            <ChevronLeft className="h-5 w-5" />
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="max-w-2xl mx-auto px-5">
+
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 pt-8 pb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+            style={{ background: ICON_BG }}
+          >
+            <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
           </button>
-          <h1 className="text-lg font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Account Info</h1>
+          <h1
+            className="font-bold leading-tight"
+            style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 32 }}
+          >
+            Account Info
+          </h1>
         </div>
-      </header>
 
-      <main className="flex-1 px-6 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+        {/* ── Field rows ─────────────────────────────────────────────── */}
+        <div>
+          {fields.map(({ key, label, value }, i) => (
+            <div key={key}>
+              {editing === key ? (
+                /* ── Edit state ── */
+                <div className="py-4">
+                  <p
+                    className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+                    style={{ color: MID }}
+                  >
+                    {label}
+                  </p>
 
-          {/* Editable Fields */}
-          <div className="rounded-2xl border border-border overflow-hidden">
-            {fields.map(({ key, label, value }) => (
-              <div key={key} className="border-b border-border last:border-0">
-                {editing === key ? (
-                  <div className="p-4 space-y-3 bg-accent/30">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</label>
-
-                    {key === "ageRange" && (
-                      <div className="space-y-3">
-                        <div className="relative flex justify-between mb-2" style={{
-                          paddingLeft: `${((tempRange[0] - 18) / 62) * 100}%`,
+                  {/* Age range slider */}
+                  {key === "ageRange" && (
+                    <div className="space-y-4 mb-4">
+                      <div
+                        className="flex justify-between text-sm font-semibold"
+                        style={{
+                          paddingLeft:  `${((tempRange[0] - 18) / 62) * 100}%`,
                           paddingRight: `${((80 - tempRange[1]) / 62) * 100}%`,
-                        }}>
-                          <span className="text-xs font-semibold text-primary">{tempRange[0]}</span>
-                          <span className="text-xs font-semibold text-primary">{tempRange[1]}</span>
-                        </div>
-                        <Slider min={18} max={80} step={1} value={tempRange} onValueChange={handleRangeChange} className="w-full" />
+                          color: TEAL,
+                        }}
+                      >
+                        <span>{tempRange[0]}</span>
+                        <span>{tempRange[1]}</span>
                       </div>
-                    )}
-
-                    {key === "location" && (
-                      <div className="space-y-2">
-                        <Input value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)}
-                          placeholder="Search any city..." className="h-10 text-sm" autoFocus />
-                        {locationLoading && (
-                          <div className="flex justify-center py-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="max-h-[180px] overflow-y-auto space-y-0.5">
-                          {locationResults.map((result) => (
-                            <button key={result.place_id} onClick={() => selectLocation(result)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors text-left">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                              <span>{formatLocation(result)}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(key === "name" || key === "ward") && (
-                      <Input value={tempValue} onChange={(e) => setTempValue(e.target.value)}
-                        className="h-10 text-sm" autoFocus />
-                    )}
-
-                    {key === "age" && (
-                      <Input type="number" value={tempAge} onChange={(e) => setTempAge(e.target.value)}
-                        placeholder="Enter your age" className="h-10 text-sm" min={13} max={120} autoFocus />
-                    )}
-
-                    {key !== "location" && (
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="h-8 px-3 gap-1">
-                          <X className="h-3.5 w-3.5" /> Cancel
-                        </Button>
-                        <Button size="sm" onClick={() => saveField(key)} className="h-8 px-3 gap-1" disabled={saving}>
-                          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                          Save
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button onClick={() => startEdit(key)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition-colors group">
-                    <div className="text-left">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-                      <p className="text-sm font-medium text-foreground mt-0.5">{value || "Not set"}</p>
+                      <Slider
+                        min={18} max={80} step={1}
+                        value={tempRange}
+                        onValueChange={handleRangeChange}
+                        className="w-full"
+                      />
                     </div>
-                    <Pencil className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+                  )}
 
+                  {/* Location search */}
+                  {key === "location" && (
+                    <div className="space-y-2 mb-4">
+                      <input
+                        value={locationSearch}
+                        onChange={(e) => setLocationSearch(e.target.value)}
+                        placeholder="Search any city…"
+                        autoFocus
+                        className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                        style={{
+                          background: "white",
+                          border: `1px solid ${DIVIDER}`,
+                          color: DARK,
+                          fontFamily: "'Inter', sans-serif",
+                        }}
+                      />
+                      {locationLoading && (
+                        <div className="flex justify-center py-2">
+                          <Loader2 className="h-4 w-4 animate-spin" style={{ color: MID }} />
+                        </div>
+                      )}
+                      <div className="max-h-44 overflow-y-auto space-y-0.5">
+                        {locationResults.map((r) => (
+                          <button
+                            key={r.place_id}
+                            onClick={() => selectLocation(r)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left rounded-xl transition-colors hover:opacity-80"
+                            style={{ background: "white", color: DARK }}
+                          >
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" style={{ color: MID }} />
+                            {formatLocation(r)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Text / number inputs */}
+                  {(key === "name" || key === "ward") && (
+                    <input
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      autoFocus
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      style={{
+                        background: "white",
+                        border: `1px solid ${DIVIDER}`,
+                        color: DARK,
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    />
+                  )}
+
+                  {key === "age" && (
+                    <input
+                      type="number"
+                      value={tempAge}
+                      onChange={(e) => setTempAge(e.target.value)}
+                      placeholder="Enter your age"
+                      min={13} max={120}
+                      autoFocus
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      style={{
+                        background: "white",
+                        border: `1px solid ${DIVIDER}`,
+                        color: DARK,
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    />
+                  )}
+
+                  {/* Save / Cancel — not shown for location (auto-saves on selection) */}
+                  {key !== "location" && (
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => setEditing(null)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{ background: "#E4DCCF", border: `1px solid ${CE_LIGHT}`, color: DARK }}
+                      >
+                        <X className="h-3.5 w-3.5" /> Cancel
+                      </button>
+                      <button
+                        onClick={() => saveField(key)}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                        style={{ background: TEAL }}
+                      >
+                        {saving
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Check className="h-3.5 w-3.5" />}
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── View state ── */
+                <button
+                  onClick={() => startEdit(key)}
+                  className="w-full flex items-center justify-between py-4 text-left transition-opacity hover:opacity-70"
+                >
+                  <div>
+                    <p
+                      className="text-[11px] font-semibold uppercase tracking-widest"
+                      style={{ color: MID }}
+                    >
+                      {label}
+                    </p>
+                    <p
+                      className="text-base mt-0.5"
+                      style={{ color: DARK, fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {value || "Not set"}
+                    </p>
+                  </div>
+                  <Pencil className="h-4 w-4 flex-shrink-0" style={{ color: MID }} />
+                </button>
+              )}
+
+              {/* Divider between rows */}
+              {i < fields.length - 1 && (
+                <div className="h-px" style={{ background: DIVIDER }} />
+              )}
+            </div>
+          ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

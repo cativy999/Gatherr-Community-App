@@ -1,8 +1,9 @@
-import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, Check, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History } from "lucide-react";
+import { CE_BG,CE_LIGHT,CE_TEAL_PRESS,CE_ERROR,CE_SUCCESS_BG_LIGHT } from '../tokens';
+import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, Check, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History, ChevronRight, ChevronLeft, ChevronDown, PartyPopper } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -11,9 +12,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddressLink from "@/components/AddressLink";
 import ShareMenu from "@/components/ShareMenu";
 import CarpoolSection from "@/components/CarpoolSection";
-import LodgingSection from "@/components/LodgingSection";
 import { getRecurringLabel, getRecurringLabelFull } from "@/lib/recurring";
 import { useAuthGate } from "@/hooks/useAuthGate";
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const ICON_BG = "#EFECE6";
+const DIVIDER = CE_LIGHT;
+const SERIF   = "'EB Garamond', Georgia, serif";
 
 const STATE_ABBR: Record<string, string> = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -133,7 +142,7 @@ const EventDetails = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
-  const [ambientColor, setAmbientColor] = useState<[number, number, number] | null>(null);
+  const [showRsvpBar, setShowRsvpBar] = useState(true);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [goingList, setGoingList] = useState<any[]>([]);
   const [goingListOpen, setGoingListOpen] = useState(false);
@@ -143,19 +152,124 @@ const EventDetails = () => {
   const [openEmojiPicker, setOpenEmojiPicker] = useState<string | null>(null);
   const [creatorWard, setCreatorWard] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string>("");
   const [linksExpanded, setLinksExpanded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [descOverflows, setDescOverflows] = useState(false);
+  const descContainerMobileRef  = useRef<HTMLDivElement>(null);
+  const descContainerDesktopRef = useRef<HTMLDivElement>(null);
+
+  // ── Responsive layout values ───────────────────────────────────────────────
+  const [windowWidth, setWindowWidth] = useState(() => typeof window !== "undefined" ? window.innerWidth : 1440);
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  // Step 1: shrink horizontal padding 144→32px as window narrows from 1400→1024px
+  const hPad = windowWidth >= 1400
+    ? 144
+    : windowWidth >= 1024
+      ? Math.round(32 + (windowWidth - 1024) / (1400 - 1024) * (144 - 32))
+      : 32;
+  // Step 2: once padding is fully spent (<1024px), shrink the right column 440→280px
+  const rightColWidth = windowWidth >= 1024 ? 440 : Math.max(280, Math.round(280 + (windowWidth - 768) / (1024 - 768) * (440 - 280)));
+  // Stack date + location cards vertically once the left column gets too narrow
+  const cardsStacked = windowWidth < 1200;
+
+  const DESC_COLLAPSED = "9rem";
+  const DESC_EASE      = "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+
+  const animateDesc = (el: HTMLDivElement, expand: boolean) => {
+    if (expand) {
+      // Measure natural height from current scroll, animate to it, then release to auto
+      const targetH = el.scrollHeight;
+      el.style.transition = DESC_EASE;
+      el.style.height = `${targetH}px`;
+      const onEnd = (e: TransitionEvent) => {
+        if (e.propertyName === "height") {
+          el.style.height = "auto";
+          el.removeEventListener("transitionend", onEnd);
+        }
+      };
+      el.addEventListener("transitionend", onEnd);
+    } else {
+      // Lock to current px (handles auto), force reflow, then animate to collapsed
+      el.style.transition = "none";
+      el.style.height = `${el.scrollHeight}px`;
+      el.offsetHeight; // force reflow
+      el.style.transition = DESC_EASE;
+      el.style.height = DESC_COLLAPSED;
+    }
+  };
+
+  const toggleDesc = () => {
+    const next = !descExpanded;
+    [descContainerMobileRef.current, descContainerDesktopRef.current]
+      .filter(Boolean)
+      .forEach((el) => animateDesc(el!, next));
+    setDescExpanded(next);
+  };
+
+  // Check whether description actually overflows the collapsed height
+  const descCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleDescCheck = useCallback((delay = 120) => {
+    if (descCheckTimerRef.current) clearTimeout(descCheckTimerRef.current);
+    descCheckTimerRef.current = setTimeout(() => {
+      const desktopEl = descContainerDesktopRef.current;
+      const mobileEl  = descContainerMobileRef.current;
+      // Pick whichever is currently visible (not display:none)
+      const el = (desktopEl && desktopEl.offsetHeight > 0) ? desktopEl
+               : (mobileEl  && mobileEl.offsetHeight  > 0) ? mobileEl
+               : null;
+      if (!el) return;
+      setDescOverflows(el.scrollHeight > el.offsetHeight + 2);
+    }, delay);
+  }, []);
+
+  // Fire when event description first loads (wait for fonts)
+  useEffect(() => {
+    if (!event?.description) return;
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(() => scheduleDescCheck(100));
+    } else {
+      scheduleDescCheck(250);
+    }
+    return () => {
+      if (descCheckTimerRef.current) clearTimeout(descCheckTimerRef.current);
+    };
+  }, [event?.description, scheduleDescCheck]);
+
+  // Re-check on resize (column width changes → different text wrapping)
+  useEffect(() => {
+    if (!event?.description) return;
+    scheduleDescCheck(50);
+  }, [windowWidth, scheduleDescCheck, event?.description]);
   const [showAllComments, setShowAllComments] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
-  const [footerShareMenuOpen, setFooterShareMenuOpen] = useState(false);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
-  const footerShareButtonRef = useRef<HTMLButtonElement>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replies, setReplies] = useState<Record<string, any[]>>({});
   const [similarEvents, setSimilarEvents] = useState<any[]>([]);
   const [expandedInfoItems, setExpandedInfoItems] = useState<Set<number>>(new Set());
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [ttkExpandedIdx, setTtkExpandedIdx] = useState<number | null>(null);
+  const [ttkVisible, setTtkVisible] = useState(false);
+
+  const openTtk = (idx: number) => {
+    setTtkExpandedIdx(idx);
+    requestAnimationFrame(() => requestAnimationFrame(() => setTtkVisible(true)));
+  };
+  const closeTtk = () => {
+    setTtkVisible(false);
+    setTimeout(() => setTtkExpandedIdx(null), 280);
+  };
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [posterHovered, setPosterHovered] = useState(false);
+  const [shimmerGoing, setShimmerGoing] = useState(false);
 
   // Co-hosts: people the host has invited (via a shareable link) who get the
   // same editing access as the host, plus a "Manage Event" section showing
@@ -341,7 +455,7 @@ const EventDetails = () => {
       .eq("user_id", userId)
       .maybeSingle();
     if (rsvp) setRsvpStatus(rsvp.status as "going" | "interested");
-    
+
     const { data: saved } = await supabase
       .from("saved_events")
       .select("id")
@@ -352,10 +466,11 @@ const EventDetails = () => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, name")
       .eq("user_id", userId)
       .single();
     if (profile?.avatar_url) setUserAvatar(profile.avatar_url);
+    if (profile?.name) setMyName(profile.name);
     };
     fetchUserStatus();
   }, [id, userId]);
@@ -411,6 +526,7 @@ const EventDetails = () => {
     fetchComments();
   }, [id]);
 
+
   const fetchReactions = async (commentIds: string[]) => {
     if (commentIds.length === 0) return;
     const { data } = await supabase
@@ -461,18 +577,29 @@ const EventDetails = () => {
       if (rsvpStatus === status) {
         await supabase.from("rsvps").delete().eq("event_id", id).eq("user_id", userId);
         setRsvpStatus(null);
-        if (status === "going") setGoingCount(c => Math.max(0, c - 1));
-        else setInterestedCount(c => Math.max(0, c - 1));
+        if (status === "going") {
+          setGoingCount(c => Math.max(0, c - 1));
+          // Remove current user's avatar from the preview stack
+          setPreviewAvatars(prev => prev.filter(a => a.url !== userAvatar));
+        } else setInterestedCount(c => Math.max(0, c - 1));
         toast.success("RSVP removed");
       } else {
         await supabase.from("rsvps").upsert(
           { event_id: id, user_id: userId, status },
           { onConflict: "user_id,event_id" }
         );
-        if (rsvpStatus === "going") setGoingCount(c => Math.max(0, c - 1));
+        if (rsvpStatus === "going") {
+          setGoingCount(c => Math.max(0, c - 1));
+          setPreviewAvatars(prev => prev.filter(a => a.url !== userAvatar));
+        }
         if (rsvpStatus === "interested") setInterestedCount(c => Math.max(0, c - 1));
-        if (status === "going") setGoingCount(c => c + 1);
-        else setInterestedCount(c => c + 1);
+        if (status === "going") {
+          setGoingCount(c => c + 1);
+          setShimmerGoing(true);
+          setTimeout(() => setShimmerGoing(false), 1600);
+          // Add current user's avatar to the preview stack
+          if (userAvatar) setPreviewAvatars(prev => [{ url: userAvatar, name: myName || "You" }, ...prev].slice(0, 8));
+        } else setInterestedCount(c => c + 1);
         setRsvpStatus(status);
         toast.success(status === "going" ? "You're going!" : "Marked as interested!");
       }
@@ -672,7 +799,6 @@ const EventDetails = () => {
           const file = new File([blob], "beyond-sunday-event.png", { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
-              // Share file only (no title) to prevent double-paste on some apps
               await navigator.share({ files: [file] });
             } catch (e: any) {
               if (e?.name !== "AbortError") toast.error("Sharing failed");
@@ -704,7 +830,7 @@ const EventDetails = () => {
           ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
           resolve();
         };
-        img.onerror = () => resolve(); // use dark bg if image fails
+        img.onerror = () => resolve();
         img.src = event.image_url;
       });
     }
@@ -755,16 +881,13 @@ const EventDetails = () => {
     let end: Date;
 
     if (event.start_time) {
-      // New events: start_time and end_time are in 24hr "HH:MM" format
       const [sh, sm] = event.start_time.split(":").map(Number);
       start = new Date(y, m - 1, d, sh, sm);
       if (event.end_date && event.end_time) {
-        // Multi-day: end date + end time
         const [ey, em2, ed] = event.end_date.split("-").map(Number);
         const [eh, emin] = event.end_time.split(":").map(Number);
         end = new Date(ey, em2 - 1, ed, eh, emin);
       } else if (event.end_date) {
-        // Multi-day, no end time: end at midnight of end date
         const [ey, em2, ed] = event.end_date.split("-").map(Number);
         end = new Date(ey, em2 - 1, ed, 23, 59);
       } else if (event.end_time) {
@@ -774,7 +897,6 @@ const EventDetails = () => {
         end = new Date(start.getTime() + 60 * 60000);
       }
     } else if (event.time) {
-      // Legacy events: time is "7:30 PM" format + duration
       const [timePart, period] = event.time.split(" ");
       let [hours, minutes] = timePart.split(":").map(Number);
       if (period === "PM" && hours !== 12) hours += 12;
@@ -787,7 +909,6 @@ const EventDetails = () => {
       };
       end = new Date(start.getTime() + parseDuration(event.duration) * 60000);
     } else {
-      // No time info at all
       start = new Date(y, m - 1, d, 12, 0);
       end = new Date(y, m - 1, d, 13, 0);
     }
@@ -807,11 +928,6 @@ const EventDetails = () => {
 
   const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
 
-  // Reuses (or creates) the event's one live co-host invite link, then hands
-  // it to the same native-share / copy-link pattern used for sharing the
-  // event itself.
-  // Reuses the event's current live invite link, or creates a fresh one if
-  // there isn't one (e.g. it was previously turned off). Returns the link.
   const ensureInviteLink = async (): Promise<string | null> => {
     if (!id || !userId) return null;
     if (inviteLink) return inviteLink;
@@ -849,7 +965,6 @@ const EventDetails = () => {
     }
   };
 
-  // "Turn on" inside Manage Event — just (re)activates the link, no share sheet.
   const handleTurnOnInvite = async () => {
     const link = await ensureInviteLink();
     if (link) toast.success("Invite link turned on");
@@ -872,51 +987,42 @@ const EventDetails = () => {
   };
 
   useEffect(() => {
-    const el = titleRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowTitleInHeader(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  });
+    let lastScrollY = window.scrollY;
+    let titlePassed = false;
+
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      const el = titleRef.current;
+      if (el) {
+        titlePassed = currentY > el.getBoundingClientRect().bottom + currentY;
+      }
+      const scrollingUp = currentY < lastScrollY;
+      if (window.innerWidth < 768) {
+        setShowTitleInHeader(scrollingUp && titlePassed);
+        setShowRsvpBar(scrollingUp || currentY < 80);
+      }
+      lastScrollY = currentY;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (loading) {
     return (
-      <div className="relative flex min-h-screen flex-col pb-24" style={{ fontFamily: "'Inter', sans-serif" }}>
-        {/* ambient bg placeholder */}
-        <div className="fixed inset-0 -z-10 bg-gray-50" />
-        {/* sticky header */}
-        <header className="sticky top-0 z-10 px-4 py-3">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            <div className="sk w-10 h-10 rounded-full" />
-            <div className="sk w-10 h-10 rounded-full" />
-          </div>
-        </header>
-        <main className="flex-1 px-5 py-4 max-w-5xl mx-auto w-full">
-          {/* cover image */}
-          <div className="sk w-full h-64 rounded-2xl mb-6" />
-          {/* title */}
-          <div className="sk h-7 w-3/4 mb-3" />
-          <div className="sk h-5 w-1/2 mb-6" />
-          {/* info chips */}
-          <div className="space-y-2.5 mb-6">
-            <div className="sk h-4 w-2/3" />
-            <div className="sk h-4 w-1/2" />
-            <div className="sk h-4 w-3/5" />
-          </div>
-          {/* RSVP buttons */}
-          <div className="flex gap-3 mb-6">
-            <div className="sk flex-1 h-12 rounded-full" />
-            <div className="sk flex-1 h-12 rounded-full" />
-          </div>
-          {/* description */}
-          <div className="space-y-2">
-            <div className="sk h-3.5 w-full" />
-            <div className="sk h-3.5 w-full" />
-            <div className="sk h-3.5 w-5/6" />
-            <div className="sk h-3.5 w-3/4" />
+      <div className="relative flex min-h-screen flex-col pb-24" style={{ fontFamily: "'Inter', sans-serif", background: BG }}>
+        <div className="w-full" style={{ height: 336, background: ICON_BG }} />
+        <main className="flex-1 px-5 md:pl-[calc(96px+20px)]">
+          <div className="max-w-2xl mx-auto pt-4 space-y-4">
+            <div className="h-8 w-3/4 rounded-xl animate-pulse" style={{ background: ICON_BG }} />
+            <div className="h-5 w-1/2 rounded-xl animate-pulse" style={{ background: ICON_BG }} />
+            <div className="h-16 w-full rounded-2xl animate-pulse" style={{ background: ICON_BG }} />
+            <div className="h-16 w-full rounded-2xl animate-pulse" style={{ background: ICON_BG }} />
+            <div className="space-y-2">
+              <div className="h-3.5 w-full rounded animate-pulse" style={{ background: ICON_BG }} />
+              <div className="h-3.5 w-5/6 rounded animate-pulse" style={{ background: ICON_BG }} />
+              <div className="h-3.5 w-4/5 rounded animate-pulse" style={{ background: ICON_BG }} />
+            </div>
           </div>
         </main>
       </div>
@@ -924,7 +1030,7 @@ const EventDetails = () => {
   }
 
   if (!event) {
-    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Event not found</div>;
+    return <div className="flex min-h-screen items-center justify-center" style={{ color: MID }}>Event not found</div>;
   }
 
   const timeAgo = (dateStr: string) => {
@@ -937,6 +1043,17 @@ const EventDetails = () => {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
+  const getLinkLabel = (url: string, platform: string) => {
+    if (platform === "instagram") {
+      try {
+        const handle = new URL(url).pathname.replace(/\//g, "").trim();
+        return handle ? `@${handle}` : "Instagram";
+      } catch { return "Instagram"; }
+    }
+    if (platform === "facebook") return "Facebook";
+    try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+  };
+
   const truncateUrl = (url: string) => {
     try {
       const u = new URL(url);
@@ -947,11 +1064,6 @@ const EventDetails = () => {
     }
   };
 
-  // Heuristic match for US-style street addresses (number + street name +
-  // suffix, optionally followed by city/state/zip) so a pasted address turns
-  // into a tappable "open in Apple Maps / Google Maps" link. It won't catch
-  // every possible address format, but covers the common ones people paste
-  // from Google.
   const ADDRESS_REGEX = new RegExp(
     "\\b\\d{1,6}\\s[A-Za-z0-9.'-]+(?:\\s[A-Za-z0-9.'-]+){0,4}\\s" +
     "(?:St(?:reet)?|Ave(?:nue)?|Blvd|Boulevard|Rd|Road|Dr(?:ive)?|Ln|Lane|Way|Ct|Court|Pl(?:ace)?|Pkwy|Parkway|Hwy|Highway|Cir(?:cle)?|Ter(?:race)?|Trl|Trail|Sq(?:uare)?|Loop)\\.?" +
@@ -987,15 +1099,22 @@ const EventDetails = () => {
       if (urlRegex.test(part)) {
         urlRegex.lastIndex = 0;
         return (
-          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all inline-flex items-center gap-1">
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline break-all inline-flex items-center gap-1" style={{ color: TEAL }}>
             <Link className="h-3.5 w-3.5 flex-shrink-0" />
             {part}
           </a>
         );
       }
-      return <span key={i}>{linkifyAddresses(part, i)}</span>;
+      return <span key={i}>{part}</span>;
     });
   };
+
+  // Build ordered images array: prefer image_urls array, fall back to single image_url
+  const images: string[] = (event.image_urls && event.image_urls.length > 0)
+    ? event.image_urls
+    : event.image_url
+      ? [event.image_url]
+      : [];
 
   const eventDate = (() => {
     const [y, m, d] = event.date.split("-").map(Number);
@@ -1003,203 +1122,121 @@ const EventDetails = () => {
   })();
 
   // Compact "date  time" string used in the desktop footer bar
-  const footerDateTimeStr = (() => {
-    const fmtTime = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
-    let dateStr: string;
-    if (event.is_recurring) {
-      dateStr = getRecurringLabelFull(event);
-    } else if (event.end_date) {
-      const [ey, em, ed] = event.end_date.split("-").map(Number);
-      const endDateObj = new Date(ey, em - 1, ed);
-      dateStr = `${eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} - ${endDateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`;
-    } else {
-      dateStr = eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-    }
-    let timeStr = "";
-    if (event.start_time) {
-      timeStr = event.end_time ? `${fmtTime(event.start_time)}- ${fmtTime(event.end_time)}` : fmtTime(event.start_time);
-    } else if (event.time) {
-      timeStr = event.time;
-    }
-    const tzAbbr = getTzAbbr(event.timezone);
-    return [dateStr, timeStr && `${timeStr}${tzAbbr ? ` ${tzAbbr}` : ""}`].filter(Boolean).join("  ");
-  })();
 
   return (
     <div
-      className="relative flex min-h-screen flex-col pb-24"
-      style={{ fontFamily: "'Inter', sans-serif" }}
+      className="relative flex min-h-screen flex-col pb-32"
+      style={{ fontFamily: "'Inter', sans-serif", background: BG }}
     >
+      <style>{`
+        @keyframes shimmer-sweep {
+          from { transform: translateX(-150%); }
+          to   { transform: translateX(200%); }
+        }
+        .shimmer-pass {
+          position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.48) 50%, transparent 70%);
+        }
+        .shimmer-pass-1 { animation: shimmer-sweep 800ms ease-in-out forwards; }
+        .shimmer-pass-2 { animation: shimmer-sweep 800ms ease-in-out 700ms forwards; transform: translateX(-150%); }
+
+        @keyframes avatar-float {
+          0%   { transform: translateY(0px) scale(1); }
+          25%  { transform: translateY(-6px) scale(1.04); }
+          50%  { transform: translateY(-10px) scale(1.06); }
+          75%  { transform: translateY(-5px) scale(1.03); }
+          100% { transform: translateY(0px) scale(1); }
+        }
+        @keyframes avatar-pop-in {
+          0%   { transform: scale(0) translateY(12px); opacity: 0; }
+          70%  { transform: scale(1.12) translateY(-2px); opacity: 1; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .floating-avatar {
+          animation: avatar-pop-in 0.45s cubic-bezier(0.34,1.56,0.64,1) both,
+                     avatar-float 2.8s ease-in-out 0.5s infinite;
+        }
+
+      `}</style>
       {GateSheet}
-      {/* Full-bleed ambient background — fixed so it extends under the desktop
-          sidebar too, instead of stopping at the content column's left edge. */}
+
+      {/* ── Desktop top nav (no hero) ──────────────────────────────────── */}
+
+      {/* ── Hero — full-bleed (mobile only) ───────────────────────────── */}
       <div
-        className="fixed inset-0 -z-10 transition-colors duration-700"
-        style={{
-          background: ambientColor
-            ? `linear-gradient(180deg, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.22) 0%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.10) 40%, rgba(${ambientColor[0]},${ambientColor[1]},${ambientColor[2]},0.03) 70%, white 100%)`
-            : 'white',
+        className="relative w-full flex-shrink-0 md:hidden overflow-hidden"
+        style={{ height: 336 }}
+        onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchStartX === null) return;
+          const dx = e.changedTouches[0].clientX - touchStartX;
+          if (dx < -50) setCurrentImageIdx(i => (i + 1) % images.length);
+          else if (dx > 50) setCurrentImageIdx(i => (i + images.length - 1) % images.length);
+          setTouchStartX(null);
         }}
-      />
-
-      {/* Header */}
-      <header className="sticky top-0 z-10 px-4 py-3 bg-transparent">
-        <div className="flex items-center justify-between max-w-4xl mx-auto gap-3">
-          <button
-            onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/wards"); } }}
-            className="p-2.5 rounded-full transition-colors flex-shrink-0 bg-white/30 backdrop-blur-md hover:bg-white/50"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          {!isGuest && (
-            <button
-              onClick={handleSave}
-              disabled={saveLoading}
-              className={`p-2.5 rounded-full transition-colors flex-shrink-0 bg-white/30 backdrop-blur-md hover:bg-white/50 ${isSaved ? "text-[rgb(172,42,42)]" : ""}`}
-            >
-              <Heart className={`h-6 w-6 ${isSaved ? "fill-current" : ""}`} />
-            </button>
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 px-6 py-4">
-        <div className="max-w-5xl mx-auto">
-        <div className="md:grid md:grid-cols-[1fr,420px] md:gap-16 md:items-start">
-
-        {/* LEFT COLUMN */}
-        <div className="space-y-6 min-w-0">
-
-
-          {/* Event Image — mobile only */}
-          <div className="relative md:hidden" style={{ filter: 'drop-shadow(0px 4px 24px rgba(0,0,0,0.15))' }}>
-            {event.image_url ? (
+      >
+        {/* Slides — zoom fade */}
+        {images.length > 0 ? (
+          <>
+            {images.map((src, i) => (
               <img
-                src={event.image_url}
+                key={i}
+                src={src}
                 alt={event.title}
-                className="w-full h-72 object-cover rounded-2xl"
-                style={{ boxShadow: '0px 4px 20px 6px rgba(0,0,0,0.08)' }}
-                onLoad={() => {
-                  if (!event.image_url) return;
-                  const img = new Image();
-                  img.crossOrigin = "anonymous";
-                  img.onload = () => {
-                    try {
-                      const canvas = document.createElement("canvas");
-                      canvas.width = 10;
-                      canvas.height = 10;
-                      const ctx = canvas.getContext("2d");
-                      if (!ctx) return;
-                      ctx.drawImage(img, 0, 0, 10, 10);
-                      const data = ctx.getImageData(0, 0, 10, 10).data;
-                      // Find most vibrant pixel
-                      let best: [number,number,number] = [128,128,128];
-                      let bestSat = -1;
-                      for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i], g = data[i+1], b = data[i+2];
-                        const max = Math.max(r,g,b), min = Math.min(r,g,b);
-                        const sat = max === 0 ? 0 : (max - min) / max;
-                        if (sat > bestSat) { bestSat = sat; best = [r,g,b]; }
-                      }
-                      // Boost: convert to HSL, pump saturation & lightness, back to RGB
-                      const [r,g,b] = best.map(v => v/255);
-                      const max = Math.max(r,g,b), min = Math.min(r,g,b);
-                      let h = 0, s = 0, l = (max+min)/2;
-                      if (max !== min) {
-                        const d = max - min;
-                        s = l > 0.5 ? d/(2-max-min) : d/(max+min);
-                        if (max===r) h = ((g-b)/d + (g<b?6:0))/6;
-                        else if (max===g) h = ((b-r)/d + 2)/6;
-                        else h = ((r-g)/d + 4)/6;
-                      }
-                      s = Math.min(1, s * 1.2);   // subtle saturation boost
-                      l = Math.min(0.88, Math.max(0.72, l * 1.6)); // keep very light/pastel
-                      const hue2rgb = (p:number,q:number,t:number) => {
-                        if(t<0)t+=1; if(t>1)t-=1;
-                        if(t<1/6)return p+(q-p)*6*t;
-                        if(t<1/2)return q;
-                        if(t<2/3)return p+(q-p)*(2/3-t)*6;
-                        return p;
-                      };
-                      const q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
-                      const fr = hue2rgb(p,q,h+1/3), fg = hue2rgb(p,q,h), fb = hue2rgb(p,q,h-1/3);
-                      setAmbientColor([Math.round(fr*255), Math.round(fg*255), Math.round(fb*255)]);
-                    } catch {}
-                  };
-                  img.onerror = () => {};
-                  img.src = event.image_url + "?color=1";
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  opacity: i === currentImageIdx ? 1 : 0,
+                  transform: i === currentImageIdx ? "scale(1)" : "scale(1.08)",
+                  transition: "opacity 0.65s ease, transform 0.65s ease",
+                  zIndex: i === currentImageIdx ? 1 : 0,
                 }}
               />
-            ) : (
-              <div className="w-full h-56 bg-secondary rounded-2xl flex items-center justify-center">
-                <span className="text-muted-foreground">No image</span>
-              </div>
-            )}
-            {/* Expand icon — mobile only */}
-            {event.image_url && (
-              <button
-                onClick={() => setImageExpanded(true)}
-                className="md:hidden absolute top-3 left-3 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-colors"
-              >
-                <Expand className="h-4 w-4 text-gray-700" />
-              </button>
-            )}
-            {/* Edit pencil — mobile, host + co-hosts */}
-            {isHostOrCohost && (
-              <button
-                onClick={() => navigate(`/create-event/${id}`)}
-                className="absolute bottom-3 right-3 p-2 bg-white/70 backdrop-blur-md rounded-full ring-1 ring-gray-300 hover:bg-white/90 transition-colors shadow-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                </svg>
-              </button>
-            )}
-          </div>
+            ))}
+          </>
+        ) : (
+          <div className="w-full h-full" style={{ background: ICON_BG }} />
+        )}
 
-          {/* Lightbox — portalled to document.body so it escapes the page's
-              stacking context and truly covers the sticky header + RSVP bar */}
-          {imageExpanded && event.image_url && createPortal(
-            <div
-              className="fixed inset-0 z-[200] bg-black/90 flex flex-col md:hidden"
-              onClick={() => setImageExpanded(false)}
-            >
-              {/* Close button — 24px from top, 24px gap to image */}
-              <div className="flex justify-end px-6 pt-6 pb-6 flex-shrink-0">
-                <button
-                  className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-                  onClick={(e) => { e.stopPropagation(); setImageExpanded(false); }}
-                >
-                  <span className="text-white text-xl leading-none">✕</span>
-                </button>
-              </div>
-              {/* Image fills remaining height */}
+        {/* Gradient overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0.10) 0%, transparent 30%, ${BG} 100%)`, zIndex: 2 }}
+        />
+
+        {/* Dot indicators */}
+        {images.length > 1 && (
+          <div className="absolute flex items-center gap-1.5 pointer-events-none" style={{ bottom: 52, left: "50%", transform: "translateX(-50%)", zIndex: 3 }}>
+            {images.map((_, i) => (
               <div
-                className="flex-1 px-4 pb-4 overflow-hidden flex items-start justify-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <img
-                  src={event.image_url}
-                  alt={event.title}
-                  className="w-full rounded-2xl object-contain"
-                  style={{ maxHeight: "100%" }}
-                />
-              </div>
-            </div>,
-            document.body
-          )}
+                key={i}
+                className="rounded-full transition-all duration-200"
+                style={{ width: i === currentImageIdx ? 16 : 6, height: 6, background: i === currentImageIdx ? "#fff" : "rgba(255,255,255,0.5)" }}
+              />
+            ))}
+          </div>
+        )}
 
-          {/* Category + Age + Title */}
-          <div className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <h1 ref={titleRef} className="font-bold md:text-[36px] text-[28px]" style={{ fontFamily: "'Hanken Grotesk', sans-serif", lineHeight: '1.2' }}>{event.title}</h1>
-              <div className="flex-shrink-0 mt-1">
+        {/* Back button */}
+        <button
+          onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+          className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+          style={{ top: 52, left: 16, width: 36, height: 36, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)", zIndex: 4 }}
+        >
+          <ArrowLeft className="h-5 w-5 text-white" />
+        </button>
+
+        {/* Right overlay buttons: share + heart */}
+        <div className="absolute flex items-center gap-2" style={{ top: 52, right: 16, zIndex: 4 }}>
+          {!isGuest && (
+            <>
+              <div className="relative">
                 <button
                   ref={shareButtonRef}
                   onClick={() => setShareMenuOpen(prev => !prev)}
-                  className="hover:opacity-70 transition-opacity"
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  style={{ width: 36, height: 36, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)" }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                   </svg>
                 </button>
@@ -1214,11 +1251,191 @@ const EventDetails = () => {
                   ]}
                 />
               </div>
+              <button
+                onClick={handleSave}
+                disabled={saveLoading}
+                className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                style={{ width: 36, height: 36, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)" }}
+              >
+                <Heart className="h-[17px] w-[17px]" style={{ color: "white", fill: isSaved ? "white" : "none" }} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Expand button (mobile) */}
+        {images.length > 0 && (
+          <button
+            onClick={() => setImageExpanded(true)}
+            className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+            style={{ bottom: 48, right: 16, width: 30, height: 30, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)", zIndex: 4 }}
+          >
+            <Expand className="h-3.5 w-3.5 text-white" />
+          </button>
+        )}
+
+        {/* Edit button (host/cohost) */}
+        {isHostOrCohost && (
+          <button
+            onClick={() => navigate(`/create-event/${id}`)}
+            className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+            style={{ bottom: 48, right: images.length > 0 ? 54 : 16, width: 30, height: 30, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)", zIndex: 4 }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Floating going-attendee avatars */}
+        {previewAvatars.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 14,
+              right: 14,
+              zIndex: 5,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "flex-end",
+            }}
+          >
+            {previewAvatars.slice(0, 4).map((av, i) => (
+              <div
+                key={i}
+                className="floating-avatar"
+                title={av.name}
+                style={{
+                  animationDelay: `${i * 0.18}s, ${0.5 + i * 0.3}s`,
+                  marginLeft: i === 0 ? 0 : -10,
+                  zIndex: previewAvatars.length - i,
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  border: "2.5px solid rgba(255,255,255,0.9)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.28)",
+                  overflow: "hidden",
+                  background: "#E4DCCF",
+                  flexShrink: 0,
+                }}
+              >
+                {av.url ? (
+                  <img
+                    src={av.url}
+                    alt={av.name}
+                    referrerPolicy="no-referrer"
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <div style={{
+                    width: "100%", height: "100%",
+                    background: "#1F4E5B",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontSize: 13, fontWeight: 700,
+                  }}>
+                    {av.name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                )}
+              </div>
+            ))}
+            {previewAvatars.length > 4 && (
+              <div
+                className="floating-avatar"
+                style={{
+                  animationDelay: `${4 * 0.18}s, ${0.5 + 4 * 0.3}s`,
+                  marginLeft: -10,
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  border: "2.5px solid rgba(255,255,255,0.9)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.28)",
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(4px)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 10, fontWeight: 700,
+                  flexShrink: 0,
+                  zIndex: 0,
+                }}
+              >
+                +{previewAvatars.length - 4}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Lightbox */}
+        {imageExpanded && images.length > 0 && createPortal(
+          <div
+            className="fixed inset-0 z-[200] bg-black/90 flex flex-col"
+            onClick={() => setImageExpanded(false)}
+          >
+            <div className="flex justify-end px-6 pt-6 pb-6 flex-shrink-0">
+              <button
+                className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                onClick={(e) => { e.stopPropagation(); setImageExpanded(false); }}
+              >
+                <span className="text-white text-xl leading-none">✕</span>
+              </button>
             </div>
+            <div
+              className="flex-1 px-4 pb-4 overflow-hidden flex items-start justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={images[currentImageIdx]}
+                alt={event.title}
+                className="w-full rounded-2xl object-contain"
+                style={{ maxHeight: "100%" }}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
+      </div>
+
+      {/* ── Mobile sticky title header ──────────────────────────────────── */}
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 z-50"
+        style={{
+          background: BG,
+          borderBottom: `1px solid ${DIVIDER}`,
+          paddingTop: "env(safe-area-inset-top)",
+          transform: showTitleInHeader ? "translateY(0)" : "translateY(-100%)",
+          opacity: showTitleInHeader ? 1 : 0,
+          pointerEvents: showTitleInHeader ? "auto" : "none",
+          transition: "transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease",
+        }}
+      >
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+            className="flex items-center justify-center rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{ width: 36, height: 36, background: ICON_BG, border: `1px solid ${DIVIDER}` }}
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" style={{ color: DARK }} />
+          </button>
+          <span className="flex-1 min-w-0 truncate text-base font-semibold" style={{ fontFamily: SERIF, color: DARK }}>
+            {event.title}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Main content (mobile only) ──────────────────────────────────── */}
+      <main className="md:hidden flex-1 px-5">
+        <div className="max-w-2xl mx-auto pt-5 space-y-5">
+
+          {/* ── Title + meta tags ──────────────────────────────── */}
+          <div>
+            <h1
+              ref={titleRef}
+              style={{ fontFamily: SERIF, color: DARK, fontSize: 32, fontWeight: 500, lineHeight: 1.2, marginBottom: 10 }}
+            >
+              {event.title}
+            </h1>
             {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
               <div className="flex flex-wrap items-center gap-2">
                 {(event.age_min || event.age_max) && (
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full text-foreground" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
+                  <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: ICON_BG, color: MID }}>
                     {event.age_min && event.age_max
                       ? `Ages ${event.age_min}–${event.age_max}`
                       : event.age_min
@@ -1239,13 +1456,11 @@ const EventDetails = () => {
                     salad: <Salad className="h-3.5 w-3.5" />,
                   };
                   return (
-                    <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.07)' }}>
+                    <span className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: ICON_BG, color: MID }}>
                       <Utensils className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="flex items-center gap-1">
-                        {event.food.map((f: string) => (
-                          <span key={f} title={f}>{FOOD_ICON_MAP[f] || <Utensils className="h-3.5 w-3.5" />}</span>
-                        ))}
-                      </span>
+                      {event.food.map((f: string) => (
+                        <span key={f} title={f}>{FOOD_ICON_MAP[f] || <Utensils className="h-3.5 w-3.5" />}</span>
+                      ))}
                     </span>
                   );
                 })()}
@@ -1253,231 +1468,195 @@ const EventDetails = () => {
             )}
           </div>
 
-          {/* Date + Location card */}
-          <div className="rounded-2xl overflow-hidden">
-
-            {/* Date row */}
-            <div className="relative flex items-center gap-4 py-3">
-              <div className="flex flex-col rounded-xl w-12 h-12 flex-shrink-0 overflow-hidden" style={{ border: '1px solid #D9D9D9' }}>
-                {event.is_recurring ? (
-                  <>
-                    <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
-                      <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                        {(event.recurring_days?.[0] ?? event.recurring_day)?.slice(0, 3).toUpperCase() ?? "WKL"}
-                      </span>
-                    </div>
-                    <div className="relative w-full flex items-center justify-center flex-[1.4] overflow-hidden">
-                      {/* Mobile: tinted toward this event's ambient color so it doesn't sit as flat white */}
-                      <div
-                        className="absolute inset-0 md:hidden backdrop-blur-sm"
-                        style={{
-                          background: ambientColor
-                            ? `rgb(${Math.round(255 * 0.88 + ambientColor[0] * 0.12)}, ${Math.round(255 * 0.88 + ambientColor[1] * 0.12)}, ${Math.round(255 * 0.88 + ambientColor[2] * 0.12)})`
-                            : 'rgba(255,255,255,0.9)',
-                        }}
-                      />
-                      {/* Desktop: unchanged flat background */}
-                      <div className="absolute inset-0 hidden md:block bg-background" />
-                      <span className="relative text-[10px] font-bold leading-none text-foreground tracking-tight uppercase" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Every</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-full flex items-center justify-center flex-1" style={{ backgroundColor: 'rgb(191, 33, 33)' }}>
-                      <span className="text-[9px] font-bold uppercase text-white tracking-widest leading-none" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                        {eventDate.toLocaleDateString("en-US", { weekday: "short" })}
-                      </span>
-                    </div>
-                    <div className="relative w-full flex items-center justify-center flex-[1.4] overflow-hidden">
-                      {/* Mobile: tinted toward this event's ambient color so it doesn't sit as flat white */}
-                      <div
-                        className="absolute inset-0 md:hidden backdrop-blur-sm"
-                        style={{
-                          background: ambientColor
-                            ? `rgb(${Math.round(255 * 0.88 + ambientColor[0] * 0.12)}, ${Math.round(255 * 0.88 + ambientColor[1] * 0.12)}, ${Math.round(255 * 0.88 + ambientColor[2] * 0.12)})`
-                            : 'rgba(255,255,255,0.9)',
-                        }}
-                      />
-                      {/* Desktop: unchanged flat background */}
-                      <div className="absolute inset-0 hidden md:block bg-background" />
-                      <span className="relative text-lg font-bold leading-none text-foreground" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                        {eventDate.getDate()}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex flex-col gap-1.5 flex-1">
-                <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  {event.is_recurring
-                    ? getRecurringLabelFull(event)
-                    : event.end_date
-                    ? (() => {
-                        const [ey, em, ed] = event.end_date.split("-").map(Number);
-                        const endDateObj = new Date(ey, em - 1, ed);
-                        return `${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${endDateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
-                      })()
-                    : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                </p>
-                {(event.start_time || event.time) && (() => {
-                  const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
-                  const timeDisplay = event.start_time
-                    ? event.end_time
-                      ? `${fmt(event.start_time)} – ${fmt(event.end_time)}`
-                      : fmt(event.start_time)
-                    : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`;
-                  const tzAbbr = getTzAbbr(event.timezone);
-                  const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                  const viewerAbbr = getTzAbbr(viewerTz);
-                  const isDifferentTz = event.timezone && viewerTz !== event.timezone;
-                  const convertedStart = isDifferentTz && event.start_time ? convertTime(event.start_time, event.timezone!, viewerTz) : '';
-                  const convertedEnd = isDifferentTz && event.end_time ? convertTime(event.end_time, event.timezone!, viewerTz) : '';
-                  const yourTime = convertedStart
-                    ? convertedEnd ? `${convertedStart} – ${convertedEnd}` : convertedStart
-                    : '';
-                  return (
-                    <div className="flex items-start gap-1.5 text-foreground">
-                      <Clock className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[14px] font-medium">
-                          {timeDisplay}{tzAbbr ? <span className="text-muted-foreground font-normal"> {tzAbbr}</span> : null}
-                        </span>
-                        {yourTime && viewerAbbr && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{yourTime} {viewerAbbr} <span className="text-muted-foreground">(your time)</span></p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Add to Calendar button */}
-              <div className="relative flex-shrink-0">
-                <button
-                  onClick={() => setCalendarOpen(!calendarOpen)}
-                  className="flex items-center justify-center hover:opacity-70 transition-opacity"
-                >
-                  <CalendarPlus className="h-6 w-6 text-foreground" />
-                </button>
-
-                {/* Calendar picker popup */}
-                {calendarOpen && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setCalendarOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-30 w-44">
-                      <button
-                        onClick={() => { handleAddToCalendar("google"); setCalendarOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors border-b border-gray-100"
-                      >
-                        <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        Google
-                      </button>
-                      <button
-                        onClick={() => { handleAddToCalendar("ics"); setCalendarOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
-                      >
-                        <CalendarPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        Apple / Outlook
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+          {/* ── Date card ──────────────────────────────────────── */}
+          <div
+            className="flex items-center gap-4 rounded-2xl px-4 py-3"
+            style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
+          >
+            {/* Mini calendar widget */}
+            <div
+              className="flex-shrink-0 flex flex-col items-center justify-center rounded-xl overflow-hidden"
+              style={{ width: 44, height: 50, background: ICON_BG }}
+            >
+              <span
+                className="font-bold uppercase leading-none"
+                style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: TEAL, letterSpacing: 1 }}
+              >
+                {event.is_recurring
+                  ? (event.recurring_days?.[0] ?? event.recurring_day)?.slice(0, 3).toUpperCase() ?? "WKL"
+                  : eventDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
+              </span>
+              <span
+                className="font-bold leading-none mt-0.5"
+                style={{ fontFamily: SERIF, fontSize: 22, color: DARK }}
+              >
+                {event.is_recurring ? "∞" : eventDate.getDate()}
+              </span>
             </div>
-
-            {/* Location row — virtual OR in-person, never both */}
-            {event.virtual_link ? (
-              <a
-                href={event.virtual_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 py-3 hover:bg-accent transition-colors" 
+            {/* Date + time text */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: DARK }}>
+                {event.is_recurring
+                  ? getRecurringLabelFull(event)
+                  : event.end_date
+                  ? (() => {
+                      const [ey, em, ed] = event.end_date.split("-").map(Number);
+                      const endDateObj = new Date(ey, em - 1, ed);
+                      return `${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${endDateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+                    })()
+                  : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </p>
+              {(event.start_time || event.time) && (() => {
+                const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+                const timeDisplay = event.start_time
+                  ? event.end_time
+                    ? `${fmt(event.start_time)} – ${fmt(event.end_time)}`
+                    : fmt(event.start_time)
+                  : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`;
+                const tzAbbr = getTzAbbr(event.timezone);
+                const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const viewerAbbr = getTzAbbr(viewerTz);
+                const isDifferentTz = event.timezone && viewerTz !== event.timezone;
+                const convertedStart = isDifferentTz && event.start_time ? convertTime(event.start_time, event.timezone!, viewerTz) : '';
+                const convertedEnd = isDifferentTz && event.end_time ? convertTime(event.end_time, event.timezone!, viewerTz) : '';
+                const yourTime = convertedStart
+                  ? convertedEnd ? `${convertedStart} – ${convertedEnd}` : convertedStart
+                  : '';
+                return (
+                  <div className="mt-0.5">
+                    <p className="text-xs" style={{ color: MID }}>
+                      {timeDisplay}{tzAbbr ? ` ${tzAbbr}` : ""}
+                    </p>
+                    {yourTime && viewerAbbr && (
+                      <p className="text-xs" style={{ color: MID }}>{yourTime} {viewerAbbr} (your time)</p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Add to Calendar button */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setCalendarOpen(!calendarOpen)}
+                className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                style={{ width: 36, height: 36, background: ICON_BG }}
               >
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ border: '1px solid #D9D9D9', backgroundColor: 'rgba(0,0,0,0.04)' }}>
-                  <Video className="h-5 w-5 text-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Virtual Event</p>
-                  <p className="text-xs text-primary underline truncate max-w-[220px]">{event.virtual_link}</p>
-                </div>
-              </a>
-            ) : event.address ? (
-              <div
-                className="flex items-center gap-4 py-3"
-                onContextMenu={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }}
-                onTouchStart={(e) => {
-                  const t = setTimeout(() => { navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }, 600);
-                  const cancel = () => clearTimeout(t);
-                  e.currentTarget.addEventListener("touchend", cancel, { once: true });
-                  e.currentTarget.addEventListener("touchmove", cancel, { once: true });
-                }}
-              >
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border border-black/[0.17]" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
-                  <MapPin className="h-5 w-5 text-foreground" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{formatAddress(event.address)}</p>
-                </div>
-                <div className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setMapPickerOpen(true)}
-                    className="flex items-center justify-center hover:opacity-70 transition-opacity"
-                  >
-                    <Navigation className="h-6 w-6 text-foreground" />
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
+                <CalendarPlus className="h-4 w-4" style={{ color: TEAL }} />
+              </button>
+              {calendarOpen && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setCalendarOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 rounded-xl shadow-lg overflow-hidden z-30 w-44" style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}>
+                    <button
+                      onClick={() => { handleAddToCalendar("google"); setCalendarOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-opacity hover:opacity-70"
+                      style={{ color: DARK, borderBottom: `1px solid ${DIVIDER}` }}
+                    >
+                      <CalendarPlus className="h-4 w-4 shrink-0" style={{ color: MID }} />
+                      Google
+                    </button>
+                    <button
+                      onClick={() => { handleAddToCalendar("ics"); setCalendarOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-opacity hover:opacity-70"
+                      style={{ color: DARK }}
+                    >
+                      <CalendarPlus className="h-4 w-4 shrink-0" style={{ color: MID }} />
+                      Apple / Outlook
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Map Picker Dialog */}
+          {/* ── Location card ──────────────────────────────────── */}
+          {event.virtual_link ? (
+            <a
+              href={event.virtual_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-4 rounded-2xl px-4 py-3 transition-opacity hover:opacity-80"
+              style={{ background: "#fff", border: `1px solid ${DIVIDER}`, display: "flex" }}
+            >
+              <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: ICON_BG }}>
+                <Video className="h-4 w-4" style={{ color: TEAL }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold" style={{ color: DARK }}>Virtual Event</p>
+                <p className="text-xs truncate" style={{ color: TEAL }}>{event.virtual_link}</p>
+              </div>
+              <Navigation className="h-4 w-4 flex-shrink-0" style={{ color: MID }} />
+            </a>
+          ) : event.address ? (
+            <div
+              className="flex items-center gap-4 rounded-2xl px-4 py-3"
+              style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
+              onContextMenu={(e) => { e.preventDefault(); navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }}
+              onTouchStart={(e) => {
+                const t = setTimeout(() => { navigator.clipboard.writeText(event.address); toast.success("Address copied!"); }, 600);
+                const cancel = () => clearTimeout(t);
+                e.currentTarget.addEventListener("touchend", cancel, { once: true });
+                e.currentTarget.addEventListener("touchmove", cancel, { once: true });
+              }}
+            >
+              <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: ICON_BG }}>
+                <MapPin className="h-4 w-4" style={{ color: TEAL }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold" style={{ color: DARK }}>{formatAddress(event.address)}</p>
+              </div>
+              <button
+                onClick={() => setMapPickerOpen(true)}
+                className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0"
+              >
+                <Navigation className="h-4 w-4" style={{ color: TEAL }} />
+              </button>
+            </div>
+          ) : null}
+
+          {/* ── Map Picker Dialog ──────────────────────────────── */}
           <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
               <DialogHeader className="p-5 pb-3">
-                <DialogTitle className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Open in Maps</DialogTitle>
+                <DialogTitle className="text-lg font-bold">Open in Maps</DialogTitle>
               </DialogHeader>
               <div className="px-5 pb-5 space-y-1">
-                {/* Google Maps */}
                 <button
                   onClick={() => { window.open(`https://maps.google.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
                 >
-                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
                     <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M24 4C15.16 4 8 11.16 8 20c0 11.87 14.29 23.45 15 24l1 .87 1-.87C25.71 43.45 40 31.87 40 20c0-8.84-7.16-16-16-16z" fill="#EA4335"/>
                       <circle cx="24" cy="20" r="6" fill="white"/>
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Google Maps</span>
+                  <span className="text-sm font-semibold" style={{ color: DARK }}>Google Maps</span>
                 </button>
-                {/* Apple Maps */}
                 <button
                   onClick={() => { window.open(`https://maps.apple.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
                 >
-                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
                     <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="48" height="48" rx="10" fill="url(#appleGrad)"/>
+                      <rect width="48" height="48" rx="10" fill="url(#appleGrad2)"/>
                       <path d="M24 10l3.5 7 7.5 1.1-5.5 5.3 1.3 7.6L24 27.5l-6.8 3.5 1.3-7.6L13 18.1l7.5-1.1L24 10z" fill="white"/>
                       <defs>
-                        <linearGradient id="appleGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                        <linearGradient id="appleGrad2" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
                           <stop stopColor="#4CD964"/>
                           <stop offset="1" stopColor="#007AFF"/>
                         </linearGradient>
                       </defs>
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Apple Maps</span>
+                  <span className="text-sm font-semibold" style={{ color: DARK }}>Apple Maps</span>
                 </button>
-                {/* Waze */}
                 <button
                   onClick={() => { window.open(`https://waze.com/ul?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 hover:bg-accent/30 -mx-2 px-2 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
                 >
-                  <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
                     <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <ellipse cx="24" cy="22" rx="16" ry="14" fill="#33CCFF"/>
                       <ellipse cx="24" cy="22" rx="16" ry="14" fill="#05C8F0"/>
                       <circle cx="19" cy="20" r="2.5" fill="#1A1A1A"/>
                       <circle cx="29" cy="20" r="2.5" fill="#1A1A1A"/>
@@ -1485,13 +1664,13 @@ const EventDetails = () => {
                       <ellipse cx="34" cy="30" rx="5" ry="4" fill="#FFCC00"/>
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Waze</span>
+                  <span className="text-sm font-semibold" style={{ color: DARK }}>Waze</span>
                 </button>
               </div>
             </DialogContent>
           </Dialog>
 
-          {/* Going List Dialog */}
+          {/* ── Going List Dialog ──────────────────────────────── */}
           <Dialog open={goingListOpen} onOpenChange={setGoingListOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
               <DialogHeader className="p-5 pb-3">
@@ -1500,10 +1679,10 @@ const EventDetails = () => {
               <div className="px-5 pb-5 space-y-3 max-h-80 overflow-y-auto">
                 {goingListLoading ? (
                   <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-5 w-5 animate-spin" style={{ color: MID }} />
                   </div>
                 ) : goingList.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No one yet — be the first!</p>
+                  <p className="text-sm text-center py-4" style={{ color: MID }}>No one yet — be the first!</p>
                 ) : (
                   goingList.map(person => (
                     <div key={person.user_id} className="flex items-center gap-3">
@@ -1514,7 +1693,7 @@ const EventDetails = () => {
                           {(person.name || '?').charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <span className="text-sm font-medium">{person.name || "Anonymous"}</span>
+                      <span className="text-sm font-medium" style={{ color: DARK }}>{person.name || "Anonymous"}</span>
                     </div>
                   ))
                 )}
@@ -1522,8 +1701,7 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Manage Event popup — co-host list (host can remove), invite link control
-              (host-only turn off), and access to the full activity log. */}
+          {/* ── Manage Event Dialog ──────────────────────────── */}
           <Dialog open={manageEventOpen} onOpenChange={setManageEventOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
               <DialogHeader className="p-5 pb-3">
@@ -1533,9 +1711,9 @@ const EventDetails = () => {
               </DialogHeader>
               <div className="px-5 pb-5 space-y-4 max-h-96 overflow-y-auto">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Co-hosts</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MID }}>Co-hosts</p>
                   {cohosts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No co-hosts yet.</p>
+                    <p className="text-sm" style={{ color: MID }}>No co-hosts yet.</p>
                   ) : (
                     cohosts.map((c) => (
                       <div key={c.user_id} className="flex items-center justify-between gap-2">
@@ -1547,10 +1725,10 @@ const EventDetails = () => {
                               {c.name.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <span className="text-sm">{c.name}</span>
+                          <span className="text-sm" style={{ color: DARK }}>{c.name}</span>
                         </div>
                         {isHost && (
-                          <button type="button" onClick={() => handleRemoveCohost(c.user_id, c.name)} className="text-xs text-red-500 font-medium hover:underline">
+                          <button type="button" onClick={() => handleRemoveCohost(c.user_id, c.name)} className="text-xs font-medium hover:underline" style={{ color: CE_ERROR }}>
                             Remove
                           </button>
                         )}
@@ -1558,31 +1736,26 @@ const EventDetails = () => {
                     ))
                   )}
                 </div>
-
                 {isHost && (
-                  <div className="flex items-center justify-between gap-2 text-sm bg-secondary/60 rounded-xl px-3 py-2.5">
-                    <span className="text-muted-foreground">{inviteLink ? "Invite link is live" : "Invite link is off"}</span>
+                  <div className="flex items-center justify-between gap-2 text-sm rounded-xl px-3 py-2.5" style={{ background: ICON_BG }}>
+                    <span style={{ color: MID }}>{inviteLink ? "Invite link is live" : "Invite link is off"}</span>
                     {inviteLink ? (
-                      <button type="button" onClick={handleRevokeInvite} className="text-xs font-semibold text-red-500 hover:underline flex-shrink-0">
-                        Turn off
-                      </button>
+                      <button type="button" onClick={handleRevokeInvite} className="text-xs font-semibold hover:underline" style={{ color: CE_ERROR }}>Turn off</button>
                     ) : (
-                      <button type="button" onClick={handleTurnOnInvite} className="text-xs font-semibold text-primary hover:underline flex-shrink-0">
-                        Turn on
-                      </button>
+                      <button type="button" onClick={handleTurnOnInvite} className="text-xs font-semibold hover:underline" style={{ color: TEAL }}>Turn on</button>
                     )}
                   </div>
                 )}
-
                 <button
                   type="button"
                   onClick={() => { setManageEventOpen(false); setActivityLogOpen(true); }}
-                  className="flex items-center justify-between w-full gap-2 text-sm bg-secondary/60 rounded-xl px-3 py-2.5 hover:bg-secondary transition-colors"
+                  className="flex items-center justify-between w-full gap-2 text-sm rounded-xl px-3 py-2.5 transition-opacity hover:opacity-70"
+                  style={{ background: ICON_BG }}
                 >
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide" style={{ color: MID }}>
                     <History className="h-3.5 w-3.5" /> Activity
                   </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1 text-xs" style={{ color: MID }}>
                     {activityLog.length > 0 ? `${activityLog.length} update${activityLog.length === 1 ? "" : "s"}` : "No changes yet"}
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </span>
@@ -1591,7 +1764,7 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Activity Log popup — full editing history for host + co-hosts */}
+          {/* ── Activity Log Dialog ──────────────────────────── */}
           <Dialog open={activityLogOpen} onOpenChange={setActivityLogOpen}>
             <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
               <DialogHeader className="p-5 pb-3">
@@ -1601,12 +1774,12 @@ const EventDetails = () => {
               </DialogHeader>
               <div className="px-5 pb-5 space-y-3 max-h-96 overflow-y-auto">
                 {activityLog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No changes yet.</p>
+                  <p className="text-sm text-center py-4" style={{ color: MID }}>No changes yet.</p>
                 ) : (
                   activityLog.map((a) => (
                     <div key={a.id} className="flex items-baseline gap-2 text-sm">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.created_at)}</span>
-                      <span className="text-foreground">{a.message}</span>
+                      <span className="text-xs whitespace-nowrap" style={{ color: MID }}>{timeAgo(a.created_at)}</span>
+                      <span style={{ color: DARK }}>{a.message}</span>
                     </div>
                   ))
                 )}
@@ -1614,101 +1787,97 @@ const EventDetails = () => {
             </DialogContent>
           </Dialog>
 
+          {/* ── Divider ──────────────────────────────────────── */}
+          <div style={{ height: 1, background: DIVIDER }} />
 
-{/* About */}
-          <div className="space-y-3">
-            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>About</h2>
-            <p className={`text-base leading-snug whitespace-pre-wrap ${!descExpanded ? "line-clamp-6" : ""}`}>
-              {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n'))}
-            </p>
-            {event.description?.length > 200 && (
-              <button onClick={() => setDescExpanded(e => !e)} className="w-full text-left text-sm font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif", color: '#424242' }}>
-                {descExpanded ? "Show less" : "Show more >"}
+          {/* ── About ────────────────────────────────────────── */}
+          <div className="space-y-3 pt-6">
+            <div className="flex items-center flex-col justify-center gap-1">
+              <img src="/Event detail Icons/New Icons mobile/About event.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>About the Event</h2>
+            </div>
+            {/* Hosted by pill */}
+            {(creatorName || communityGroup) && (
+              <div className="flex items-center justify-center">
+                {communityGroup ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/group/${communityGroup.id}`)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-opacity hover:opacity-70"
+                    style={{ background: ICON_BG }}
+                  >
+                    {communityGroup.avatar_url ? (
+                      <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <span className="text-sm">👥</span>
+                    )}
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {communityGroup.name}</span>
+                  </button>
+                ) : creatorAvatar ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: ICON_BG }}>
+                    <img src={creatorAvatar} alt={creatorName ?? ""} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {creatorName}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: ICON_BG }}>
+                    <User className="h-3.5 w-3.5" style={{ color: MID }} />
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {creatorName}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div
+              ref={descContainerMobileRef}
+              className="relative"
+              style={{ overflow: "hidden", height: DESC_COLLAPSED }}
+            >
+              <div>
+                <p
+                  className="text-sm leading-relaxed whitespace-pre-wrap text-center"
+                  style={{ color: MID }}
+                >
+                  {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
+                </p>
+              </div>
+              {descOverflows && (
+                <div
+                  className="absolute bottom-0 left-0 right-0"
+                  style={{
+                    height: "4em",
+                    background: `linear-gradient(to bottom, transparent, ${BG} 75%)`,
+                    pointerEvents: "none",
+                    opacity: descExpanded ? 0 : 1,
+                    transition: "opacity 0.35s ease",
+                  }}
+                />
+              )}
+            </div>
+            {descOverflows && (
+              <button
+                onClick={toggleDesc}
+                className="flex items-center justify-center gap-1 w-full mt-2 text-sm font-semibold transition-opacity hover:opacity-70"
+                style={{ color: TEAL }}
+              >
+                {descExpanded ? "Show less" : "Show more"}
+                <ChevronDown
+                  className="h-4 w-4"
+                  style={{
+                    transform: descExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                />
               </button>
             )}
-          </div>
-
-{/* Additional Details */}
-          {event.additional_info && event.additional_info.length > 0 && (
-            <div className="space-y-1">
-              {/* Section header */}
-              <div className="w-full flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                <span className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                  Additional Details
-                </span>
-              </div>
-
-              {/* All items always visible */}
-              <div className="flex flex-col pl-4 pb-6">
-                    {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
-                      const isOpen = expandedInfoItems.has(idx);
-                      return (
-                        <div key={idx}>
-                          {/* Row button */}
-                          <button
-                            onClick={() => {
-                              const next = new Set(expandedInfoItems);
-                              if (next.has(idx)) next.delete(idx); else next.add(idx);
-                              setExpandedInfoItems(next);
-                            }}
-                            className="w-full flex items-center gap-[15px] h-[56px] text-left"
-                          >
-                            {(() => {
-                              const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
-                              return IconComp ? <IconComp className="flex-shrink-0 h-5 w-5" /> : null;
-                            })()}
-                            <span className="flex-1 font-normal text-black min-w-0" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-                              {item.title}
-                            </span>
-                            <svg
-                              width="24" height="24" viewBox="0 0 24 24"
-                              fill="none" stroke="currentColor" strokeWidth="2"
-                              strokeLinecap="round" strokeLinejoin="round"
-                              className="flex-shrink-0"
-                              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
-                            >
-                              <path d="m6 9 6 6 6-6"/>
-                            </svg>
-                          </button>
-
-                          {/* Description — animated slide */}
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateRows: isOpen ? '1fr' : '0fr',
-                              transition: 'grid-template-rows 0.3s ease',
-                            }}
-                          >
-                            <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                              <div className="w-full pl-[26px] pb-2">
-                                <div
-                                  className="pl-6 pb-4 pr-2 text-sm font-normal leading-relaxed whitespace-pre-wrap text-left"
-                                  style={{ borderLeft: '2px solid rgba(0,0,0,0.09)', color: '#000000cc' }}
-                                >
-                                  {renderDescription(item.description)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-              </div>
-            </div>
-          )}
-
-{/* Social Links */}
-          {event.social_links?.filter(Boolean).length > 0 && (() => {
-            const links = event.social_links.filter(Boolean);
-            const getPlatform = (url: string) => {
-              if (/facebook\.com/i.test(url)) return "facebook";
-              if (/instagram\.com/i.test(url)) return "instagram";
-              return "link";
-            };
-            return (
-              <div className="space-y-3">
-                <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Links</h2>
-                <div className="space-y-2">
+            {/* Social Links */}
+            {event.social_links?.filter(Boolean).length > 0 && (() => {
+              const links = event.social_links.filter(Boolean);
+              const getPlatform = (url: string) => {
+                if (/facebook\.com/i.test(url)) return "facebook";
+                if (/instagram\.com/i.test(url)) return "instagram";
+                return "link";
+              };
+              return (
+                <div className="flex flex-wrap gap-2 pt-1 justify-center">
                   {links.map((link: string, i: number) => {
                     const platform = getPlatform(link);
                     return (
@@ -1717,163 +1886,170 @@ const EventDetails = () => {
                         href={link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 py-2 hover:opacity-70 transition-opacity md:max-w-[360px]"
+                        className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[140px] overflow-hidden"
+                        style={{ background: ICON_BG }}
                       >
                         {platform === "facebook" && (
-                          <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
-                          </svg>
+                          <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
                         )}
                         {platform === "instagram" && (
-                          <img src="/icons/instagram.png" alt="Instagram" className="h-5 w-5 flex-shrink-0 object-contain" />
+                          <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />
                         )}
                         {platform === "link" && (
-                          <Link className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                          <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />
                         )}
-                        <span className="text-sm truncate" style={{ color: platform === "facebook" ? "#1877F2" : platform === "instagram" ? "#E1306C" : "#3771c8" }}>{link}</span>
+                        <span className="text-xs font-medium truncate" style={{ color: TEAL }}>
+                          {platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}
+                        </span>
                       </a>
                     );
                   })}
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
+          </div>
 
-{/* Attendees — mobile only, left-aligned */}
-          <div className="md:hidden space-y-3">
-            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Attendees</h2>
+          {/* ── Things to Know ────────────────────────────────── */}
+          {event.additional_info && event.additional_info.length > 0 && (
+            <>
+              <div style={{ height: 1, background: DIVIDER }} />
+            <div className="space-y-3 pt-6">
+              <div className="flex items-center flex-col justify-center gap-1">
+                <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Things to Know</h2>
+              </div>
+              <div
+                className="flex gap-3 justify-center flex-wrap pb-1"
+                style={{ overflowX: "auto", scrollbarWidth: "none" }}
+              >
+                {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
+                  const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
+                  const isLong = item.description && item.description.length > 60;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => openTtk(idx)}
+                      className="flex-shrink-0 flex flex-col gap-2 p-4 rounded-2xl relative cursor-pointer transition-opacity hover:opacity-80"
+                      style={{ width: 160, height: 160, background: ICON_BG, overflow: "hidden", border: `1px solid ${DIVIDER}` }}
+                    >
+                      {IconComp && <IconComp className="h-5 w-5 flex-shrink-0" style={{ color: TEAL }} />}
+                      <p className="text-xs font-semibold leading-snug" style={{ color: TEAL }}>{item.title}</p>
+                      <p className="text-xs leading-relaxed line-clamp-2" style={{ color: MID }}>{item.description}</p>
+                      {isLong && (
+                        <div
+                          className="absolute bottom-2 right-2 flex items-center justify-center rounded-full"
+                          style={{ width: 22, height: 22, background: "rgba(255,255,255,0.75)" }}
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" style={{ color: TEAL }} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
+          )}
+
+          {/* ── Divider ──────────────────────────────────────── */}
+          <div style={{ height: 1, background: DIVIDER }} />
+
+          {/* ── Attendees ─────────────────────────────────────── */}
+          <div className="space-y-3 pt-6">
+            <div className="flex items-center flex-col justify-center gap-1">
+              <img src="/Event detail Icons/New Icons mobile/Attendee.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Attendees</h2>
+            </div>
             <button
               onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
-              className="flex flex-col gap-2 text-left"
+              className="flex flex-col gap-2 items-center text-center w-full transition-opacity hover:opacity-70"
             >
-              <p className="text-sm font-semibold text-muted-foreground">
-                <span className="text-foreground font-bold">{goingCount}</span> Going · <span className="text-foreground font-bold">{likeCount}</span> Liked · <span className="text-foreground font-bold">{interestedCount}</span> Interested
-              </p>
               {previewAvatars.length > 0 && (
-                <div className="flex">
+                <div className="flex justify-center">
                   {previewAvatars.slice(0, 8).map((p, i) => (
                     p.url
-                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover border-2 border-white" style={{ marginLeft: i === 0 ? 0 : -10 }} />
-                      : <div key={i} className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ marginLeft: i === 0 ? 0 : -10, backgroundColor: getInitialColor(p.name) }}>
+                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="rounded-full object-cover" style={{ width: 36, height: 36, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -10, flexShrink: 0 }} />
+                      : <div key={i} className="rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ width: 36, height: 36, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -10, flexShrink: 0, backgroundColor: getInitialColor(p.name) }}>
                           {p.name.charAt(0).toUpperCase()}
                         </div>
                   ))}
                 </div>
               )}
+              <p className="text-sm" style={{ color: MID }}>
+                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> interested
+                {likeCount > 0 && <> · <span className="font-semibold" style={{ color: DARK }}>{likeCount}</span> liked</>}
+              </p>
             </button>
+
+            {/* Co-hosts row */}
+            {cohosts.length > 0 && (
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex justify-center">
+                  {cohosts.slice(0, 2).map((c, i) => (
+                    c.avatar_url
+                      ? <img key={c.user_id} src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="rounded-full object-cover" style={{ width: 28, height: 28, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -8, flexShrink: 0 }} />
+                      : <div key={c.user_id} className="rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ width: 28, height: 28, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -8, flexShrink: 0, backgroundColor: getInitialColor(c.name) }}>{c.name.charAt(0).toUpperCase()}</div>
+                  ))}
+                </div>
+                <p className="text-xs text-center" style={{ color: MID }}>
+                  {cohosts.length === 1
+                    ? <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}</span> · co-host</>
+                    : cohosts.length === 2
+                      ? <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}, {cohosts[1].name}</span> · co-hosts</>
+                      : <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}, {cohosts[1].name}</span> + {cohosts.length - 2} co-hosts</>
+                  }
+                </p>
+              </div>
+            )}
           </div>
 
-{/* Host */}
-          {(creatorName || communityGroup) && (
-            <div className="space-y-3">
-              <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Host</h2>
-              <div className="flex items-center gap-2">
-                {communityGroup ? (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/group/${communityGroup.id}`)}
-                    className="flex items-center gap-2 hover:opacity-70 transition-opacity text-left"
-                  >
-                    {communityGroup.avatar_url ? (
-                      <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">👥</div>
-                    )}
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Hosted by <span className="font-semibold text-foreground underline underline-offset-2">{communityGroup.name}</span>
-                      </span>
-                      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
-                    </div>
-                  </button>
-                ) : (
-                  <>
-                    {creatorAvatar ? (
-                      <img src={creatorAvatar} alt={creatorName ?? ""} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Hosted by <span className="font-semibold text-foreground">{creatorName}</span>
-                      </span>
-                      {creatorWard && <p className="text-xs text-muted-foreground">{creatorWard}</p>}
-                      <p className="text-xs text-muted-foreground">{timeAgo(event.created_at)}</p>
-                    </div>
-                  </>
-                )}
+          {/* ── Invite Co-hosts (host only) ────────────────────── */}
+          {isHost && (
+            <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "rgba(112,185,190,0.11)", border: "1px solid rgba(112,185,190,0.25)" }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: DARK }}>Invite Co-hosts</p>
+                <p className="text-xs mt-0.5" style={{ color: MID }}>Invite others to manage the page</p>
               </div>
-              {/* Co-hosts — visible to every visitor, read-only. Mirrors the host's
-                  own name + ward display above so co-hosts get the same billing. */}
-              {cohosts.map((c) => (
-                <div key={c.user_id} className="flex items-center gap-2">
-                  {c.avatar_url ? (
-                    <img src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getInitialColor(c.name) }}>
-                      {c.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      Co-hosted by <span className="font-semibold text-foreground">{c.name}</span>
-                    </span>
-                    {c.ward && <p className="text-xs text-muted-foreground">{c.ward}</p>}
-                  </div>
-                </div>
-              ))}
-              {isHostOrCohost && (
-                <div
-                  className="flex flex-col items-center gap-5 text-center rounded-2xl border px-5 py-6"
-                  style={{ borderColor: '#d0d0d0', backgroundColor: 'rgba(255,255,255,0.5)' }}
+              <button
+                onClick={handleInviteCohost}
+                className="px-5 py-2.5 rounded-full text-sm font-semibold text-white flex-shrink-0 transition-opacity hover:opacity-80"
+                style={{ background: TEAL }}
+              >
+                Invite
+              </button>
+              {cohosts.length > 0 && (
+                <button
+                  onClick={() => setManageEventOpen(true)}
+                  className="px-5 py-2.5 rounded-full text-sm font-semibold flex-shrink-0 transition-opacity hover:opacity-80"
+                  style={{ background: "#fff", color: DARK, border: `1px solid ${DIVIDER}` }}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <img src="/Cohost mobile.png" alt="" className="h-[78px] w-auto md:hidden" />
-                    <img src="/Cohost desktop.png" alt="" className="h-[60px] w-auto hidden md:block" />
-                    <h3 className="font-extrabold text-base" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Invite Co-hosts</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed w-full">
-                      Invite others to collaborate, manage the event page together, and track co-host activity—all from one place.
-                    </p>
-                  </div>
-                  <div className={`grid gap-3 w-full ${cohosts.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
-                    <Button
-                      size="lg"
-                      className="rounded-full bg-black text-white border border-black hover:bg-black/90"
-                      onClick={handleInviteCohost}
-                    >
-                      Invite Now
-                    </Button>
-                    {/* Manage Event only shows up once someone has actually
-                        accepted a co-host invite — sending the invite link
-                        alone isn't "managing" anything yet. */}
-                    {cohosts.length > 0 && (
-                      <Button
-                        size="lg"
-                        className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
-                        onClick={() => setManageEventOpen(true)}
-                      >
-                        Manage Event
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  Manage
+                </button>
               )}
             </div>
           )}
 
-{/* Location */}
+          {/* ── Divider ──────────────────────────────────────── */}
+          <div style={{ height: 1, background: DIVIDER }} />
+
+          {/* ── Location map ─────────────────────────────────── */}
           {(event.address || event.lat) && !event.virtual_link && (
-            <div className="space-y-3">
-              <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>Location</h2>
+            <div className="space-y-3 pt-6">
+              <div className="flex items-center flex-col justify-center gap-1">
+                <img src="/Event detail Icons/New Icons mobile/Location.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Location</h2>
+              </div>
               {event.address && (
-                <p className="text-sm text-muted-foreground">{formatAddress(event.address)}</p>
+                <p className="text-sm text-center" style={{ color: MID }}>{formatAddress(event.address)}</p>
               )}
-              <div className="relative rounded-2xl overflow-hidden cursor-pointer" style={{ height: 200, border: "3px solid #fff", boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }} onClick={() => setMapPickerOpen(true)}>
+              <div
+                className="relative rounded-2xl overflow-hidden cursor-pointer"
+                style={{ height: 160, border: `1px solid ${DIVIDER}` }}
+                onClick={() => setMapPickerOpen(true)}
+              >
                 <iframe
                   width="100%"
-                  height="200"
+                  height="160"
                   style={{ border: 0, display: 'block', pointerEvents: 'none' }}
                   loading="lazy"
                   src={event.lat && event.lng
@@ -1881,27 +2057,30 @@ const EventDetails = () => {
                     : `https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&z=15&output=embed`}
                 />
                 <div className="absolute inset-0 flex items-end justify-end p-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-semibold text-gray-700">
-                    <Navigation className="h-3.5 w-3.5" />Open in Maps
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow text-xs font-semibold" style={{ background: "rgba(255,255,255,0.90)", color: DARK }}>
+                    <Navigation className="h-3.5 w-3.5" style={{ color: TEAL }} />Open in Maps
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-{/* Carpool — only show to logged-in users */}
+          {/* ── Carpool ──────────────────────────────────────── */}
           {session && !event?.virtual_link && id && (
-            <CarpoolSection eventId={id} />
+            <CarpoolSection eventId={id} eventLocation={event?.location} />
           )}
 
-          {/* Lodging — feature-flagged to owner accounts */}
-          {id && <LodgingSection eventId={id} />}
+          {/* ── Divider ──────────────────────────────────────── */}
+          <div style={{ height: 1, background: DIVIDER }} />
 
-{/* Comments */}
-          <div className="space-y-6 pt-4">
-            <h2 className="text-[16px] font-bold pb-2 border-b" style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: 'rgba(0,0,0,0.1)' }}>
-              {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
-            </h2>
+          {/* ── Comments ─────────────────────────────────────── */}
+          <div className="space-y-5 pt-6">
+            <div className="flex flex-col items-center gap-1">
+              <img src="/Event detail Icons/New Icons mobile/Comments.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>
+                {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
+              </h2>
+            </div>
             {!isGuest ? (
               <div className="space-y-3">
                 {/* Tag host chip */}
@@ -1909,65 +2088,63 @@ const EventDetails = () => {
                   <button
                     type="button"
                     onClick={() => setComment(prev => prev ? `${prev} @${creatorName} ` : `@${creatorName} `)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-sm text-muted-foreground hover:bg-accent transition-colors border border-border"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-opacity hover:opacity-70 mx-auto"
+                    style={{ background: ICON_BG }}
                   >
-                    <span className="text-primary font-medium">@{creatorName}</span>
-                    <span className="text-xs">tag host</span>
+                    <span className="font-medium text-sm" style={{ color: TEAL }}>@{creatorName}</span>
+                    <span className="text-xs" style={{ color: MID }}>tag host</span>
                   </button>
                 )}
-                {/* Input row */}
-                <div className="flex items-start">
-                  <textarea
-                    placeholder="Write a comment..."
-                    value={comment}
-                    onChange={e => setComment(e.target.value)}
-                    rows={2}
-                    className="flex-1 resize-none rounded-[22px] border border-[#3a3a3a] px-4 py-3 text-sm outline-none focus:border-gray-500 transition-colors w-full"
-                  />
-                </div>
-                {/* Post button */}
+                <textarea
+                  placeholder="Write a comment..."
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  rows={2}
+                  className="w-full resize-none px-4 py-3 text-sm outline-none"
+                  style={{ borderRadius: 16, border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK, fontFamily: "'Inter', sans-serif" }}
+                />
                 <div className="flex justify-end">
                   <button
                     onClick={handleSubmitComment}
-                    className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-full hover:bg-gray-800 transition-colors"
+                    className="px-5 py-2.5 text-sm font-semibold rounded-full text-white transition-opacity hover:opacity-80"
+                    style={{ background: TEAL }}
                   >
                     Post Comment
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => navigate("/")} className="w-full py-3 px-4 rounded-2xl border border-border text-sm text-muted-foreground hover:bg-accent transition-colors text-center">
+              <button onClick={() => navigate("/")} className="w-full py-3 px-4 rounded-2xl text-sm text-center transition-opacity hover:opacity-70" style={{ border: `1px solid ${DIVIDER}`, color: MID }}>
                 🔒 Log in to leave a comment
               </button>
             )}
             <div className="space-y-5">
               {comments.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No comments yet. Be the first!</p>
+                <p className="text-center py-6 text-sm" style={{ color: MID }}>No comments yet. Be the first!</p>
               ) : (
                 (showAllComments ? comments : comments.slice(0, 3)).map(c => (
                   <div key={c.id} className="space-y-3">
-                    {/* Top-level comment */}
                     <div className="flex gap-3">
                       {c.avatar ? (
-                        <img src={c.avatar} alt={c.author} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                        <img src={c.avatar} alt={c.author} className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                          <User className="h-4 w-4 text-muted-foreground" />
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
+                          <User className="h-4 w-4" style={{ color: MID }} />
                         </div>
                       )}
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="font-bold text-sm text-[#383838]">{c.author}</p>
-                            <p className="text-xs text-[#949494]">{timeAgo(c.created_at)}</p>
+                            <p className="font-semibold text-sm" style={{ color: DARK }}>{c.author}</p>
+                            <p className="text-xs mt-0.5" style={{ color: MID }}>{timeAgo(c.created_at)}</p>
                           </div>
                           {c.user_id === userId && (
-                            <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
-                              <Trash2 className="h-3.5 w-3.5" />
+                            <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="transition-opacity hover:opacity-70">
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: MID }} />
                             </button>
                           )}
                         </div>
-                        <p className="text-sm text-foreground leading-snug mt-1">{c.content}</p>
+                        <p className="text-sm leading-snug mt-1.5" style={{ color: DARK }}>{c.content}</p>
                         <div className="flex items-center gap-1 mt-2 flex-wrap">
                           {["❤️", "😢", "😮", "😂", "👍"].map(emoji => {
                             const emojiReactions = (reactions[c.id] || []).filter(r => r.emoji === emoji);
@@ -1977,19 +2154,20 @@ const EventDetails = () => {
                               <button
                                 key={emoji}
                                 onClick={() => handleReaction(c.id, emoji)}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors border ${hasReacted ? "bg-primary/10 border-primary/30 font-semibold" : "bg-accent/50 border-transparent hover:bg-accent"}`}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors"
+                                style={{ border: `1px solid ${hasReacted ? TEAL : DIVIDER}`, background: hasReacted ? "rgba(31,78,91,0.08)" : "#fff" }}
                               >
                                 <span>{emoji}</span>
-                                <span className="text-muted-foreground">{emojiReactions.length}</span>
+                                <span style={{ color: MID }}>{emojiReactions.length}</span>
                               </button>
                             );
                           })}
                           <div className="relative">
-                            <button onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)} className="p-1 rounded-full hover:bg-accent transition-colors">
-                              <Smile className="h-4 w-4 text-muted-foreground" />
+                            <button onClick={() => setOpenEmojiPicker(openEmojiPicker === c.id ? null : c.id)} className="p-1 rounded-full transition-opacity hover:opacity-70">
+                              <Smile className="h-4 w-4" style={{ color: MID }} />
                             </button>
                             {openEmojiPicker === c.id && (
-                              <div className="absolute bottom-full left-0 mb-1 flex gap-1 bg-card border border-border rounded-2xl px-2 py-1.5 shadow-lg z-10">
+                              <div className="absolute bottom-full left-0 mb-1 flex gap-1 rounded-2xl px-2 py-1.5 shadow-lg z-10" style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}>
                                 {["❤️", "😢", "😮", "😂", "👍"].map(emoji => (
                                   <button key={emoji} onClick={() => { handleReaction(c.id, emoji); setOpenEmojiPicker(null); }} className="text-lg hover:scale-125 transition-transform">
                                     {emoji}
@@ -2001,7 +2179,8 @@ const EventDetails = () => {
                           {!isGuest && (
                             <button
                               onClick={() => { setReplyingTo(replyingTo === c.id ? null : c.id); setReplyText(""); }}
-                              className="text-xs text-muted-foreground hover:text-foreground font-medium ml-1 transition-colors"
+                              className="text-xs font-medium ml-1 transition-opacity hover:opacity-70"
+                              style={{ color: MID }}
                             >
                               Reply
                             </button>
@@ -2009,8 +2188,7 @@ const EventDetails = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Existing replies */}
+                    {/* Replies */}
                     {(replies[c.id] || []).length > 0 && (
                       <div className="ml-12 space-y-3">
                         {(replies[c.id] || []).map(r => (
@@ -2018,37 +2196,36 @@ const EventDetails = () => {
                             {r.avatar ? (
                               <img src={r.avatar} alt={r.author} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
                             ) : (
-                              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                                <User className="h-3 w-3 text-muted-foreground" />
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
+                                <User className="h-3 w-3" style={{ color: MID }} />
                               </div>
                             )}
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <p className="font-bold text-xs text-[#383838]">{r.author}</p>
-                                  <p className="text-[10px] text-[#949494]">{timeAgo(r.created_at)}</p>
+                                  <p className="font-semibold text-xs" style={{ color: DARK }}>{r.author}</p>
+                                  <p className="text-[10px]" style={{ color: MID }}>{timeAgo(r.created_at)}</p>
                                 </div>
                                 {r.user_id === userId && (
-                                  <button onClick={() => handleDeleteComment(r.id, r.user_id)} className="text-muted-foreground hover:text-foreground transition-colors">
-                                    <Trash2 className="h-3 w-3" />
+                                  <button onClick={() => handleDeleteComment(r.id, r.user_id)} className="transition-opacity hover:opacity-70">
+                                    <Trash2 className="h-3 w-3" style={{ color: MID }} />
                                   </button>
                                 )}
                               </div>
-                              <p className="text-sm text-foreground leading-snug mt-0.5">{r.content}</p>
+                              <p className="text-sm leading-snug mt-0.5" style={{ color: DARK }}>{r.content}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-
                     {/* Inline reply input */}
                     {replyingTo === c.id && (
                       <div className="ml-12 flex gap-2 items-start">
                         {userAvatar ? (
                           <img src={userAvatar} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
                         ) : (
-                          <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                            <User className="h-3 w-3 text-muted-foreground" />
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
+                            <User className="h-3 w-3" style={{ color: MID }} />
                           </div>
                         )}
                         <div className="flex-1 space-y-2">
@@ -2058,16 +2235,18 @@ const EventDetails = () => {
                             value={replyText}
                             onChange={e => setReplyText(e.target.value)}
                             rows={2}
-                            className="w-full resize-none rounded-2xl border border-[#3a3a3a] px-3 py-2 text-sm outline-none focus:border-gray-500 transition-colors"
+                            className="w-full resize-none px-3 py-2 text-sm outline-none"
+                            style={{ borderRadius: 12, border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK, fontFamily: "'Inter', sans-serif" }}
                           />
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
+                            <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-xs px-3 py-1.5 transition-opacity hover:opacity-70" style={{ color: MID }}>
                               Cancel
                             </button>
                             <button
                               onClick={() => handleSubmitReply(c)}
                               disabled={!replyText.trim()}
-                              className="px-4 py-1.5 bg-black text-white text-xs font-semibold rounded-full hover:bg-gray-800 transition-colors disabled:opacity-40"
+                              className="px-4 py-1.5 text-xs font-semibold rounded-full text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+                              style={{ background: TEAL }}
                             >
                               Reply
                             </button>
@@ -2078,11 +2257,11 @@ const EventDetails = () => {
                   </div>
                 ))
               )}
-              {/* Show more / less */}
               {comments.length > 3 && (
                 <button
                   onClick={() => setShowAllComments(!showAllComments)}
-                  className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm font-semibold transition-opacity hover:opacity-70"
+                  style={{ color: TEAL }}
                 >
                   {showAllComments ? "Show less" : `Show ${comments.length - 3} more comment${comments.length - 3 > 1 ? 's' : ''}`}
                 </button>
@@ -2090,13 +2269,12 @@ const EventDetails = () => {
             </div>
           </div>
 
-          {/* Similar Events */}
+          {/* ── Similar Events ────────────────────────────────── */}
           {similarEvents.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <div className="pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                <h2 className="text-[16px] font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Similar Events</h2>
-              </div>
-              <div className="flex gap-3 overflow-x-auto -mx-6 px-6 pb-2" style={{ scrollbarWidth: 'none' }}>
+            <div className="space-y-3 pb-4">
+              <div style={{ height: 1, background: DIVIDER }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Similar Events</h2>
+              <div className="flex gap-3 overflow-x-auto -mx-5 px-5 pb-2" style={{ scrollbarWidth: 'none' }}>
                 {similarEvents.map((e) => {
                   const [y, m, d] = e.date.split("-").map(Number);
                   const dateObj = new Date(y, m - 1, d);
@@ -2105,21 +2283,24 @@ const EventDetails = () => {
                     <div
                       key={e.id}
                       onClick={() => { navigate(`/event/${e.id}`); window.scrollTo(0, 0); }}
-                      className="flex-shrink-0 w-52 cursor-pointer"
+                      className="flex-shrink-0 w-44 cursor-pointer rounded-2xl overflow-hidden transition-opacity hover:opacity-80"
+                      style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
                     >
-                      <div className="relative w-52 h-36 rounded-xl overflow-hidden bg-secondary mb-1.5">
+                      <div className="relative w-full" style={{ height: 112 }}>
                         {e.image_url
                           ? <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full bg-secondary" />}
+                          : <div className="w-full h-full" style={{ background: ICON_BG }} />}
                         {e.virtual_link && (
-                          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5">
+                          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: "rgba(0,0,0,0.60)" }}>
                             <Video className="h-2.5 w-2.5 text-white" />
                             <span className="text-[9px] font-semibold text-white">Online</span>
                           </div>
                         )}
                       </div>
-                      <p className="text-xs font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{e.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{dateStr}</p>
+                      <div className="p-3">
+                        <p className="text-xs font-semibold leading-tight line-clamp-2" style={{ color: DARK }}>{e.title}</p>
+                        <p className="text-xs mt-0.5" style={{ color: MID }}>{dateStr}</p>
+                      </div>
                     </div>
                   );
                 })}
@@ -2127,131 +2308,83 @@ const EventDetails = () => {
             </div>
           )}
 
-        </div>{/* end left column */}
-
-        {/* RIGHT COLUMN — sticky image + attendees, desktop only */}
-        <div className="hidden md:block sticky top-20 self-start space-y-4">
-          {isHostOrCohost && (
-            <div className="flex justify-end">
-              <button
-                onClick={() => navigate(`/create-event/${id}`)}
-                className="px-4 py-2 text-sm font-semibold rounded-full bg-white border border-black text-black hover:bg-gray-50 transition-colors"
-              >
-                Edit Post
-              </button>
-            </div>
-          )}
-          <div className="relative">
-            {event.image_url ? (
-              <img src={event.image_url} alt={event.title} className="w-full rounded-2xl object-cover" />
-            ) : (
-              <div className="w-full aspect-video bg-secondary rounded-2xl flex items-center justify-center">
-                <span className="text-muted-foreground">No image</span>
-              </div>
-            )}
-          </div>
-
-          {/* Attendees — desktop, centered under image */}
-          {(goingCount > 0 || likeCount > 0 || interestedCount > 0) && (
-            <button
-              onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
-              className="w-full flex flex-col items-center gap-2 text-center"
-            >
-              <p className="text-sm font-semibold text-muted-foreground">
-                <span className="text-foreground font-bold">{goingCount}</span> Going · <span className="text-foreground font-bold">{likeCount}</span> Liked · <span className="text-foreground font-bold">{interestedCount}</span> Interested
-              </p>
-              {previewAvatars.length > 0 && (
-                <div className="flex justify-center">
-                  {previewAvatars.slice(0, 8).map((p, i) => (
-                    p.url
-                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover border-2 border-white" style={{ marginLeft: i === 0 ? 0 : -10 }} />
-                      : <div key={i} className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ marginLeft: i === 0 ? 0 : -10, backgroundColor: getInitialColor(p.name) }}>
-                          {p.name.charAt(0).toUpperCase()}
-                        </div>
-                  ))}
-                </div>
-              )}
-            </button>
-          )}
-        </div>
-
-        </div>{/* end grid */}
         </div>{/* end max-w */}
       </main>
 
-      {/* Sticky RSVP Bar — mobile: full-width bar; desktop: floating pill (Figma 1439:6603) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:flex md:justify-center md:px-6 md:pb-6">
-        {/* Mobile bar */}
-        <div
-          className="md:hidden backdrop-blur-md border-t border-white/40 px-6 py-4 w-full"
-          style={{
-            background: ambientColor
-              ? `rgb(${Math.round(255*0.78 + ambientColor[0]*0.22)},${Math.round(255*0.78 + ambientColor[1]*0.22)},${Math.round(255*0.78 + ambientColor[2]*0.22)})`
-              : 'white',
-          }}
-        >
-          <div className="max-w-4xl mx-auto">
-            {isGuest ? (
-              <Button size="lg" className="w-full rounded-full" onClick={() => navigate("/")}>
-                Log in to RSVP & join the fun 🎉
-              </Button>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  size="lg"
-                  className="rounded-full bg-black text-white border border-black hover:bg-black/90"
-                  disabled={!!rsvpLoading}
-                  onClick={() => handleRsvp("going")}
-                >
-                  {rsvpLoading === "going" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {rsvpStatus === "going" && <Check className="h-4 w-4 text-green-400" />}
-                      {rsvpStatus === "going" ? "I'm going!" : "Going"}
-                    </>
-                  )}
-                </Button>
-                <Button
-                  size="lg"
-                  className="rounded-full bg-white text-black border border-black hover:bg-gray-50"
-                  disabled={!!rsvpLoading}
-                  onClick={() => handleRsvp("interested")}
-                >
-                  {rsvpLoading === "interested" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
-                </Button>
+      {/* ── TTK Expansion — dissolve overlay ────────────────────────────── */}
+      {ttkExpandedIdx !== null && event.additional_info?.[ttkExpandedIdx] && (() => {
+        const item = event.additional_info[ttkExpandedIdx];
+        const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
+        return createPortal(
+          <div
+            onClick={closeTtk}
+            style={{
+              position: "fixed", inset: 0, zIndex: 200,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "0 20px",
+              background: "rgba(30, 26, 24, 0.45)",
+              opacity: ttkVisible ? 1 : 0,
+              transition: "opacity 0.28s ease",
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: BG,
+                borderRadius: 20,
+                padding: "32px",
+                width: "100%",
+                maxWidth: 520,
+                opacity: ttkVisible ? 1 : 0,
+                transition: "opacity 0.28s ease",
+                maxHeight: "80vh",
+                overflowY: "auto",
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                {IconComp && <IconComp style={{ width: 20, height: 20, color: TEAL, flexShrink: 0 }} />}
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TEAL }}>{item.title}</p>
               </div>
-            )}
-          </div>
-        </div>
+              {/* Body */}
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: MID, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
+                {item.description}
+              </p>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
 
-        {/* Desktop floating pill */}
-        <div
-          className="hidden md:flex md:items-center md:gap-11 md:max-w-3xl md:w-full bg-white border-[0.5px] border-[rgba(0,0,0,0.58)] rounded-[46px] px-9 py-5"
-          style={{ boxShadow: '0px 12px 32px rgba(0,0,0,0.16)' }}
-        >
-          <div className="flex-1 min-w-0 flex flex-col gap-2 text-black">
-            <p className="text-sm">{footerDateTimeStr}</p>
-            <p className="font-bold text-2xl truncate" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</p>
-          </div>
-          <div className="flex items-center gap-3.5 flex-shrink-0">
-            {!isGuest && (
-              <div>
+      {/* ══ DESKTOP LAYOUT ═══════════════════════════════════════════════════ */}
+
+      {/* ── Top nav bar ───────────────────────────────────────────────────── */}
+      <div className="hidden md:flex items-center justify-between py-5" style={{ background: BG, paddingLeft: hPad, paddingRight: hPad, transition: "padding 0.15s ease" }}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+            className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+            style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" style={{ color: DARK }} />
+          </button>
+          <span className="text-sm font-medium" style={{ color: DARK }}>Back to Events</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {!isGuest && (
+            <>
+              <div className="relative">
                 <button
-                  ref={footerShareButtonRef}
-                  onClick={() => setFooterShareMenuOpen(prev => !prev)}
-                  className="bg-white p-2.5 rounded-full hover:bg-gray-50 transition-colors"
+                  ref={shareButtonRef}
+                  onClick={() => setShareMenuOpen(prev => !prev)}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                   </svg>
                 </button>
-                <ShareMenu
-                  open={footerShareMenuOpen}
-                  onClose={() => setFooterShareMenuOpen(false)}
-                  triggerRef={footerShareButtonRef}
+                <ShareMenu open={shareMenuOpen} onClose={() => setShareMenuOpen(false)} triggerRef={shareButtonRef}
                   items={[
                     { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
                     { label: "Share Link", onClick: () => navigator.share?.({ title: event.title, url: shareUrl }), hidden: !navigator.share },
@@ -2259,42 +2392,756 @@ const EventDetails = () => {
                   ]}
                 />
               </div>
-            )}
-            {isGuest ? (
-              <Button size="lg" className="rounded-full" onClick={() => navigate("/")}>
-                Log in to RSVP
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
+              <button
+                onClick={handleSave}
+                disabled={saveLoading}
+                className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
+              >
+                <Heart className="h-[17px] w-[17px]" style={{ color: DARK, fill: isSaved ? DARK : "none" }} />
+              </button>
+              {isHost && (
                 <button
-                  onClick={() => handleRsvp("going")}
-                  disabled={!!rsvpLoading}
-                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-black text-white whitespace-nowrap disabled:opacity-60 hover:bg-black/90"
+                  onClick={() => navigate(`/create-event/${id}`)}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
+                  title="Edit event"
                 >
-                  {rsvpLoading === "going" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {rsvpStatus === "going" && <Check className="h-4 w-4 text-green-400" />}
-                      {rsvpStatus === "going" ? "I'm going!" : "Going"}
-                    </>
-                  )}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                  </svg>
                 </button>
-                <button
-                  onClick={() => handleRsvp("interested")}
-                  disabled={!!rsvpLoading}
-                  className="flex items-center justify-center gap-1.5 h-12 px-5 rounded-full text-base font-medium transition-colors border border-black bg-white text-black whitespace-nowrap disabled:opacity-60 hover:bg-gray-50"
-                >
-                  {rsvpLoading === "interested" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
+      {/* ── Two-column content ────────────────────────────────────────────── */}
+      <div className="hidden md:flex gap-12 pt-2 pb-0 items-start" style={{ paddingLeft: hPad, paddingRight: hPad, transition: "padding 0.15s ease" }}>
+
+        {/* Left column */}
+        <div className="flex-1 min-w-0 flex flex-col gap-10 pb-20">
+
+          {/* Title + meta tags */}
+          <div>
+            <h1 style={{ fontFamily: SERIF, color: DARK, fontSize: 48, fontWeight: 700, lineHeight: 1.1, marginBottom: 16 }}>
+              {event.title}
+            </h1>
+            {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {(event.age_min || event.age_max) && (
+                  <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: ICON_BG, color: MID }}>
+                    {event.age_min && event.age_max ? `Ages ${event.age_min}–${event.age_max}` : event.age_min ? `Ages ${event.age_min}+` : `Ages up to ${event.age_max}`}
+                  </span>
+                )}
+                {event.food && event.food.length > 0 && (() => {
+                  const FOOD_ICON_MAP: Record<string, React.ReactNode> = {
+                    pizza: <Pizza className="h-3.5 w-3.5" />, burgers: <Hamburger className="h-3.5 w-3.5" />,
+                    bbq: <Flame className="h-3.5 w-3.5" />, catered: <HandPlatter className="h-3.5 w-3.5" />,
+                    drinks: <CupSoda className="h-3.5 w-3.5" />, cookies: <Cookie className="h-3.5 w-3.5" />,
+                    icecream: <IceCreamCone className="h-3.5 w-3.5" />, popcorn: <Popcorn className="h-3.5 w-3.5" />,
+                    salad: <Salad className="h-3.5 w-3.5" />,
+                  };
+                  return (
+                    <span className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: ICON_BG, color: MID }}>
+                      <Utensils className="h-3.5 w-3.5 flex-shrink-0" />
+                      {event.food.map((f: string) => <span key={f} title={f}>{FOOD_ICON_MAP[f] || <Utensils className="h-3.5 w-3.5" />}</span>)}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* Decorative divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px" style={{ background: DIVIDER }} />
+            <span style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#cd9f87" }}>❃</span>
+            <div className="flex-1 h-px" style={{ background: DIVIDER }} />
+          </div>
+
+          {/* Date + Location split row — stacks vertically below 1200px */}
+          <div className="flex gap-4" style={{ flexDirection: cardsStacked ? "column" : "row" }}>
+            {/* Date card */}
+            <div className="flex-1 flex items-center gap-4 rounded-2xl px-4 py-3" style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}>
+              <div className="flex-shrink-0 flex flex-col items-center justify-center rounded-xl overflow-hidden" style={{ width: 44, height: 50, background: ICON_BG }}>
+                <span className="font-bold uppercase leading-none" style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, color: TEAL, letterSpacing: 1 }}>
+                  {event.is_recurring ? (event.recurring_days?.[0] ?? event.recurring_day)?.slice(0, 3).toUpperCase() ?? "WKL" : eventDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
+                </span>
+                <span className="font-bold leading-none mt-0.5" style={{ fontFamily: SERIF, fontSize: 22, color: DARK }}>
+                  {event.is_recurring ? "∞" : eventDate.getDate()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: DARK }}>
+                  {event.is_recurring ? getRecurringLabelFull(event) : event.end_date ? (() => {
+                    const [ey, em, ed] = event.end_date.split("-").map(Number);
+                    return `${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${new Date(ey, em - 1, ed).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
+                  })() : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                </p>
+                {(event.start_time || event.time) && (() => {
+                  const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+                  const timeDisplay = event.start_time ? event.end_time ? `${fmt(event.start_time)} – ${fmt(event.end_time)}` : fmt(event.start_time) : `${event.time}${event.duration ? ` · ${event.duration}` : ""}`;
+                  const tzAbbr = getTzAbbr(event.timezone);
+                  return <p className="text-xs mt-0.5" style={{ color: MID }}>{timeDisplay}{tzAbbr ? ` ${tzAbbr}` : ""}</p>;
+                })()}
+              </div>
+              <div className="relative flex-shrink-0">
+                <button onClick={() => setCalendarOpen(!calendarOpen)} className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70" style={{ width: 36, height: 36, background: ICON_BG }}>
+                  <CalendarPlus className="h-4 w-4" style={{ color: TEAL }} />
+                </button>
+                {calendarOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setCalendarOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 rounded-xl shadow-lg overflow-hidden z-30 w-44" style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}>
+                      <button onClick={() => { handleAddToCalendar("google"); setCalendarOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-opacity hover:opacity-70" style={{ color: DARK, borderBottom: `1px solid ${DIVIDER}` }}>
+                        <CalendarPlus className="h-4 w-4 shrink-0" style={{ color: MID }} /> Google
+                      </button>
+                      <button onClick={() => { handleAddToCalendar("ics"); setCalendarOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-opacity hover:opacity-70" style={{ color: DARK }}>
+                        <CalendarPlus className="h-4 w-4 shrink-0" style={{ color: MID }} /> Apple / Outlook
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Location card */}
+            {event.virtual_link ? (
+              <a href={event.virtual_link} target="_blank" rel="noopener noreferrer"
+                className="flex-1 flex items-center gap-4 rounded-2xl px-4 py-3 transition-opacity hover:opacity-80"
+                style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
+              >
+                <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: ICON_BG }}>
+                  <Video className="h-4 w-4" style={{ color: TEAL }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold" style={{ color: DARK }}>Virtual Event</p>
+                  <p className="text-xs truncate" style={{ color: TEAL }}>{event.virtual_link}</p>
+                </div>
+                <Navigation className="h-4 w-4 flex-shrink-0" style={{ color: MID }} />
+              </a>
+            ) : event.address ? (
+              <div className="flex-1 flex items-center gap-4 rounded-2xl px-4 py-3" style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}>
+                <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: ICON_BG }}>
+                  <MapPin className="h-4 w-4" style={{ color: TEAL }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold" style={{ color: DARK }}>{formatAddress(event.address)}</p>
+                </div>
+                <button onClick={() => setMapPickerOpen(true)} className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0">
+                  <Navigation className="h-4 w-4" style={{ color: TEAL }} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+          </div>
+
+          {/* About the Event */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-1">
+              <img src="/Event detail Icons/New Icons mobile/About event.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>About the Event</h2>
+            </div>
+            {(creatorName || communityGroup) && (
+              <div className="flex items-center">
+                {communityGroup ? (
+                  <button type="button" onClick={() => navigate(`/group/${communityGroup.id}`)} className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-opacity hover:opacity-70" style={{ background: ICON_BG }}>
+                    {communityGroup.avatar_url ? <img src={communityGroup.avatar_url} alt={communityGroup.name} className="w-5 h-5 rounded-full object-cover" /> : <span className="text-sm">👥</span>}
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {communityGroup.name}</span>
+                  </button>
+                ) : creatorAvatar ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: ICON_BG }}>
+                    <img src={creatorAvatar} alt={creatorName ?? ""} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" />
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {creatorName}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: ICON_BG }}>
+                    <User className="h-3.5 w-3.5" style={{ color: MID }} />
+                    <span className="text-xs font-medium" style={{ color: DARK }}>Hosted by {creatorName}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div
+              ref={descContainerDesktopRef}
+              className="relative"
+              style={{ overflow: "hidden", height: DESC_COLLAPSED }}
+            >
+              <div>
+                <p className="text-base leading-relaxed whitespace-pre-wrap" style={{ color: MID }}>
+                  {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
+                </p>
+              </div>
+              {descOverflows && (
+                <div
+                  className="absolute bottom-0 left-0 right-0"
+                  style={{
+                    height: "4em",
+                    background: `linear-gradient(to bottom, transparent, ${BG} 75%)`,
+                    pointerEvents: "none",
+                    opacity: descExpanded ? 0 : 1,
+                    transition: "opacity 0.35s ease",
+                  }}
+                />
+              )}
+            </div>
+            {descOverflows && (
+              <button
+                onClick={toggleDesc}
+                className="flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-70"
+                style={{ color: TEAL }}
+              >
+                {descExpanded ? "Show less" : "Read More"}
+                <ChevronDown
+                  className="h-4 w-4"
+                  style={{
+                    transform: descExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                />
+              </button>
+            )}
+            {event.social_links?.filter(Boolean).length > 0 && (() => {
+              const links = event.social_links.filter(Boolean);
+              const getPlatform = (url: string) => /facebook\.com/i.test(url) ? "facebook" : /instagram\.com/i.test(url) ? "instagram" : "link";
+              return (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {links.map((link: string, i: number) => {
+                    const platform = getPlatform(link);
+                    return (
+                      <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[140px] overflow-hidden" style={{ background: ICON_BG }}>
+                        {platform === "facebook" && <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>}
+                        {platform === "instagram" && <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />}
+                        {platform === "link" && <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />}
+                        <span className="text-xs font-medium truncate" style={{ color: TEAL }}>{platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: DIVIDER }} />
+
+          {/* Attendees */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-1">
+              <img src="/Event detail Icons/New Icons mobile/Attendee.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Attendees</h2>
+            </div>
+            <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex flex-col gap-2 text-left transition-opacity hover:opacity-70">
+              {previewAvatars.length > 0 && (
+                <div className="flex">
+                  {previewAvatars.slice(0, 8).map((p, i) => (
+                    p.url
+                      ? <img key={i} src={p.url} referrerPolicy="no-referrer" className="rounded-full object-cover" style={{ width: 36, height: 36, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -10, flexShrink: 0 }} />
+                      : <div key={i} className="rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ width: 36, height: 36, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -10, flexShrink: 0, backgroundColor: getInitialColor(p.name) }}>{p.name.charAt(0).toUpperCase()}</div>
+                  ))}
+                </div>
+              )}
+              <p className="text-sm" style={{ color: MID }}>
+                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> interested
+              </p>
+            </button>
+            {cohosts.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {cohosts.slice(0, 2).map((c, i) => (
+                    c.avatar_url
+                      ? <img key={c.user_id} src={c.avatar_url} alt={c.name} referrerPolicy="no-referrer" className="rounded-full object-cover" style={{ width: 28, height: 28, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -8, flexShrink: 0 }} />
+                      : <div key={c.user_id} className="rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ width: 28, height: 28, border: `2px solid ${BG}`, marginLeft: i === 0 ? 0 : -8, flexShrink: 0, backgroundColor: getInitialColor(c.name) }}>{c.name.charAt(0).toUpperCase()}</div>
+                  ))}
+                </div>
+                <p className="text-xs" style={{ color: MID }}>
+                  {cohosts.length === 1
+                    ? <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}</span> · co-host</>
+                    : cohosts.length === 2
+                      ? <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}, {cohosts[1].name}</span> · co-hosts</>
+                      : <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}, {cohosts[1].name}</span> + {cohosts.length - 2} co-hosts</>
+                  }
+                </p>
+              </div>
+            )}
+            {isHost && (
+              <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "rgba(112,185,190,0.11)", border: "1px solid rgba(112,185,190,0.25)" }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: DARK }}>Invite Co-hosts</p>
+                  <p className="text-xs mt-0.5" style={{ color: MID }}>Invite others to manage the page</p>
+                </div>
+                <button onClick={handleInviteCohost} className="px-5 py-2.5 rounded-full text-sm font-semibold text-white flex-shrink-0 transition-opacity hover:opacity-80" style={{ background: TEAL }}>
+                  Invite
+                </button>
+                {cohosts.length > 0 && (
+                  <button onClick={() => setManageEventOpen(true)} className="px-5 py-2.5 rounded-full text-sm font-semibold flex-shrink-0 transition-opacity hover:opacity-80" style={{ background: "#fff", color: DARK, border: `1px solid ${DIVIDER}` }}>
+                    Manage
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: DIVIDER }} />
+
+          {/* Desktop: Location */}
+          {(event.address || event.lat) && !event.virtual_link && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <img src="/Event detail Icons/New Icons mobile/Location.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Location</h2>
+              </div>
+              <div
+                className="relative rounded-2xl overflow-hidden cursor-pointer"
+                style={{ height: 200, border: `1px solid ${DIVIDER}` }}
+                onClick={() => setMapPickerOpen(true)}
+              >
+                <iframe
+                  width="100%" height="200"
+                  style={{ border: 0, display: "block", pointerEvents: "none" }}
+                  loading="lazy"
+                  src={event.lat && event.lng
+                    ? `https://maps.google.com/maps?q=${event.lat},${event.lng}&z=15&output=embed`
+                    : `https://maps.google.com/maps?q=${encodeURIComponent(event.address)}&z=15&output=embed`}
+                />
+                <div className="absolute inset-0 flex items-end justify-end p-3">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow text-xs font-semibold" style={{ background: "rgba(255,255,255,0.90)", color: DARK }}>
+                    <Navigation className="h-3.5 w-3.5" style={{ color: TEAL }} />Open in Maps
+                  </div>
+                </div>
+              </div>
+              {event.address && <p className="text-sm" style={{ color: MID }}>{formatAddress(event.address)}</p>}
+            </div>
+          )}
+
+          {/* Desktop: Carpool */}
+          {session && !event?.virtual_link && id && (
+            <CarpoolSection eventId={id} eventLocation={event?.location} />
+          )}
+
+          {/* Divider */}
+          <div style={{ height: 1, background: DIVIDER }} />
+
+          {/* Comments */}
+          <div className="space-y-5">
+            <div className="flex items-center gap-2">
+              <img src="/Event detail Icons/New Icons mobile/Comments.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>
+                {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
+              </h2>
+            </div>
+            {!isGuest ? (
+              <div className="space-y-3">
+                {creatorName && userId !== event?.user_id && (
+                  <button type="button" onClick={() => setComment(prev => prev ? `${prev} @${creatorName} ` : `@${creatorName} `)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-opacity hover:opacity-70" style={{ background: ICON_BG }}>
+                    <span className="font-medium text-sm" style={{ color: TEAL }}>@{creatorName}</span>
+                    <span className="text-xs" style={{ color: MID }}>tag host</span>
+                  </button>
+                )}
+                <textarea
+                  placeholder="Write a comment..." value={comment} onChange={e => setComment(e.target.value)} rows={3}
+                  className="w-full resize-none px-4 py-3 text-sm outline-none"
+                  style={{ borderRadius: 16, border: `1.5px solid ${DIVIDER}`, background: "#fff", color: DARK, fontFamily: "'Inter', sans-serif" }}
+                />
+                <div className="flex justify-end">
+                  <button onClick={handleSubmitComment} className="px-6 py-2.5 text-sm font-semibold rounded-full text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
+                    Post Comment
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/")} className="w-full py-3 px-4 rounded-2xl text-sm text-center transition-opacity hover:opacity-70" style={{ border: `1px solid ${DIVIDER}`, color: MID }}>
+                🔒 Log in to leave a comment
+              </button>
+            )}
+            <div className="space-y-5">
+              {comments.length === 0 ? (
+                <p className="text-center py-6 text-sm" style={{ color: MID }}>No comments yet. Be the first!</p>
+              ) : (
+                (showAllComments ? comments : comments.slice(0, 3)).map(c => (
+                  <div key={c.id} className="space-y-3">
+                    <div className="flex gap-3">
+                      {c.avatar ? <img src={c.avatar} alt={c.author} className="w-9 h-9 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" /> : <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}><User className="h-4 w-4" style={{ color: MID }} /></div>}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-semibold text-sm" style={{ color: DARK }}>{c.author}</p>
+                            <p className="text-xs mt-0.5" style={{ color: MID }}>{timeAgo(c.created_at)}</p>
+                          </div>
+                          {c.user_id === userId && <button onClick={() => handleDeleteComment(c.id, c.user_id)} className="transition-opacity hover:opacity-70"><Trash2 className="h-3.5 w-3.5" style={{ color: MID }} /></button>}
+                        </div>
+                        <p className="text-sm leading-snug mt-1.5" style={{ color: DARK }}>{c.content}</p>
+                        <div className="flex items-center gap-1 mt-2 flex-wrap">
+                          {["❤️","😢","😮","😂","👍"].map(emoji => {
+                            const emojiReactions = (reactions[c.id]||[]).filter((r:any) => r.emoji===emoji);
+                            if (emojiReactions.length===0) return null;
+                            const hasReacted = emojiReactions.some((r:any) => r.user_id===userId);
+                            return <button key={emoji} onClick={() => handleReaction(c.id,emoji)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors" style={{ border:`1px solid ${hasReacted?TEAL:DIVIDER}`, background:hasReacted?"rgba(31,78,91,0.08)":"#fff" }}><span>{emoji}</span><span style={{color:MID}}>{emojiReactions.length}</span></button>;
+                          })}
+                          <div className="relative">
+                            <button onClick={() => setOpenEmojiPicker(openEmojiPicker===c.id?null:c.id)} className="p-1 rounded-full transition-opacity hover:opacity-70"><Smile className="h-4 w-4" style={{color:MID}} /></button>
+                            {openEmojiPicker===c.id && <div className="absolute bottom-full left-0 mb-1 flex gap-1 rounded-2xl px-2 py-1.5 shadow-lg z-10" style={{background:"#fff",border:`1px solid ${DIVIDER}`}}>{["❤️","😢","😮","😂","👍"].map(emoji=><button key={emoji} onClick={()=>{handleReaction(c.id,emoji);setOpenEmojiPicker(null);}} className="text-lg hover:scale-125 transition-transform">{emoji}</button>)}</div>}
+                          </div>
+                          {!isGuest && <button onClick={()=>{setReplyingTo(replyingTo===c.id?null:c.id);setReplyText("");}} className="text-xs font-medium ml-1 transition-opacity hover:opacity-70" style={{color:MID}}>Reply</button>}
+                        </div>
+                      </div>
+                    </div>
+                    {(replies[c.id]||[]).length>0 && (
+                      <div className="ml-12 space-y-3">
+                        {(replies[c.id]||[]).map((r:any)=>(
+                          <div key={r.id} className="flex gap-2.5">
+                            {r.avatar?<img src={r.avatar} alt={r.author} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer"/>:<div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background:ICON_BG}}><User className="h-3 w-3" style={{color:MID}}/></div>}
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between">
+                                <div><p className="font-semibold text-xs" style={{color:DARK}}>{r.author}</p><p className="text-[10px]" style={{color:MID}}>{timeAgo(r.created_at)}</p></div>
+                                {r.user_id===userId && <button onClick={()=>handleDeleteComment(r.id,r.user_id)} className="transition-opacity hover:opacity-70"><Trash2 className="h-3 w-3" style={{color:MID}}/></button>}
+                              </div>
+                              <p className="text-sm leading-snug mt-0.5" style={{color:DARK}}>{r.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {replyingTo===c.id && (
+                      <div className="ml-12 flex gap-2 items-start">
+                        {userAvatar?<img src={userAvatar} className="w-7 h-7 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer"/>:<div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background:ICON_BG}}><User className="h-3 w-3" style={{color:MID}}/></div>}
+                        <div className="flex-1 space-y-2">
+                          <textarea autoFocus placeholder={`Reply to ${c.author}...`} value={replyText} onChange={e=>setReplyText(e.target.value)} rows={2} className="w-full resize-none px-3 py-2 text-sm outline-none" style={{borderRadius:12,border:`1.5px solid ${DIVIDER}`,background:"#fff",color:DARK,fontFamily:"'Inter', sans-serif"}}/>
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={()=>{setReplyingTo(null);setReplyText("");}} className="text-xs px-3 py-1.5 transition-opacity hover:opacity-70" style={{color:MID}}>Cancel</button>
+                            <button onClick={()=>handleSubmitReply(c)} disabled={!replyText.trim()} className="px-4 py-1.5 text-xs font-semibold rounded-full text-white transition-opacity hover:opacity-80 disabled:opacity-40" style={{background:TEAL}}>Reply</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+              {comments.length > 3 && (
+                <button onClick={()=>setShowAllComments(!showAllComments)} className="text-sm font-semibold transition-opacity hover:opacity-70" style={{color:TEAL}}>
+                  {showAllComments ? "Show less" : `Show ${comments.length-3} more comment${comments.length-3>1?"s":""}`}
+                </button>
+              )}
+            </div>
+          </div>
+
+        </div>{/* end left column */}
+
+        {/* Right column — sticky */}
+        <div className="flex-shrink-0 sticky top-24 flex flex-col gap-6 pb-20" style={{ width: rightColWidth, transition: "width 0.15s ease" }}>
+          {/* Event poster / image carousel */}
+          <div
+            className="relative overflow-hidden rounded-[24px]"
+            style={{ border: `1px solid ${DIVIDER}`, height: 536 }}
+            onMouseEnter={() => setPosterHovered(true)}
+            onMouseLeave={() => setPosterHovered(false)}
+          >
+            {images.length > 0 ? (
+              <>
+                {images.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={event.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{
+                      opacity: i === currentImageIdx ? 1 : 0,
+                      transform: i === currentImageIdx
+                        ? posterHovered ? "scale(1.13)" : "scale(1)"
+                        : "scale(1.08)",
+                      transition: posterHovered
+                        ? "opacity 0.65s ease, transform 0.25s ease-out"
+                        : "opacity 0.65s ease, transform 0.5s ease",
+                      zIndex: i === currentImageIdx ? 1 : 0,
+                    }}
+                  />
+                ))}
+                {images.length > 1 && (
+                  <button
+                    onClick={() => setCurrentImageIdx(i => (i + images.length - 1) % images.length)}
+                    className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
+                    style={{ left: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)", zIndex: 2 }}
+                  >
+                    <ChevronLeft className="h-5 w-5 text-white" />
+                  </button>
+                )}
+                {images.length > 1 && (
+                  <button
+                    onClick={() => setCurrentImageIdx(i => (i + 1) % images.length)}
+                    className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
+                    style={{ right: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(8px)", zIndex: 2 }}
+                  >
+                    <ChevronRight className="h-5 w-5 text-white" />
+                  </button>
+                )}
+                {images.length > 1 && (
+                  <div className="absolute flex items-center gap-1.5" style={{ bottom: 14, left: "50%", transform: "translateX(-50%)", zIndex: 2 }}>
+                    {images.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentImageIdx(i)}
+                        className="rounded-full transition-all duration-200"
+                        style={{ width: i === currentImageIdx ? 16 : 6, height: 6, background: i === currentImageIdx ? "#fff" : "rgba(255,255,255,0.5)" }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center" style={{ background: ICON_BG }}>
+                <CalendarPlus className="h-10 w-10" style={{ color: MID }} />
+              </div>
+            )}
+
+            {/* Floating going-attendee avatars — desktop poster */}
+            {previewAvatars.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 16,
+                  right: 16,
+                  zIndex: 5,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                }}
+              >
+                {previewAvatars.slice(0, 4).map((av, i) => (
+                  <div
+                    key={i}
+                    className="floating-avatar"
+                    title={av.name}
+                    style={{
+                      animationDelay: `${i * 0.18}s, ${0.5 + i * 0.3}s`,
+                      marginLeft: i === 0 ? 0 : -10,
+                      zIndex: previewAvatars.length - i,
+                      width: 38,
+                      height: 38,
+                      borderRadius: "50%",
+                      border: "2.5px solid rgba(255,255,255,0.9)",
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.30)",
+                      overflow: "hidden",
+                      background: "#E4DCCF",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {av.url ? (
+                      <img
+                        src={av.url}
+                        alt={av.name}
+                        referrerPolicy="no-referrer"
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: "100%", height: "100%",
+                        background: "#1F4E5B",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 14, fontWeight: 700,
+                      }}>
+                        {av.name?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {previewAvatars.length > 4 && (
+                  <div
+                    className="floating-avatar"
+                    style={{
+                      animationDelay: `${4 * 0.18}s, ${0.5 + 4 * 0.3}s`,
+                      marginLeft: -10,
+                      width: 38,
+                      height: 38,
+                      borderRadius: "50%",
+                      border: "2.5px solid rgba(255,255,255,0.9)",
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.30)",
+                      background: "rgba(0,0,0,0.45)",
+                      backdropFilter: "blur(4px)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: 11, fontWeight: 700,
+                      flexShrink: 0,
+                      zIndex: 0,
+                    }}
+                  >
+                    +{previewAvatars.length - 4}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* RSVP buttons */}
+          {isGuest ? (
+            <button onClick={() => navigate("/")} className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
+              Log in to RSVP
+            </button>
+          ) : (
+            <button
+              onClick={() => handleRsvp("going")}
+              disabled={!!rsvpLoading}
+              className="w-full py-3.5 rounded-full font-bold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ background: rsvpStatus === "going" ? CE_TEAL_PRESS : TEAL, fontSize: 18, position: "relative", overflow: "hidden" }}
+            >
+              {shimmerGoing && (<><span className="shimmer-pass shimmer-pass-1" /><span className="shimmer-pass shimmer-pass-2" /></>)}
+              {rsvpLoading === "going" ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : rsvpStatus === "going" ? "✓ I'm going!" : "Reserve a Spot"}
+            </button>
+          )}
+          {!isGuest && (
+            <button
+              onClick={() => handleRsvp("interested")}
+              disabled={!!rsvpLoading}
+              className="w-full py-3 rounded-full text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ border: `1.5px solid ${TEAL}`, color: rsvpStatus === "interested" ? "#fff" : TEAL, background: rsvpStatus === "interested" ? TEAL : "#fff" }}
+            >
+              {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
+            </button>
+          )}
+        </div>{/* end right column */}
+
+      </div>{/* end two-column */}
+
+      {/* ── Desktop: Things to Know ───────────────────────────────────────── */}
+      {event.additional_info && event.additional_info.length > 0 && (
+        <div className="hidden md:block pl-[calc(96px+48px)] pr-[calc(96px+48px)] pb-12">
+          <div style={{ height: 1, background: DIVIDER, marginBottom: 32 }} />
+          <div className="flex items-center justify-center gap-1 mb-8">
+            <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
+            <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Things to Know</h2>
+          </div>
+          <div className="flex gap-4 flex-wrap justify-center">
+            {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
+              const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
+              const isLong = item.description && item.description.length > 130;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => openTtk(idx)}
+                  className="relative flex flex-col gap-3 p-5 rounded-2xl flex-shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+                  style={{ width: 216, height: 218, background: ICON_BG, overflow: "hidden", border: `1px solid ${DIVIDER}` }}
+                >
+                  <div className="flex items-center gap-2">
+                    {IconComp && <IconComp className="h-5 w-5 flex-shrink-0" style={{ color: TEAL }} />}
+                    <p className="text-sm font-semibold leading-snug" style={{ color: TEAL }}>{item.title}</p>
+                  </div>
+                  <p className="text-sm leading-relaxed line-clamp-4" style={{ color: MID }}>{item.description}</p>
+                  {isLong && (
+                    <div
+                      className="absolute bottom-3 right-3 flex items-center justify-center rounded-full"
+                      style={{ width: 26, height: 26, background: "rgba(255,255,255,0.75)" }}
+                    >
+                      <ChevronRight className="h-4 w-4" style={{ color: TEAL }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+
+
+      {/* ── Desktop: Similar Events ──────────────────────────────────────── */}
+      {similarEvents.length > 0 && (
+        <div className="hidden md:block pl-[calc(96px+48px)] pr-[calc(96px+48px)] pb-24">
+          <div style={{ height: 1, background: DIVIDER, marginBottom: 32 }} />
+          <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 28, fontWeight: 700, marginBottom: 24 }}>Similar Events</h2>
+          <div className="grid grid-cols-3 gap-6">
+            {similarEvents.slice(0, 3).map((e) => {
+              const [y, m, d] = e.date.split("-").map(Number);
+              const dateObj = new Date(y, m - 1, d);
+              const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              return (
+                <div
+                  key={e.id}
+                  onClick={() => { navigate(`/event/${e.id}`); window.scrollTo(0, 0); }}
+                  className="cursor-pointer rounded-[18px] overflow-hidden transition-shadow hover:shadow-md"
+                  style={{ background: "#fff", border: `1px solid ${DIVIDER}` }}
+                >
+                  <div className="relative w-full" style={{ height: 160 }}>
+                    {e.image_url ? <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" /> : <div className="w-full h-full" style={{ background: ICON_BG }} />}
+                    {e.virtual_link && (
+                      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: "rgba(0,0,0,0.60)" }}>
+                        <Video className="h-2.5 w-2.5 text-white" />
+                        <span className="text-[9px] font-semibold text-white">Online</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col gap-1">
+                    <p className="font-semibold leading-tight line-clamp-2" style={{ fontFamily: SERIF, color: DARK, fontSize: 18 }}>{e.title}</p>
+                    <p className="text-xs" style={{ color: MID }}>{dateStr}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sticky RSVP Bar ─────────────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:flex md:justify-center md:px-6 md:pb-6 md:pl-[calc(96px+48px)]">
+        {/* Mobile bar */}
+        <div
+          className="md:hidden px-5 w-full"
+          style={{
+            background: BG,
+            borderTop: `1px solid ${DIVIDER}`,
+            paddingTop: 12,
+            paddingBottom: `calc(env(safe-area-inset-bottom) + 16px)`,
+            transform: showRsvpBar ? "translateY(0)" : "translateY(100%)",
+            opacity: showRsvpBar ? 1 : 0,
+            transition: "transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease",
+          }}
+        >
+          {isGuest ? (
+            <button
+              onClick={() => navigate("/")}
+              className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+              style={{ background: TEAL }}
+            >
+              Log in to RSVP & join the fun 🎉
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className="py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                disabled={!!rsvpLoading}
+                onClick={() => handleRsvp("going")}
+                style={{ background: rsvpStatus === "going" ? CE_TEAL_PRESS : TEAL, position: "relative", overflow: "hidden" }}
+              >
+                {shimmerGoing && (<><span className="shimmer-pass shimmer-pass-1" /><span className="shimmer-pass shimmer-pass-2" /></>)}
+                {rsvpLoading === "going" ? (
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                ) : (
+                  <span className="flex items-center justify-center gap-1.5">
+                    {rsvpStatus === "going" && <Check className="h-4 w-4" />}
+                    {rsvpStatus === "going" ? "I'm going!" : "Going"}
+                  </span>
+                )}
+              </button>
+              <button
+                className="py-3.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                disabled={!!rsvpLoading}
+                onClick={() => handleRsvp("interested")}
+                style={{
+                  border: `1.5px solid ${TEAL}`,
+                  color: rsvpStatus === "interested" ? "#fff" : TEAL,
+                  background: rsvpStatus === "interested" ? TEAL : "#fff",
+                }}
+              >
+                {rsvpLoading === "interested" ? (
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
+              </button>
+            </div>
+          )}
+        </div>
+
+      </div>
 
     </div>
   );

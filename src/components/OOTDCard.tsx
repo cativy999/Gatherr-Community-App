@@ -15,7 +15,7 @@ const OOTDCard = ({ tall = false }: OOTDCardProps = {}) => {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/ootd"); }}
-      className="relative w-full h-full min-h-[124px] overflow-hidden rounded-[13px] border-2 border-black bg-white cursor-pointer select-none"
+      className="relative w-full h-full min-h-[124px] overflow-hidden rounded-[24px] bg-white cursor-pointer select-none" style={{ border: "1px solid #E4DCCF" }}
     >
       {tall ? (
         <>

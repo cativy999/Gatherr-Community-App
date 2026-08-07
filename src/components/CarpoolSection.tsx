@@ -1,9 +1,12 @@
+import { CE_BG,CE_LIGHT,CE_MUTED,CE_SURFACE,CE_TEAL_PRESS,CE_ERROR,CE_SUCCESS,CE_SUCCESS_BG_LIGHT } from '../tokens';
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { X, ChevronRight, Phone, Car, Check, MoreVertical } from "lucide-react";
+import { X, ChevronRight, Phone, Car, Check, MoreVertical, Home, Smile } from "lucide-react";
+import LodgingSetupModal from "./LodgingSetupModal";
 
 interface CarpoolPost {
   id: string;
@@ -90,14 +93,18 @@ function Sheet({ onClose, title, children }: { onClose: () => void; title: strin
     <>
       <style>{SHEET_STYLES}</style>
       <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }} onClick={onClose}>
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-black/40" />
         <div
-          className="cp-panel relative w-full max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-6 space-y-5 pb-10 md:pb-6 max-h-[85vh] overflow-y-auto"
+          className="cp-panel relative w-full max-w-lg rounded-t-3xl md:rounded-3xl p-6 pb-10 md:pb-6 max-h-[90vh] overflow-y-auto space-y-5"
+          style={{ background: CE_BG, border: "1px solid #E4DCCF" }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold">{title}</h3>
-            <button onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button>
+            <div style={{ width: 40 }} />
+            <h3 className="font-bold text-xl" style={{ color: "#2C2523", fontFamily: "'EB Garamond', Georgia, serif" }}>{title}</h3>
+            <button onClick={onClose} className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70" style={{ width: 40, height: 40, background: "#E4DCCF" }}>
+              <X className="h-4 w-4" style={{ color: "#2C2523" }} />
+            </button>
           </div>
           {children}
         </div>
@@ -107,10 +114,19 @@ function Sheet({ onClose, title, children }: { onClose: () => void; title: strin
   );
 }
 
-export default function CarpoolSection({ eventId }: { eventId: string }) {
+export default function CarpoolSection({ eventId, eventLocation }: { eventId: string; eventLocation?: string }) {
   const { session } = useAuth();
   const { locationLat, locationLng } = useLocation();
+  const navigate = useNavigate();
   const userId = session?.user?.id;
+
+  // Parse "City, State" from full location string (e.g. "Newport Beach, CA 92660")
+  const eventCity = (() => {
+    if (!eventLocation) return null;
+    const parts = eventLocation.split(",").map(s => s.trim());
+    if (parts.length >= 2) return `${parts[0]}, ${parts[1].replace(/\s+\d{5}.*/, "").trim()}`;
+    return parts[0] || null;
+  })();
 
   const [posts, setPosts] = useState<CarpoolPost[]>([]);
   const [myPost, setMyPost] = useState<CarpoolPost | null>(null);
@@ -118,7 +134,11 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   const autoRsvpDone = useRef(false); // fire auto-RSVP at most once per mount
 
   const [carpoolOpen, setCarpoolOpen] = useState(false);
+  const [lodgingModalOpen, setLodgingModalOpen] = useState(false);
+  const [lodgingGroupId, setLodgingGroupId] = useState<string | null>(null);
   const [modal, setModal] = useState<"rider" | "driver" | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [needType, setNeedType] = useState<"carpooling" | "lodging" | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<CarpoolPost | null>(null);
   const [selectedRider, setSelectedRider] = useState<CarpoolPost | null>(null);
   const [myPostMenuOpen, setMyPostMenuOpen] = useState(false);
@@ -153,7 +173,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   // Toggle a class on <html> whenever any carpool sheet is open so the
   // EventDetails sticky header (which has backdrop-filter) doesn't composite
   // above our portal overlay.
-  const anySheetOpen = carpoolOpen || myPostMenuOpen || !!selectedDriver || !!selectedRider || !!requestConfirmDriver || !!acceptingOffer;
+  const anySheetOpen = carpoolOpen || myPostMenuOpen || !!selectedDriver || !!selectedRider || !!requestConfirmDriver || !!acceptingOffer || requestOpen || !!modal;
   useEffect(() => {
     document.documentElement.classList.toggle("cp-modal-open", anySheetOpen);
     return () => { document.documentElement.classList.remove("cp-modal-open"); };
@@ -253,6 +273,16 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
+  const handleLodgingClick = async () => {
+    const { data } = await supabase
+      .from("lodging_groups")
+      .select("id")
+      .eq("event_id", eventId)
+      .maybeSingle();
+    setLodgingGroupId(data?.id ?? null);
+    setLodgingModalOpen(true);
+  };
+
   const submitRider = async () => {
     if (!userId || hasCar === null) return;
     if (hasCar === true && pickupNeeded === null) return;
@@ -266,6 +296,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     );
     setModal(null); setHasCar(null); setPickupNeeded(null); setSubmitting(false);
     fetchAll();
+    setCarpoolOpen(true);
   };
 
   const submitDriver = async () => {
@@ -286,6 +317,7 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
     );
     setModal(null); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); setSubmitting(false);
     fetchAll();
+    setCarpoolOpen(true);
   };
 
   const cancelPost = async () => {
@@ -506,153 +538,201 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Event page summary ── */}
-      <div className="space-y-3">
-        <h2 className="text-[16px] font-bold pb-2 border-b"
-          style={{ fontFamily: "'Hanken Grotesk', sans-serif", borderColor: "rgba(0,0,0,0.1)" }}>
-          Carpool 🚗
-        </h2>
+      {/* ── Carpool + Lodging: stack on mobile, side-by-side on desktop ── */}
+      <div className="flex flex-col md:flex-row" style={{ gap: 12, alignItems: "stretch" }}>
 
-        {loading ? <p className="text-xs text-muted-foreground">Loading...</p> : (
-          <>
-            {/* My status card */}
-            {myPost && (
-              <div className={`rounded-2xl border ${myConfirmedDriver ? "border-green-300 bg-green-50" : "border-gray-200"}`}>
-                {/* Status row — tappable (same as ⋮) */}
+        {/* LEFT: Carpool */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+
+          {/* No post — Figma horizontal card */}
+          {!loading && !myPost && (
+            <div
+              className="flex-1 rounded-2xl flex items-center cursor-pointer transition-opacity hover:opacity-80"
+              style={{ background: "#fff", border: "1px solid #E4DCCF", padding: 20, gap: 25 }}
+              onClick={() => { setRequestOpen(true); setNeedType("carpooling"); setModal(null); setHasCar(null); setPickupNeeded(null); setSeats(3); setDeparture(null); setPickupOffered(null); setDriverPhone(""); }}
+            >
+              {/* Illustration */}
+              <div style={{ width: 120, height: 96, flexShrink: 0, overflow: "hidden" }}>
+                <img
+                  src="/Event%20detail%20Icons/carpool/Frame%202095594427.png"
+                  alt="Carpool"
+                  style={{ width: 120, height: 96, objectFit: "contain" }}
+                />
+              </div>
+              {/* Text + button */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+                <div style={{ width: "100%" }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: "#2C2523", marginBottom: 4 }}>Carpooling</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#635C59" }}>Find or offer a ride</p>
+                </div>
                 <div
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer rounded-t-2xl transition-colors ${myConfirmedDriver ? "hover:bg-green-100/60" : "hover:bg-gray-50"}`}
-                  onClick={() => setMyPostMenuOpen(true)}
+                  style={{
+                    width: "100%", height: 44, background: "#1F4E5B",
+                    borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center",
+                    color: CE_BG, fontSize: 14, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                  }}
                 >
-                  {myConfirmedDriver ? (
-                    <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
-                      <Check className="h-5 w-5 text-white" strokeWidth={3} />
+                  Request
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Driver status card */}
+          {!loading && myPost && myPost.type === "driver" && (
+            <div
+              className="flex-1 rounded-2xl cursor-pointer transition-opacity hover:opacity-80 flex flex-col"
+              style={{ background: "#fff", border: `1px solid ${CE_LIGHT}`, boxShadow: "0px 12px 12px rgba(0,0,0,0.05), 0px 2px 4px rgba(0,0,0,0.04)" }}
+              onClick={() => setMyPostMenuOpen(true)}
+            >
+              <div className="flex flex-col gap-3 p-4 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full self-start" style={{ background: CE_SURFACE, border: `1px solid ${CE_LIGHT}` }}>
+                      <Car className="h-3 w-3 shrink-0" style={{ color: "#1F4E5B" }} />
+                      <span className="text-[10px] font-bold uppercase tracking-wide whitespace-nowrap" style={{ color: "#1F4E5B" }}>Offering a ride</span>
                     </div>
-                  ) : myPost.type === "driver" ? (
-                    <Car className="h-4 w-4 text-gray-500 shrink-0" />
-                  ) : requestedDriver ? (
-                    <Avatar url={requestedDriver.profile.avatar_url} name={requestedDriver.profile.name} size={9} />
-                  ) : (
-                    <span className="text-sm shrink-0">🙋</span>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">
-                      {myPost.type === "driver"
-                        ? `Offering a ride · ${seatsLeft(myPost)} seat${seatsLeft(myPost) !== 1 ? "s" : ""} left`
-                        : myConfirmedDriver ? "Ride confirmed"
-                        : myRequest?.status === "declined" ? "Request declined"
-                        : myRequest ? "Request pending…"
-                        : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} ride offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
-                        : "Looking for a ride"}
-                    </p>
-                    {myPost.type === "driver" && acceptedRequests.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs text-muted-foreground">Riders:</span>
-                        {acceptedRequests.map((r) => (
-                          <div key={r.id} title={r.profile?.name} className="w-5 h-5 rounded-full bg-gray-200 overflow-hidden border border-white">
-                            {r.profile?.avatar_url
-                              ? <img src={r.profile.avatar_url} className="w-full h-full object-cover" />
-                              : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{r.profile?.name?.[0]}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {myConfirmedDriver && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <span className="inline-block w-3.5 h-3.5 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                          {myConfirmedDriver.profile.avatar_url
-                            ? <img src={myConfirmedDriver.profile.avatar_url} className="w-full h-full object-cover" />
-                            : <span className="flex items-center justify-center w-full h-full text-[8px] font-bold text-gray-500">{myConfirmedDriver.profile.name[0]}</span>}
-                        </span>
-                        {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
-                      </p>
-                    )}
-                    {/* Show driver name + status for pending/declined requests */}
-                    {!myConfirmedDriver && myRequest && requestedDriver && (
-                      <p className="text-xs mt-0.5 flex items-center gap-1">
-                        <span className={myRequest.status === "declined" ? "text-red-500" : "text-amber-600"}>
-                          {requestedDriver.profile.name}
-                        </span>
-                        <span className="text-muted-foreground">·</span>
-                        <span className={myRequest.status === "declined" ? "text-red-500" : "text-muted-foreground"}>
-                          {myRequest.status === "declined" ? "Declined" : "Waiting on their reply"}
-                        </span>
-                      </p>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Smile className="h-3 w-3 shrink-0" style={{ color: "#9CA3AF" }} />
+                      <span className="text-xs font-bold" style={{ color: "#6B7280" }}>
+                        {seatsLeft(myPost)} seat{seatsLeft(myPost) !== 1 ? "s" : ""} left
+                      </span>
+                    </div>
                   </div>
+                  <button onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }} className="p-1 rounded-full transition-colors hover:bg-black/5 shrink-0">
+                    <MoreVertical className="h-4 w-4" style={{ color: "#6B7280" }} />
+                  </button>
+                </div>
+                <div>
+                  <p className="font-bold text-base leading-snug" style={{ color: "#111827" }}>To {eventCity || "the event"}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
+                    {acceptedRequests.length > 0 ? `${acceptedRequests.length} rider${acceptedRequests.length !== 1 ? "s" : ""} confirmed` : "Carpool details"}
+                  </p>
+                </div>
+              </div>
+              {(posts.length > 0 || myPost) && (
+                <div className="cursor-pointer transition-opacity hover:opacity-80" style={{ borderTop: "1px solid #F0EBE4" }} onClick={(e) => { e.stopPropagation(); setCarpoolOpen(true); }}>
+                  <div className="flex items-center justify-center gap-0.5 px-4 py-2.5">
+                    <span className="text-xs font-semibold" style={{ color: "#1F4E5B" }}>See all carpool posts</span>
+                    <ChevronRight className="h-3.5 w-3.5" style={{ color: "#1F4E5B" }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    {myPostBadge > 0 && (
-                      <span className="text-xs font-semibold text-white bg-black px-2 py-0.5 rounded-full">{myPostBadge}</span>
-                    )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }}
-                      className="p-1.5 rounded-full hover:bg-black/5 transition-colors"
-                    >
-                      <MoreVertical className="h-4 w-4 text-gray-500" />
+          {/* Rider status card */}
+          {!loading && myPost && myPost.type === "rider" && (
+            <div
+              className="flex-1 rounded-2xl cursor-pointer transition-opacity hover:opacity-80 flex flex-col"
+              style={{
+                background: myConfirmedDriver ? "rgba(34,139,74,0.08)" : "#fff",
+                border: myConfirmedDriver ? "1px solid rgba(34,139,74,0.25)" : `1px solid ${CE_LIGHT}`,
+              }}
+              onClick={() => setMyPostMenuOpen(true)}
+            >
+              <div className="flex items-center gap-3 px-4 py-3.5 flex-1">
+                {myConfirmedDriver ? (
+                  <div className="flex items-center justify-center rounded-full shrink-0" style={{ width: 36, height: 36, background: CE_SUCCESS }}>
+                    <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                  </div>
+                ) : requestedDriver ? (
+                  <div className="shrink-0 rounded-full overflow-hidden" style={{ width: 36, height: 36 }}>
+                    {requestedDriver.profile.avatar_url
+                      ? <img src={requestedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center font-bold text-sm" style={{ background: "#E4DCCF", color: "#2C2523" }}>{requestedDriver.profile.name?.[0] ?? "?"}</div>}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden" style={{ width: 44, height: 44, background: "#F5F1EB" }}>
+                    <img src="/Event%20detail%20Icons/carpool/Frame%202095594427.png" alt="Carpool" style={{ width: 38, height: 38, objectFit: "contain" }} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate" style={{ color: myConfirmedDriver ? CE_SUCCESS : "#2C2523" }}>
+                    {myConfirmedDriver ? "Ride confirmed"
+                      : myRequest?.status === "declined" ? "Request declined"
+                      : myRequest ? "Request pending…"
+                      : pendingOffersToMe.length > 0 ? `${pendingOffersToMe.length} offer${pendingOffersToMe.length !== 1 ? "s" : ""}!`
+                      : "Looking for a ride"}
+                  </p>
+                  {myConfirmedDriver && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: "#635C59" }}>
+                      {myConfirmedDriver.profile.name} · {myConfirmedDriver.pickup_offered ? "Pickup" : "Meet there"}
+                    </p>
+                  )}
+                  {!myConfirmedDriver && myRequest && requestedDriver && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: myRequest.status === "declined" ? CE_ERROR : "#635C59" }}>
+                      {requestedDriver.profile.name}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {myPostBadge > 0 && (
+                    <span className="text-xs font-semibold text-white px-2 py-0.5 rounded-full" style={{ background: "#1F4E5B" }}>{myPostBadge}</span>
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); setMyPostMenuOpen(true); }} className="p-1.5 rounded-full transition-colors hover:bg-black/5">
+                    <MoreVertical className="h-4 w-4" style={{ color: "#635C59" }} />
+                  </button>
+                </div>
+              </div>
+              {myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
+                <div className="px-4 pb-3 border-t border-green-100">
+                  <p className="text-xs text-muted-foreground pt-2 pb-1.5">Add your phone so your driver can reach you</p>
+                  <div className="flex gap-2">
+                    <input type="tel" value={riderPhoneInput} onChange={(e) => setRiderPhoneInput(e.target.value)}
+                      placeholder="(555) 000-0000"
+                      className="flex-1 h-9 rounded-xl border border-green-200 bg-white px-3 text-sm focus:border-green-500 focus:outline-none transition-colors" />
+                    <button onClick={updateRiderPhone} disabled={submitting || !riderPhoneInput.trim()}
+                      className="px-3 h-9 rounded-xl bg-green-600 text-white text-xs font-semibold disabled:opacity-40 shrink-0 whitespace-nowrap hover:bg-green-700 transition-colors">
+                      {submitting ? "…" : "Send"}
                     </button>
                   </div>
                 </div>
-
-                {/* Inline phone input — shown when rider has a confirmed seat but no phone on file */}
-                {myPost.type === "rider" && myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
-                  <div className="px-4 pb-3 border-t border-green-100">
-                    <p className="text-xs text-muted-foreground pt-2 pb-1.5">Share your phone so your driver can reach you</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="tel"
-                        value={riderPhoneInput}
-                        onChange={(e) => setRiderPhoneInput(e.target.value)}
-                        placeholder="(555) 000-0000"
-                        className="flex-1 h-9 rounded-xl border border-green-200 bg-white px-3 text-sm focus:border-green-500 focus:outline-none transition-colors"
-                      />
-                      <button
-                        onClick={updateRiderPhone}
-                        disabled={submitting || !riderPhoneInput.trim()}
-                        className="px-3 h-9 rounded-xl bg-green-600 text-white text-xs font-semibold disabled:opacity-40 shrink-0 whitespace-nowrap hover:bg-green-700 transition-colors"
-                      >
-                        {submitting ? "…" : "Send to driver"}
-                      </button>
-                    </div>
+              )}
+              {(posts.length > 0 || myPost) && (
+                <div className="cursor-pointer transition-opacity hover:opacity-80" style={{ borderTop: "1px solid #F0EBE4" }} onClick={(e) => { e.stopPropagation(); setCarpoolOpen(true); }}>
+                  <div className="flex items-center justify-center gap-0.5 px-4 py-2.5">
+                    <span className="text-xs font-semibold" style={{ color: "#1F4E5B" }}>See all carpool posts</span>
+                    <ChevronRight className="h-3.5 w-3.5" style={{ color: "#1F4E5B" }} />
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Count + See all */}
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {availableDriverCount === 0 && riderCount === 0
-                  ? posts.length === 0 && !myPost ? "Be the first to post!" : "No carpool activity yet"
-                  : [
-                      availableDriverCount > 0 && `${availableDriverCount} ${availableDriverCount === 1 ? "driver" : "drivers"} available`,
-                      riderCount > 0 && `${riderCount} need a ride`,
-                    ].filter(Boolean).join(" · ")}
-              </p>
-              {posts.length > 0 || myPost ? (
-                <button
-                  onClick={() => setCarpoolOpen(true)}
-                  className="text-sm font-semibold text-black flex items-center gap-0.5 hover:opacity-60 transition-opacity shrink-0 ml-3"
-                >
-                  See all <ChevronRight className="h-4 w-4" />
-                </button>
-              ) : null}
+                </div>
+              )}
             </div>
+          )}
+        </div>
 
-            {!myPost && session && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setCarpoolOpen(true); setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
-                  className="flex-1 h-11 rounded-xl border-2 border-black text-sm font-semibold hover:bg-black hover:text-white transition-colors"
-                >🙋 I need a ride</button>
-                <button
-                  onClick={() => { setCarpoolOpen(true); setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
-                  className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-                >🚗 I can drive</button>
-              </div>
-            )}
-          </>
-        )}
+        {/* RIGHT: Lodging */}
+        <div
+          className="rounded-2xl flex items-center cursor-pointer transition-opacity hover:opacity-80"
+          style={{ flex: 1, background: "#fff", border: "1px solid #E4DCCF", padding: 20, gap: 25 }}
+          onClick={handleLodgingClick}
+        >
+          {/* Illustration */}
+          <div style={{ width: 102, height: 96, flexShrink: 0, overflow: "hidden" }}>
+            <img
+              src="/Event%20detail%20Icons/carpool/Frame%202095594425.png"
+              alt="Lodging"
+              style={{ width: 102, height: 96, objectFit: "contain" }}
+            />
+          </div>
+          {/* Text + button */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
+            <div style={{ width: "100%" }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: "#2C2523", marginBottom: 4 }}>Lodging</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#635C59" }}>Find a place to stay</p>
+            </div>
+            <div
+              style={{
+                width: "100%", height: 44, background: "#1F4E5B",
+                borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center",
+                color: CE_BG, fontSize: 14, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Find
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* ── ⋮ Options sheet ── */}
@@ -662,58 +742,63 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
           {myPost.type === "driver" && (
             <div className="space-y-4">
               {/* Inline seat editor */}
-              <div className="cp-item bg-gray-50 rounded-2xl p-4 space-y-3" style={{ animationDelay: "0ms" }}>
-                <p className="text-sm font-semibold">Seats offered</p>
+              <div className="cp-item rounded-2xl p-4 space-y-3" style={{ animationDelay: "0ms", background: "#fff", border: "1px solid #E4DCCF" }}>
+                <p className="font-semibold text-sm" style={{ color: "#2C2523" }}>Seats offered</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => { const n = currentSeats - 1; if (n >= acceptedRequests.length) updateSeats(n); }}
                       disabled={currentSeats <= acceptedRequests.length}
-                      className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                      className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center disabled:opacity-30 transition-colors"
+                      style={{ border: `2px solid ${CE_LIGHT}`, color: "#2C2523" }}
                     >−</button>
-                    <span className="text-xl font-bold w-5 text-center">{currentSeats}</span>
+                    <span className="text-xl font-bold w-5 text-center" style={{ color: "#2C2523" }}>{currentSeats}</span>
                     <button
                       onClick={() => { const n = currentSeats + 1; if (n <= 8) updateSeats(n); }}
                       disabled={currentSeats >= 8}
-                      className="w-8 h-8 rounded-full border-2 border-gray-300 text-lg font-bold flex items-center justify-center disabled:opacity-30 hover:border-black transition-colors"
+                      className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center disabled:opacity-30 transition-colors"
+                      style={{ border: `2px solid ${CE_LIGHT}`, color: "#2C2523" }}
                     >+</button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs" style={{ color: CE_MUTED }}>
                     {acceptedRequests.length} of {currentSeats} seats filled
                     {acceptedRequests.length === currentSeats && " · Full 🔒"}
                   </p>
                 </div>
                 <div className="flex gap-1">
                   {Array.from({ length: currentSeats }).map((_, i) => (
-                    <div key={i} className={`flex-1 h-2 rounded-full ${i < acceptedRequests.length ? "bg-black" : "bg-gray-200"}`} />
+                    <div key={i} className="flex-1 h-2 rounded-full" style={{ background: i < acceptedRequests.length ? "#1F4E5B" : "#E4DCCF" }} />
                   ))}
                 </div>
               </div>
+
               {/* Pending ride requests from riders — Accept / Decline */}
               {pendingRiderRequests.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Requests · {pendingRiderRequests.length}
+                  <p className="text-xs font-semibold tracking-widest" style={{ color: "#635C59" }}>
+                    REQUESTS · {pendingRiderRequests.length}
                   </p>
                   {pendingRiderRequests.map((req, i) => (
-                    <div key={req.id} className="cp-item rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2.5"
-                      style={{ animationDelay: `${(i + 1) * 60}ms` }}>
+                    <div key={req.id} className="cp-item rounded-2xl p-4 space-y-3"
+                      style={{ animationDelay: `${(i + 1) * 60}ms`, background: "#fff", border: "1px solid #E4DCCF" }}>
                       <div className="flex items-center gap-3">
-                        <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
+                        <div className="shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 40, height: 40, background: "#E4DCCF" }}>
+                          {req.profile?.avatar_url
+                            ? <img src={req.profile.avatar_url} className="w-full h-full object-cover" />
+                            : <span className="font-bold" style={{ color: "#2C2523" }}>{(req.profile?.name ?? "?")[0]}</span>}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{req.profile?.name}</p>
-                          <p className="text-xs text-muted-foreground">Requesting a seat</p>
+                          <p className="font-semibold text-sm truncate" style={{ color: "#2C2523" }}>{req.profile?.name}</p>
+                          <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>Requesting a seat</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => respondToRequest(req.id, "declined")}
-                          className="flex-1 h-9 rounded-xl border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 transition-colors"
-                        >Decline</button>
-                        <button
-                          onClick={() => respondToRequest(req.id, "accepted")}
-                          className="flex-1 h-9 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-                        >Accept</button>
+                        <button onClick={() => respondToRequest(req.id, "declined")}
+                          className="flex-1 py-2.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-70"
+                          style={{ background: "#fff", border: `1.5px solid ${CE_LIGHT}`, color: "#2C2523" }}>Decline</button>
+                        <button onClick={() => respondToRequest(req.id, "accepted")}
+                          className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+                          style={{ background: "#1F4E5B" }}>Accept</button>
                       </div>
                     </div>
                   ))}
@@ -723,18 +808,22 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {/* Offers sent — awaiting reply */}
               {pendingOffersSent.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Offers sent · {pendingOffersSent.length}
+                  <p className="text-xs font-semibold tracking-widest" style={{ color: "#635C59" }}>
+                    OFFERS SENT · {pendingOffersSent.length}
                   </p>
                   {pendingOffersSent.map((req, i) => (
-                    <div key={req.id} className="cp-item flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100"
-                      style={{ animationDelay: `${(i + 1) * 60}ms` }}>
-                      <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{req.profile?.name}</p>
-                        <p className="text-xs text-muted-foreground">Waiting for their reply…</p>
+                    <div key={req.id} className="cp-item flex items-center gap-3 p-4 rounded-2xl"
+                      style={{ animationDelay: `${(i + 1) * 60}ms`, background: CE_SUCCESS_BG_LIGHT, border: "2px solid #1F4E5B" }}>
+                      <div className="shrink-0 rounded-full overflow-hidden flex items-center justify-center" style={{ width: 40, height: 40, background: "#E4DCCF" }}>
+                        {req.profile?.avatar_url
+                          ? <img src={req.profile.avatar_url} className="w-full h-full object-cover" />
+                          : <span className="font-bold" style={{ color: "#2C2523" }}>{(req.profile?.name ?? "?")[0]}</span>}
                       </div>
-                      <span className="text-xs font-semibold text-blue-600 px-2 py-0.5 rounded-full bg-blue-100 border border-blue-200 shrink-0">Offered</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate" style={{ color: "#2C2523" }}>{req.profile?.name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "#635C59" }}>Waiting for their reply…</p>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0" style={{ background: "rgba(112,185,190,0.2)", color: "#1F4E5B" }}>Offered</span>
                     </div>
                   ))}
                 </div>
@@ -743,33 +832,35 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {/* In your car */}
               {acceptedRequests.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    In your car · {acceptedRequests.length} {acceptedRequests.length === 1 ? "passenger" : "passengers"}
+                  <p className="text-xs font-semibold tracking-widest" style={{ color: "#635C59" }}>
+                    IN YOUR CAR · {acceptedRequests.length} {acceptedRequests.length === 1 ? "PASSENGER" : "PASSENGERS"}
                   </p>
                   {acceptedRequests.map((req, i) => (
-                    <div key={req.id} className="cp-item rounded-xl bg-green-50 border border-green-100 p-3"
-                      style={{ animationDelay: `${(pendingOffersSent.length + i + 1) * 60}ms` }}>
+                    <div key={req.id} className="cp-item rounded-2xl p-4"
+                      style={{ animationDelay: `${(pendingOffersSent.length + i + 1) * 60}ms`, background: "rgba(34,139,74,0.07)", border: "1px solid rgba(34,139,74,0.25)" }}>
                       <div className="flex items-center gap-3">
-                        {/* Avatar with checkmark badge */}
                         <div className="relative shrink-0">
-                          <Avatar url={req.profile?.avatar_url ?? null} name={req.profile?.name ?? "?"} />
-                          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-white flex items-center justify-center">
+                          <div className="rounded-full overflow-hidden flex items-center justify-center" style={{ width: 40, height: 40, background: "#E4DCCF" }}>
+                            {req.profile?.avatar_url
+                              ? <img src={req.profile.avatar_url} className="w-full h-full object-cover" />
+                              : <span className="font-bold" style={{ color: "#2C2523" }}>{(req.profile?.name ?? "?")[0]}</span>}
+                          </div>
+                          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center" style={{ background: CE_SUCCESS }}>
                             <Check className="h-2 w-2 text-white" strokeWidth={3} />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{req.profile?.name}</p>
+                          <p className="font-semibold text-sm truncate" style={{ color: "#2C2523" }}>{req.profile?.name}</p>
                           {req.phone_number
                             ? <PhoneLink number={req.phone_number} label="Phone" />
-                            : <p className="text-xs text-muted-foreground">No phone yet</p>}
+                            : <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>No phone yet</p>}
                         </div>
                         {!req.phone_number && (
                           phoneRequestSent.has(req.requester_user_id)
-                            ? <span className="text-xs text-green-600 font-medium shrink-0">✓ Sent</span>
-                            : <button
-                                onClick={() => sendPhoneRequest(req)}
-                                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 font-medium hover:bg-gray-50 transition-colors shrink-0"
-                              >Ask for #</button>
+                            ? <span className="text-xs font-medium shrink-0" style={{ color: CE_SUCCESS }}>✓ Sent</span>
+                            : <button onClick={() => sendPhoneRequest(req)}
+                                className="text-xs px-2.5 py-1 rounded-full font-medium transition-opacity hover:opacity-70 shrink-0"
+                                style={{ border: `1px solid ${CE_LIGHT}`, background: "#fff", color: "#2C2523" }}>Ask for #</button>
                         )}
                       </div>
                     </div>
@@ -812,25 +903,33 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
               {/* Pending driver offers */}
               {!myConfirmedDriver && pendingOffersToMe.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ride offers for you</p>
+                  <p className="text-xs font-semibold tracking-widest" style={{ color: "#635C59" }}>RIDE OFFERS FOR YOU</p>
                   {pendingOffersToMe.map((offer) => (
-                    <div key={offer.id} className="rounded-2xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                    <div key={offer.id} className="rounded-2xl p-4 space-y-3" style={{ background: "#fff", border: "1px solid #E4DCCF" }}>
                       <div className="flex items-center gap-3">
-                        <Avatar url={offer.driverPost?.profile?.avatar_url ?? null} name={offer.driverPost?.profile?.name ?? "Driver"} />
+                        <div className="shrink-0" style={{ width: 44, height: 44 }}>
+                          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center" style={{ background: "#E4DCCF" }}>
+                            {offer.driverPost?.profile?.avatar_url
+                              ? <img src={offer.driverPost.profile.avatar_url} className="w-full h-full object-cover" />
+                              : <span className="font-bold" style={{ color: "#2C2523" }}>{(offer.driverPost?.profile?.name ?? "D")[0]}</span>}
+                          </div>
+                        </div>
                         <div>
-                          <p className="text-sm font-semibold">{offer.driverPost?.profile?.name ?? "A driver"} offered you a ride</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="font-semibold text-sm" style={{ color: "#2C2523" }}>{offer.driverPost?.profile?.name ?? "A driver"} offered you a ride</p>
+                          <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>
                             {offer.driverPost?.departure_window} · {offer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => declineOffer(offer)}
-                          className="flex-1 h-10 rounded-xl border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors">
+                          className="flex-1 py-2.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-70"
+                          style={{ background: "#fff", border: `1.5px solid ${CE_LIGHT}`, color: "#2C2523" }}>
                           Decline
                         </button>
                         <button onClick={() => { setAcceptingOffer(offer); setOfferAcceptPhone(""); }}
-                          className="flex-1 h-10 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors">
+                          className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+                          style={{ background: "#1F4E5B" }}>
                           Accept
                         </button>
                       </div>
@@ -909,27 +1008,116 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       {/* ── Accept offer — phone number ── */}
       {acceptingOffer && (
         <Sheet onClose={() => { setAcceptingOffer(null); setOfferAcceptPhone(""); }} title="Accept ride offer">
-          <div className="flex items-center gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-4">
-            <Avatar url={acceptingOffer.driverPost?.profile?.avatar_url ?? null} name={acceptingOffer.driverPost?.profile?.name ?? "Driver"} size={10} />
+          {/* Driver info card */}
+          <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: "#fff", border: "1px solid #E4DCCF" }}>
+            <div className="shrink-0" style={{ width: 44, height: 44 }}>
+              <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center" style={{ background: "#E4DCCF", border: `2px solid ${CE_TEAL_PRESS}` }}>
+                {acceptingOffer.driverPost?.profile?.avatar_url
+                  ? <img src={acceptingOffer.driverPost.profile.avatar_url} className="w-full h-full object-cover" />
+                  : <span className="font-bold" style={{ color: "#2C2523" }}>{(acceptingOffer.driverPost?.profile?.name ?? "D")[0]}</span>}
+              </div>
+            </div>
             <div>
-              <p className="text-sm font-semibold">{acceptingOffer.driverPost?.profile?.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-semibold text-sm" style={{ color: "#2C2523" }}>{acceptingOffer.driverPost?.profile?.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>
                 {acceptingOffer.driverPost?.departure_window} · {acceptingOffer.driverPost?.pickup_offered ? "Will pick you up" : "Meet them there"}
               </p>
             </div>
           </div>
+          {/* Phone */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
-            <p className="text-xs text-muted-foreground">Shared with the driver so they can coordinate pickup.</p>
+            <p className="font-semibold text-sm" style={{ color: "#2C2523" }}>Your phone number <span className="font-normal" style={{ color: CE_MUTED }}>(optional)</span></p>
+            <p className="text-sm" style={{ color: CE_MUTED }}>Shared with the driver so they can coordinate pickup.</p>
             <input type="tel" value={offerAcceptPhone} onChange={(e) => setOfferAcceptPhone(e.target.value)}
               placeholder="(555) 000-0000"
-              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors" />
+              className="w-full h-12 px-4 text-sm outline-none"
+              style={{ borderRadius: 16, border: `1.5px solid ${CE_LIGHT}`, background: "#fff", color: "#2C2523", fontFamily: "'Inter', sans-serif" }} />
           </div>
+          <div style={{ height: 1, background: CE_LIGHT }} />
           <button onClick={acceptOffer} disabled={submitting}
-            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+            className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: "#1F4E5B", fontSize: 16 }}>
             {submitting ? "Confirming…" : "Confirm ride"}
           </button>
         </Sheet>
+      )}
+
+      {/* ── "What do you need?" request modal ── */}
+      {requestOpen && createPortal(
+        <>
+          <style>{SHEET_STYLES}</style>
+          <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }}
+            onClick={() => setRequestOpen(false)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="cp-panel relative w-full max-w-lg rounded-t-3xl md:rounded-3xl p-6 pb-10 md:pb-6 max-h-[90vh] overflow-y-auto"
+              style={{ background: CE_BG }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <h2 className="text-2xl font-bold" style={{ color: "#2C2523", fontFamily: "'EB Garamond', Georgia, serif" }}>
+                  What do you need?
+                </h2>
+                <button
+                  onClick={() => setRequestOpen(false)}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70 flex-shrink-0"
+                  style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                >
+                  <X className="h-4 w-4" style={{ color: "#2C2523" }} />
+                </button>
+              </div>
+
+              {/* TRANSPORTATION options — straight to this since user already picked Carpool */}
+              {needType === "carpooling" && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      {
+                        label: "I need a ride",
+                        img: "/Event%20detail%20Icons/carpool/carseats.png",
+                        onClick: () => { setRequestOpen(false); setNeedType(null); setModal("rider"); setHasCar(null); setPickupNeeded(null); },
+                      },
+                      {
+                        label: "I can offer rides",
+                        img: "/Event%20detail%20Icons/carpool/steeringwheel.png",
+                        onClick: () => { setRequestOpen(false); setNeedType(null); setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); },
+                      },
+                    ].map(({ label, img, onClick }) => (
+                      <button
+                        key={label}
+                        onClick={onClick}
+                        className="flex items-center gap-3 text-left transition-all hover:opacity-80"
+                        style={{
+                          padding: 16,
+                          borderRadius: 12,
+                          background: "#fff",
+                          border: "1px solid #E4DCCF",
+                        }}
+                      >
+                        {/* Illustration */}
+                        <div style={{ width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <img src={img} alt={label} style={{ width: 34, height: 34, objectFit: "contain" }} />
+                        </div>
+                        <span className="flex-1 font-semibold" style={{ fontSize: 14, color: "#2C2523" }}>{label}</span>
+                        {/* Radio */}
+                        <div style={{ width: 18, height: 18, borderRadius: "50%", border: "2px solid #E4DCCF", flexShrink: 0 }} />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Footer info */}
+              <div style={{ height: 1, background: CE_LIGHT, marginTop: 20, marginBottom: 16 }} />
+              <p className="text-xs flex items-center gap-2" style={{ color: "#635C59" }}>
+                <span className="flex-shrink-0">ⓘ</span>
+                Connect with other players to share travel costs and stays.
+              </p>
+            </div>
+          </div>
+        </>,
+        document.body
       )}
 
       {/* ── Main carpool sheet — See all ── */}
@@ -937,132 +1125,178 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
         <>
           <style>{SHEET_STYLES}</style>
           <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9998 }} onClick={() => setCarpoolOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="cp-panel relative w-full max-w-2xl bg-white rounded-t-2xl md:rounded-2xl flex flex-col"
-            style={{ maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="cp-panel relative w-full max-w-lg rounded-t-3xl md:rounded-3xl flex flex-col overflow-hidden"
+              style={{ maxHeight: "90vh", background: CE_BG, border: "1px solid #E4DCCF", boxShadow: "0px 16px 32px -4px rgba(30,26,24,0.15)" }}
+              onClick={(e) => e.stopPropagation()}>
 
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b shrink-0">
-              <div>
-                <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Carpool 🚗</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
+              {/* Header */}
+              <div className="flex flex-col items-center pt-7 pb-5 px-7 shrink-0" style={{ borderBottom: "1px solid #E4DCCF" }}>
+                <div className="flex items-center justify-between w-full mb-1">
+                  {/* invisible spacer to center title */}
+                  <div style={{ width: 36, height: 36 }} />
+                  <h2 className="font-bold" style={{ fontSize: 26, color: "#2C2523", fontFamily: "'EB Garamond', Georgia, serif" }}>Carpool</h2>
+                  <button
+                    onClick={() => setCarpoolOpen(false)}
+                    className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                    style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                  >
+                    <X className="h-4 w-4" style={{ color: "#2C2523" }} />
+                  </button>
+                </div>
+                <p className="text-sm" style={{ color: CE_MUTED }}>
                   {availableDriverCount > 0 || riderCount > 0
                     ? [availableDriverCount > 0 && `${availableDriverCount} ${availableDriverCount === 1 ? "driver" : "drivers"} available`, riderCount > 0 && `${riderCount} need a ride`].filter(Boolean).join(" · ")
                     : "Be the first to post"}
                 </p>
               </div>
-              <button onClick={() => setCarpoolOpen(false)}><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
 
-            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 pb-10">
+              <div className="overflow-y-auto flex-1 px-7 py-6 space-y-6 pb-10">
 
-              {/* Post buttons for users without a post */}
-              {!myPost && session && (
-                <div className="flex gap-2">
-                  <button onClick={() => { setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
-                    className="flex-1 h-12 rounded-xl border-2 border-black text-sm font-semibold hover:bg-black hover:text-white transition-colors">
-                    🙋 I need a ride
-                  </button>
-                  <button onClick={() => { setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
-                    className="flex-1 h-12 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors">
-                    🚗 I can drive
-                  </button>
-                </div>
-              )}
-              {!session && <p className="text-sm text-muted-foreground text-center py-2">Sign in to join carpool</p>}
+                {/* Post buttons for users without a post */}
+                {!myPost && session && (
+                  <div className="flex gap-2">
+                    <button onClick={() => { setCarpoolOpen(false); setModal("rider"); setHasCar(null); setPickupNeeded(null); }}
+                      className="flex-1 h-12 rounded-full border-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                      style={{ borderColor: "#1F4E5B", color: "#1F4E5B" }}>
+                      🙋 I need a ride
+                    </button>
+                    <button onClick={() => { setCarpoolOpen(false); setModal("driver"); setDeparture(null); setSeats(3); setPickupOffered(null); setDriverPhone(""); }}
+                      className="flex-1 h-12 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+                      style={{ background: "#1F4E5B" }}>
+                      🚗 I can drive
+                    </button>
+                  </div>
+                )}
+                {!session && <p className="text-sm text-center py-2" style={{ color: CE_MUTED }}>Sign in to join carpool</p>}
 
-              {/* Drivers offering rides */}
-              {drivers.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Offering rides <span className="text-muted-foreground font-normal">· {drivers.length}</span>
-                  </p>
-                  {drivers.map((post, i) => {
-                    const left = seatsLeft(post);
-                    const isMe = post.user_id === userId;
-                    const myReqForThis = !isMe && myRequest?.carpool_post_id === post.id ? myRequest : null;
-                    const inner = (
-                      <div className={`cp-item w-full flex items-center gap-3 p-3.5 rounded-2xl border bg-white text-left shadow-sm ${isMe ? "border-black/20 bg-gray-50" : "border-gray-200 hover:border-gray-400 transition-colors"}`}
-                        style={{ animationDelay: `${i * 60}ms` }}>
-                        <Avatar url={post.profile.avatar_url} name={post.profile.name} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate flex items-center gap-1.5">
-                            {post.profile.name}
-                            {isMe && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {`${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks up" : "Meet there"}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {!isMe && post.distance !== undefined && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
-                          {isMe
-                            ? <span className="text-xs text-muted-foreground">Your ride</span>
-                            : myReqForThis ? (
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
-                                {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
-                              </span>
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-gray-400" />
+                {/* Drivers offering rides */}
+                {drivers.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold" style={{ fontSize: 15, color: "#2C2523" }}>Offering rides</p>
+                      <p style={{ fontSize: 15, color: CE_MUTED }}>· {drivers.length}</p>
+                    </div>
+                    {drivers.map((post, i) => {
+                      const left = seatsLeft(post);
+                      const isMe = post.user_id === userId;
+                      const myReqForThis = !isMe && myRequest?.carpool_post_id === post.id ? myRequest : null;
+                      const inner = (
+                        <div className="cp-item w-full flex items-center gap-3 text-left relative"
+                          style={{ animationDelay: `${i * 60}ms`, background: "#fff", border: "1px solid #E4DCCF", borderRadius: 16, padding: 16 }}>
+                          {/* Avatar */}
+                          <div className="relative shrink-0" style={{ width: 44, height: 44 }}>
+                            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
+                              style={{ background: "#E4DCCF", border: isMe ? `2px solid ${CE_TEAL_PRESS}` : "none" }}>
+                              {post.profile.avatar_url
+                                ? <img src={post.profile.avatar_url} className="w-full h-full object-cover" />
+                                : <span className="font-bold text-lg" style={{ color: "#2C2523" }}>{post.profile.name?.[0] ?? "?"}</span>}
+                            </div>
+                            {isMe && (
+                              <div className="absolute flex items-center justify-center rounded-full"
+                                style={{ bottom: -4, left: "50%", transform: "translateX(-50%)", background: CE_TEAL_PRESS, border: "0.8px solid #fff", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
+                                <span className="font-bold text-white" style={{ fontSize: 8 }}>You</span>
+                              </div>
                             )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate" style={{ fontSize: 15, color: "#2C2523" }}>{post.profile.name}</p>
+                            <p className="mt-0.5" style={{ fontSize: 13, color: CE_MUTED }}>
+                              {`${left} seat${left !== 1 ? "s" : ""} left · ${post.departure_window} · ${post.pickup_offered ? "Picks up" : "Meet there"}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isMe
+                              ? <span className="font-bold" style={{ fontSize: 11, color: "#2C2523" }}>Your ride</span>
+                              : myReqForThis ? (
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
+                                  {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: 16, color: "#2C2523" }}>›</span>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                    return isMe
-                      ? <div key={post.id}>{inner}</div>
-                      : <button key={post.id} onClick={() => setSelectedDriver(post)} className="w-full">{inner}</button>;
-                  })}
-                </div>
-              )}
+                      );
+                      return isMe
+                        ? <div key={post.id}>{inner}</div>
+                        : <button key={post.id} onClick={() => setSelectedDriver(post)} className="w-full transition-opacity hover:opacity-80">{inner}</button>;
+                    })}
+                  </div>
+                )}
 
-              {/* Riders needing a ride */}
-              {riders.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-gray-900">
-                    Need a ride <span className="text-muted-foreground font-normal">· {riders.length}</span>
-                    {myPost?.type === "driver" && <span className="text-xs font-normal text-blue-600 ml-2">· tap to offer a ride</span>}
-                  </p>
-                  {riders.map((post, i) => {
-                    const isDriver = myPost?.type === "driver";
-                    const isMe = post.user_id === userId;
-                    const offered = isDriver && !isMe && alreadyOffered(post.user_id);
-                    const tappable = isDriver && !isMe;
-                    const delay = (drivers.length + i) * 60;
-                    const card = (
-                      <div className={`cp-item flex items-center gap-3 p-3.5 rounded-2xl border bg-white shadow-sm w-full text-left ${tappable ? "hover:border-gray-400 transition-colors cursor-pointer" : ""} ${offered ? "border-blue-200 bg-blue-50" : isMe ? "border-black/20 bg-gray-50" : "border-gray-200"}`}
-                        style={{ animationDelay: `${delay}ms` }}>
-                        <Avatar url={post.profile.avatar_url} name={post.profile.name} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate flex items-center gap-1.5">
-                            {post.profile.name}
-                            {isMe && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {post.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {post.distance !== undefined && !isMe && <span className="text-xs text-muted-foreground">{fmtDist(post.distance)}</span>}
-                          {isMe
-                            ? <span className="text-xs text-muted-foreground">In queue</span>
-                            : isDriver && (offered
-                              ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Offered</span>
-                              : <ChevronRight className="h-4 w-4 text-gray-400" />)}
-                        </div>
-                      </div>
-                    );
-                    return tappable
-                      ? <button key={post.id} onClick={() => setSelectedRider(post)} className="w-full">{card}</button>
-                      : <div key={post.id}>{card}</div>;
-                  })}
-                </div>
-              )}
+                {/* Divider between sections */}
+                {drivers.length > 0 && riders.length > 0 && (
+                  <div style={{ height: 1, background: CE_LIGHT }} />
+                )}
 
-              {availableDriverCount === 0 && riderCount === 0 && !myPost && (
-                <p className="text-sm text-muted-foreground text-center py-6">No carpool posts yet — be the first!</p>
-              )}
+                {/* Riders needing a ride */}
+                {riders.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-bold" style={{ fontSize: 15, color: "#2C2523" }}>Need a ride</p>
+                      <p style={{ fontSize: 15, color: CE_MUTED }}>· {riders.length}</p>
+                      {myPost?.type === "driver" && (
+                        <>
+                          <span style={{ fontSize: 14, color: CE_MUTED }}>·</span>
+                          <button onClick={() => {}} className="font-bold underline" style={{ fontSize: 14, color: "#1F4E5B" }}>tap to offer a ride</button>
+                        </>
+                      )}
+                    </div>
+                    {riders.map((post, i) => {
+                      const isDriver = myPost?.type === "driver";
+                      const isMe = post.user_id === userId;
+                      const offered = isDriver && !isMe && alreadyOffered(post.user_id);
+                      const tappable = isDriver && !isMe;
+                      const delay = (drivers.length + i) * 60;
+                      const card = (
+                        <div className="cp-item flex items-center gap-3 w-full text-left relative"
+                          style={{ animationDelay: `${delay}ms`, background: offered ? CE_SUCCESS_BG_LIGHT : "#fff", border: `${offered ? "2px" : "1px"} solid ${offered ? "#1F4E5B" : "#E4DCCF"}`, borderRadius: 16, padding: 16 }}>
+                          {/* Avatar */}
+                          <div className="relative shrink-0" style={{ width: 44, height: 44 }}>
+                            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
+                              style={{ background: "#E4DCCF", border: isMe ? `2px solid ${CE_TEAL_PRESS}` : "none" }}>
+                              {post.profile.avatar_url
+                                ? <img src={post.profile.avatar_url} className="w-full h-full object-cover" />
+                                : <span className="font-bold text-lg" style={{ color: "#2C2523" }}>{post.profile.name?.[0] ?? "?"}</span>}
+                            </div>
+                            {isMe && (
+                              <div className="absolute flex items-center justify-center rounded-full"
+                                style={{ bottom: -4, left: "50%", transform: "translateX(-50%)", background: CE_TEAL_PRESS, border: "0.8px solid #fff", paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2 }}>
+                                <span className="font-bold text-white" style={{ fontSize: 8 }}>You</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate" style={{ fontSize: 15, color: "#2C2523" }}>{post.profile.name}</p>
+                            <p className="mt-0.5" style={{ fontSize: 13, color: CE_MUTED }}>
+                              {post.pickup_needed ? "Needs pickup" : "Has car · Can meet driver"}
+                            </p>
+                          </div>
+                          <div className="flex items-center shrink-0">
+                            {isMe
+                              ? <span style={{ fontSize: 13, color: CE_MUTED }}>In queue</span>
+                              : offered
+                                ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(112,185,190,0.15)", color: "#1F4E5B" }}>Offered</span>
+                                : tappable
+                                  ? <span style={{ fontSize: 16, color: "#2C2523" }}>›</span>
+                                  : null}
+                          </div>
+                        </div>
+                      );
+                      return tappable
+                        ? <button key={post.id} onClick={() => setSelectedRider(post)} className="w-full transition-opacity hover:opacity-80">{card}</button>
+                        : <div key={post.id}>{card}</div>;
+                    })}
+                  </div>
+                )}
+
+                {availableDriverCount === 0 && riderCount === 0 && !myPost && (
+                  <p className="text-sm text-center py-6" style={{ color: CE_MUTED }}>No carpool posts yet — be the first!</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </>,
         document.body
       )}
@@ -1070,59 +1304,69 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       {/* ── Driver detail sheet ── */}
       {selectedDriver && !requestConfirmDriver && (
         <Sheet onClose={() => setSelectedDriver(null)} title="Ride offer">
+          {/* Avatar + name */}
           <div className="flex items-center gap-3">
-            <Avatar url={selectedDriver.profile.avatar_url} name={selectedDriver.profile.name} size={12} />
+            <div className="relative shrink-0" style={{ width: 52, height: 52 }}>
+              <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center" style={{ background: "#E4DCCF", border: `2px solid ${CE_TEAL_PRESS}` }}>
+                {selectedDriver.profile.avatar_url
+                  ? <img src={selectedDriver.profile.avatar_url} className="w-full h-full object-cover" />
+                  : <span className="font-bold text-xl" style={{ color: "#2C2523" }}>{selectedDriver.profile.name?.[0] ?? "?"}</span>}
+              </div>
+            </div>
             <div>
-              <p className="font-semibold">{selectedDriver.profile.name}</p>
-              {selectedDriver.distance !== undefined && <p className="text-xs text-muted-foreground">{fmtDist(selectedDriver.distance)} from you</p>}
+              <p className="font-bold" style={{ fontSize: 16, color: "#2C2523" }}>{selectedDriver.profile.name}</p>
+              {selectedDriver.distance !== undefined && <p className="text-sm" style={{ color: CE_MUTED }}>{fmtDist(selectedDriver.distance)} from you</p>}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <p className={`text-lg font-bold ${seatsLeft(selectedDriver) === 0 ? "text-red-500" : ""}`}>
-                {seatsLeft(selectedDriver) === 0 ? "Full" : seatsLeft(selectedDriver)}
-              </p>
-              <p className="text-xs text-muted-foreground">seats left</p>
-            </div>
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <p className="text-sm font-semibold">{selectedDriver.departure_window}</p>
-              <p className="text-xs text-muted-foreground">departure</p>
-            </div>
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <p className="text-sm font-semibold">{selectedDriver.pickup_offered ? "Picks up" : "Meet there"}</p>
-              <p className="text-xs text-muted-foreground">pickup</p>
-            </div>
+
+          {/* Info cards */}
+          <div className="grid grid-cols-3 gap-2.5 text-center">
+            {[
+              { value: seatsLeft(selectedDriver) === 0 ? "Full" : String(seatsLeft(selectedDriver)), label: "seats left", red: seatsLeft(selectedDriver) === 0 },
+              { value: selectedDriver.departure_window ?? "—", label: "departure", red: false },
+              { value: selectedDriver.pickup_offered ? "Picks up" : "Meet there", label: "pickup", red: false },
+            ].map(({ value, label, red }) => (
+              <div key={label} className="flex flex-col items-center justify-center py-4 rounded-2xl" style={{ background: "#fff", border: "1px solid #E4DCCF" }}>
+                <p className="font-bold" style={{ fontSize: 17, color: red ? CE_ERROR : "#2C2523" }}>{value}</p>
+                <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>{label}</p>
+              </div>
+            ))}
           </div>
+
           {myRequestForSelected?.status === "accepted" && selectedDriver.phone_number && (
-            <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+            <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(112,185,190,0.1)", border: "1px solid #1F4E5B" }}>
               <PhoneLink number={selectedDriver.phone_number} label="Driver" />
             </div>
           )}
+
+          <div style={{ height: 1, background: CE_LIGHT }} />
+
           {myRequestForSelected ? (
             <div className="space-y-3">
-              <div className={`w-full h-12 rounded-xl flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-yellow-50 text-yellow-700 border border-yellow-200"}`}>
+              <div className={`w-full py-3.5 rounded-full flex items-center justify-center text-sm font-semibold ${myRequestForSelected.status === "accepted" ? "bg-green-50 text-green-700 border border-green-200" : myRequestForSelected.status === "declined" ? "bg-red-50 text-red-600 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
                 {myRequestForSelected.status === "accepted" ? "✓ You're in!" : myRequestForSelected.status === "declined" ? "Request declined" : "⏳ Waiting for driver"}
               </div>
               <div className="text-center">
-                <button onClick={cancelRequest} className="text-xs text-red-400 hover:text-red-600 transition-colors">
+                <button onClick={cancelRequest} className="text-xs transition-opacity hover:opacity-70" style={{ color: CE_ERROR }}>
                   {myRequestForSelected.status === "accepted" ? "Cancel my spot" : "Cancel request"}
                 </button>
               </div>
             </div>
           ) : myPost?.type === "driver" ? (
-            <p className="text-xs text-muted-foreground text-center">You already posted as a driver</p>
+            <p className="text-sm text-center" style={{ color: CE_MUTED }}>You already posted as a driver</p>
           ) : myConfirmedDriver ? (
             <div className="space-y-2">
-              <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400 cursor-not-allowed">Request a Ride</div>
-              <p className="text-xs text-muted-foreground text-center">You already have a ride to this event.</p>
+              <div className="w-full py-3.5 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: "#E4DCCF", color: "#635C59" }}>Request a Ride</div>
+              <p className="text-xs text-center" style={{ color: CE_MUTED }}>You already have a ride to this event.</p>
             </div>
           ) : (seatsLeft(selectedDriver) ?? 0) > 0 ? (
             <button onClick={() => { setRequestConfirmDriver(selectedDriver); setRiderPhone(""); }}
-              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm">
+              className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80"
+              style={{ background: "#1F4E5B", fontSize: 16 }}>
               Request a Ride
             </button>
           ) : (
-            <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">🔒 Car is full</div>
+            <div className="w-full py-3.5 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: "#E4DCCF", color: "#635C59" }}>🔒 Car is full</div>
           )}
         </Sheet>
       )}
@@ -1131,36 +1375,44 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       {selectedRider && myPost?.type === "driver" && (
         <Sheet onClose={() => setSelectedRider(null)} title="Offer a ride">
           <div className="flex items-center gap-3">
-            <Avatar url={selectedRider.profile.avatar_url} name={selectedRider.profile.name} size={12} />
+            <div className="relative shrink-0" style={{ width: 52, height: 52 }}>
+              <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center" style={{ background: "#E4DCCF" }}>
+                {selectedRider.profile.avatar_url
+                  ? <img src={selectedRider.profile.avatar_url} className="w-full h-full object-cover" />
+                  : <span className="font-bold text-xl" style={{ color: "#2C2523" }}>{selectedRider.profile.name?.[0] ?? "?"}</span>}
+              </div>
+            </div>
             <div>
-              <p className="font-semibold">{selectedRider.profile.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-bold" style={{ fontSize: 16, color: "#2C2523" }}>{selectedRider.profile.name}</p>
+              <p className="text-sm" style={{ color: CE_MUTED }}>
                 {selectedRider.pickup_needed ? "Needs pickup" : "Has car · Can meet you"}
                 {selectedRider.distance !== undefined && ` · ${fmtDist(selectedRider.distance)} away`}
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-              <p className="text-sm font-semibold">{selectedRider.pickup_needed ? "Needs pickup" : "Can meet"}</p>
-              <p className="text-xs text-muted-foreground">pickup</p>
+          <div className={`grid gap-2.5 text-center ${selectedRider.distance !== undefined ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className="flex flex-col items-center justify-center py-4 rounded-2xl" style={{ background: "#fff", border: "1px solid #E4DCCF" }}>
+              <p className="font-bold" style={{ fontSize: 15, color: "#2C2523" }}>{selectedRider.pickup_needed ? "Needs pickup" : "Can meet"}</p>
+              <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>pickup</p>
             </div>
             {selectedRider.distance !== undefined && (
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                <p className="text-sm font-semibold">{fmtDist(selectedRider.distance)}</p>
-                <p className="text-xs text-muted-foreground">from you</p>
+              <div className="flex flex-col items-center justify-center py-4 rounded-2xl" style={{ background: "#fff", border: "1px solid #E4DCCF" }}>
+                <p className="font-bold" style={{ fontSize: 15, color: "#2C2523" }}>{fmtDist(selectedRider.distance)}</p>
+                <p className="text-xs mt-0.5" style={{ color: CE_MUTED }}>from you</p>
               </div>
             )}
           </div>
+          <div style={{ height: 1, background: CE_LIGHT }} />
           {alreadyOffered(selectedRider.user_id) ? (
-            <div className="w-full h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-sm font-semibold text-blue-700">
+            <div className="w-full py-3.5 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: "rgba(112,185,190,0.1)", border: "1px solid #1F4E5B", color: "#1F4E5B" }}>
               ✓ Offer sent — waiting for their reply
             </div>
           ) : (seatsLeft(myPost) ?? 0) <= 0 ? (
-            <div className="w-full h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-400">🔒 Your car is full</div>
+            <div className="w-full py-3.5 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: "#E4DCCF", color: "#635C59" }}>🔒 Your car is full</div>
           ) : (
             <button onClick={() => offerRide(selectedRider)} disabled={offerSubmitting}
-              className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+              className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: "#1F4E5B", fontSize: 16 }}>
               {offerSubmitting ? "Sending…" : `Offer a ride to ${selectedRider.profile.name.split(" ")[0]}`}
             </button>
           )}
@@ -1171,107 +1423,254 @@ export default function CarpoolSection({ eventId }: { eventId: string }) {
       {requestConfirmDriver && (
         <Sheet onClose={() => setRequestConfirmDriver(null)} title={`Request from ${requestConfirmDriver.profile.name}`}>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
-            <p className="text-xs text-muted-foreground">Shared with the driver only if they accept you.</p>
+            <p className="font-semibold text-sm" style={{ color: "#2C2523" }}>
+              Your phone number <span className="font-normal" style={{ color: CE_MUTED }}>(optional)</span>
+            </p>
+            <p className="text-sm" style={{ color: CE_MUTED }}>Shared with the driver only if they accept you.</p>
             <input type="tel" value={riderPhone} onChange={(e) => setRiderPhone(e.target.value)}
               placeholder="(555) 000-0000"
-              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors" />
+              className="w-full h-12 px-4 text-sm outline-none transition-colors"
+              style={{ borderRadius: 16, border: `1.5px solid ${CE_LIGHT}`, background: "#fff", color: "#2C2523", fontFamily: "'Inter', sans-serif" }} />
           </div>
+          <div style={{ height: 1, background: CE_LIGHT }} />
           <button onClick={() => requestRide(requestConfirmDriver)} disabled={submitting}
-            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
+            className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: "#1F4E5B", fontSize: 16 }}>
             {submitting ? "Sending…" : "Send Request"}
           </button>
         </Sheet>
       )}
 
       {/* ── Rider form ── */}
-      {modal === "rider" && (
-        <Sheet onClose={() => setModal(null)} title="I need a ride">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-700">Do you have a car?</p>
-            <div className="flex flex-col gap-2">
-              {[{ label: "Yes — but I'd rather not drive", val: true }, { label: "No car", val: false }].map(({ label, val }) => (
-                <button key={label} type="button"
-                  onClick={() => { setHasCar(val); if (!val) setPickupNeeded(true); else setPickupNeeded(null); }}
-                  className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${hasCar === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                  {label}
+      {modal === "rider" && createPortal(
+        <>
+          <style>{SHEET_STYLES}</style>
+          <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }}
+            onClick={() => setModal(null)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="cp-panel relative w-full max-w-lg rounded-t-3xl md:rounded-3xl p-6 pb-10 md:pb-6 max-h-[90vh] overflow-y-auto space-y-5"
+              style={{ background: CE_BG }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType(null); }}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                  style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                >
+                  <ChevronRight className="h-4 w-4 rotate-180" style={{ color: "#2C2523" }} />
                 </button>
-              ))}
+                <h2 className="text-xl font-bold" style={{ color: "#2C2523", fontFamily: "'EB Garamond', Georgia, serif" }}>I need a ride</h2>
+                <button
+                  onClick={() => setModal(null)}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                  style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                >
+                  <X className="h-4 w-4" style={{ color: "#2C2523" }} />
+                </button>
+              </div>
+
+              {/* Do you have a car? */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>Do you have a car?</p>
+                <div className="flex flex-col gap-2">
+                  {[{ label: "Yes — but I'd rather not drive", val: true }, { label: "No car", val: false }].map(({ label, val }) => (
+                    <button key={label} type="button"
+                      onClick={() => { setHasCar(val); if (!val) setPickupNeeded(true); else setPickupNeeded(null); }}
+                      className="flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 text-sm transition-all text-left hover:opacity-80"
+                      style={{
+                        background: hasCar === val ? CE_SUCCESS_BG_LIGHT : "#fff",
+                        borderColor: hasCar === val ? "#1F4E5B" : CE_LIGHT,
+                        color: "#2C2523",
+                      }}
+                    >
+                      {label}
+                      <div className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                        style={{ borderColor: hasCar === val ? "#1F4E5B" : CE_LIGHT }}>
+                        {hasCar === val && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#1F4E5B" }} />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Can you meet the driver? */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>Can you meet the driver, or need pickup?</p>
+                <div style={{ display: "flex", gap: 12 }}>
+                  {[
+                    { label: "I can meet the driver",  img: "/Event detail Icons/carpool/I can meet the driver.png",  val: false },
+                    { label: "I need to be picked up", img: "/Event detail Icons/carpool/I need to be picked up.png", val: true  },
+                  ].map(({ label, img, val }) => {
+                    const selected = pickupNeeded === val;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setPickupNeeded(val)}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 12,
+                          padding: "20px 12px",
+                          borderRadius: 16,
+                          background: selected ? "rgba(112, 185, 190, 0.11)" : "#fff",
+                          border: selected ? "2px solid #1F4E5B" : "1px solid #E4DCCF",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <img
+                          src={img}
+                          alt={label}
+                          style={{ width: "100%", maxWidth: 110, height: 90, objectFit: "contain" }}
+                        />
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#2C2523", textAlign: "center", lineHeight: 1.3 }}>
+                          {label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ height: 1, background: CE_LIGHT }} />
+              <button onClick={submitRider} disabled={submitting || hasCar === null || (hasCar === true && pickupNeeded === null)}
+                className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: "#1F4E5B", fontSize: 16 }}>
+                {submitting ? "Posting…" : "Post"}
+              </button>
             </div>
           </div>
-          {hasCar === true && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700">Can you meet the driver, or need pickup?</p>
-              <div className="flex flex-col gap-2">
-                {[{ label: "I can meet the driver 📍", val: false }, { label: "I need to be picked up 🚪", val: true }].map(({ label, val }) => (
-                  <button key={label} type="button" onClick={() => setPickupNeeded(val)}
-                    className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupNeeded === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {hasCar === false && (
-            <p className="text-xs text-muted-foreground bg-gray-50 rounded-xl px-4 py-3">
-              Since you don't have a car, you'll be marked as needing pickup.
-            </p>
-          )}
-          <button onClick={submitRider} disabled={submitting || hasCar === null || (hasCar === true && pickupNeeded === null)}
-            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
-            {submitting ? "Posting…" : "Post"}
-          </button>
-        </Sheet>
+        </>,
+        document.body
       )}
 
       {/* ── Driver form ── */}
-      {modal === "driver" && (
-        <Sheet onClose={() => setModal(null)} title="I can drive">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-700">How many seats can you offer?</p>
-            <div className="flex gap-2">
-              {[1,2,3,4,5,6].map((n) => (
-                <button key={n} type="button" onClick={() => setSeats(n)}
-                  className={`w-10 h-10 rounded-full border-2 text-sm font-semibold transition-all ${seats === n ? "bg-black text-white border-black" : "border-gray-200"}`}>
-                  {n}
+      {modal === "driver" && createPortal(
+        <>
+          <style>{SHEET_STYLES}</style>
+          <div className="cp-backdrop fixed inset-0 flex items-end md:items-center justify-center" style={{ zIndex: 9999 }}
+            onClick={() => setModal(null)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="cp-panel relative w-full max-w-lg rounded-t-3xl md:rounded-3xl p-6 pb-10 md:pb-6 max-h-[90vh] overflow-y-auto space-y-5"
+              style={{ background: CE_BG }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType(null); }}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                  style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                >
+                  <ChevronRight className="h-4 w-4 rotate-180" style={{ color: "#2C2523" }} />
                 </button>
-              ))}
+                <h2 className="text-xl font-bold" style={{ color: "#2C2523", fontFamily: "'EB Garamond', Georgia, serif" }}>I can drive</h2>
+                <button
+                  onClick={() => setModal(null)}
+                  className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                  style={{ width: 40, height: 40, background: "#E4DCCF" }}
+                >
+                  <X className="h-4 w-4" style={{ color: "#2C2523" }} />
+                </button>
+              </div>
+
+              {/* Seats */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>How many seats can you offer?</p>
+                <div className="flex gap-2">
+                  {[1,2,3,4,5,6].map((n) => (
+                    <button key={n} type="button" onClick={() => setSeats(n)}
+                      className="w-10 h-10 rounded-full border-2 text-sm font-semibold transition-all flex items-center justify-center"
+                      style={{
+                        background: seats === n ? CE_SUCCESS_BG_LIGHT : "#fff",
+                        border: seats === n ? "2px solid #1F4E5B" : `2px solid ${CE_LIGHT}`,
+                        color: "#2C2523",
+                      }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Departure time */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>Rough departure time</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Morning", "Afternoon", "Evening", "Flexible"].map((d) => (
+                    <button key={d} type="button" onClick={() => setDeparture(d)}
+                      className="py-3.5 rounded-2xl border-2 text-sm font-medium transition-all"
+                      style={{
+                        background: departure === d ? CE_SUCCESS_BG_LIGHT : "#fff",
+                        borderColor: departure === d ? "#1F4E5B" : CE_LIGHT,
+                        color: "#2C2523",
+                      }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pickup offered */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>Will you pick riders up?</p>
+                <div className="flex flex-col gap-2">
+                  {[{ label: "Yes, I'll pick people up", emoji: "🚗", val: true }, { label: "Riders meet me at a spot", emoji: "📍", val: false }].map(({ label, emoji, val }) => (
+                    <button key={label} type="button" onClick={() => setPickupOffered(val)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-sm transition-all text-left hover:opacity-80"
+                      style={{
+                        background: pickupOffered === val ? CE_SUCCESS_BG_LIGHT : "#fff",
+                        borderColor: pickupOffered === val ? "#1F4E5B" : CE_LIGHT,
+                        color: "#2C2523",
+                      }}
+                    >
+                      <span className="text-base">{emoji}</span>
+                      <span className="flex-1">{label}</span>
+                      <div className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                        style={{ borderColor: pickupOffered === val ? "#1F4E5B" : CE_LIGHT }}>
+                        {pickupOffered === val && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#1F4E5B" }} />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Phone number */}
+              <div className="space-y-1.5">
+                <p className="text-sm font-semibold" style={{ color: "#2C2523" }}>Your phone number</p>
+                <p className="text-xs" style={{ color: "#635C59" }}>Shared only with riders you accept.</p>
+                <input type="tel" value={driverPhone} onChange={(e) => setDriverPhone(e.target.value)}
+                  placeholder="(555) 000-0000"
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 text-sm focus:outline-none transition-colors"
+                  style={{ borderColor: CE_LIGHT, background: "#fff", color: "#2C2523" }} />
+              </div>
+
+              <div style={{ height: 1, background: CE_LIGHT }} />
+              <button onClick={submitDriver} disabled={submitting || !departure || pickupOffered === null}
+                className="w-full py-4 rounded-full font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: "#1F4E5B", fontSize: 16 }}>
+                {submitting ? "Posting…" : "Post"}
+              </button>
             </div>
           </div>
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-700">Rough departure time</p>
-            <div className="grid grid-cols-2 gap-2">
-              {["Morning", "Afternoon", "Evening", "Flexible"].map((d) => (
-                <button key={d} type="button" onClick={() => setDeparture(d)}
-                  className={`h-12 rounded-2xl border-2 text-sm font-semibold transition-all ${departure === d ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-700">Will you pick riders up?</p>
-            <div className="flex flex-col gap-2">
-              {[{ label: "Yes, I'll pick people up 🚗", val: true }, { label: "Riders meet me at a spot 📍", val: false }].map(({ label, val }) => (
-                <button key={label} type="button" onClick={() => setPickupOffered(val)}
-                  className={`w-full h-12 rounded-2xl border-2 text-sm font-semibold transition-all text-left px-4 ${pickupOffered === val ? "bg-black text-white border-black" : "border-gray-200 text-gray-800"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700">Your phone number <span className="font-normal text-muted-foreground">(optional)</span></label>
-            <p className="text-xs text-muted-foreground">Shared only with riders you accept.</p>
-            <input type="tel" value={driverPhone} onChange={(e) => setDriverPhone(e.target.value)}
-              placeholder="(555) 000-0000"
-              className="w-full h-12 rounded-2xl border-2 border-gray-200 px-4 text-sm focus:border-black focus:outline-none transition-colors" />
-          </div>
-          <button onClick={submitDriver} disabled={submitting || !departure || pickupOffered === null}
-            className="w-full h-12 rounded-2xl bg-black text-white font-semibold text-sm disabled:opacity-40">
-            {submitting ? "Posting…" : "Post"}
-          </button>
-        </Sheet>
+        </>,
+        document.body
+      )}
+
+      {/* ── Lodging setup modal ── */}
+      {lodgingModalOpen && (
+        <LodgingSetupModal
+          eventId={eventId}
+          initialGroupId={lodgingGroupId}
+          onClose={() => setLodgingModalOpen(false)}
+        />
       )}
     </>
   );

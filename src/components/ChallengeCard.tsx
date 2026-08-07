@@ -1,3 +1,4 @@
+import { CE_GOLD_LIGHT } from '../tokens';
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -165,9 +166,9 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       <div
         onClick={handleClick}
         style={{
-          background: "#F1E6C6",
-          border: "2px dashed #000",
-          borderRadius: 13,
+          background: CE_GOLD_LIGHT,
+          border: "1px solid #E4DCCF",
+          borderRadius: 24,
           position: "relative",
           width: "100%",
           height: hasJoined ? 182 : 124,
@@ -226,16 +227,16 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
                 ? participants.slice(0, 3).map((p, i) =>
                     p.avatar_url ? (
                       <img key={p.user_id} src={p.avatar_url} referrerPolicy="no-referrer"
-                        style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", border: "2px solid #F1E6C6", marginLeft: i > 0 ? -9 : 0 }} />
+                        style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: i > 0 ? -9 : 0 }} />
                     ) : (
                       <div key={p.user_id}
-                        style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: getInitialColor(p.name), border: "2px solid #F1E6C6", marginLeft: i > 0 ? -9 : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>
+                        style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: getInitialColor(p.name), border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: i > 0 ? -9 : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>
                         {p.name?.charAt(0).toUpperCase()}
                       </div>
                     )
                   )
                 : [0, 1, 2].map((i) => (
-                    <div key={i} style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "#a8a29e", border: "2px solid #F1E6C6", marginLeft: i > 0 ? -9 : 0 }} />
+                    <div key={i} style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "#a8a29e", border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: i > 0 ? -9 : 0 }} />
                   ))}
             </div>
           </div>
@@ -256,16 +257,16 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
                     {participants.slice(0, 2).map((p, i) =>
                       p.avatar_url ? (
                         <img key={p.user_id} src={p.avatar_url} referrerPolicy="no-referrer"
-                          style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", border: "2px solid #F1E6C6", marginLeft: i > 0 ? -7 : 0 }} />
+                          style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: i > 0 ? -7 : 0 }} />
                       ) : (
                         <div key={p.user_id}
-                          style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: getInitialColor(p.name), border: "2px solid #F1E6C6", marginLeft: i > 0 ? -7 : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff" }}>
+                          style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: getInitialColor(p.name), border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: i > 0 ? -7 : 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: "#fff" }}>
                           {p.name?.charAt(0).toUpperCase()}
                         </div>
                       )
                     )}
                     {participantCount > 0 && (
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#2d2d2d", border: "2px solid #F1E6C6", marginLeft: -7, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#2d2d2d", border: `2px solid ${CE_GOLD_LIGHT}`, marginLeft: -7, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <span style={{ color: "#fff", fontSize: 7, fontWeight: 800 }}>+{participantCount}</span>
                       </div>
                     )}
@@ -303,7 +304,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
           {isExiting && (
             <div style={{
               position: "absolute", inset: 0, zIndex: 10,
-              background: "#F1E6C6",
+              background: CE_GOLD_LIGHT,
               animation: "circleReveal 0.65s cubic-bezier(0.4, 0, 0.6, 1) forwards",
               pointerEvents: "none",
             }} />

@@ -1,7 +1,8 @@
+import { CE_DARK,CE_TEAL,CE_MID,CE_DIV,CE_GOLD,CE_BG,CE_SURFACE,CE_TEAL_PRESS,CE_ERROR,CE_SIDEBAR,CE_SANS,CE_SERIF } from '../tokens';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User, X } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User, X, Check, Eye, RefreshCw, ArrowRight } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -35,19 +36,10 @@ const loadPdfjs = async () => {
   return pdfjsLib;
 };
 
-// Time options starting at 6 PM, wrapping around
+// Time options: 6 AM → 11:30 PM (no overnight times — nobody hosts at 12–5 AM)
 const TIME_OPTIONS = (() => {
   const opts = [];
-  // 6 PM → 11:30 PM
-  for (let h = 18; h < 24; h++)
-    for (const m of ['00', '30'])
-      opts.push(`${String(h).padStart(2, '0')}:${m}`);
-  // 12 AM → 5:30 AM
-  for (let h = 0; h < 6; h++)
-    for (const m of ['00', '30'])
-      opts.push(`${String(h).padStart(2, '0')}:${m}`);
-  // 6 AM → 5:30 PM
-  for (let h = 6; h < 18; h++)
+  for (let h = 6; h < 24; h++)
     for (const m of ['00', '30'])
       opts.push(`${String(h).padStart(2, '0')}:${m}`);
   return opts;
@@ -71,53 +63,145 @@ const INFO_ICONS = [
   { key: "food",     Icon: Utensils },
 ];
 
-const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
-  const [open, setOpen] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+// Shared bottom-sheet overlay used by TimePicker (mobile) and age filter (mobile)
+const CESheet = ({ open, onClose, title, children }: {
+  open: boolean; onClose: () => void; title: string; children: React.ReactNode;
+}) => {
+  // `mounted`  — keeps the DOM node alive during the exit animation
+  // `visible`  — drives the CSS transitions (opacity + translateY)
+  const [mounted,  setMounted]  = useState(false);
+  const [visible,  setVisible]  = useState(false);
 
-  // Scroll selected item into view within the dropdown (no page scroll)
   useEffect(() => {
-    if (open && value && listRef.current) {
-      const idx = TIME_OPTIONS.indexOf(value);
-      if (idx !== -1) {
-        const item = listRef.current.children[idx] as HTMLElement;
-        if (item) {
-          listRef.current.scrollTop = item.offsetTop - listRef.current.clientHeight / 2 + item.offsetHeight / 2;
-        }
-      }
+    if (open) {
+      setMounted(true);
+      // Wait one frame so the browser paints the "off-screen" position first,
+      // then flip visible → true to trigger the slide-up transition.
+      const raf = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(raf);
+    } else {
+      // Start exit: slide down + fade out
+      setVisible(false);
+      // Unmount after the transition finishes (matches the 340ms sheet duration)
+      const t = setTimeout(() => setMounted(false), 360);
+      return () => clearTimeout(t);
     }
   }, [open]);
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  if (!mounted) return null;
 
   return (
-    <div className="relative flex-1" ref={containerRef}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={onClose}>
+      {/* Backdrop — fades in/out independently and slightly faster */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.45)',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.22s ease',
+        willChange: 'opacity',
+      }} />
+      {/* Sheet — slides up from below the fold */}
       <div
-        className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-        onClick={() => setOpen(!open)}
-      >
-        <span className={`text-sm ${value ? 'text-black' : 'text-muted-foreground'}`}>
-          {value ? formatTime(value) : placeholder}
-        </span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'white', borderRadius: '20px 20px 0 0',
+          maxHeight: '72vh', display: 'flex', flexDirection: 'column',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          // cubic-bezier(0.32, 0.72, 0, 1) is the iOS-standard spring-like sheet curve
+          transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform',
+        }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 99, background: CE_DIV }} />
+        </div>
+        <p style={{ textAlign: 'center', fontFamily: CE_SANS, fontSize: 17, fontWeight: 700, color: CE_DARK, padding: '0 24px 14px', borderBottom: `1px solid ${CE_DIV}` }}>{title}</p>
+        <div style={{ overflowY: 'auto', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>{children}</div>
       </div>
+    </div>
+  );
+};
 
+const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
+  const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  const listRef  = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Scroll selected item into view (desktop dropdown only)
+  useEffect(() => {
+    if (open && !isMobile && value && listRef.current) {
+      const idx = TIME_OPTIONS.indexOf(value);
+      if (idx !== -1) {
+        const item = listRef.current.children[idx] as HTMLElement;
+        if (item) listRef.current.scrollTop = item.offsetTop - listRef.current.clientHeight / 2 + item.offsetHeight / 2;
+      }
+    }
+  }, [open, isMobile]);
+
+  // Scroll mobile sheet to selected item when it opens
+  useEffect(() => {
+    if (open && isMobile && value && listRef.current) {
+      const idx = TIME_OPTIONS.indexOf(value);
+      if (idx !== -1) {
+        const item = listRef.current.children[idx] as HTMLElement;
+        if (item) setTimeout(() => item.scrollIntoView({ block: 'center' }), 50);
+      }
+    }
+  }, [open, isMobile]);
+
+  // Close desktop dropdown on outside click
+  useEffect(() => {
+    if (!open || isMobile) return;
+    const h = (e: MouseEvent) => { if (outerRef.current && !outerRef.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open, isMobile]);
+
+  const trigger = (
+    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
+      onClick={() => setOpen(o => !o)}>
+      <span className={`text-sm ${value ? 'text-black' : 'text-muted-foreground'}`}>{value ? formatTime(value) : placeholder}</span>
+      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open && !isMobile ? 'rotate-180' : ''}`} />
+    </div>
+  );
+
+  const sheetRows = (
+    <div ref={listRef}>
+      {TIME_OPTIONS.map(t => (
+        <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
+          style={{ width: '100%', textAlign: 'left', padding: '16px 24px', fontFamily: CE_SANS, fontSize: 16, fontWeight: value === t ? 700 : 400, color: value === t ? CE_TEAL : CE_DARK, background: 'none', border: 'none', cursor: 'pointer', borderBottom: `1px solid ${CE_DIV}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {formatTime(t)}
+          {value === t && <Check style={{ width: 18, height: 18, color: CE_TEAL }} />}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="relative flex-1">
+        {trigger}
+        <CESheet open={open} onClose={() => setOpen(false)} title={placeholder}>{sheetRows}</CESheet>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex-1" ref={outerRef}>
+      {trigger}
       {open && (
         <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
           {TIME_OPTIONS.map(t => (
-            <button key={t} type="button"
-              onClick={() => { onChange(t); setOpen(false); }}
+            <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
               className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${value === t ? 'font-bold' : 'text-black'}`}>
               {formatTime(t)}
             </button>
@@ -128,12 +212,511 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
   );
 };
 
+// ── Design tokens ─────────────────────────────────────────────────────────────
+
+// Module-level stable sub-components (avoid remount-on-every-render)
+const CEFieldLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  <p style={{ fontFamily: CE_SANS, fontSize: 11, fontWeight: 600, color: CE_MID, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 6 }}>
+    {children}{required && <span style={{ color: CE_ERROR, marginLeft: 2 }}>*</span>}
+  </p>
+);
+
+const CEToggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
+  <button type="button" onClick={onToggle}
+    style={{ position: "relative", display: "inline-flex", height: 28, width: 52, borderRadius: 999, background: on ? CE_TEAL : CE_DIV, border: "none", cursor: "pointer", flexShrink: 0, transition: "background 0.2s" }}>
+    <span style={{ position: "absolute", top: 3, left: on ? 27 : 3, width: 22, height: 22, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+  </button>
+);
+
+// ── Range date picker (Figma node 2875:10822 — desktop: dual-month panel) ─────
+const CE_MONTHS_F = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const CERangePicker = ({
+  startValue, onStartChange, endValue, onEndChange, startDisabled, endDisabled,
+}: {
+  startValue: string; onStartChange: (v: string) => void;
+  endValue:   string; onEndChange:   (v: string) => void;
+  startDisabled?: boolean; endDisabled?: boolean;
+}) => {
+  const today = new Date().toISOString().split('T')[0];
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768);
+  const [open, setOpen] = useState(false);
+  // Mobile: which field the user tapped to open the sheet
+  const [mobileTarget, setMobileTarget] = useState<'start' | 'end'>('start');
+  // Pending values — committed only when "Apply Dates" is pressed (desktop)
+  const [pendingStart, setPendingStart] = useState('');
+  const [pendingEnd,   setPendingEnd]   = useState('');
+  const [hoverDate,    setHoverDate]    = useState<string | null>(null);
+  // Left calendar month
+  const [viewYear,  setViewYear]  = useState(new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const panelRef   = useRef<HTMLDivElement>(null);
+  // Mobile bottom sheet animation state
+  const [mobileSheetMounted,  setMobileSheetMounted]  = useState(false);
+  const [mobileSheetVisible,  setMobileSheetVisible]  = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Drive slide-up animation for mobile sheet
+  useEffect(() => {
+    if (!isMobile) return;
+    if (open) {
+      setMobileSheetMounted(true);
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => setMobileSheetVisible(true)));
+      return () => cancelAnimationFrame(raf);
+    } else {
+      setMobileSheetVisible(false);
+      const t = setTimeout(() => setMobileSheetMounted(false), 360);
+      return () => clearTimeout(t);
+    }
+  }, [open, isMobile]);
+
+
+  const openDesktop = () => {
+    const anchor = startValue || today;
+    const [y, m] = anchor.split('-').map(Number);
+    setViewYear(y); setViewMonth(m - 1);
+    setPendingStart(startValue); setPendingEnd(endValue); setHoverDate(null);
+    setOpen(true);
+  };
+
+  const openMobile = (target: 'start' | 'end') => {
+    const effectiveTarget = (target === 'end' && !startValue) ? 'start' : target;
+    const anchor = effectiveTarget === 'start' ? (startValue || today) : (endValue || startValue || today);
+    const [y, m] = anchor.split('-').map(Number);
+    setViewYear(y); setViewMonth(m - 1);
+    setMobileTarget(effectiveTarget);
+    setPendingStart(startValue); setPendingEnd(endValue);
+    setOpen(true);
+  };
+
+  const rightYear  = viewMonth === 11 ? viewYear + 1 : viewYear;
+  const rightMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  // Effective end for hover-preview when only start is picked
+  const effectiveEnd = pendingEnd
+    ? pendingEnd
+    : (pendingStart && hoverDate && hoverDate > pendingStart ? hoverDate : null);
+
+  const handleDesktopDayClick = (dateStr: string) => {
+    if (!pendingStart || (pendingStart && pendingEnd)) {
+      setPendingStart(dateStr); setPendingEnd('');
+    } else if (dateStr >= pendingStart) {
+      setPendingEnd(dateStr);
+    } else {
+      // Clicked before current start → flip
+      setPendingEnd(pendingStart); setPendingStart(dateStr);
+    }
+  };
+
+  const handleMobileDayClick = (dateStr: string) => {
+    if (!pendingStart || (pendingStart && pendingEnd)) {
+      // Start fresh selection
+      setPendingStart(dateStr);
+      setPendingEnd('');
+      setMobileTarget('end');
+    } else {
+      // End-date phase
+      if (dateStr >= pendingStart) {
+        setPendingEnd(dateStr);
+      } else {
+        // Tapped before start → restart from this date
+        setPendingStart(dateStr);
+        setPendingEnd('');
+      }
+    }
+  };
+
+  const handleApply  = () => { onStartChange(pendingStart); onEndChange(pendingEnd); setOpen(false); };
+  const handleCancel = () => { setPendingStart(startValue); setPendingEnd(endValue); setOpen(false); };
+  const handleClear  = () => { setPendingStart(''); setPendingEnd(''); };
+
+  const fmtLong  = (v: string) => new Date(v + 'T00:00').toLocaleDateString('en-US', { month: 'long',  day: 'numeric', year: 'numeric' });
+  const fmtShort = (v: string) => new Date(v + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const getMonthCells = (year: number, month: number) => {
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  };
+
+  const CELL = 40; // px per day cell
+
+  const renderMonthGrid = (
+    year: number, month: number,
+    showPrev: boolean, showNext: boolean,
+    onDayClick: (d: string) => void,
+    enableHover: boolean,
+    cellSize = CELL,
+  ) => {
+    const cells = getMonthCells(year, month);
+    const R = cellSize / 2;
+    return (
+      <div style={{ width: cellSize * 7, flexShrink: 0 }}>
+        {/* Month header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          {showPrev
+            ? <button type="button" onMouseDown={e => { e.stopPropagation(); prevMonth(); }}
+                style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${CE_DIV}`, background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: CE_MID, fontSize: 18, lineHeight: 1 }}>‹</span>
+              </button>
+            : <div style={{ width: 28, flexShrink: 0 }} />}
+          <span style={{ fontFamily: CE_SANS, fontSize: 15, fontWeight: 700, color: CE_DARK, textAlign: 'center' }}>
+            {CE_MONTHS_F[month]} {year}
+          </span>
+          {showNext
+            ? <button type="button" onMouseDown={e => { e.stopPropagation(); nextMonth(); }}
+                style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${CE_DIV}`, background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: CE_MID, fontSize: 18, lineHeight: 1 }}>›</span>
+              </button>
+            : <div style={{ width: 28, flexShrink: 0 }} />}
+        </div>
+        {/* Weekday labels */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)`, marginBottom: 4 }}>
+          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+            <div key={d} style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: CE_SANS, fontSize: 11, fontWeight: 500, color: CE_MID }}>{d}</div>
+          ))}
+        </div>
+        {/* Day rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {Array.from({ length: Math.ceil(cells.length / 7) }, (_, row) => (
+            <div key={row} style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)` }}>
+              {cells.slice(row * 7, row * 7 + 7).map((d, col) => {
+                if (!d) return <div key={col} style={{ width: cellSize, height: cellSize }} />;
+                const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isStart = ds === pendingStart;
+                const isEnd   = !!pendingEnd && ds === pendingEnd;
+                const inRange = !!(pendingStart && effectiveEnd && ds > pendingStart && ds < effectiveEnd);
+                const isToday = ds === today;
+                const lit = isStart || isEnd || inRange;
+                const single = isStart && (!effectiveEnd || isEnd);
+                let cr = '0';
+                if (lit) {
+                  if (single)        cr = `${R}px`;
+                  else if (isStart)  cr = `${R}px 0 0 ${R}px`;
+                  else if (isEnd)    cr = `0 ${R}px ${R}px 0`;
+                  else if (col === 0) cr = `${R}px 0 0 ${R}px`;
+                  else if (col === 6) cr = `0 ${R}px ${R}px 0`;
+                }
+                return (
+                  <div key={col}
+                    style={{ width: cellSize, height: cellSize, background: lit ? CE_SURFACE : 'transparent', borderRadius: cr, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onMouseEnter={() => { if (enableHover && pendingStart && !pendingEnd) setHoverDate(ds); }}
+                    onMouseLeave={() => { if (enableHover) setHoverDate(null); }}
+                    onClick={() => onDayClick(ds)}>
+                    <div style={{ width: cellSize - 4, height: cellSize - 4, borderRadius: '50%', background: (isStart || isEnd) ? CE_TEAL : 'transparent', border: isToday && !isStart && !isEnd ? `1.5px solid ${CE_TEAL}` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontFamily: CE_SANS, fontSize: 13, fontWeight: (isStart || isEnd || isToday) ? 600 : 400, color: (isStart || isEnd) ? 'white' : CE_DARK, lineHeight: 1 }}>
+                        {d}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const triggerField: React.CSSProperties = {
+    height: 52, borderRadius: 14, border: `1.5px solid ${CE_DIV}`,
+    background: 'white', padding: '0 14px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' as const,
+  };
+
+  // Panel total width: 2 grids + 2 flex-gaps (32px each) + 1px divider + side padding (36*2)
+  const PANEL_W = CELL * 7 * 2 + 32 * 2 + 1 + 72;
+
+  return (
+    <>
+      {/* Trigger row */}
+      <div ref={triggerRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {/* Start Date */}
+        <div style={{ opacity: startDisabled ? 0.4 : 1, pointerEvents: startDisabled ? 'none' : 'auto' }}>
+          <CEFieldLabel required>Start Date</CEFieldLabel>
+          <div style={triggerField} onClick={() => isMobile ? openMobile('start') : openDesktop()}>
+            <span style={{ fontFamily: CE_SANS, fontSize: 14, color: startValue ? CE_DARK : CE_MID }}>
+              {startValue ? fmtShort(startValue) : 'Pick a date'}
+            </span>
+            <Calendar style={{ width: 16, height: 16, color: CE_MID, flexShrink: 0 }} />
+          </div>
+        </div>
+        {/* End Date */}
+        <div style={{ opacity: endDisabled ? 0.4 : 1, pointerEvents: endDisabled ? 'none' : 'auto' }}>
+          <CEFieldLabel>End Date</CEFieldLabel>
+          <div style={triggerField} onClick={() => isMobile ? openMobile('end') : openDesktop()}>
+            <span style={{ fontFamily: CE_SANS, fontSize: 14, color: endValue ? CE_DARK : CE_MID }}>
+              {endValue ? fmtShort(endValue) : '– –'}
+            </span>
+            {endValue
+              ? <button type="button" onClick={e => { e.stopPropagation(); onEndChange(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+                  <X style={{ width: 16, height: 16, color: CE_MID }} />
+                </button>
+              : <Calendar style={{ width: 16, height: 16, color: CE_MID, flexShrink: 0 }} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: centered modal with backdrop */}
+      {open && !isMobile && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onMouseDown={() => handleCancel()}>
+          {/* Backdrop */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} />
+          {/* Panel */}
+          <div ref={panelRef}
+            style={{ position: 'relative', background: 'white', borderRadius: 24, boxShadow: '0px 16px 40px rgba(15,23,42,0.18)',
+              padding: '28px 36px', display: 'flex', flexDirection: 'column', gap: 22, width: PANEL_W }}
+            onMouseDown={e => e.stopPropagation()}>
+          {/* ── Header ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: CE_SANS, fontSize: 17, fontWeight: 700, color: CE_DARK }}>Select Date Range</span>
+              <button type="button" onMouseDown={e => { e.stopPropagation(); handleCancel(); }}
+                style={{ background: CE_SURFACE, border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <X style={{ width: 15, height: 15, color: CE_MID }} />
+              </button>
+            </div>
+            {/* Date display inputs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${CE_TEAL}`, background: 'white', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontFamily: CE_SANS, fontSize: 10, fontWeight: 600, color: CE_TEAL, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Start Date</span>
+                <span style={{ fontFamily: CE_SANS, fontSize: 13, fontWeight: 500, color: pendingStart ? CE_DARK : CE_MID }}>
+                  {pendingStart ? fmtLong(pendingStart) : '–'}
+                </span>
+              </div>
+              <div style={{ background: CE_SURFACE, borderRadius: 100, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArrowRight style={{ width: 15, height: 15, color: CE_DARK }} />
+              </div>
+              <div style={{ flex: 1, padding: '10px 14px', borderRadius: 12, border: `1px solid ${CE_DIV}`, background: 'white', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontFamily: CE_SANS, fontSize: 10, fontWeight: 500, color: CE_MID, textTransform: 'uppercase', letterSpacing: '0.06em' }}>End Date</span>
+                <span style={{ fontFamily: CE_SANS, fontSize: 13, fontWeight: 500, color: pendingEnd ? CE_DARK : CE_MID }}>
+                  {pendingEnd ? fmtLong(pendingEnd) : '–'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: CE_DIV }} />
+
+          {/* ── Two month grids ── */}
+          <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+            {renderMonthGrid(viewYear, viewMonth, true, false, handleDesktopDayClick, true)}
+            <div style={{ width: 1, background: CE_DIV, alignSelf: 'stretch', flexShrink: 0 }} />
+            {renderMonthGrid(rightYear, rightMonth, false, true, handleDesktopDayClick, true)}
+          </div>
+
+          <div style={{ height: 1, background: CE_DIV }} />
+
+          {/* ── Footer ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button type="button" onMouseDown={e => { e.stopPropagation(); handleClear(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <RefreshCw style={{ width: 14, height: 14, color: CE_MID }} />
+              <span style={{ fontFamily: CE_SANS, fontSize: 13, fontWeight: 500, color: CE_MID }}>Clear selection</span>
+            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" onMouseDown={e => { e.stopPropagation(); handleCancel(); }}
+                style={{ padding: '9px 16px', background: 'white', border: `1px solid ${CE_DIV}`, borderRadius: 10, fontFamily: CE_SANS, fontSize: 13, fontWeight: 600, color: CE_MID, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button type="button" onMouseDown={e => { e.stopPropagation(); if (pendingStart) handleApply(); }}
+                style={{ padding: '9px 20px', background: pendingStart ? CE_TEAL : CE_DIV, border: 'none', borderRadius: 10, fontFamily: CE_SANS, fontSize: 13, fontWeight: 600, color: pendingStart ? 'white' : CE_MID, cursor: pendingStart ? 'pointer' : 'default', transition: 'background 0.15s' }}>
+                Apply Dates
+              </button>
+            </div>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile: Figma bottom sheet (node 2887-11759) */}
+      {isMobile && mobileSheetMounted && (() => {
+        const mobileCells = getMonthCells(viewYear, viewMonth);
+        const mobileRows  = Array.from({ length: Math.ceil(mobileCells.length / 7) }, (_, i) =>
+          mobileCells.slice(i * 7, i * 7 + 7));
+        const mobileEffEnd = pendingEnd || null;
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={handleCancel}>
+            {/* Backdrop */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', opacity: mobileSheetVisible ? 1 : 0, transition: 'opacity 0.22s ease', willChange: 'opacity' }} />
+            {/* Sheet */}
+            <div onClick={e => e.stopPropagation()} style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'white', borderRadius: '24px 24px 0 0',
+              boxShadow: '0px -8px 12px rgba(15,23,42,0.12)',
+              display: 'flex', flexDirection: 'column', gap: 24,
+              padding: '12px 24px', paddingBottom: 'calc(34px + env(safe-area-inset-bottom))',
+              transform: mobileSheetVisible ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
+              willChange: 'transform',
+            }}>
+              {/* Drag handle (invisible, structural only) */}
+              <div style={{ display: 'flex', justifyContent: 'center', opacity: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: '#D1CBC7' }} />
+              </div>
+              {/* Calendar section */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Month navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+                  <button type="button" onClick={e => { e.stopPropagation(); prevMonth(); }}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid ${CE_DIV}`, background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ChevronLeft size={14} color={CE_MID} />
+                  </button>
+                  <span style={{ fontFamily: CE_SANS, fontSize: 16, fontWeight: 700, color: CE_DARK }}>
+                    {CE_MONTHS_F[viewMonth]} {viewYear}
+                  </span>
+                  <button type="button" onClick={e => { e.stopPropagation(); nextMonth(); }}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid ${CE_DIV}`, background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <ChevronRight size={14} color={CE_MID} />
+                  </button>
+                </div>
+                {/* Weekday headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 24 }}>
+                  {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                    <div key={d} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontFamily: CE_SANS, fontSize: 13, fontWeight: 600, color: CE_MID }}>{d}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Days grid */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {mobileRows.map((row, rowIdx) => (
+                    <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                      {row.map((d, col) => {
+                        if (!d) return <div key={col} style={{ height: 40 }} />;
+                        const ds = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        const isStart = ds === pendingStart;
+                        const isEnd   = !!mobileEffEnd && ds === mobileEffEnd;
+                        const inRange = !!(pendingStart && mobileEffEnd && ds > pendingStart && ds < mobileEffEnd);
+                        const isToday = ds === today;
+                        const single  = isStart && (!mobileEffEnd || isEnd);
+                        let outerBg = 'transparent';
+                        let outerBr = '0';
+                        if (isStart || isEnd) outerBg = CE_TEAL;
+                        else if (inRange) outerBg = CE_SURFACE;
+                        if (isStart || isEnd || inRange) {
+                          if (single)         outerBr = '22px';
+                          else if (isStart)   outerBr = '22px 0 0 22px';
+                          else if (isEnd)     outerBr = '0 22px 22px 0';
+                          else if (col === 0) outerBr = '22px 0 0 22px';
+                          else if (col === 6) outerBr = '0 22px 22px 0';
+                        }
+                        return (
+                          <div key={col} onClick={() => handleMobileDayClick(ds)}
+                            style={{ height: 40, background: outerBg, borderRadius: outerBr, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            {(isStart || isEnd) ? (
+                              <div style={{ width: 36, height: 36, borderRadius: 18, background: CE_TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontFamily: CE_SANS, fontSize: 14, fontWeight: 700, color: 'white' }}>{d}</span>
+                              </div>
+                            ) : (
+                              <span style={{ fontFamily: CE_SANS, fontSize: 14, fontWeight: inRange ? 600 : 500,
+                                color: inRange ? CE_TEAL : CE_DARK,
+                                ...(isToday && !isStart && !isEnd ? { textDecoration: 'underline', textUnderlineOffset: '2px' } : {}) }}>
+                                {d}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Divider */}
+              <div style={{ height: 1, background: CE_DIV, margin: '0 -24px' }} />
+              {/* Footer */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+                <button type="button"
+                  onClick={() => { if (pendingStart) { onStartChange(pendingStart); onEndChange(pendingEnd); setOpen(false); } }}
+                  style={{ width: '100%', height: 48, borderRadius: 12, background: pendingStart ? CE_TEAL : CE_DIV, border: 'none', fontFamily: CE_SANS, fontSize: 15, fontWeight: 600, color: pendingStart ? 'white' : CE_MID, cursor: pendingStart ? 'pointer' : 'default' }}>
+                  Apply Dates
+                </button>
+                <button type="button" onClick={handleCancel}
+                  style={{ background: 'none', border: 'none', padding: '6px 12px', fontFamily: CE_SANS, fontSize: 14, fontWeight: 600, color: CE_MID, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </>
+  );
+};
+
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
   const { session, loading: sessionLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1280);
+  const [formScrolled, setFormScrolled] = useState(false);
+  const formScrollRef = useRef<HTMLDivElement>(null);
+  const locationSectionRef  = useRef<HTMLDivElement>(null);
+  const extraDetailsSectionRef = useRef<HTMLDivElement>(null);
+
+  // Scroll el into view above the sticky Back/Next footer on any viewport size.
+  const scrollToVisible = (el: HTMLElement | null, extraPad = 24) => {
+    if (!el) return;
+    const footerH = window.innerWidth < 768 ? 104 : 80;
+    const container = formScrollRef.current;
+    if (container) {
+      // Desktop: scroll inside the form scroll container
+      const cRect = container.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+      const gap = eRect.bottom - (cRect.bottom - footerH) + extraPad;
+      if (gap > 0) container.scrollBy({ top: gap, behavior: 'smooth' });
+    } else {
+      // Mobile: scroll the window
+      const eRect = el.getBoundingClientRect();
+      const gap = eRect.bottom - (window.innerHeight - footerH) + extraPad;
+      if (gap > 0) window.scrollBy({ top: gap, behavior: 'smooth' });
+    }
+  };
+  useEffect(() => {
+    const check = () => { setIsMobile(window.innerWidth < 768); setWindowWidth(window.innerWidth); };
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Responsive derived values
+  const sidebarCollapsed = !isMobile && windowWidth < 1190;
+  // When sidebar collapses, drop the outer right padding entirely so both sides match.
+  // bodyHPad controls both left and right symmetrically: 40px at 1190, down to 20px at 768.
+  const mainRightPad = sidebarCollapsed ? 0 : 144;
+  const bodyHPad = sidebarCollapsed
+    ? Math.max(20, Math.round(20 + (windowWidth - 768) / (1190 - 768) * (40 - 20)))
+    : 40;
+  const postAsWidth = sidebarCollapsed ? 150 : 270;
+  const headingFontSize = sidebarCollapsed ? 22 : 28;
+  const [socialLinks, setSocialLinks] = useState<string[]>([""]);
   const [category, setCategory] = useState<"ward" | "community" | null>("ward");
   const [isFree, setIsFree] = useState(true);
   const [title, setTitle] = useState("");
@@ -144,6 +727,12 @@ const CreateEvent = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [extraImageFiles, setExtraImageFiles] = useState<(File | null)[]>([null, null]);
+  const [extraImagePreviews, setExtraImagePreviews] = useState<(string | null)[]>([null, null]);
+  const extraFileInputRef1 = useRef<HTMLInputElement>(null);
+  const extraFileInputRef2 = useRef<HTMLInputElement>(null);
+  const [photoSlide, setPhotoSlide] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [noImageConfirmOpen, setNoImageConfirmOpen] = useState(false);
   const [minAge, setMinAge] = useState<string>("");
@@ -166,16 +755,16 @@ const CreateEvent = () => {
   const minAgeRef = useRef<HTMLDivElement>(null);
   const maxAgeRef = useRef<HTMLDivElement>(null);
 
-  // Scroll newly revealed group-assignment content into view
+  // Scroll newly revealed group-assignment content above the sticky footer
   useEffect(() => {
     if (groupAssignmentEnabled) {
-      setTimeout(() => groupThemeExpandRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+      setTimeout(() => scrollToVisible(groupThemeExpandRef.current), 120);
     }
   }, [groupAssignmentEnabled]);
 
   useEffect(() => {
     if (groupTheme) {
-      setTimeout(() => groupHelperTextRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
+      setTimeout(() => scrollToVisible(groupHelperTextRef.current), 120);
     }
   }, [groupTheme]);
 
@@ -188,15 +777,41 @@ const CreateEvent = () => {
   const [locationSearching, setLocationSearching] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
+  const mapPreviewRef = useRef<HTMLDivElement>(null);
   const locationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const endDateRef = useRef<HTMLInputElement>(null);
   const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+
+  // After an address is chosen and the map preview renders, scroll it fully into view.
+  // We use a dedicated calculation here because scrollToVisible subtracts footerH from
+  // cRect.bottom — but on desktop the footer is a flex sibling BELOW the scroll area,
+  // not an overlay, so cRect.bottom is already the correct boundary with no adjustment.
+  useEffect(() => {
+    if (lat === null || lng === null) return;
+    const t = setTimeout(() => {
+      const mapEl = mapPreviewRef.current;
+      if (!mapEl) return;
+      const container = formScrollRef.current;
+      if (container && window.innerWidth >= 768) {
+        // Desktop: scroll the form column so map bottom clears the container bottom
+        const cRect = container.getBoundingClientRect();
+        const mRect = mapEl.getBoundingClientRect();
+        const overflow = mRect.bottom - cRect.bottom + 24; // 24px breathing room
+        if (overflow > 0) container.scrollBy({ top: overflow, behavior: 'smooth' });
+      } else {
+        // Mobile: scroll the window above the sticky footer
+        const footerH = 104;
+        const mRect = mapEl.getBoundingClientRect();
+        const gap = mRect.bottom - (window.innerHeight - footerH) + 24;
+        if (gap > 0) window.scrollBy({ top: gap, behavior: 'smooth' });
+      }
+    }, 160);
+    return () => clearTimeout(t);
+  }, [lat, lng]); // eslint-disable-line react-hooks/exhaustive-deps
   const [wardType, setWardType] = useState<string | null>(null);
   const [isVirtual, setIsVirtual] = useState(false);
   const [virtualLink, setVirtualLink] = useState("");
@@ -253,7 +868,7 @@ const CreateEvent = () => {
     const state = descriptionResizeStateRef.current;
     const textarea = descriptionTextareaRef.current;
     if (!state || !textarea) return;
-    const newHeight = Math.min(600, Math.max(128, state.startHeight + (e.clientY - state.startY)));
+    const newHeight = Math.min(1000, Math.max(128, state.startHeight + (e.clientY - state.startY)));
     textarea.style.height = `${newHeight}px`;
   };
   const handleDescriptionResizeEnd = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -353,7 +968,9 @@ const CreateEvent = () => {
       setIsFree(data.is_free ?? true);
       setDate(data.date ?? "");
       setLocation(data.location ?? "");
-      setImagePreview(data.image_url ?? null);
+      const urls: string[] = data.image_urls ?? (data.image_url ? [data.image_url] : []);
+      setImagePreview(urls[0] ?? null);
+      setExtraImagePreviews([urls[1] ?? null, urls[2] ?? null]);
       setMinAge(data.age_min ? String(data.age_min) : "");
       setMaxAge(data.age_max ? String(data.age_max) : "+");
       setStartTime(data.start_time ?? "");
@@ -367,6 +984,7 @@ const CreateEvent = () => {
       setFacebookLink(data.social_links?.[0] ?? "");
       setInstagramLink(data.social_links?.[1] ?? "");
       setWebsiteLink(data.social_links?.[2] ?? "");
+      setSocialLinks((data.social_links ?? []).filter(Boolean).length > 0 ? (data.social_links ?? []).filter(Boolean) : [""]);
       setSelectedFoods(data.food ?? []);
       setFoodProvided((data.food ?? []).length > 0);
       setIsRecurring(data.is_recurring ?? false);
@@ -396,11 +1014,20 @@ const CreateEvent = () => {
     locationDebounceRef.current = setTimeout(async () => {
       setLocationSearching(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)}&format=json&addressdetails=1&limit=6`,
-          { headers: { "Accept-Language": "en" } }
-        );
-        const data = await res.json();
+        const trySearch = async (q: string) => {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          return res.json();
+        };
+
+        let data = await trySearch(locationSearch);
+        // Retry without hyphens (handles Coachella Valley-style addresses like 72-960)
+        if (data.length === 0 && locationSearch.includes("-")) {
+          data = await trySearch(locationSearch.replace(/-/g, " "));
+        }
+
         const locations = data.map((item: any) => {
           const { city, town, village, state, country } = item.address;
           const cityName = city || town || village || item.display_name.split(",")[0];
@@ -460,6 +1087,46 @@ const CreateEvent = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ── Unsaved-changes guard ──────────────────────────────────────────────────
+  const hasUnsavedChanges = title.trim() !== "" || description.trim() !== "" || date !== "" || address !== "" || virtualLink !== "";
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const pendingNavRef = useRef<(() => void) | null>(null);
+
+  // Push a guard entry on mount so the first back-swipe/back-button pops it
+  // (triggering popstate) rather than immediately leaving the page.
+  useEffect(() => {
+    window.history.pushState({ ceGuard: true }, "");
+  }, []);
+
+  // popstate fires for: browser back button, MacBook trackpad swipe, navigate(-1).
+  // We re-register whenever hasUnsavedChanges changes so the closure is always fresh.
+  useEffect(() => {
+    const onPopState = () => {
+      if (hasUnsavedChanges) {
+        // Re-push the guard to stay on the page, then surface the dialog.
+        window.history.pushState({ ceGuard: true }, "");
+        pendingNavRef.current = () => navigate(-2); // skip guard + page → prevPage
+        setLeaveDialogOpen(true);
+      } else {
+        // No unsaved data — proceed one step further back to the real previous page.
+        navigate(-1);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [hasUnsavedChanges, navigate]);
+
+  // beforeunload covers tab close / hard refresh (popstate can't catch those).
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const compressCanvasAndSet = (canvas: HTMLCanvasElement, fileName: string) => {
     canvas.toBlob((blob) => {
       if (blob) {
@@ -516,6 +1183,38 @@ const CreateEvent = () => {
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleExtraImagePick = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 1200;
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressed = new File([blob], file.name, { type: "image/jpeg" });
+            setExtraImageFiles(prev => { const next = [...prev]; next[idx] = compressed; return next; });
+            setExtraImagePreviews(prev => { const next = [...prev]; next[idx] = URL.createObjectURL(compressed); return next; });
+          }
+        }, "image/jpeg", 0.7);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeExtraImage = (idx: number) => {
+    setExtraImageFiles(prev => { const next = [...prev]; next[idx] = null; return next; });
+    setExtraImagePreviews(prev => { const next = [...prev]; next[idx] = null; return next; });
   };
 
   const confirmDelete = async () => {
@@ -708,14 +1407,30 @@ const CreateEvent = () => {
         imageUrl = data.publicUrl;
       }
     }
+
+    // Upload extra photos (2 and 3)
+    const extraUrls: (string | null)[] = [...extraImagePreviews];
+    for (let i = 0; i < extraImageFiles.length; i++) {
+      const file = extraImageFiles[i];
+      if (file) {
+        const fileName = `${session.user.id}-${Date.now()}-extra${i}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("event-images").upload(fileName, file);
+        if (!uploadError) {
+          const { data } = supabase.storage.from("event-images").getPublicUrl(fileName);
+          extraUrls[i] = data.publicUrl;
+        }
+      }
+    }
+    const allImageUrls = [imageUrl, ...extraUrls].filter(Boolean) as string[];
+
     const eventData: Record<string, any> = {
       title, description, category, is_free: isFree,
       date: isRecurring ? "2099-12-31" : date,
-      location: location || address, image_url: imageUrl, status: "published",
+      location: location || address, image_url: allImageUrls[0] ?? null, image_urls: allImageUrls.length > 0 ? allImageUrls : null, status: "published",
       age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
       food: selectedFoods, virtual_link: virtualLink || null,
-      social_links: [facebookLink, instagramLink, websiteLink].filter(Boolean).length > 0 ? [facebookLink, instagramLink, websiteLink].filter(Boolean) : null,
+      social_links: socialLinks.filter(Boolean).length > 0 ? socialLinks.filter(Boolean) : null,
       is_recurring: isRecurring,
       recurring_days: isRecurring ? recurringDays : null,
       recurring_day: isRecurring ? (recurringDays[0] ?? null) : null,
@@ -751,6 +1466,62 @@ const CreateEvent = () => {
     setLoading(false);
   };
 
+  // ── Design token aliases (point to module-level constants) ────────────────
+  const DARK_W   = CE_DARK;
+  const TEAL_W   = CE_TEAL;
+  const MID_W    = CE_MID;
+  const DIV_W    = CE_DIV;
+  const SERIF_W  = CE_SERIF;
+  const SANS_W   = CE_SANS;
+  const GOLD_W   = CE_GOLD;
+
+  // ── Step metadata ──────────────────────────────────────────────────────────
+  const STEPS_META = [
+    { label: "Event Details",        sub: "Name, dates, times and location" },
+    { label: "Event Descriptions",   sub: "Descriptions and extra details" },
+    { label: "Preferences & Extras", sub: "Audience filters and social links" },
+    { label: "Preview & Publish",    sub: "Review before going live" },
+  ];
+
+  const goNext = () => {
+    if (step === 1) {
+      if (!title.trim()) { toast.error("Please enter an event name"); return; }
+      if (!isRecurring && !date) { toast.error("Please pick a start date"); return; }
+      if (!address && !virtualLink) { toast.error("Please add a location"); return; }
+    }
+    if (step === 4) { handleSubmit(); return; }
+    const next = step + 1;
+    setStep(next);
+    setMaxStepReached(prev => Math.max(prev, next));
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  };
+
+  const goPrev = () => {
+    if (step === 1) { navigate(-1); return; } // useBlocker intercepts if unsaved changes
+    setStep(s => s - 1);
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  };
+
+  // Category chips config (maps to wardType)
+  const CATEGORIES = [
+    { id: "spiritual",  label: "Spiritual",   Icon: SunMedium },
+    { id: "fhe",        label: "FHE",         Icon: LandPlot },
+    { id: "service",    label: "Service",     Icon: HandPlatter },
+    { id: "general",    label: "General",     Icon: Rainbow },
+    { id: "conference", label: "Conference",  Icon: Presentation },
+  ];
+
+  // Food tiles (emoji + label)
+  const FOOD_TILES = [
+    { id: "pizza",    emoji: "🍕", label: "Pizza" },
+    { id: "cookies",  emoji: "🍪", label: "Cookies" },
+    { id: "bbq",      emoji: "🍖", label: "BBQ" },
+    { id: "burgers",  emoji: "🍔", label: "Burger" },
+    { id: "drinks",   emoji: "🥤", label: "Drink" },
+    { id: "icecream", emoji: "🍦", label: "Ice Cream" },
+    { id: "salad",    emoji: "🥗", label: "Salad" },
+  ];
+
   // Guests can't create or edit events
   if (!sessionLoading && !session) return <Navigate to="/" replace />;
 
@@ -765,995 +1536,1016 @@ const CreateEvent = () => {
     return null; // the effect above is already redirecting away
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background pb-28">
-      <header className="sticky top-0 z-10 bg-transparent px-4 py-2">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <button onClick={() => navigate(-1)} className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 transition-colors flex-shrink-0">
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
-            <Button variant="ghost" size="icon" className="p-2.5 rounded-full bg-white/30 backdrop-blur-md hover:bg-white/50 text-red-500" onClick={() => setDeleteOpen(true)} disabled={loading}>
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
+  // ── Shared styles ──────────────────────────────────────────────────────────
+  const inputCls = {
+    width: "100%", height: 52, borderRadius: 14,
+    border: `1.5px solid ${DIV_W}`, background: "white",
+    padding: "0 16px", fontFamily: SANS_W, fontSize: 15, color: DARK_W, outline: "none",
+  } as React.CSSProperties;
+
+  // Use module-level CEFieldLabel / CEToggle — aliases for cleaner JSX
+  const FieldLabel = CEFieldLabel;
+  const Toggle = CEToggle;
+
+  const PostAsDropdown = () => {
+    const selectedGroup = ownedGroups.find((g) => g.id === communityId);
+    const selectedAvatar = communityId === null ? myProfile?.avatar_url : selectedGroup?.avatar_url;
+    const selectedName   = communityId === null ? (myProfile?.name || "My Profile") : (selectedGroup?.name || "");
+    return (
+      <div>
+        <FieldLabel required>Post As</FieldLabel>
+        <div style={{ position: "relative" }}>
+          <select value={communityId ?? ""}
+            onChange={(e) => setCommunityId(e.target.value === "" ? null : e.target.value)}
+            style={{ ...inputCls, paddingLeft: 48, appearance: "none", cursor: "pointer" }}>
+            <option value="">{myProfile?.name || "My Profile"}</option>
+            {ownedGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <div style={{ pointerEvents: "none", position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }}>
+            {selectedAvatar
+              ? <img src={selectedAvatar} referrerPolicy="no-referrer" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
+              : <div style={{ width: 26, height: 26, borderRadius: "50%", background: DIV_W, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SANS_W, fontSize: 11, fontWeight: 700, color: DARK_W }}>{selectedName.charAt(0).toUpperCase()}</div>}
+          </div>
+          <ChevronDown style={{ pointerEvents: "none", position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, color: MID_W }} />
         </div>
-      </header>
+      </div>
+    );
+  };
 
-      <main className="flex-1 px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="flex flex-col gap-4">
+  const CoverPhotoBlock = ({ compact }: { compact?: boolean }) => {
+    // ── Slide labels / refs ───────────────────────────────────────────────
+    const slideRefs = [fileInputRef, extraFileInputRef1, extraFileInputRef2] as React.RefObject<HTMLInputElement>[];
+    const slidePreviews = [imagePreview, extraImagePreviews[0], extraImagePreviews[1]];
+    const slideLabels  = ["Cover Photo", "Photo 2", "Photo 3"];
 
-            {/* Page title */}
-            <h1 className="font-bold text-center" style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: '1.5rem' }}>
-              {isEditing ? "Edit Event" : "Create Event"}
-            </h1>
-
-            {/* Image Upload */}
-            <div className="relative w-full flex-shrink-0">
-              <div className="relative flex items-center justify-center w-full h-56 bg-secondary rounded-2xl border border-gray-400 overflow-hidden" onClick={() => fileInputRef.current?.click()}>
-                <img src={imagePreview || "/placeholder-event.png"} alt="Event image" className="w-full h-full object-cover" />
-                {!imagePreview && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <button type="button" className="flex items-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-full border border-white/60" style={{ backgroundColor: "rgba(144, 144, 144, 0.5)" }}>
-                      <ImageIcon className="h-4 w-4" />
-                      Tap to upload image or PDF
-                    </button>
-                  </div>
-                )}
-                {imagePreview && (
-                  <>
-                    <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                      <span className="px-4 py-1.5 bg-black/50 text-white backdrop-blur-sm rounded-full text-xs font-semibold">Change Image</span>
-                    </div>
-                    {/* Expand button */}
-                    <button
-                      type="button"
-                      className="absolute top-2 right-2 p-1.5 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      </svg>
-                    </button>
-                  </>
-                )}
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImagePick} />
-
-              {/* Image lightbox */}
-              {imageExpanded && imagePreview && (
-                <div
-                  className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                  onClick={() => setImageExpanded(false)}
-                >
-                  <img
-                    src={imagePreview}
-                    alt="Event image"
-                    className="max-w-full max-h-full rounded-2xl object-contain"
-                  />
-                  <button
-                    className="absolute top-5 right-5 p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
-                    onClick={() => setImageExpanded(false)}
-                  >
-                    <span className="text-white text-lg leading-none">✕</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* AI image link + scan poster */}
-            <div className="flex items-center justify-between px-1">
-              <button
-                type="button"
-                onClick={() => { setAiPrompt(title || ""); setAiTitle(title || ""); setAiPreview(null); setAiModalOpen(true); }}
-                className="text-sm font-medium text-pink-500 hover:text-pink-600 transition-colors flex items-center gap-1"
-              >
-                ✨ AI-generated image
-              </button>
-              {imageFile && (
-                <button
-                  type="button"
-                  onClick={scanPoster}
-                  disabled={scanning}
-                  className="text-sm font-medium text-purple-500 hover:text-purple-600 transition-colors flex items-center gap-1 disabled:opacity-50"
-                >
-                  {scanning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading...</> : <>✨ Auto-fill from poster</>}
-                </button>
-              )}
-            </div>
-
-            {/* AI Image Generation Modal */}
-            <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
-              <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-2xl p-5">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-bold">✨ Generate Event Image</DialogTitle>
-                </DialogHeader>
-
-                {/* Style chips */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Choose a style</p>
-                  <div className="flex flex-wrap gap-2">
-                    {AI_STYLES.map(s => (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => setAiStyle(s.key)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${aiStyle === s.key ? "bg-black text-white border-black" : "bg-white text-black border-gray-300 hover:border-gray-500"}`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Title on image */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Title to show on image <span className="text-xs text-gray-400">(optional)</span></p>
-                  <input
-                    type="text"
-                    placeholder="e.g. Meet & Eat, Beach Bbq Night..."
-                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black transition-colors"
-                    value={aiTitle}
-                    onChange={e => setAiTitle(e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
-                  />
-                </div>
-
-                {/* Custom prompt */}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Describe your event</p>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. BBQ sunset near the beach, outdoor summer gathering..."
-                    className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 resize-none outline-none focus:border-black transition-colors"
-                    value={aiPrompt}
-                    onChange={e => setAiPrompt(e.target.value)}
-                  />
-                </div>
-
-                {/* Preview */}
-                {aiPreview && (
-                  <div className="rounded-xl overflow-hidden border border-gray-200">
-                    <img src={aiPreview} alt="Generated" className="w-full h-48 object-cover" />
-                  </div>
-                )}
-
-                {/* Generation counter */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
-                  <span>{aiGenerations}/{AI_MAX_GENERATIONS} generations used</span>
-                  {aiGenerations >= AI_MAX_GENERATIONS && (
-                    <span className="text-red-400 font-medium">No more generations for this event</span>
-                  )}
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-2 pt-1">
-                  {aiPreview ? (
-                    <>
-                      {/* Use this image — prominent */}
-                      <button
-                        type="button"
-                        onClick={applyAiImage}
-                        className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
-                      >
-                        ✅ Use this image
-                      </button>
-                      {/* Regenerate — subtle */}
-                      <button
-                        type="button"
-                        onClick={generateImage}
-                        disabled={generating || aiGenerations >= AI_MAX_GENERATIONS}
-                        className="h-11 px-4 rounded-xl border border-gray-300 text-gray-500 text-sm font-medium hover:border-gray-400 hover:text-gray-700 transition-colors disabled:opacity-40"
-                      >
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔄"}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={generateImage}
-                      disabled={generating || aiGenerations >= AI_MAX_GENERATIONS}
-                      className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl bg-black text-white text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-60"
-                    >
-                      {generating ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <>🎨 Generate</>}
-                    </button>
-                  )}
-                </div>
-
-                {/* Auto-fill from poster after image is generated */}
-                {aiPreview && imageFile && (
-                  <button
-                    type="button"
-                    onClick={() => { applyAiImage(); setTimeout(scanPoster, 300); }}
-                    disabled={scanning}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-purple-300 bg-purple-50 text-purple-600 text-sm font-medium hover:bg-purple-100 transition-colors"
-                  >
-                    {scanning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Reading poster...</> : <>✨ Use this image + auto-fill event details</>}
-                  </button>
-                )}
-              </DialogContent>
-            </Dialog>
-
-            <div className="flex-1 space-y-4">
-
-              {/* Post as — dropdown, always shown (personal profile + any groups) */}
-              {(() => {
-                const selectedGroup = ownedGroups.find((g) => g.id === communityId);
-                const selectedAvatar = communityId === null ? myProfile?.avatar_url : selectedGroup?.avatar_url;
-                const selectedName   = communityId === null ? (myProfile?.name || "My Profile") : (selectedGroup?.name || "");
+    // ── Mobile: swipeable carousel ────────────────────────────────────────
+    if (isMobile && !compact) {
+      return (
+        <div>
+          {/* Carousel */}
+          <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", background: DIV_W, height: 220 }}>
+            <div
+              ref={carouselRef}
+              className="ce-form-scroll"
+              style={{ display: "flex", overflowX: "auto", overflowY: "hidden", scrollSnapType: "x mandatory", scrollBehavior: "smooth", height: "100%" }}
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                setPhotoSlide(Math.round(el.scrollLeft / el.clientWidth));
+              }}>
+              {[0, 1, 2].map(idx => {
+                const preview = slidePreviews[idx];
+                const ref     = slideRefs[idx];
+                const isExtra = idx > 0;
                 return (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Post as</label>
-                    <div className="relative">
-                      <select
-                        value={communityId ?? ""}
-                        onChange={(e) => setCommunityId(e.target.value === "" ? null : e.target.value)}
-                        className="w-full h-12 pl-11 pr-9 rounded-xl border border-gray-300 bg-white text-sm font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
-                      >
-                        <option value="">{myProfile?.name || "My Profile"}</option>
-                        {ownedGroups.map((g) => (
-                          <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                      </select>
-                      {/* Avatar overlay */}
-                      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
-                        {selectedAvatar ? (
-                          <img src={selectedAvatar} referrerPolicy="no-referrer" className="w-6 h-6 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                            {selectedName.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      {/* Chevron */}
-                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Event Title */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Event Title</label>
-                <Input placeholder="e.g., Community Picnic" className="h-12 text-base" value={title}
-                  onChange={(e) => { const val = e.target.value; setTitle(val.charAt(0).toUpperCase() + val.slice(1)); }} maxLength={80} />
-                <div className="text-sm text-gray-500 text-right">{title.length}/80</div>
-              </div>
-
-              {/* Date + Time row — stacked on mobile, one equal-width row on desktop */}
-              <div className={`flex flex-col md:flex-row md:items-center gap-3 pb-4 ${isRecurring ? "opacity-40 pointer-events-none" : ""}`}>
-                {/* Dates — sub-row on mobile, dissolves into parent on desktop */}
-                <div className="flex items-center gap-2 md:contents">
-                  <div className="relative flex-1 cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
-                    <input ref={dateRef} type="date" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                      value={date} onChange={(e) => setDate(e.target.value)} />
-                    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                      <span className={`text-sm ${date ? "text-black" : "text-muted-foreground"}`}>
-                        {date ? new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Start date"}
+                  <div key={idx} style={{ flex: "none", width: "100%", height: "100%", scrollSnapAlign: "start", overflow: "hidden", position: "relative", cursor: "pointer" }}
+                    onClick={() => ref.current?.click()}>
+                    {preview
+                      ? <img src={preview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                          <ImageIcon style={{ width: 28, height: 28, color: MID_W }} />
+                          <span style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W }}>{slideLabels[idx]}</span>
+                        </div>}
+                    <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+                      <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: "white", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", padding: "7px 18px", borderRadius: 999 }}>
+                        {preview ? `Update ${slideLabels[idx]}` : `Add ${slideLabels[idx]}`}
                       </span>
-                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
-                  </div>
-                  <span className="text-sm font-medium shrink-0 text-muted-foreground">–</span>
-                  <div className="relative flex-1">
-                    <div className="relative cursor-pointer" onClick={() => endDateRef.current?.showPicker()}>
-                      <input ref={endDateRef} type="date" className={`absolute inset-0 opacity-0 h-full cursor-pointer ${endDate ? "right-10" : "w-full"}`}
-                        value={endDate} onChange={(e) => setEndDate(e.target.value)} min={date || undefined} />
-                      <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white">
-                        <span className={`text-sm ${endDate ? "text-black" : "text-muted-foreground"}`}>
-                          {endDate ? new Date(endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "End date"}
-                        </span>
-                        {endDate ? (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setEndDate(""); }} className="relative z-10 p-0.5 rounded-full hover:bg-gray-100">
-                            <X className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        ) : (
-                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Times — sub-row on mobile, dissolves into parent on desktop */}
-                <div className="flex items-center gap-2 md:contents">
-                  <TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" />
-                  <span className="text-sm font-medium shrink-0">To</span>
-                  <TimePicker value={endTime} onChange={setEndTime} placeholder="End time" />
-                </div>
-              </div>
-
-              {/* Timezone picker */}
-              {(startTime || endTime) && (() => {
-                const TZ_OPTIONS = [
-                  { label: "Pacific Time (PT)",        value: "America/Los_Angeles" },
-                  { label: "Mountain Time (MT)",       value: "America/Denver" },
-                  { label: "Mountain Time – AZ (no DST)", value: "America/Phoenix" },
-                  { label: "Central Time (CT)",        value: "America/Chicago" },
-                  { label: "Eastern Time (ET)",        value: "America/New_York" },
-                  { label: "Alaska Time (AKT)",        value: "America/Anchorage" },
-                  { label: "Hawaii Time (HT)",         value: "Pacific/Honolulu" },
-                ];
-                const selected = TZ_OPTIONS.find(o => o.value === timezone);
-                const displayLabel = selected ? selected.label : timezone;
-                return (
-                  <div className="relative">
-                    <div
-                      className="h-11 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                      onClick={() => setTimezoneOpen(!timezoneOpen)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">🌐</span>
-                        <span className="text-sm text-black">{displayLabel}</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${timezoneOpen ? "rotate-180" : ""}`} />
-                    </div>
-                    {timezoneOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden">
-                        {TZ_OPTIONS.map(opt => (
-                          <button key={opt.value} type="button"
-                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${timezone === opt.value ? "font-bold" : ""}`}
-                            onClick={() => { setTimezone(opt.value); setTimezoneOpen(false); }}>
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
+                    {isExtra && preview && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); removeExtraImage(idx - 1); }}
+                        style={{ position: "absolute", top: 10, right: 10, width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>✕</button>
                     )}
                   </div>
                 );
-              })()}
-
-              {/* Recurring toggle */}
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <p className="text-sm font-medium">Recurring event 🔁</p>
-                  {isRecurring && <p className="text-xs text-muted-foreground mt-0.5">Appears every week in "This Week"</p>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsRecurring(!isRecurring)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isRecurring ? "bg-black" : "bg-gray-300"}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isRecurring ? "translate-x-6" : "translate-x-1"}`} />
-                </button>
-              </div>
-
-              {/* Day of week picker + week-of-month + time — shown when recurring */}
-              {isRecurring && (
-                <div className="space-y-4">
-                  {/* Day multi-select */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Day(s)</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => {
-                        const full = { Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday" }[d]!;
-                        const selected = recurringDays.includes(full);
-                        return (
-                          <button key={d} type="button"
-                            onClick={() => setRecurringDays(prev =>
-                              selected
-                                ? prev.length > 1 ? prev.filter(x => x !== full) : prev
-                                : [...prev, full]
-                            )}
-                            className={`h-10 w-12 rounded-xl text-sm font-semibold border transition-all ${selected ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
-                            {d}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Week of month */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Which week of the month?</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {([{ label: "Every week", val: null }, { label: "1st", val: 1 }, { label: "2nd", val: 2 }, { label: "3rd", val: 3 }, { label: "4th", val: 4 }] as { label: string; val: number | null }[]).map(({ label, val }) => (
-                        <button key={label} type="button"
-                          onClick={() => setRecurringWeekOfMonth(val)}
-                          className={`h-10 px-3 rounded-xl text-sm font-semibold border transition-all ${recurringWeekOfMonth === val ? "bg-black text-white border-black" : "bg-white text-black border-black"}`}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Live preview */}
-                    <p className="text-xs text-muted-foreground pt-0.5">
-                      Shows as: <span className="font-medium text-foreground">{getRecurringLabelFull({ recurring_days: recurringDays, recurring_week_of_month: recurringWeekOfMonth })}</span>
-                    </p>
-                  </div>
-
-                  {/* Time pickers for recurring event */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Time</p>
-                    <div className="flex items-center gap-3">
-                      <TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" />
-                      <span className="text-sm font-medium shrink-0">To</span>
-                      <TimePicker value={endTime} onChange={setEndTime} placeholder="End time" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Event Location */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Event Location
-                </label>
-                <div className="space-y-2">
-                  <div className="relative" ref={locationRef}>
-                    <Input
-                      placeholder="Address or virtual link..."
-                      className="h-12 text-base"
-                      value={locationSearch || virtualLink}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const isLink = val.startsWith("http://") || val.startsWith("https://");
-                        if (isLink) {
-                          setVirtualLink(val); setIsVirtual(true); setLocationSearch(""); setAddress(""); setLat(null); setLng(null);
-                        } else {
-                          setIsVirtual(false); setVirtualLink(""); setLocationSearch(val); setLocation(val); setAddress(val); setLat(null); setLng(null);
-                        }
-                      }}
-                      onFocus={() => setLocationOpen(true)}
-                    />
-
-                    {/* Virtual link preview */}
-                    {isVirtual && virtualLink && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-xl mt-2">
-                        <Link className="h-4 w-4 text-primary flex-shrink-0" />
-                        <a href={virtualLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline truncate">{virtualLink}</a>
-                        <button type="button" onClick={() => { setVirtualLink(""); setIsVirtual(false); }} className="ml-auto text-muted-foreground hover:text-foreground">✕</button>
-                      </div>
-                    )}
-
-                    {/* Address dropdown */}
-                    {locationOpen && !isVirtual && (locationSearch.trim() || locationResults.length > 0 || (locationSearch === "" && savedAddresses.length > 0)) && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                        {locationSearching && <div className="flex items-center justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
-
-                        {/* Use exactly what was typed — geocode it first so we get lat/lng */}
-                        {locationSearch.trim() && (
-                          <button type="button"
-                            onClick={async () => {
-                              setAddress(locationSearch);
-                              setLocationSearch(locationSearch);
-                              setLocation(locationSearch);
-                              setLocationOpen(false);
-                              // Geocode the typed address so the map and location filtering work
-                              try {
-                                const res = await fetch(
-                                  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)}&format=json&addressdetails=1&limit=1`,
-                                  { headers: { "Accept-Language": "en" } }
-                                );
-                                const data = await res.json();
-                                if (data[0]) {
-                                  const item = data[0];
-                                  const lat = parseFloat(item.lat);
-                                  const lng = parseFloat(item.lon);
-                                  const a = item.address || {};
-                                  const cityName = a.city || a.town || a.village || a.county || "";
-                                  const state = a.state || "";
-                                  setLat(lat);
-                                  setLng(lng);
-                                  setLocation(cityName && state ? `${cityName}, ${state}` : locationSearch);
-                                }
-                              } catch { /* silently fall back to no map */ }
-                            }}
-                            className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2 border-b border-border">
-                            <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                            <span><span className="font-semibold text-primary">Use: </span>{locationSearch}</span>
-                          </button>
-                        )}
-                        {locationSearch === "" && savedAddresses.length > 0 && (
-                          <>
-                            <div className="px-4 py-2 text-xs text-muted-foreground font-medium">Recent</div>
-                            {savedAddresses.slice(0, 3).map((result) => (
-                              <button key={result.display} type="button"
-                                onClick={() => { setLocation(result.city); setAddress(result.display); setLocationSearch(result.display); setLat(result.lat); setLng(result.lng); setLocationOpen(false); }}
-                                className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />{result.display}
-                              </button>
-                            ))}
-                            <div className="border-t border-border mx-4" />
-                          </>
-                        )}
-                        {locationResults.map((result) => (
-                          <button key={result.display} type="button"
-                            onClick={() => {
-                              setLocation(result.city); setAddress(result.display); setLocationSearch(result.display); setLat(result.lat); setLng(result.lng); setLocationOpen(false);
-                              const history = JSON.parse(localStorage.getItem("address_history") || "[]");
-                              const existing = history.find((a: any) => a.display === result.display);
-                              if (existing) { existing.count += 1; } else { history.push({ display: result.display, city: result.city, lat: result.lat, lng: result.lng, count: 1 }); }
-                              history.sort((a: any, b: any) => b.count - a.count);
-                              localStorage.setItem("address_history", JSON.stringify(history.slice(0, 10)));
-                              setSavedAddresses(history.slice(0, 3));
-                            }}
-                            className="w-full text-left px-4 py-3 text-sm hover:bg-accent transition-colors flex items-center gap-2">
-                            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />{result.display}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Map preview */}
-                  {lat && lng && (
-                    <div className="rounded-2xl overflow-hidden border border-border mt-2 relative">
-                      <div className="absolute top-3 left-3 right-10 z-10 bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate leading-tight">{address.split(",")[0]}</p>
-                          <p className="text-xs text-muted-foreground truncate">{address.split(",").slice(1).join(",").trim()}</p>
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => { setLat(null); setLng(null); setAddress(""); setLocationSearch(""); setLocation(""); }}
-                        className="absolute top-3 right-3 z-10 bg-white rounded-full p-1.5 shadow hover:bg-gray-100 transition-colors">
-                        <span className="text-gray-500 text-sm font-medium leading-none">✕</span>
-                      </button>
-                      <iframe width="100%" height="200" style={{ border: 0, display: "block" }} loading="lazy" allowFullScreen
-                        src={`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`} />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <div className="relative">
-                  <Textarea ref={descriptionTextareaRef} placeholder="Tell people about your event..." className="min-h-32 text-base resize-none overflow-y-auto pb-5" style={{ maxHeight: '600px' }} value={description}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setDescription(val.charAt(0).toUpperCase() + val.slice(1));
-                    }} maxLength={2000} />
-                  <div
-                    onPointerDown={handleDescriptionResizeStart}
-                    onPointerMove={handleDescriptionResizeMove}
-                    onPointerUp={handleDescriptionResizeEnd}
-                    onPointerCancel={handleDescriptionResizeEnd}
-                    aria-label="Drag to resize description box"
-                    className="absolute bottom-0.5 right-0.5 w-6 h-6 flex items-end justify-end p-1 cursor-ns-resize text-gray-400 touch-none select-none"
-                    style={{ touchAction: "none" }}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M9 1 1 9M9 5 5 9M9 9h.01" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="text-sm text-gray-500 text-right">{description.length}/2000</div>
-              </div>
-
-              {/* Additional Info */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Extra Details</label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Add sections like parking, what to bring, schedule, etc.</p>
-                </div>
-
-                {/* Quick-add suggestions — always visible, hide already-added ones */}
-                {(() => {
-                  const suggestions = [
-                    { title: "What to Bring", icon: "check" },
-                    { title: "Parking", icon: "car" },
-                    { title: "Schedule", icon: "calendar" },
-                    { title: "Cost Details", icon: "dollar" },
-                    { title: "Kids Welcome", icon: "balloon" },
-                  ].filter(s => !additionalInfo.some(item => item.title === s.title));
-                  if (suggestions.length === 0) return null;
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      {suggestions.map((suggestion) => (
-                        <button
-                          key={suggestion.title}
-                          type="button"
-                          onClick={() => setAdditionalInfo([...additionalInfo, { title: suggestion.title, description: "", icon: suggestion.icon }])}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-400 text-xs text-muted-foreground hover:border-black hover:text-black transition-colors"
-                        >
-                          <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                          </svg>
-                          {suggestion.title}
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })()}
-
-                {additionalInfo.map((item, idx) => {
-                  const collapsed = collapsedSections.has(idx);
-                  return (
-                  <div key={idx} className="rounded-xl border border-black bg-white p-3 space-y-2.5">
-                    {/* Title row */}
-                    <div className="flex items-center gap-2">
-                      {/* Show selected icon preview */}
-                      {item.icon && (() => {
-                        const found = INFO_ICONS.find(i => i.key === item.icon);
-                        return found ? <found.Icon className="h-4 w-4 flex-shrink-0 text-gray-500" /> : null;
-                      })()}
-                      <input
-                        type="text"
-                        placeholder="Section title (e.g. What to Bring)"
-                        className="flex-1 text-sm font-semibold outline-none bg-transparent placeholder:font-normal placeholder:text-muted-foreground"
-                        value={item.title}
-                        onChange={(e) => {
-                          const next = [...additionalInfo];
-                          next[idx] = { ...next[idx], title: e.target.value };
-                          setAdditionalInfo(next);
-                        }}
-                        maxLength={60}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => toggleSectionCollapsed(idx)}
-                        aria-label={collapsed ? "Expand section" : "Collapse section"}
-                        className="text-muted-foreground hover:text-black transition-colors flex-shrink-0 p-1.5 -m-1.5"
-                      >
-                        <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
-                      </button>
-                      <div className="relative flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setOpenSectionMenu(openSectionMenu === idx ? null : idx)}
-                          aria-label="Section options"
-                          className="text-muted-foreground hover:text-black transition-colors p-1.5 -m-1.5"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-                        {openSectionMenu === idx && (
-                          <div
-                            ref={sectionMenuRef}
-                            className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAdditionalInfo(additionalInfo.filter((_, i) => i !== idx));
-                                setOpenSectionMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors whitespace-nowrap"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Delete section
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {collapsed && item.description && (
-                      <p className="text-xs text-muted-foreground truncate pl-0.5">{item.description}</p>
-                    )}
-
-                    {!collapsed && (
-                      <>
-                        {/* Icon picker */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {INFO_ICONS.map(({ key, Icon }) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => {
-                                const next = [...additionalInfo];
-                                next[idx] = { ...next[idx], icon: key };
-                                setAdditionalInfo(next);
-                              }}
-                              className={`p-3 rounded-xl border transition-all ${
-                                item.icon === key
-                                  ? "bg-black border-black text-white"
-                                  : "bg-white border-gray-300 text-gray-500 hover:border-gray-500"
-                              }`}
-                            >
-                              <Icon className="h-5 w-5" />
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Description */}
-                        <div style={{ borderLeft: '2px solid rgba(0,0,0,0.09)' }} className="pl-3">
-                          <textarea
-                            placeholder="Description..."
-                            rows={4}
-                            className="w-full text-sm resize-none outline-none bg-transparent placeholder:text-muted-foreground overflow-y-auto"
-                            style={{ maxHeight: '220px' }}
-                            value={item.description}
-                            onChange={(e) => {
-                              const next = [...additionalInfo];
-                              next[idx] = { ...next[idx], description: e.target.value };
-                              setAdditionalInfo(next);
-                            }}
-                            maxLength={500}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setAdditionalInfo([...additionalInfo, { title: "", description: "", icon: "check" }])}
-                  className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-dashed border-gray-400 text-sm text-muted-foreground hover:border-black hover:text-black transition-colors"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                  Add another section
-                </button>
-              </div>
-
-              <div className="pt-4" />
-
-              {/* Social Links */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <FacebookIcon className="h-4 w-4" />
-                  <InstagramIcon className="h-4 w-4" />
-                  <Globe className="h-4 w-4" />
-                  Social Links
-                </label>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
-                    <FacebookIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <input
-                      type="url"
-                      placeholder="Facebook URL"
-                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-                      value={facebookLink}
-                      onChange={(e) => setFacebookLink(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
-                    <InstagramIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <input
-                      type="url"
-                      placeholder="Instagram URL"
-                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-                      value={instagramLink}
-                      onChange={(e) => setInstagramLink(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 h-12 rounded-xl border border-black px-3 bg-white">
-                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <input
-                      type="url"
-                      placeholder="Website URL"
-                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-                      value={websiteLink}
-                      onChange={(e) => setWebsiteLink(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Type */}
-              <div className="space-y-3 pb-12">
-                <label className="text-sm font-medium">Choose a category</label>
-                <div className="flex flex-wrap gap-2.5">
-                  {[
-                    { id: "spiritual", label: "Spiritual", icon: <SunMedium className="h-4 w-4" /> },
-                    { id: "fhe", label: "FHE", icon: <LandPlot className="h-4 w-4" /> },
-                    { id: "service", label: "Service", icon: <HandPlatter className="h-4 w-4" /> },
-                    { id: "general", label: "General", icon: <Rainbow className="h-4 w-4" /> },
-                    { id: "conference", label: "Conference", icon: <Presentation className="h-4 w-4" /> },
-                  ].map((type) => (
-                    <button key={type.id} type="button" onClick={() => setWardType(type.id)}
-                      className={`flex-shrink-0 rounded-xl transition-all px-4 py-3 flex items-center justify-center gap-1.5 ${wardType === type.id ? "bg-black border-[2px] border-black text-white" : "border-[1px] border-black text-black"}`}>
-                      {type.icon}
-                      <p className="font-semibold text-sm whitespace-nowrap">{type.label}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Food Provided */}
-              <div className="space-y-3 pb-12">
-                <label className="text-sm font-medium">Food Provided?</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => { setFoodProvided(false); setSelectedFoods([]); }}
-                    className={`h-12 rounded-xl text-sm font-semibold transition-all border-[1px] ${!foodProvided ? "border-[2px] border-primary bg-primary/5" : "border-black"}`}>No</button>
-                  <button type="button" onClick={() => setFoodProvided(true)}
-                    className={`h-12 rounded-xl text-sm font-semibold transition-all border-[1px] ${foodProvided ? "border-[2px] border-primary bg-primary/5" : "border-black"}`}>Yes 🍽️</button>
-                </div>
-                {foodProvided && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">Pick up to 2</p>
-                    {foodGroups.map((group) => (
-                      <div key={group.label} className="space-y-1.5">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{group.label}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {group.items.map(({ id, icon: Icon, label }) => (
-                            <button key={id} type="button" onClick={() => toggleFood(id)}
-                              className={`flex items-center gap-1.5 min-w-[48px] px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${selectedFoods.includes(id) ? "border-[2px] border-primary bg-primary/5" : "border-transparent bg-secondary"}`}>
-                              <Icon className="h-4 w-4 shrink-0" />
-                              <span className="text-xs">{label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Age Range */}
-              <div className="space-y-3 pb-12">
-                <label className="text-sm font-medium">Age Range</label>
-                <div className="flex items-center gap-3">
-
-                  {/* Min age */}
-                  <div className="relative flex-1" ref={minAgeRef}>
-                    <div
-                      className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                      onClick={() => { setMinAgeOpen(!minAgeOpen); setMaxAgeOpen(false); }}>
-                      <span className={`text-sm ${minAge ? "text-black" : "text-muted-foreground"}`}>
-                        {minAge || "Min"}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${minAgeOpen ? "rotate-180" : ""}`} />
-                    </div>
-                    {minAgeOpen && (
-                      <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                        {[18, 25, 30, 35, 40, 45, 50, 55, 60].map(age => (
-                          <button key={age} type="button"
-                            className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${minAge === String(age) ? "font-bold" : ""}`}
-                            onClick={() => { setMinAge(String(age)); setMinAgeOpen(false); }}>
-                            {age}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <span className="text-sm font-medium shrink-0">To</span>
-
-                  {/* Max age */}
-                  <div className="relative flex-1" ref={maxAgeRef}>
-                    <div
-                      className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-                      onClick={() => { setMaxAgeOpen(!maxAgeOpen); setMinAgeOpen(false); }}>
-                      <span className={`text-sm ${maxAge ? "text-black" : "text-muted-foreground"}`}>
-                        {maxAge || "Max"}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${maxAgeOpen ? "rotate-180" : ""}`} />
-                    </div>
-                    {maxAgeOpen && (
-                      <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
-                        <button type="button"
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${maxAge === "+" ? "font-bold" : ""}`}
-                          onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}>
-                          <p className="text-sm">+ <span className="text-xs text-muted-foreground">(above)</span></p>
-                        </button>
-                        {[25, 30, 35, 40, 45, 50, 55, 60].map(opt => (
-                          <button key={opt} type="button"
-                            className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${maxAge === String(opt) ? "font-bold" : ""}`}
-                            onClick={() => { setMaxAge(String(opt)); setMaxAgeOpen(false); }}>
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Group Assignment */}
-              <div className="space-y-4 pb-40">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Group Assignment</label>
-                  <button
-                    type="button"
-                    onClick={() => { setGroupAssignmentEnabled(v => !v); if (groupAssignmentEnabled) { setGroupTheme(null); setNumGroups(4); } }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${groupAssignmentEnabled ? "bg-black" : "bg-gray-200"}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${groupAssignmentEnabled ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                </div>
-
-                {groupAssignmentEnabled && (
-                  <div className="space-y-4" ref={groupThemeExpandRef}>
-                    {/* Theme cards */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {(Object.entries(GROUP_THEMES) as [keyof typeof GROUP_THEMES, typeof GROUP_THEMES[keyof typeof GROUP_THEMES]][]).map(([key, theme]) => {
-                        const selected = groupTheme === key;
-                        return (
-                          <div key={key} className="flex flex-col gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setGroupTheme(selected ? null : key)}
-                              className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 transition-all ${selected ? "border-black bg-black text-white" : "border-gray-200 bg-white text-black"}`}
-                            >
-                              <span className="text-xl">{theme.emoji}</span>
-                              <span className="text-xs font-semibold leading-tight text-center">{theme.label}</span>
-                            </button>
-                            {selected && (
-                              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-1.5">
-                                {theme.groups.slice(0, numGroups).map(g => (
-                                  <div key={g} className="text-xs text-gray-700 flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
-                                    {g}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Number of groups */}
-                    {groupTheme && (
-                      <div className="space-y-2" ref={groupNumPickerRef}>
-                        <label className="text-sm font-medium">Number of Groups</label>
-                        <div className="flex gap-2 flex-wrap">
-                          {[2,3,4,5,6,7,8,9].map(n => (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => setNumGroups(n)}
-                              className={`w-10 h-10 rounded-full text-sm font-semibold border-2 transition-all ${numGroups === n ? "bg-black text-white border-black" : "bg-white text-black border-gray-200"}`}
-                            >
-                              {n}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <p className="text-xs text-muted-foreground">
-                      Anyone who RSVPs "Going" will be randomly assigned to one of these groups and will be able to see their assigned group.
-                    </p>
-                    <div ref={groupHelperTextRef} />
-                  </div>
-                )}
-              </div>
-
-
+              })}
             </div>
           </div>
 
+          {/* Dot indicators */}
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10 }}>
+            {[0, 1, 2].map(i => (
+              <button key={i} type="button"
+                onClick={() => { carouselRef.current?.scrollTo({ left: i * (carouselRef.current?.clientWidth ?? 0), behavior: "smooth" }); setPhotoSlide(i); }}
+                style={{ width: i === photoSlide ? 18 : 6, height: 6, borderRadius: 99, background: i === photoSlide ? TEAL_W : DIV_W, border: "none", cursor: "pointer", padding: 0, transition: "all 0.25s ease" }} />
+            ))}
+          </div>
 
-          {/* Delete Dialog */}
-          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
-              <DialogHeader><DialogTitle>Delete Event</DialogTitle></DialogHeader>
-              <p className="text-sm text-muted-foreground">Are you sure you want to delete this event? This cannot be undone.</p>
-              <div className="flex gap-3 mt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Not now</Button>
-                <Button variant="destructive" className="flex-1" onClick={confirmDelete}>Yes, delete</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* No Image Confirmation Dialog */}
-          <Dialog open={noImageConfirmOpen} onOpenChange={setNoImageConfirmOpen}>
-            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
-              <img src="/emptystatenoimage.png" alt="No image added" className="mx-auto h-32 sm:h-36 w-auto object-contain" />
-              <DialogHeader><DialogTitle>No image added</DialogTitle></DialogHeader>
-              <p className="text-sm text-muted-foreground">You haven't added a photo for this event. Events with images get more attention — want to add one?</p>
-              <div className="flex gap-3 mt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setNoImageConfirmOpen(false)}>Add image</Button>
-                <Button className="flex-1" onClick={proceedSubmit}>Publish anyway</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
+          {/* AI / scan */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+            <button type="button" onClick={() => { setAiPrompt(title || ""); setAiTitle(title || ""); setAiPreview(null); setAiModalOpen(true); }}
+              style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 500, color: "#d946ef", background: "none", border: "none", cursor: "pointer" }}>
+              ✨ AI-generated image
+            </button>
+            {imageFile && (
+              <button type="button" onClick={scanPoster} disabled={scanning}
+                style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 500, color: "#9333ea", background: "none", border: "none", cursor: "pointer", opacity: scanning ? 0.5 : 1 }}>
+                {scanning ? "Reading…" : "✨ Auto-fill from poster"}
+              </button>
+            )}
+          </div>
         </div>
-      </main>
+      );
+    }
 
-      {/* Floating Publish Button */}
-      <div className="fixed bottom-0 left-0 right-0 px-5 py-4 bg-background/95 backdrop-blur-sm border-t border-border z-50">
-        <div className="max-w-xl mx-auto">
-          <Button
-            size="lg"
-            className="w-full h-14 text-base font-semibold rounded-2xl"
-            onClick={handleSubmit}
-            disabled={loading || sessionLoading}
+    // ── Desktop / compact: original layout ───────────────────────────────
+    return (
+      <div>
+        {!compact && <FieldLabel>Cover Photo</FieldLabel>}
+        <div style={{ position: "relative", width: "100%", height: compact ? 260 : 220, borderRadius: 16, overflow: "hidden", background: DIV_W, cursor: "pointer" }}
+          onClick={() => fileInputRef.current?.click()}>
+          {imagePreview
+            ? <img src={imagePreview} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ImageIcon style={{ width: 32, height: 32, color: MID_W }} />
+              </div>}
+          <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+            <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: "white", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", padding: "7px 18px", borderRadius: 999 }}>
+              {imagePreview ? "Update Cover Photo" : "Add Cover Photo"}
+            </span>
+          </div>
+          {imagePreview && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
+              style={{
+                position: "absolute", top: 10, right: 10,
+                width: 34, height: 34, borderRadius: "50%",
+                background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+                border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Eye size={16} color="white" />
+            </button>
+          )}
+        </div>
+        {/* AI image + scan */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+          <button type="button" onClick={() => { setAiPrompt(title || ""); setAiTitle(title || ""); setAiPreview(null); setAiModalOpen(true); }}
+            style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 500, color: "#d946ef", background: "none", border: "none", cursor: "pointer" }}>
+            ✨ AI-generated image
+          </button>
+          {imageFile && (
+            <button type="button" onClick={scanPoster} disabled={scanning}
+              style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 500, color: "#9333ea", background: "none", border: "none", cursor: "pointer", opacity: scanning ? 0.5 : 1 }}>
+              {scanning ? "Reading…" : "✨ Auto-fill from poster"}
+            </button>
+          )}
+        </div>
+        {/* Extra photos */}
+        <div style={{ marginTop: 14 }}>
+          <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginBottom: 8 }}>Additional photos (optional)</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            {([extraFileInputRef1, extraFileInputRef2] as React.RefObject<HTMLInputElement>[]).map((ref, idx) => (
+              <div key={idx} style={{ position: "relative", width: 80, height: 80, borderRadius: 12, overflow: "hidden", border: `1.5px dashed ${DIV_W}`, cursor: "pointer", background: "white", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onClick={() => ref.current?.click()}>
+                {extraImagePreviews[idx]
+                  ? <>
+                      <img src={extraImagePreviews[idx]!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button type="button" onClick={(e) => { e.stopPropagation(); removeExtraImage(idx); }}
+                        style={{ position: "absolute", top: 3, right: 3, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "white", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>✕</button>
+                    </>
+                  : <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: MID_W }}>
+                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                      <span style={{ fontFamily: SANS_W, fontSize: 10 }}>Photo {idx + 2}</span>
+                    </div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ProgressBar = () => (
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1,2,3,4].map(i => {
+        const reachable = i <= maxStepReached;
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => { if (reachable) setStep(i); }}
+            style={{
+              flex: 1,
+              padding: "7px 0",      // generous tap target on mobile
+              background: "none",
+              border: "none",
+              cursor: reachable ? "pointer" : "default",
+            }}
           >
-            {loading ? "Saving..." : isEditing ? "Save Changes" : "Publish Event"}
-          </Button>
+            <div style={{
+              height: 3,
+              borderRadius: 99,
+              background: i <= step ? TEAL_W : DIV_W,
+              transition: "background 0.3s",
+              opacity: reachable && i !== step ? 0.85 : 1,
+            }} />
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const StepFooter = ({ onBack, onNext, nextLabel }: { onBack: () => void; onNext: () => void; nextLabel?: string }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 24, borderTop: `1px solid ${DIV_W}`, marginTop: 32 }}>
+      <button type="button" onClick={onBack} style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: DARK_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <ArrowLeft style={{ width: 16, height: 16 }} /> Back
+      </button>
+      <button type="button" onClick={onNext} disabled={loading}
+        style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+        {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
+        {nextLabel ?? (step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →")}
+      </button>
+    </div>
+  );
+
+  // ── Step 1 form fields ─────────────────────────────────────────────────────
+  const Step1Fields = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      {/* Event Name */}
+      <div>
+        <FieldLabel required>Event Name</FieldLabel>
+        <input style={inputCls} placeholder="e.g. Community Picnic" value={title} maxLength={80}
+          onChange={(e) => { const v = e.target.value; setTitle(v.charAt(0).toUpperCase() + v.slice(1)); }} />
+        <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, textAlign: "right", marginTop: 4 }}>{title.length}/80</p>
+      </div>
+
+      {/* Category */}
+      <div>
+        <FieldLabel>Choose a Category</FieldLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {CATEGORIES.map(({ id, label, Icon }) => {
+            const active = wardType === id;
+            return (
+              <button key={id} type="button" onClick={() => setWardType(active ? null : id)}
+                className="flex-shrink-0 flex items-center transition-opacity hover:opacity-80"
+                style={{ gap: 6, padding: "8px 16px", borderRadius: 999, cursor: "pointer", fontFamily: SANS_W, fontSize: 13, fontWeight: active ? 600 : 500,
+                  ...(active
+                    ? { background: TEAL_W, color: CE_BG, border: "none" }
+                    : { background: CE_SURFACE, color: MID_W, border: `1px solid ${DIV_W}` }) }}>
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Dates */}
+      <CERangePicker
+        startValue={date}    onStartChange={setDate}
+        endValue={endDate}   onEndChange={setEndDate}
+        startDisabled={isRecurring} endDisabled={isRecurring}
+      />
+
+      {/* Times */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <FieldLabel required>Start Time</FieldLabel>
+          <TimePicker value={startTime} onChange={setStartTime} placeholder="4:30 PM" />
+        </div>
+        <div>
+          <FieldLabel required>End Time</FieldLabel>
+          <TimePicker value={endTime} onChange={setEndTime} placeholder="4:30 PM" />
+        </div>
+      </div>
+
+      {/* Timezone — shown once a time is set */}
+      {(startTime || endTime) && (() => {
+        const TZ_OPTIONS = [
+          { label: "Pacific Time (PT)",  value: "America/Los_Angeles" },
+          { label: "Mountain Time (MT)", value: "America/Denver" },
+          { label: "Central Time (CT)",  value: "America/Chicago" },
+          { label: "Eastern Time (ET)",  value: "America/New_York" },
+          { label: "Alaska Time (AKT)", value: "America/Anchorage" },
+          { label: "Hawaii Time (HT)",   value: "Pacific/Honolulu" },
+        ];
+        const sel = TZ_OPTIONS.find(o => o.value === timezone);
+        return (
+          <div>
+            <FieldLabel>Timezone</FieldLabel>
+            <div style={{ position: "relative" }}>
+              <div className="ce-clickable" style={{ ...inputCls, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                onClick={() => setTimezoneOpen(!timezoneOpen)}>
+                <span style={{ fontFamily: SANS_W, fontSize: 14, color: DARK_W }}>🌐 {sel?.label ?? timezone}</span>
+                <ChevronDown style={{ width: 16, height: 16, color: MID_W, transform: timezoneOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </div>
+              {timezoneOpen && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, overflow: "hidden" }}>
+                  {TZ_OPTIONS.map(o => <button key={o.value} type="button" onClick={() => { setTimezone(o.value); setTimezoneOpen(false); }}
+                    style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,fontWeight:timezone===o.value?700:400,color:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}` }}>{o.label}</button>)}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Recurring */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
+        <p style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: DARK_W }}>Recurring Event</p>
+        <Toggle on={isRecurring} onToggle={() => setIsRecurring(v => !v)} />
+      </div>
+
+      {isRecurring && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px", background: "white", borderRadius: 14, border: `1px solid ${DIV_W}` }}>
+          <div>
+            <FieldLabel>Day(s)</FieldLabel>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => {
+                const full = { Sun:"Sunday",Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday" }[d]!;
+                const sel = recurringDays.includes(full);
+                return <button key={d} type="button" onClick={() => setRecurringDays(prev => sel ? prev.length > 1 ? prev.filter(x => x !== full) : prev : [...prev, full])}
+                  style={{ width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${sel ? TEAL_W : DIV_W}`, background: sel ? TEAL_W : "white", fontFamily: SANS_W, fontSize: 12, fontWeight: 600, color: sel ? "white" : DARK_W, cursor: "pointer" }}>{d}</button>;
+              })}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ flex: 1 }}><FieldLabel>Start</FieldLabel><TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" /></div>
+            <div style={{ flex: 1 }}><FieldLabel>End</FieldLabel><TimePicker value={endTime} onChange={setEndTime} placeholder="End time" /></div>
+          </div>
+        </div>
+      )}
+
+      {/* Location */}
+      <div style={{ paddingBottom: 48 }} ref={locationSectionRef}>
+        <FieldLabel required>Venue / Location</FieldLabel>
+        <div style={{ position: "relative" }} ref={locationRef}>
+          <div style={{ position: "relative" }}>
+            <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: MID_W }} />
+            <input style={{ ...inputCls, paddingLeft: 40 }} placeholder="Search address or paste virtual link…"
+              value={locationSearch || virtualLink}
+              onChange={(e) => {
+                const v = e.target.value;
+                const isLink = v.startsWith("http://") || v.startsWith("https://");
+                if (isLink) { setVirtualLink(v); setIsVirtual(true); setLocationSearch(""); setAddress(""); setLat(null); setLng(null); }
+                else { setIsVirtual(false); setVirtualLink(""); setLocationSearch(v); setLocation(v); setAddress(v); setLat(null); setLng(null); }
+              }}
+              onFocus={() => { setLocationOpen(true); setTimeout(() => scrollToVisible(locationSectionRef.current), 80); }} />
+          </div>
+          {locationOpen && !isVirtual && (locationSearch.trim() || locationResults.length > 0 || savedAddresses.length > 0) && (
+            <div
+              onMouseDown={(e) => e.stopPropagation()} /* prevent document mousedown from closing dropdown before click fires */
+              style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, maxHeight: 220, overflowY: "auto" }}>
+              {locationSearching && <div style={{ display: "flex", justifyContent: "center", padding: 12 }}><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite", color: MID_W }} /></div>}
+              {locationSearch.trim() && (
+                <button type="button"
+                  onClick={async () => { setAddress(locationSearch); setLocationSearch(locationSearch); setLocation(locationSearch); setLocationOpen(false); try { const tryGeo = async (q: string) => { const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=1`,{headers:{"Accept-Language":"en"}}); return res.json(); }; let data = await tryGeo(locationSearch); if (data.length === 0 && locationSearch.includes("-")) data = await tryGeo(locationSearch.replace(/-/g, " ")); if (data[0]) { const a=data[0].address||{}; setLat(parseFloat(data[0].lat)); setLng(parseFloat(data[0].lon)); setLocation((a.city||a.town||a.village||"") + (a.state?`, ${a.state}`:"") || locationSearch); } } catch {} }}
+                  style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontFamily: SANS_W, fontSize: 13, color: TEAL_W, fontWeight: 600, background: "none", border: "none", cursor: "pointer", borderBottom: `1px solid ${DIV_W}`, display: "flex", alignItems: "center", gap: 8 }}>
+                  <MapPin style={{ width: 14, height: 14, flexShrink: 0 }} /> Use: {locationSearch}
+                </button>
+              )}
+              {locationSearch === "" && savedAddresses.slice(0,3).map(r => (
+                <button key={r.display} type="button"
+                  onClick={() => { setLocation(r.city); setAddress(r.display); setLocationSearch(r.display); setLat(r.lat); setLng(r.lng); setLocationOpen(false); }}
+                  style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontFamily: SANS_W, fontSize: 13, color: DARK_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  <MapPin style={{ width: 14, height: 14, color: MID_W, flexShrink: 0 }} />{r.display}
+                </button>
+              ))}
+              {locationResults.map(r => (
+                <button key={r.display} type="button"
+                  onClick={() => { setLocation(r.city); setAddress(r.display); setLocationSearch(r.display); setLat(r.lat); setLng(r.lng); setLocationOpen(false); const h=JSON.parse(localStorage.getItem("address_history")||"[]"); const ex=h.find((a:any)=>a.display===r.display); if(ex)ex.count++;else h.push({...r,count:1}); h.sort((a:any,b:any)=>b.count-a.count); localStorage.setItem("address_history",JSON.stringify(h.slice(0,10))); setSavedAddresses(h.slice(0,3)); }}
+                  style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontFamily: SANS_W, fontSize: 13, color: DARK_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                  <MapPin style={{ width: 14, height: 14, color: MID_W, flexShrink: 0 }} />{r.display}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {isVirtual && virtualLink && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, marginTop: 8 }}>
+            <Link style={{ width: 14, height: 14, color: TEAL_W }} />
+            <a href={virtualLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, fontFamily: SANS_W, fontSize: 12, color: TEAL_W, textDecoration: "underline", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{virtualLink}</a>
+            <button type="button" onClick={() => { setVirtualLink(""); setIsVirtual(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: MID_W }}>✕</button>
+          </div>
+        )}
+        {lat && lng && (
+          <div ref={mapPreviewRef} style={{ borderRadius: 14, overflow: "hidden", border: `1px solid ${DIV_W}`, marginTop: 8 }}>
+            <iframe width="100%" height="160" style={{ border: 0, display: "block" }} loading="lazy"
+              src={`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── Step 2 form fields ─────────────────────────────────────────────────────
+  const Step2Fields = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      <div>
+        <FieldLabel required>Description</FieldLabel>
+        <div style={{ position: "relative" }}>
+          <textarea ref={descriptionTextareaRef} placeholder="Tell people about your event…" maxLength={2000}
+            style={{ width: "100%", minHeight: 160, borderRadius: 14, border: `1.5px solid ${DIV_W}`, background: "white", padding: "14px 16px", fontFamily: SANS_W, fontSize: 15, color: DARK_W, outline: "none", resize: isMobile ? "none" : "vertical", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}
+            value={description}
+            onChange={(e) => { const v = e.target.value; setDescription(v.charAt(0).toUpperCase() + v.slice(1)); }} />
+          {/* Resize handle — mobile only (desktop uses native CSS resize) */}
+          {isMobile && (
+            <div onPointerDown={handleDescriptionResizeStart} onPointerMove={handleDescriptionResizeMove} onPointerUp={handleDescriptionResizeEnd} onPointerCancel={handleDescriptionResizeEnd}
+              style={{ position: "absolute", bottom: 0, right: 0, width: 32, height: 32, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 6, cursor: "ns-resize", color: MID_W, touchAction: "none", userSelect: "none", zIndex: 10, pointerEvents: "all" }}>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M9 1 1 9M9 5 5 9M9 9h.01" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+            </div>
+          )}
+        </div>
+        <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, textAlign: "right", marginTop: 4 }}>{description.length}/2000</p>
+      </div>
+
+      <div ref={extraDetailsSectionRef}>
+        <FieldLabel>Extra Details</FieldLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {[{title:"What to Bring",icon:"check"},{title:"Parking",icon:"car"},{title:"Schedule",icon:"calendar"},{title:"Cost Details",icon:"dollar"},{title:"Kids Welcome",icon:"balloon"}]
+            .filter(s => !additionalInfo.some(item => item.title === s.title))
+            .map(s => <button key={s.title} type="button" onClick={() => {
+              setAdditionalInfo([...additionalInfo, { title: s.title, description: "", icon: s.icon }]);
+              setTimeout(() => scrollToVisible(extraDetailsSectionRef.current), 120);
+            }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, border: `1.5px dashed ${DIV_W}`, background: "white", fontFamily: SANS_W, fontSize: 12, color: MID_W, cursor: "pointer" }}>
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              {s.title}</button>)}
+        </div>
+        {additionalInfo.map((item, idx) => {
+          const collapsed = collapsedSections.has(idx);
+          return (
+            <div key={idx} style={{ borderRadius: 14, border: `1.5px solid ${DIV_W}`, background: "white", padding: 16, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {item.icon && (() => { const f = INFO_ICONS.find(i => i.key === item.icon); return f ? <f.Icon style={{ width: 16, height: 16, color: MID_W, flexShrink: 0 }} /> : null; })()}
+                <input type="text" placeholder="e.g. What to Bring" maxLength={60}
+                  style={{ flex: 1, fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: DARK_W, background: "transparent", border: "none", outline: "none" }}
+                  value={item.title}
+                  onChange={(e) => { const n=[...additionalInfo]; n[idx]={...n[idx],title:e.target.value}; setAdditionalInfo(n); }} />
+                <button type="button" onClick={() => toggleSectionCollapsed(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: MID_W, padding: 4 }}>
+                  <ChevronDown style={{ width: 16, height: 16, transform: collapsed ? "none" : "rotate(180deg)", transition: "transform 0.2s" }} />
+                </button>
+                <div style={{ position: "relative" }}>
+                  <button type="button" onClick={() => setOpenSectionMenu(openSectionMenu === idx ? null : idx)} style={{ background: "none", border: "none", cursor: "pointer", color: MID_W, padding: 4 }}>
+                    <MoreVertical style={{ width: 16, height: 16 }} />
+                  </button>
+                  {openSectionMenu === idx && (
+                    <div ref={sectionMenuRef}
+                      onMouseDown={(e) => e.stopPropagation()} /* keep menu open until click fires */
+                      style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 20, overflow: "hidden" }}>
+                      <button type="button" onClick={() => { setAdditionalInfo(additionalInfo.filter((_,i) => i !== idx)); setOpenSectionMenu(null); }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", fontFamily: SANS_W, fontSize: 13, color: CE_ERROR, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
+                        <Trash2 style={{ width: 14, height: 14 }} /> Delete section
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {!collapsed && (
+                <>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                    {INFO_ICONS.map(({ key, Icon }) => (
+                      <button key={key} type="button" onClick={() => { const n=[...additionalInfo]; n[idx]={...n[idx],icon:key}; setAdditionalInfo(n); }}
+                        style={{ padding: 10, borderRadius: 10, border: `1.5px solid ${item.icon===key ? TEAL_W : DIV_W}`, background: item.icon===key ? TEAL_W : "white", color: item.icon===key ? "white" : MID_W, cursor: "pointer" }}>
+                        <Icon style={{ width: 18, height: 18 }} />
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ borderLeft: `2px solid ${DIV_W}`, paddingLeft: 12, marginTop: 10 }}>
+                    <textarea placeholder="Description…" rows={4} maxLength={500}
+                      style={{ width: "100%", fontFamily: SANS_W, fontSize: 13, color: DARK_W, background: "transparent", border: "none", outline: "none", resize: "none", overflowY: "auto" }}
+                      value={item.description}
+                      onChange={(e) => { const n=[...additionalInfo]; n[idx]={...n[idx],description:e.target.value}; setAdditionalInfo(n); }} />
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+        <button type="button" onClick={() => {
+          setAdditionalInfo([...additionalInfo, { title: "", description: "", icon: "check" }]);
+          setTimeout(() => scrollToVisible(extraDetailsSectionRef.current), 150);
+        }}
+          style={{ width: "100%", height: 44, borderRadius: 12, border: `1.5px dashed ${DIV_W}`, background: "transparent", fontFamily: SANS_W, fontSize: 13, color: MID_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          + Add another section
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Step 3 form fields ─────────────────────────────────────────────────────
+  const Step3Fields = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {/* Social Links */}
+      <div>
+        <FieldLabel>Social Link</FieldLabel>
+        {socialLinks.map((link, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <input style={{ ...inputCls, flex: 1 }} type="url" placeholder="https://instagram.com/p/…"
+              value={link} onChange={(e) => { const n=[...socialLinks]; n[i]=e.target.value; setSocialLinks(n); }} />
+            {socialLinks.length > 1 && <button type="button" onClick={() => setSocialLinks(socialLinks.filter((_,j)=>j!==i))} style={{ background:"none",border:"none",cursor:"pointer",color:MID_W,flexShrink:0 }}><X style={{width:16,height:16}}/></button>}
+          </div>
+        ))}
+        {socialLinks.length < 3 ? (
+          <button type="button" onClick={() => setSocialLinks([...socialLinks, ""])}
+            style={{ fontFamily: SANS_W, fontSize: 13, color: TEAL_W, fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
+            + Add another link
+          </button>
+        ) : (
+          <p style={{ fontFamily: SANS_W, fontSize: 12, color: CE_MID, marginTop: 4 }}>
+            Maximum 3 social media links
+          </p>
+        )}
+      </div>
+
+      {/* Age Filter */}
+      <div>
+        <FieldLabel>Age Group Filter</FieldLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+          {/* ── Min Age ── */}
+          <div style={{ flex: 1, position: "relative" }} ref={minAgeRef}>
+            <div className="ce-clickable" style={{ ...inputCls, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+              onClick={() => { setMinAgeOpen(!minAgeOpen); setMaxAgeOpen(false); }}>
+              <span style={{ fontFamily: SANS_W, fontSize: 14, color: minAge ? DARK_W : MID_W }}>{minAge || "Min Age"}</span>
+              <ChevronDown style={{ width: 16, height: 16, color: MID_W, transform: minAgeOpen && !isMobile ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+            </div>
+            {/* Desktop dropdown */}
+            {minAgeOpen && !isMobile && (
+              <div onMouseDown={(e) => e.stopPropagation()}
+                style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, maxHeight: 200, overflowY: "auto" }}>
+                {[18,25,30,35,40,45,50,55,60].map(a => (
+                  <button key={a} type="button" onClick={() => { setMinAge(String(a)); setMinAgeOpen(false); }}
+                    style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,fontWeight:minAge===String(a)?700:400,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>{a}</button>
+                ))}
+              </div>
+            )}
+            {/* Mobile bottom sheet */}
+            <CESheet open={!!(minAgeOpen && isMobile)} onClose={() => setMinAgeOpen(false)} title="Min Age">
+              {[18,25,30,35,40,45,50,55,60].map(a => (
+                <button key={a} type="button" onClick={() => { setMinAge(String(a)); setMinAgeOpen(false); }}
+                  style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:minAge===String(a)?700:400,color:minAge===String(a)?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                  {a}{minAge===String(a)&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
+                </button>
+              ))}
+            </CESheet>
+          </div>
+
+          <span style={{ fontFamily: SANS_W, fontSize: 14, color: MID_W, flexShrink: 0 }}>to</span>
+
+          {/* ── Max Age ── */}
+          <div style={{ flex: 1, position: "relative" }} ref={maxAgeRef}>
+            <div className="ce-clickable" style={{ ...inputCls, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+              onClick={() => { setMaxAgeOpen(!maxAgeOpen); setMinAgeOpen(false); }}>
+              <span style={{ fontFamily: SANS_W, fontSize: 14, color: maxAge ? DARK_W : MID_W }}>{maxAge || "Max Age"}</span>
+              <ChevronDown style={{ width: 16, height: 16, color: MID_W, transform: maxAgeOpen && !isMobile ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+            </div>
+            {/* Desktop dropdown */}
+            {maxAgeOpen && !isMobile && (
+              <div onMouseDown={(e) => e.stopPropagation()}
+                style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, maxHeight: 200, overflowY: "auto" }}>
+                <button type="button" onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }} style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>No limit</button>
+                {[25,30,35,40,45,50,55,60].map(a => (
+                  <button key={a} type="button" onClick={() => { setMaxAge(String(a)); setMaxAgeOpen(false); }}
+                    style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,fontWeight:maxAge===String(a)?700:400,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>{a}</button>
+                ))}
+              </div>
+            )}
+            {/* Mobile bottom sheet */}
+            <CESheet open={!!(maxAgeOpen && isMobile)} onClose={() => setMaxAgeOpen(false)} title="Max Age">
+              <button type="button" onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}
+                style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:maxAge==="+"?700:400,color:maxAge==="+"?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                No limit{maxAge==="+"&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
+              </button>
+              {[25,30,35,40,45,50,55,60].map(a => (
+                <button key={a} type="button" onClick={() => { setMaxAge(String(a)); setMaxAgeOpen(false); }}
+                  style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:maxAge===String(a)?700:400,color:maxAge===String(a)?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                  {a}{maxAge===String(a)&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
+                </button>
+              ))}
+            </CESheet>
+          </div>
+        </div>
+      </div>
+
+      {/* Food Provided */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <p style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: DARK_W }}>Food Provided</p>
+          <Toggle on={foodProvided} onToggle={() => { setFoodProvided(v => !v); if (foodProvided) setSelectedFoods([]); }} />
+        </div>
+        {foodProvided && (
+          <>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {FOOD_TILES.map(({ id, emoji, label }) => {
+                const sel = selectedFoods.includes(id);
+                return (
+                  <button key={id} type="button" onClick={() => toggleFood(id)}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: 72, padding: "10px 0", borderRadius: 14, border: `1.5px solid ${sel ? TEAL_W : DIV_W}`, background: sel ? `${TEAL_W}10` : "white", cursor: "pointer" }}>
+                    <span style={{ fontSize: 22 }}>{emoji}</span>
+                    <span style={{ fontFamily: SANS_W, fontSize: 11, fontWeight: 500, color: sel ? TEAL_W : DARK_W }}>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginTop: 8 }}>Select up to 2 food options</p>
+          </>
+        )}
+      </div>
+
+      {/* Group Assignment */}
+      <div style={{ paddingBottom: isMobile ? 64 : 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <p style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: DARK_W }}>Group Assignment</p>
+          <Toggle on={groupAssignmentEnabled} onToggle={() => { setGroupAssignmentEnabled(v => !v); if (groupAssignmentEnabled) { setGroupTheme(null); setNumGroups(4); } }} />
+        </div>
+        {groupAssignmentEnabled && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }} ref={groupThemeExpandRef}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {(Object.entries(GROUP_THEMES) as [keyof typeof GROUP_THEMES, typeof GROUP_THEMES[keyof typeof GROUP_THEMES]][]).map(([key, theme]) => {
+                const sel = groupTheme === key;
+                return (
+                  <button key={key} type="button" onClick={() => setGroupTheme(sel ? null : key)}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "12px 8px", borderRadius: 14, border: `2px solid ${sel ? TEAL_W : DIV_W}`, background: sel ? `${TEAL_W}10` : "white", cursor: "pointer" }}>
+                    <span style={{ fontSize: 24 }}>{theme.emoji}</span>
+                    <span style={{ fontFamily: SANS_W, fontSize: 11, fontWeight: 600, color: sel ? TEAL_W : DARK_W, textAlign: "center" }}>{theme.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {groupTheme && (
+              <div style={{ padding: 14, background: "white", borderRadius: 12, border: `1px solid ${DIV_W}` }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                  {[2,3,4,5,6,7,8,9].map(n => <button key={n} type="button" onClick={() => setNumGroups(n)}
+                    style={{ width: 36, height: 36, borderRadius: "50%", border: `2px solid ${numGroups===n ? TEAL_W : DIV_W}`, background: numGroups===n ? TEAL_W : "white", fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: numGroups===n ? "white" : DARK_W, cursor: "pointer" }}>{n}</button>)}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {GROUP_THEMES[groupTheme].groups.slice(0, numGroups).map(g => <div key={g} style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: MID_W, flexShrink: 0 }} />{g}</div>)}
+                </div>
+              </div>
+            )}
+            <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W }}>Anyone who RSVPs "Going" will be randomly assigned to a group.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Virtual link (tucked in) */}
+      {isVirtual && virtualLink && (
+        <div>
+          <FieldLabel>Virtual Meeting Link</FieldLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14 }}>
+            <Link style={{ width: 14, height: 14, color: TEAL_W }} />
+            <span style={{ flex: 1, fontFamily: SANS_W, fontSize: 13, color: TEAL_W, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{virtualLink}</span>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+
+  // ── Step 4 preview ─────────────────────────────────────────────────────────
+  const Step4Preview = () => {
+    const fmtDate = (d: string) => d ? new Date(d+"T00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"}) : "";
+    const fmtTime = (t: string) => t ? new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "";
+    const group = ownedGroups.find(g => g.id === communityId);
+    return (
+      <div style={{ borderRadius: 20, border: `1px solid ${DIV_W}`, overflow: "hidden", background: "white" }}>
+        {imagePreview && <img src={imagePreview} alt={title} style={{ width: "100%", height: 240, objectFit: "cover", display: "block" }} />}
+        <div style={{ padding: 20 }}>
+          {(group || communityId === null) && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: DIV_W, marginBottom: 12 }}>
+              <span style={{ fontSize: 14 }}>🏠</span>
+              <span style={{ fontFamily: SANS_W, fontSize: 12, fontWeight: 600, color: DARK_W }}>{group?.name ?? myProfile?.name ?? "My Event"}</span>
+            </div>
+          )}
+          <h2 style={{ fontFamily: SERIF_W, fontSize: 26, fontWeight: 700, color: DARK_W, marginBottom: 12 }}>{title || "Event Title"}</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {(date || isRecurring) && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Calendar style={{ width: 16, height: 16, color: MID_W, flexShrink: 0 }} /><span style={{ fontFamily: SANS_W, fontSize: 14, color: DARK_W }}>{isRecurring ? "Recurring" : fmtDate(date)}</span></div>}
+            {(startTime || endTime) && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Clock style={{ width: 16, height: 16, color: MID_W, flexShrink: 0 }} /><span style={{ fontFamily: SANS_W, fontSize: 14, color: DARK_W }}>{[fmtTime(startTime), fmtTime(endTime)].filter(Boolean).join(" – ")}</span></div>}
+            {(address || virtualLink) && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><MapPin style={{ width: 16, height: 16, color: MID_W, flexShrink: 0 }} /><span style={{ fontFamily: SANS_W, fontSize: 14, color: DARK_W }}>{address || virtualLink}</span></div>}
+          </div>
+          {description && <p style={{ fontFamily: SANS_W, fontSize: 14, color: MID_W, lineHeight: 1.6, marginBottom: 16 }}>{description}</p>}
+          {(selectedFoods.length > 0 || (groupAssignmentEnabled && groupTheme)) && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 12, borderTop: `1px solid ${DIV_W}` }}>
+              {FOOD_TILES.filter(f => selectedFoods.includes(f.id)).map(f => (
+                <span key={f.id} style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: DARK_W }}>
+                  {f.emoji} {f.label} Provided
+                </span>
+              ))}
+              {groupAssignmentEnabled && groupTheme && (
+                <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: DARK_W }}>
+                  👥 {GROUP_THEMES[groupTheme].label} Assignment
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Sidebar (desktop) ──────────────────────────────────────────────────────
+  const Sidebar = () => {
+    if (sidebarCollapsed) {
+      // Collapsed: just the timeline column (circles + lines), tooltip on hover
+      return (
+        <aside style={{ width: 64, flexShrink: 0, paddingTop: 80, paddingBottom: 40, borderRight: `1px solid ${DIV_W}`, background: CE_SIDEBAR, display: "flex", flexDirection: "column", alignItems: "center", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, alignItems: "center" }}>
+            {STEPS_META.map((s, i) => {
+              const num = i + 1;
+              const state = num === step ? "active" : (num < step || num <= maxStepReached) ? "done" : "pending";
+              return (
+                <button key={i} type="button"
+                  onClick={() => setStep(num)}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: "0 0 24px", position: "relative" }}>
+                  {/* Connector line */}
+                  {i < 3 && (
+                    <div style={{ position: "absolute", top: 28, bottom: 0, left: "50%", transform: "translateX(-50%)", width: 2, background: num < step ? GOLD_W : DIV_W }} />
+                  )}
+                  {/* Circle */}
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: state === "done" ? GOLD_W : state === "active" ? TEAL_W : "transparent", border: `2px solid ${state === "pending" ? DIV_W : state === "done" ? GOLD_W : TEAL_W}`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1 }}>
+                    {state === "done"
+                      ? <Check style={{ width: 13, height: 13, color: "white" }} />
+                      : state === "active"
+                        ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: "white", display: "block" }} />
+                        : <span style={{ fontFamily: SANS_W, fontSize: 11, fontWeight: 600, color: MID_W }}>{num}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+      );
+    }
+
+    // Full sidebar
+    return (
+      <aside style={{ width: 405, flexShrink: 0, paddingTop: 80, paddingBottom: 40, paddingLeft: 144, paddingRight: 32, borderRight: `1px solid ${DIV_W}`, background: CE_SIDEBAR, display: "flex", flexDirection: "column", gap: 40, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+        <div>
+          <h1 style={{ fontFamily: SERIF_W, fontSize: 30, fontWeight: 700, color: DARK_W, marginBottom: 6 }}>
+            {isEditing ? "Edit Event" : "Create Your Event"}
+          </h1>
+          <p style={{ fontFamily: SANS_W, fontSize: 14, color: MID_W }}>Follow the steps to set up your gathering on the shoreline.</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {STEPS_META.map((s, i) => {
+            const num = i + 1;
+            const state = num === step ? "active" : (num < step || num <= maxStepReached) ? "done" : "pending";
+            return (
+              <button key={i} type="button" onClick={() => setStep(num)}
+                style={{ display: "flex", gap: 12, paddingBottom: 24, position: "relative", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: "0 0 24px" }}>
+                {/* Connector line */}
+                {i < 3 && <div style={{ position: "absolute", left: 14, top: 28, bottom: 0, width: 2, background: num < step ? GOLD_W : DIV_W }} />}
+                {/* Circle */}
+                <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: state === "done" ? GOLD_W : state === "active" ? TEAL_W : "transparent", border: `2px solid ${state === "pending" ? DIV_W : state === "done" ? GOLD_W : TEAL_W}`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1 }}>
+                  {state === "done"
+                    ? <Check style={{ width: 13, height: 13, color: "white" }} />
+                    : state === "active"
+                      ? <span style={{ width: 8, height: 8, borderRadius: "50%", background: "white", display: "block" }} />
+                      : <span style={{ fontFamily: SANS_W, fontSize: 11, fontWeight: 600, color: MID_W }}>{num}</span>}
+                </div>
+                {/* Labels */}
+                <div style={{ paddingTop: 2 }}>
+                  <p style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: state === "pending" ? 400 : 700, color: state === "pending" ? MID_W : DARK_W }}>{s.label}</p>
+                  <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginTop: 2 }}>{s.sub}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+    );
+  };
+
+  return (
+    <div className="ce-wrap" style={{ background: "white", minHeight: "100vh" }}>
+      {/* Global hover / interactive styles for this page */}
+      <style>{`
+        /* Every button gets a subtle dim on hover */
+        .ce-wrap button[type="button"]:not(:disabled):hover {
+          filter: brightness(0.88);
+          transition: filter 0.12s;
+        }
+        /* Field-like clickable divs get teal border on hover */
+        .ce-wrap .ce-clickable:hover {
+          border-color: #1F4E5B !important;
+          transition: border-color 0.14s;
+        }
+        /* Dropdown row items get a warm bg on hover */
+        .ce-wrap .ce-item:hover {
+          background: #f0ece5 !important;
+        }
+        /* Primary teal pill button: darken background instead of dim */
+        .ce-wrap .ce-primary:hover {
+          background: ${CE_TEAL_PRESS} !important;
+          filter: none !important;
+          transition: background 0.14s;
+        }
+        /* Hide scrollbar in the form scroll area */
+        .ce-form-scroll::-webkit-scrollbar { display: none; }
+        .ce-form-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+      `}</style>
+
+      {/* Hidden file inputs — always at root so refs are never duplicated */}
+      <input ref={fileInputRef}      type="file" accept="image/*,application/pdf" className="hidden" onChange={handleImagePick} />
+      <input ref={extraFileInputRef1} type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraImagePick(e, 0)} />
+      <input ref={extraFileInputRef2} type="file" accept="image/*" className="hidden" onChange={(e) => handleExtraImagePick(e, 1)} />
+
+      {/* AI Modal */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-2xl p-5">
+          <DialogHeader><DialogTitle className="text-lg font-bold">✨ Generate Event Image</DialogTitle></DialogHeader>
+          <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Choose a style</p>
+            <div className="flex flex-wrap gap-2">{AI_STYLES.map(s => <button key={s.key} type="button" onClick={() => setAiStyle(s.key)} className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${aiStyle===s.key?"bg-black text-white border-black":"bg-white text-black border-gray-300"}`}>{s.label}</button>)}</div></div>
+          <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Title on image <span className="text-xs text-gray-400">(optional)</span></p>
+            <input type="text" placeholder="e.g. Meet & Eat, Beach Bbq Night…" className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black" value={aiTitle} onChange={e=>setAiTitle(e.target.value.replace(/\b\w/g,c=>c.toUpperCase()))} /></div>
+          <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Describe your event</p>
+            <textarea rows={3} placeholder="e.g. BBQ sunset near the beach…" className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 resize-none outline-none" value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} /></div>
+          {aiPreview && <div className="rounded-xl overflow-hidden border border-gray-200"><img src={aiPreview} alt="Generated" className="w-full h-48 object-cover" /></div>}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">{aiGenerations}/{AI_MAX_GENERATIONS} generations used {aiGenerations>=AI_MAX_GENERATIONS&&<span className="text-red-400 font-medium">No more generations</span>}</div>
+          <div className="flex gap-2">{aiPreview?<><button type="button" onClick={applyAiImage} className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold">✅ Use this image</button><button type="button" onClick={generateImage} disabled={generating||aiGenerations>=AI_MAX_GENERATIONS} className="h-11 px-4 rounded-xl border border-gray-300 text-gray-500 text-sm disabled:opacity-40">{generating?<Loader2 className="h-4 w-4 animate-spin"/>:"🔄"}</button></>:<button type="button" onClick={generateImage} disabled={generating||aiGenerations>=AI_MAX_GENERATIONS} className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold disabled:opacity-60">{generating?<><Loader2 className="h-4 w-4 animate-spin inline mr-1"/>Generating…</>:"🎨 Generate"}</button>}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
+          <DialogHeader><DialogTitle>Delete Event</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Are you sure you want to delete this event? This cannot be undone.</p>
+          <div className="flex gap-3 mt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Not now</Button>
+            <Button variant="destructive" className="flex-1" onClick={confirmDelete}>Yes, delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave-guard dialog — shown for back button, trackpad swipe, and tab close */}
+      <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+        <DialogContent className="w-[calc(100%-40px)] max-w-[380px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: CE_SANS, fontWeight: 700 }}>Leave without saving?</DialogTitle>
+          </DialogHeader>
+          <p style={{ fontFamily: CE_SANS, fontSize: 14, color: CE_MID, marginTop: 4 }}>
+            If you leave now, everything you've entered will be lost and can't be recovered.
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setLeaveDialogOpen(false)}>
+              Keep editing
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={() => { setLeaveDialogOpen(false); pendingNavRef.current?.(); }}>
+              Leave anyway
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* No-image dialog */}
+      <Dialog open={noImageConfirmOpen} onOpenChange={setNoImageConfirmOpen}>
+        <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl">
+          <img src="/emptystatenoimage.png" alt="" className="mx-auto h-32 w-auto object-contain" />
+          <DialogHeader><DialogTitle>No image added</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Events with images get more attention — want to add one?</p>
+          <div className="flex gap-3 mt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setNoImageConfirmOpen(false)}>Add image</Button>
+            <Button className="flex-1" onClick={proceedSubmit}>Publish anyway</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image lightbox */}
+      {imageExpanded && imagePreview && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setImageExpanded(false)}>
+          <img src={imagePreview} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
+          <button className="absolute top-5 right-5 p-2 bg-white/20 rounded-full" onClick={() => setImageExpanded(false)}>
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+      )}
+
+      {/* ── DESKTOP ─────────────────────────────────────────────────────────── */}
+      <div className="hidden md:flex" style={{ height: "100vh", overflow: "hidden" }}>
+        {Sidebar()}
+
+        {/* Content column: fixed header → scrollable body → fixed footer */}
+        <div style={{ flex: 1, paddingRight: mainRightPad, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", transition: "padding-right 0.15s ease" }}>
+
+          {/* ─ Fixed header ─────────────────────────────────────────────────── */}
+          <div style={{ flexShrink: 0, padding: `36px ${bodyHPad}px 20px ${bodyHPad}px`, display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Back + optional delete */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: "none", cursor: "pointer" }}>
+                <ArrowLeft style={{ width: 16, height: 16 }} /> Back
+              </button>
+              {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
+                <Button variant="ghost" size="icon" className="p-2 rounded-full text-red-500 hover:bg-red-50" onClick={() => setDeleteOpen(true)} disabled={loading}>
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+            {/* Progress bar */}
+            {ProgressBar()}
+            {/* Title row: heading LEFT | PostAs RIGHT (step 1 only) */}
+            <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: SANS_W, fontSize: headingFontSize, fontWeight: 700, color: TEAL_W, marginBottom: 4, transition: "font-size 0.2s" }}>{STEPS_META[step-1].label}</p>
+                <p style={{ fontFamily: SANS_W, fontSize: 13, color: MID_W }}>
+                  {step===1 && "Enter the key information for your event below."}
+                  {step===2 && "Add a description and any extra details for your event."}
+                  {step===3 && "Set audience filters, food options, and group assignments for your event."}
+                  {step===4 && "This is a preview of your event page. Would you like to go ahead and publish it?"}
+                </p>
+              </div>
+              {step === 1 && <div style={{ width: postAsWidth, flexShrink: 0, transition: "width 0.2s" }}>{PostAsDropdown()}</div>}
+            </div>
+          </div>
+
+          {/* ─ Scrollable body + fixed right panel ─────────────────────────── */}
+          <div style={{ flex: 1, display: "flex", overflow: "hidden", padding: `0 ${bodyHPad}px`, gap: 24 }}>
+            {/* Left: only this column scrolls */}
+            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+              {/* Top fade shadow — appears once user has scrolled */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: 36,
+                background: "linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%)",
+                pointerEvents: "none", zIndex: 10,
+                opacity: formScrolled ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              <div
+                ref={formScrollRef}
+                className="ce-form-scroll"
+                style={{ height: "100%", overflowY: "auto", paddingTop: 4, paddingBottom: 32 }}
+                onScroll={(e) => setFormScrolled((e.currentTarget).scrollTop > 8)}
+              >
+                {step === 1 && Step1Fields()}
+                {step === 2 && Step2Fields()}
+                {step === 3 && Step3Fields()}
+                {step === 4 && Step4Preview()}
+              </div>
+            </div>
+            {/* Right: cover photo — fixed 268px on all desktop widths */}
+            {step === 1 && (
+              <div style={{ width: 268, flexShrink: 0, paddingTop: 4, overflowY: "auto" }}>
+                {CoverPhotoBlock({compact: true})}
+              </div>
+            )}
+          </div>
+
+          {/* ─ Fixed footer ─────────────────────────────────────────────────── */}
+          <div style={{ flexShrink: 0, background: "white", padding: `18px ${bodyHPad}px 28px`, borderTop: `1px solid ${DIV_W}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button type="button" onClick={goPrev} style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <ArrowLeft style={{ width: 16, height: 16 }} /> Back
+            </button>
+            <button type="button" onClick={goNext} disabled={loading} className="ce-primary"
+              style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+              {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
+              {step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MOBILE ──────────────────────────────────────────────────────────── */}
+      <div className="md:hidden flex flex-col" style={{ minHeight: "100vh" }}>
+        {/* Sticky top header */}
+        <div style={{ position: "sticky", top: 0, zIndex: 20, background: "white", paddingTop: 16, paddingBottom: 12, borderBottom: `1px solid ${DIV_W}` }}>
+          <div style={{ padding: "0 20px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+            <p style={{ fontFamily: SANS_W, fontSize: 12, fontWeight: 700, color: TEAL_W, letterSpacing: "0.06em", textTransform: "uppercase" }}>Step {step} of 4</p>
+            <p style={{ fontFamily: SANS_W, fontSize: 12, fontWeight: 500, color: MID_W }}>{STEPS_META[step-1].label}</p>
+          </div>
+          <div style={{ padding: "0 12px" }}>{ProgressBar()}</div>
+        </div>
+
+        {/* Scrollable content */}
+        <div style={{ flex: 1, padding: "28px 20px", paddingBottom: 100 }}>
+          {/* Step heading */}
+          <h1 style={{ fontFamily: SANS_W, fontSize: 28, fontWeight: 700, color: TEAL_W, marginBottom: 4 }}>
+            {STEPS_META[step-1].label}
+          </h1>
+          <p style={{ fontFamily: SANS_W, fontSize: 13, color: MID_W, marginBottom: 28 }}>
+            {step===1 && "Enter the key information for your event below."}
+            {step===2 && "Add a description and any extra details for your event."}
+            {step===3 && "Set audience filters, food options, and group assignments for your event."}
+            {step===4 && "This is a preview of your event page. Would you like to go ahead and publish it?"}
+          </p>
+
+          {/* Step 1 mobile: cover photo first, then Post As, then fields */}
+          {step === 1 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {CoverPhotoBlock({})}
+              {PostAsDropdown()}
+              {Step1Fields()}
+            </div>
+          )}
+          {step === 2 && Step2Fields()}
+          {step === 3 && Step3Fields()}
+          {step === 4 && Step4Preview()}
+        </div>
+
+        {/* Sticky bottom footer */}
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "14px 20px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: DARK_W, background: "none", border: "none", cursor: "pointer" }}>
+            <ArrowLeft style={{ width: 16, height: 16 }} /> Back
+          </button>
+          <button type="button" onClick={goNext} disabled={loading}
+            style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+            {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
+            {step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { CE_BG , CE_ERROR} from '../tokens';
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, MapPin, Image as ImageIcon, Loader2,
@@ -9,6 +10,25 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+// ─── Design tokens (matching CreateEvent) ────────────────────────────────────
+const CG_DARK  = "#2C2523";
+const CG_TEAL  = "#1F4E5B";
+const CG_MID   = "#635C59";
+const CG_DIV   = "#E4DCCF";
+const CG_SANS  = "'Inter', sans-serif";
+
+const cgInput: React.CSSProperties = {
+  width: "100%", padding: "12px 16px", borderRadius: 14,
+  border: `1px solid ${CG_DIV}`, fontFamily: CG_SANS,
+  fontSize: 14, color: CG_DARK, background: "white", outline: "none",
+};
+
+const CgLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  <p style={{ fontFamily: CG_SANS, fontSize: 11, fontWeight: 700, color: CG_MID, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+    {children}{required && <span style={{ color: CG_TEAL, marginLeft: 2 }}>*</span>}
+  </p>
+);
 
 // ─── Co-Admin types ───────────────────────────────────────────────────────────
 
@@ -223,12 +243,12 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
       <button
         type="button"
         onClick={() => { setIsVisible(false); setOpen(true); }}
-        className="w-full h-12 px-3 text-left text-base rounded-md border border-input bg-background flex items-center justify-between gap-2"
+        style={{ ...cgInput, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, cursor: "pointer", border: `1px solid ${CG_DIV}` }}
       >
-        <span className={value ? "text-foreground truncate" : "text-muted-foreground"}>
+        <span style={{ color: value ? CG_DARK : CG_MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {value || "Select a ward..."}
         </span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <ChevronDown style={{ width: 16, height: 16, color: CG_MID, flexShrink: 0 }} />
       </button>
 
       {/* ── Modal backdrop ── */}
@@ -677,216 +697,175 @@ const CreateGroup = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-24">
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-5 py-3">
-        <div className="flex items-center gap-3 max-w-4xl mx-auto">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-accent transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
-            {isEditing ? "Edit Group" : "Create Group"}
-          </h1>
-        </div>
-      </header>
+    <div style={{ background: CE_BG, minHeight: "100vh" }}>
 
-      <main className="flex-1 px-5 py-6">
-        <div className="max-w-xl mx-auto space-y-6">
+      {/* ── Header ── */}
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: CE_BG, borderBottom: `1px solid ${CG_DIV}`, padding: "14px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <button type="button" onClick={() => navigate(-1)}
+          style={{ width: 36, height: 36, borderRadius: "50%", background: CG_DIV, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowLeft style={{ width: 18, height: 18, color: CG_DARK }} />
+        </button>
+        <h1 style={{ fontFamily: CG_SANS, fontSize: 20, fontWeight: 700, color: CG_DARK, margin: 0 }}>
+          {isEditing ? "Edit Group" : "Create Group"}
+        </h1>
+      </div>
+
+      {/* ── Form ── */}
+      <main style={{ padding: "32px 24px 100px", maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
           {/* Cover Photo */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Cover Photo</label>
-            <div
-              onClick={() => coverInputRef.current?.click()}
-              className="relative w-full h-40 rounded-2xl overflow-hidden border border-border cursor-pointer bg-secondary flex items-center justify-center"
-            >
-              {coverPreview ? (
-                <img src={coverPreview} className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <ImageIcon className="h-6 w-6" />
-                  <span className="text-sm">Tap to upload cover photo</span>
-                </div>
-              )}
+          <div>
+            <CgLabel>Cover Photo</CgLabel>
+            <div onClick={() => coverInputRef.current?.click()}
+              style={{ position: "relative", width: "100%", height: 180, borderRadius: 16, overflow: "hidden", background: CG_DIV, cursor: "pointer" }}>
+              {coverPreview
+                ? <img src={coverPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <ImageIcon style={{ width: 28, height: 28, color: CG_MID }} />
+                  </div>}
+              <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+                <span style={{ fontFamily: CG_SANS, fontSize: 13, fontWeight: 600, color: "white", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", padding: "7px 18px", borderRadius: 999 }}>
+                  {coverPreview ? "Update Cover Photo" : "Add Cover Photo"}
+                </span>
+              </div>
             </div>
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => handleImagePick(e, setCoverPreview, setCoverFile)} />
           </div>
 
           {/* Avatar */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Group Profile Picture</label>
-            <div className="flex items-center gap-4">
-              <div
-                onClick={() => avatarInputRef.current?.click()}
-                className="w-20 h-20 rounded-full border border-border cursor-pointer bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0"
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                )}
+          <div>
+            <CgLabel>Group Profile Picture</CgLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div onClick={() => avatarInputRef.current?.click()}
+                style={{ width: 72, height: 72, borderRadius: "50%", background: CG_DIV, cursor: "pointer", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {avatarPreview
+                  ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <ImageIcon style={{ width: 24, height: 24, color: CG_MID }} />}
               </div>
-              <p className="text-xs text-muted-foreground">Tap to upload a profile picture for your group</p>
+              <p style={{ fontFamily: CG_SANS, fontSize: 13, color: CG_MID }}>Tap to upload a profile picture for your group</p>
             </div>
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => handleImagePick(e, setAvatarPreview, setAvatarFile)} />
           </div>
 
-          {/* Ward picker */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select Your Ward *</label>
-            <WardPicker
-              value={name}
-              onChange={setName}
-              claimedWards={claimedWards}
-              userId={session?.user.id ?? ""}
-            />
+          {/* Ward Picker */}
+          <div>
+            <CgLabel required>Select Your Ward</CgLabel>
+            <WardPicker value={name} onChange={setName} claimedWards={claimedWards} userId={session?.user.id ?? ""} />
           </div>
 
           {/* Address */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <MapPin className="h-4 w-4" /> Address
-            </label>
-            <Input value={address} onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. 3400 Sawtelle Blvd, Los Angeles, CA" className="h-12" />
+          <div>
+            <CgLabel>Address</CgLabel>
+            <div style={{ position: "relative" }}>
+              <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
+              <input value={address} onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. 3400 Sawtelle Blvd, Los Angeles, CA"
+                style={{ ...cgInput, paddingLeft: 40 }} />
+            </div>
           </div>
 
           {/* About */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">About</label>
+          <div>
+            <CgLabel>About</CgLabel>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell people about your group..."
-              className="w-full h-28 px-4 py-3 rounded-xl border border-input bg-transparent text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              maxLength={500} />
-            <p className="text-xs text-muted-foreground text-right">{description.length}/500</p>
+              maxLength={500}
+              style={{ ...cgInput, height: 112, resize: "none", paddingTop: 12, display: "block" }} />
+            <p style={{ fontFamily: CG_SANS, fontSize: 11, color: CG_MID, textAlign: "right", marginTop: 4 }}>{description.length}/500</p>
           </div>
 
           {/* Good to Know */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Good to Know</label>
+          <div>
+            <CgLabel>Good to Know</CgLabel>
             <textarea value={goodToKnow} onChange={(e) => setGoodToKnow(e.target.value)}
               placeholder="e.g. Sacrament Meeting: 12:30 PM, Parking available..."
-              className="w-full h-24 px-4 py-3 rounded-xl border border-input bg-transparent text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              maxLength={300} />
+              maxLength={300}
+              style={{ ...cgInput, height: 96, resize: "none", paddingTop: 12, display: "block" }} />
           </div>
 
           {/* Social Links */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Social Links</label>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <Link className="h-4 w-4 text-blue-600" />
+          <div>
+            <CgLabel>Social Links</CgLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EBF0FB", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Link style={{ width: 16, height: 16, color: "#1877F2" }} />
+                </div>
+                <input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="Facebook URL" style={cgInput} />
               </div>
-              <Input value={facebook} onChange={(e) => setFacebook(e.target.value)}
-                placeholder="Facebook URL" className="h-11" />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                <Link2 className="h-4 w-4 text-pink-600" />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FCEEF5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Link2 style={{ width: 16, height: 16, color: "#E1306C" }} />
+                </div>
+                <input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Instagram URL" style={cgInput} />
               </div>
-              <Input value={instagram} onChange={(e) => setInstagram(e.target.value)}
-                placeholder="Instagram URL" className="h-11" />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <Globe className="h-4 w-4 text-green-600" />
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EDFAF3", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Globe style={{ width: 16, height: 16, color: "#16A34A" }} />
+                </div>
+                <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website URL" style={cgInput} />
               </div>
-              <Input value={website} onChange={(e) => setWebsite(e.target.value)}
-                placeholder="Website URL" className="h-11" />
             </div>
           </div>
 
           {/* Co-Admin (edit mode only) */}
           {isEditing && (
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div>
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" /> Co-Admin
-                </label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Invite one person to help manage this group
-                </p>
+            <div style={{ paddingTop: 20, borderTop: `1px solid ${CG_DIV}` }}>
+              <div style={{ marginBottom: 14 }}>
+                <CgLabel>Co-Admin</CgLabel>
+                <p style={{ fontFamily: CG_SANS, fontSize: 13, color: CG_MID, marginTop: -4 }}>Invite one person to help manage this group</p>
               </div>
-
               {coAdmin ? (
-                /* Show current or pending co-admin */
-                <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-accent overflow-hidden flex items-center justify-center flex-shrink-0">
-                      {coAdmin.avatar_url ? (
-                        <img src={coAdmin.avatar_url} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-semibold text-muted-foreground">
-                          {coAdmin.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 14, border: `1px solid ${CG_DIV}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: CG_DIV, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {coAdmin.avatar_url
+                        ? <img src={coAdmin.avatar_url} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontFamily: CG_SANS, fontSize: 14, fontWeight: 700, color: CG_DARK }}>{coAdmin.name.charAt(0).toUpperCase()}</span>}
                     </div>
                     <div>
-                      <p className="text-sm font-medium leading-tight">{coAdmin.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {coAdmin.status === "pending" ? "Invite pending…" : "Co-admin"}
-                      </p>
+                      <p style={{ fontFamily: CG_SANS, fontSize: 14, fontWeight: 600, color: CG_DARK, margin: 0 }}>{coAdmin.name}</p>
+                      <p style={{ fontFamily: CG_SANS, fontSize: 12, color: CG_MID, margin: 0 }}>{coAdmin.status === "pending" ? "Invite pending…" : "Co-admin"}</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCoAdmin(coAdmin.adminId)}
-                    className="text-xs text-red-500 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                  >
+                  <button type="button" onClick={() => handleRemoveCoAdmin(coAdmin.adminId)}
+                    style={{ fontFamily: CG_SANS, fontSize: 13, fontWeight: 600, color: CE_ERROR, background: "none", border: "none", cursor: "pointer", padding: "6px 12px", borderRadius: 8 }}>
                     {coAdmin.status === "pending" ? "Cancel" : "Remove"}
                   </button>
                 </div>
               ) : (
-                /* User search input */
-                <div className="relative">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <input
-                      type="text"
-                      value={adminSearch}
-                      onChange={(e) => setAdminSearch(e.target.value)}
-                      placeholder="Search by name…"
-                      className="w-full h-11 pl-9 pr-9 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      autoComplete="off"
-                    />
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "relative" }}>
+                    <Search style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
+                    <input type="text" value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)}
+                      placeholder="Search by name…" autoComplete="off"
+                      style={{ ...cgInput, paddingLeft: 40 }} />
                     {adminSearch && (
-                      <button
-                        type="button"
-                        onClick={() => { setAdminSearch(""); setAdminResults([]); }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground" />
+                      <button type="button" onClick={() => { setAdminSearch(""); setAdminResults([]); }}
+                        style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}>
+                        <X style={{ width: 16, height: 16, color: CG_MID }} />
                       </button>
                     )}
                   </div>
-
-                  {/* Search results */}
                   {(adminResults.length > 0 || searchingAdmin) && (
-                    <div className="mt-1 rounded-xl border border-input bg-background shadow-lg overflow-hidden">
-                      {searchingAdmin ? (
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : adminResults.map((p) => (
-                        <button
-                          key={p.user_id}
-                          type="button"
-                          disabled={invitingAdmin}
-                          onClick={() => handleInviteAdmin(p)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent border-b border-border last:border-0 text-left transition-colors"
-                        >
-                          <div className="w-7 h-7 rounded-full bg-accent overflow-hidden flex items-center justify-center flex-shrink-0">
-                            {p.avatar_url ? (
-                              <img src={p.avatar_url} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-xs font-semibold text-muted-foreground">{p.name.charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
-                          <span className="font-medium">{p.name}</span>
-                          {invitingAdmin && <Loader2 className="h-3 w-3 animate-spin ml-auto text-muted-foreground" />}
-                        </button>
-                      ))}
+                    <div style={{ marginTop: 4, borderRadius: 14, border: `1px solid ${CG_DIV}`, background: "white", boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+                      {searchingAdmin
+                        ? <div style={{ display: "flex", justifyContent: "center", padding: 16 }}><Loader2 style={{ width: 16, height: 16, color: CG_MID }} className="animate-spin" /></div>
+                        : adminResults.map((p) => (
+                          <button key={p.user_id} type="button" disabled={invitingAdmin} onClick={() => handleInviteAdmin(p)}
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", fontFamily: CG_SANS, fontSize: 14, color: CG_DARK, background: "none", border: "none", borderBottom: `1px solid ${CG_DIV}`, cursor: "pointer", textAlign: "left" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: CG_DIV, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {p.avatar_url
+                                ? <img src={p.avatar_url} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                : <span style={{ fontSize: 12, fontWeight: 700, color: CG_DARK }}>{p.name.charAt(0).toUpperCase()}</span>}
+                            </div>
+                            <span style={{ fontWeight: 600 }}>{p.name}</span>
+                            {invitingAdmin && <Loader2 style={{ width: 14, height: 14, color: CG_MID, marginLeft: "auto" }} className="animate-spin" />}
+                          </button>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -895,15 +874,12 @@ const CreateGroup = () => {
           )}
 
           {/* Submit */}
-          <Button
-            onClick={handleCreate}
-            disabled={saving || !name.trim()}
-            className="w-full h-12 rounded-2xl text-base font-semibold"
-          >
+          <button type="button" onClick={handleCreate} disabled={saving || !name.trim()}
+            style={{ width: "100%", padding: "15px 0", borderRadius: 999, background: saving || !name.trim() ? CG_MID : CG_TEAL, border: "none", cursor: saving || !name.trim() ? "not-allowed" : "pointer", fontFamily: CG_SANS, fontSize: 16, fontWeight: 700, color: "white", display: "flex", alignItems: "center", justifyContent: "center", opacity: saving || !name.trim() ? 0.6 : 1 }}>
             {saving
-              ? <Loader2 className="h-5 w-5 animate-spin" />
-              : isEditing ? "Save Changes ✅" : "Create Group 🎉"}
-          </Button>
+              ? <Loader2 style={{ width: 20, height: 20 }} className="animate-spin" />
+              : isEditing ? "Save Changes" : "Create Group"}
+          </button>
 
         </div>
       </main>

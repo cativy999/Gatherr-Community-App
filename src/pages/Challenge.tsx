@@ -1,3 +1,4 @@
+import { CE_BG, CE_BROWN } from '../tokens';
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, ArrowLeft, Trophy, MapPin, Check, Star } from "lucide-react";
@@ -125,7 +126,7 @@ interface LeaderEntry {
 }
 
 const TrophyBadge = ({ rank }: { rank: number }) => {
-  const color = "#6B553F";
+  const color = CE_BROWN;
   const sz = rank === 1 ? 46 : rank === 2 ? 40 : 36;
   const fontSize = rank === 1 ? 13 : 11;
   return (
@@ -255,14 +256,14 @@ const Challenge = () => {
   useEffect(() => { fetchData(); }, [userId]);
 
   useEffect(() => {
-    document.body.style.background = "#f4f0e6";
+    document.body.style.background = CE_BG;
     return () => { document.body.style.background = ""; };
   }, []);
 
   const firstName = myName.split(" ")[0] || "Friend";
 
   return (
-    <div style={{ background: "#f4f0e6", minHeight: "100vh", paddingBottom: 100 }}>
+    <div style={{ background: CE_BG, minHeight: "100vh", paddingBottom: 100 }}>
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 24px" }}>
 
         {/* ── User greeting row ── */}
@@ -317,7 +318,7 @@ const Challenge = () => {
                 const pos = positions[i] || { left: i * 14, top: 10 };
                 return (
                   <div key={e.user_id} style={{ position: "absolute", left: pos.left, top: pos.top, zIndex: 4 - i }}>
-                    <Avatar style={{ width: 22, height: 22, border: "2px solid #f4f0e6" }}>
+                    <Avatar style={{ width: 22, height: 22, border: `2px solid ${CE_BG}` }}>
                       <AvatarImage src={e.avatar_url ?? undefined} referrerPolicy="no-referrer" />
                       <AvatarFallback style={{ fontSize: 7 }}>
                         {e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
@@ -343,7 +344,7 @@ const Challenge = () => {
               onClick={() => setParticipantsFlipped(false)}
             />
             <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px", pointerEvents: "none" }}>
-              <div style={{ background: "#f4f0e6", borderRadius: 24, padding: "24px 20px", width: "100%", maxWidth: 400, pointerEvents: "auto", maxHeight: "80vh", overflowY: "auto" }}>
+              <div style={{ background: CE_BG, borderRadius: 24, padding: "24px 20px", width: "100%", maxWidth: 400, pointerEvents: "auto", maxHeight: "80vh", overflowY: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 18, color: "#000" }}>Who's Walking</div>
                   <button onClick={() => setParticipantsFlipped(false)} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#aaa" }}>Close</button>
@@ -359,7 +360,7 @@ const Challenge = () => {
                         <AvatarFallback style={{ fontSize: 12 }}>{e.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}</AvatarFallback>
                       </Avatar>
                       <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#000", flex: 1 }}>{e.name}{e.user_id === userId ? " (you)" : ""}</span>
-                      <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 14, color: "#6b553f" }}>{e.total_steps.toLocaleString()}</span>
+                      <span style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 14, color: CE_BROWN }}>{e.total_steps.toLocaleString()}</span>
                       <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: "#aaa" }}>steps</span>
                     </div>
                   ))}
@@ -470,8 +471,8 @@ const Challenge = () => {
                             {reached && <Check size={13} color="#fff" strokeWidth={3} />}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-                            <MapPin size={14} color="#6b553f" style={{ flexShrink: 0 }} />
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: "#6b553f", whiteSpace: "nowrap" }}>
+                            <MapPin size={14} color={CE_BROWN} style={{ flexShrink: 0 }} />
+                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: CE_BROWN, whiteSpace: "nowrap" }}>
                               {m.label}
                             </span>
                             {m.subtitle && (
@@ -564,7 +565,7 @@ const Challenge = () => {
                         {i < 3 ? (
                           <TrophyBadge rank={i + 1} />
                         ) : (
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, color: "#6b553f", fontSize: 17, letterSpacing: -0.5 }}>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, color: CE_BROWN, fontSize: 17, letterSpacing: -0.5 }}>
                             #{i + 1}
                           </span>
                         )}
@@ -578,11 +579,11 @@ const Challenge = () => {
                             <AvatarFallback style={{ fontSize: 12 }}>{initials}</AvatarFallback>
                           </Avatar>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: 16, color: isMe ? "#6b553f" : "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 900, fontSize: 16, color: isMe ? CE_BROWN : "#000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {entry.name}{isMe ? " (you)" : ""}
                             </div>
                             <div style={{ marginTop: 6, position: "relative", height: 5, borderRadius: 9, background: "rgba(107,85,63,0.15)", overflow: "hidden" }}>
-                              <div style={{ position: "absolute", top: 0, left: 0, height: 5, borderRadius: 9, width: `${barPct}%`, background: "#6b553f" }} />
+                              <div style={{ position: "absolute", top: 0, left: 0, height: 5, borderRadius: 9, width: `${barPct}%`, background: CE_BROWN }} />
                             </div>
                           </div>
                         </div>
@@ -620,7 +621,7 @@ const Challenge = () => {
 
       {/* ── Trail Milestones Modal ── */}
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className="w-full max-w-[420px] rounded-2xl p-0 overflow-hidden" style={{ background: "#f4f0e6", border: "none" }}>
+        <DialogContent className="w-full max-w-[420px] rounded-2xl p-0 overflow-hidden" style={{ background: CE_BG, border: "none" }}>
           <div style={{ padding: "40px 24px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
 
             {/* Title */}
@@ -648,8 +649,8 @@ const Challenge = () => {
 
                     {/* Location */}
                     <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", minWidth: 0 }}>
-                      <MapPin size={15} color="#6b553f" style={{ flexShrink: 0 }} />
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 16, color: "#6b553f", whiteSpace: "nowrap" }}>
+                      <MapPin size={15} color={CE_BROWN} style={{ flexShrink: 0 }} />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 16, color: CE_BROWN, whiteSpace: "nowrap" }}>
                         {m.label}
                       </span>
                       {m.subtitle && (

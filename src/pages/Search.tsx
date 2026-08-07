@@ -1,41 +1,115 @@
-import { ArrowLeft, Search as SearchIcon, MapPin, Users } from "lucide-react";
+import { CE_BG } from '../tokens';
+import { Search as SearchIcon, MapPin, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import VideoBackground from "@/components/VideoBackground";
 
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG       = CE_BG;
+const DARK     = "#2C2523";
+const MID      = "#635C59";
+const TEAL     = "#1F4E5B";
+const ICON_BG  = "#E4DCCF";
+const DIVIDER  = "#E4DCCF";
+const INTER    = "'Inter', sans-serif";
+const CORMORANT = "'Cormorant Garamond', Georgia, serif";
+const GREEN    = "rgb(91, 138, 122)";
+
+// ── Static data ────────────────────────────────────────────────────────────
 const WARDS = [
   { id: "6ce56e22-5eea-4c53-ade0-069c5cf67f67", name: "YSA Santa Monica Ward", address: "3400 Sawtelle Blvd, Los Angeles, CA" },
-  { id: "9f294607-b74a-4ca2-8935-895cf23c6d37", name: "YSA South Bay Ward", address: "2615 Marine Ave, Gardena, CA" },
-  { id: "9c0a1145-e9a2-48d4-b31b-4ac6df608f15", name: "Glendale SA Ward", address: "1130 E Chevy Chase Dr, Glendale, CA" },
+  { id: "9f294607-b74a-4ca2-8935-895cf23c6d37", name: "YSA South Bay Ward",    address: "2615 Marine Ave, Gardena, CA" },
+  { id: "9c0a1145-e9a2-48d4-b31b-4ac6df608f15", name: "Glendale SA Ward",      address: "1130 E Chevy Chase Dr, Glendale, CA" },
 ];
-
 const GROUPS = [
-  { id: "hiking", name: "Hiking Group", description: "Weekend hikes around LA" },
+  { id: "hiking",     name: "Hiking Group",     description: "Weekend hikes around LA" },
   { id: "pickleball", name: "Pickleball Group", description: "Weekly pickleball games" },
 ];
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+const formatDate = (dateStr: string) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+  });
+};
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <p style={{
+    fontFamily: INTER, fontSize: 11, fontWeight: 600,
+    color: MID, letterSpacing: "0.08em", textTransform: "uppercase",
+    marginBottom: 8,
+  }}>
+    {children}
+  </p>
+);
+
+const RowCard = ({ onClick, left, title, sub1, sub2 }: {
+  onClick: () => void;
+  left: React.ReactNode;
+  title: string;
+  sub1?: React.ReactNode;
+  sub2?: React.ReactNode;
+}) => (
+  <button
+    onClick={onClick}
+    className="w-full text-left flex items-center gap-3 bg-white hover:opacity-80 transition-opacity"
+    style={{ borderRadius: 16, border: `1px solid ${DIVIDER}`, padding: "12px 14px" }}
+  >
+    {left}
+    <div className="min-w-0 flex-1">
+      <p style={{ fontFamily: INTER, fontSize: 15, fontWeight: 600, color: DARK, lineHeight: 1.3 }}
+        className="line-clamp-2">
+        {title}
+      </p>
+      {sub1 && <div className="mt-0.5">{sub1}</div>}
+      {sub2 && <div className="mt-0.5">{sub2}</div>}
+    </div>
+  </button>
+);
+
+const AvatarCircle = ({ src, icon }: { src?: string | null; icon?: React.ReactNode }) => (
+  <div
+    className="flex-shrink-0 flex items-center justify-center overflow-hidden"
+    style={{ width: 42, height: 42, borderRadius: "50%", background: ICON_BG }}
+  >
+    {src
+      ? <img src={src} alt="" className="w-full h-full object-cover" />
+      : icon}
+  </div>
+);
+
+const MetaText = ({ children }: { children: React.ReactNode }) => (
+  <p style={{ fontFamily: INTER, fontSize: 12, color: MID }}>{children}</p>
+);
+
+const MetaRow = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
+  <div className="flex items-center gap-1">
+    {icon}
+    <span style={{ fontFamily: INTER, fontSize: 12, color: MID }} className="truncate">{text}</span>
+  </div>
+);
+
+// ── Main component ─────────────────────────────────────────────────────────
 const Search = () => {
-  const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
+  const navigate   = useNavigate();
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const [query, setQuery]           = useState("");
   const [activeChip, setActiveChip] = useState<"wards" | "groups">("wards");
   const [eventResults, setEventResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [searching, setSearching]   = useState(false);
   const [wardAvatars, setWardAvatars] = useState<Record<string, string | null>>({});
 
-  // Auto focus on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  // Auto-focus
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Fetch avatar_url for each ward from the groups table
+  // Fetch ward avatars
   useEffect(() => {
-    const ids = WARDS.map((w) => w.id);
     supabase
       .from("groups")
       .select("id, avatar_url")
-      .in("id", ids)
+      .in("id", WARDS.map((w) => w.id))
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, string | null> = {};
@@ -44,16 +118,16 @@ const Search = () => {
       });
   }, []);
 
-  // Search events from Supabase when query changes
+  // Debounced event search
   useEffect(() => {
     if (!query.trim()) { setEventResults([]); return; }
     const timer = setTimeout(async () => {
       setSearching(true);
-      const now = new Date();
+      const now   = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const { data } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, location, attendees, age_min, age_max")
+        .select("id, title, image_url, date, time, start_time, location, attendees, age_min, age_max")
         .eq("status", "published")
         .gte("date", today)
         .ilike("title", `%${query}%`)
@@ -65,219 +139,209 @@ const Search = () => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const filteredWards = WARDS.filter((w) =>
-    w.name.toLowerCase().includes(query.toLowerCase())
-  );
-  const filteredGroups = GROUPS.filter((g) =>
-    g.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredWards  = WARDS.filter((w) => w.name.toLowerCase().includes(query.toLowerCase()));
+  const filteredGroups = GROUPS.filter((g) => g.name.toLowerCase().includes(query.toLowerCase()));
+  const isSearching    = query.trim().length > 0;
 
-  const isSearching = query.trim().length > 0;
-
-  const formatDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  // ── Chip button ──────────────────────────────────────────────────────────
+  const Chip = ({ id, label }: { id: "wards" | "groups"; label: string }) => {
+    const active = activeChip === id;
+    return (
+      <button
+        onClick={() => setActiveChip(id)}
+        style={{
+          fontFamily: INTER, fontSize: 13, fontWeight: 500,
+          padding: "7px 16px", borderRadius: 999,
+          background: active ? TEAL : "white",
+          color: active ? "white" : DARK,
+          border: `1px solid ${active ? TEAL : DIVIDER}`,
+          transition: "all 0.15s",
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </button>
+    );
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col pb-20">
-      <VideoBackground />
-      {/* Header */}
-      <div className="sticky top-0 z-10 relative">
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="max-w-2xl mx-auto px-5">
+
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div style={{ paddingTop: 32, paddingBottom: 20 }}>
+          <h1 style={{ fontFamily: CORMORANT, color: DARK, fontSize: 32, fontWeight: 700, lineHeight: 1 }}>
+            Search
+          </h1>
+        </div>
+
+        {/* ── Search bar ──────────────────────────────────────────────── */}
         <div
-          className="absolute inset-0 -z-10 bg-white/60 backdrop-blur-md"
+          className="flex items-center gap-2"
           style={{
-            WebkitMaskImage: "linear-gradient(to right, transparent 0%, transparent 25%, black 40%, black 60%, transparent 75%, transparent 100%)",
-            maskImage: "linear-gradient(to right, transparent 0%, transparent 25%, black 40%, black 60%, transparent 75%, transparent 100%)",
+            background: "white", borderRadius: 14,
+            border: `1px solid ${DIVIDER}`,
+            padding: "10px 14px", marginBottom: 14,
           }}
-        />
-        <div className="px-5 py-3">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Search</h1>
-          </div>
+        >
+          <SearchIcon style={{ width: 16, height: 16, color: MID, flexShrink: 0 }} />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search wards, groups, events…"
+            className="flex-1 bg-transparent outline-none"
+            style={{ fontFamily: INTER, fontSize: 14, color: DARK }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              style={{ color: MID, fontSize: 16, lineHeight: 1, flexShrink: 0 }}
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <div className="px-5 pb-3 space-y-3">
-          <div className="max-w-4xl mx-auto space-y-3">
-            {/* Search bar */}
-            <div className="flex items-center gap-2 bg-accent/50 rounded-2xl px-3 py-2.5">
-              <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search wards, groups, events..."
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-              {query && (
-                <button onClick={() => setQuery("")} className="text-muted-foreground text-xs">✕</button>
-              )}
-            </div>
 
-            {/* Chips — only show when not searching */}
-            {!isSearching && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveChip("wards")}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                    activeChip === "wards"
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-white text-foreground border-[#BBBBBB]"
-                  }`}
-                >
-                  Wards
-                </button>
-                <button
-                  onClick={() => setActiveChip("groups")}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                    activeChip === "groups"
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-white text-foreground border-[#BBBBBB]"
-                  }`}
-                >
-                  Popular Groups
-                </button>
-              </div>
-            )}
+        {/* ── Browse chips (no query) ──────────────────────────────────── */}
+        {!isSearching && (
+          <div className="flex gap-2" style={{ marginBottom: 20 }}>
+            <Chip id="wards"  label="Wards" />
+            <Chip id="groups" label="Popular Groups" />
           </div>
-        </div>
-      </div>
+        )}
 
-      <main className="flex-1 px-5 py-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-
-        {/* ── Browse mode (no query) ── */}
+        {/* ── Browse: Wards ────────────────────────────────────────────── */}
         {!isSearching && activeChip === "wards" && (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {WARDS.map((ward) => (
-              <button
+              <RowCard
                 key={ward.id}
                 onClick={() => navigate(`/group/${ward.id}`)}
-                className="w-full flex items-center gap-3 bg-card rounded-2xl p-4 hover:shadow-md transition-shadow text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0 overflow-hidden">
-                  {wardAvatars[ward.id] && (
-                    <img src={wardAvatars[ward.id]!} alt={ward.name} className="w-full h-full object-cover" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{ward.name}</p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <MapPin className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{ward.address}</span>
-                  </div>
-                </div>
-              </button>
+                left={<AvatarCircle src={wardAvatars[ward.id]} icon={<Users style={{ width: 18, height: 18, color: MID }} />} />}
+                title={ward.name}
+                sub1={
+                  <MetaRow
+                    icon={<MapPin style={{ width: 12, height: 12, color: MID, flexShrink: 0 }} />}
+                    text={ward.address}
+                  />
+                }
+              />
             ))}
           </div>
         )}
 
+        {/* ── Browse: Groups ───────────────────────────────────────────── */}
         {!isSearching && activeChip === "groups" && (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {GROUPS.map((group) => (
-              <div
+              <RowCard
                 key={group.id}
-                className="flex items-center gap-3 bg-card rounded-2xl p-4"
-              >
-                <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{group.name}</p>
-                  <p className="text-xs text-muted-foreground">{group.description}</p>
-                </div>
-              </div>
+                onClick={() => {}}
+                left={<AvatarCircle icon={<Users style={{ width: 18, height: 18, color: MID }} />} />}
+                title={group.name}
+                sub1={<MetaText>{group.description}</MetaText>}
+              />
             ))}
           </div>
         )}
 
-        {/* ── Search results mode ── */}
+        {/* ── Search results ───────────────────────────────────────────── */}
         {isSearching && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
 
-            {/* Wards results */}
+            {/* Wards */}
             {filteredWards.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Wards</p>
-                {filteredWards.map((ward) => (
-                  <button
-                    key={ward.id}
-                    onClick={() => navigate(`/group/${ward.id}`)}
-                    className="w-full flex items-center gap-3 bg-card rounded-2xl p-4 hover:shadow-md transition-shadow text-left"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{ward.name}</p>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <MapPin className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{ward.address}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+              <div>
+                <SectionLabel>Wards</SectionLabel>
+                <div className="flex flex-col gap-2">
+                  {filteredWards.map((ward) => (
+                    <RowCard
+                      key={ward.id}
+                      onClick={() => navigate(`/group/${ward.id}`)}
+                      left={<AvatarCircle src={wardAvatars[ward.id]} icon={<Users style={{ width: 18, height: 18, color: MID }} />} />}
+                      title={ward.name}
+                      sub1={
+                        <MetaRow
+                          icon={<MapPin style={{ width: 12, height: 12, color: MID, flexShrink: 0 }} />}
+                          text={ward.address}
+                        />
+                      }
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Groups results */}
+            {/* Groups */}
             {filteredGroups.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Groups</p>
-                {filteredGroups.map((group) => (
-                  <div key={group.id} className="flex items-center gap-3 bg-card rounded-2xl p-4">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{group.name}</p>
-                      <p className="text-xs text-muted-foreground">{group.description}</p>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <SectionLabel>Groups</SectionLabel>
+                <div className="flex flex-col gap-2">
+                  {filteredGroups.map((group) => (
+                    <RowCard
+                      key={group.id}
+                      onClick={() => {}}
+                      left={<AvatarCircle icon={<Users style={{ width: 18, height: 18, color: MID }} />} />}
+                      title={group.name}
+                      sub1={<MetaText>{group.description}</MetaText>}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Events results */}
+            {/* Events */}
             {searching ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Searching...</p>
+              <p style={{ fontFamily: INTER, fontSize: 14, color: MID, textAlign: "center", paddingTop: 16 }}>
+                Searching…
+              </p>
             ) : eventResults.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Events</p>
-                {eventResults.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => navigate(`/event/${event.id}`)}
-                    className="w-full flex items-center gap-3 bg-card rounded-2xl p-3 hover:shadow-md transition-shadow text-left"
-                  >
-                    {event.image_url ? (
-                      <img src={event.image_url} alt={event.title} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-secondary flex-shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-tight line-clamp-2" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>{event.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{formatDate(event.date)}</p>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{event.location}</span>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
+              <div>
+                <SectionLabel>Events</SectionLabel>
+                <div className="flex flex-col gap-2">
+                  {eventResults.map((event) => (
+                    <RowCard
+                      key={event.id}
+                      onClick={() => navigate(`/event/${event.id}`)}
+                      left={
+                        event.image_url
+                          ? <img src={event.image_url} alt={event.title}
+                              style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
+                          : <div style={{ width: 56, height: 56, borderRadius: 10, background: ICON_BG, flexShrink: 0 }} />
+                      }
+                      title={event.title}
+                      sub1={
+                        <p style={{ fontFamily: INTER, fontSize: 12, color: GREEN, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          {formatDate(event.date)}
+                        </p>
+                      }
+                      sub2={event.location
+                        ? <MetaRow
+                            icon={<MapPin style={{ width: 12, height: 12, color: MID, flexShrink: 0 }} />}
+                            text={event.location}
+                          />
+                        : undefined
+                      }
+                    />
+                  ))}
+                </div>
               </div>
             ) : null}
 
-            {/* No results at all */}
+            {/* No results */}
             {!searching && filteredWards.length === 0 && filteredGroups.length === 0 && eventResults.length === 0 && (
-              <div className="text-center py-16 space-y-2">
-                <p className="text-base font-medium">No results for "{query}"</p>
-                <p className="text-sm text-muted-foreground">Try a different keyword</p>
+              <div style={{ textAlign: "center", paddingTop: 64 }}>
+                <p style={{ fontFamily: CORMORANT, fontSize: 22, color: DARK, fontWeight: 600, marginBottom: 6 }}>
+                  No results for "{query}"
+                </p>
+                <p style={{ fontFamily: INTER, fontSize: 14, color: MID }}>Try a different keyword</p>
               </div>
             )}
           </div>
         )}
-        </div>
-      </main>
+
+      </div>
     </div>
   );
 };

@@ -1,10 +1,12 @@
+import { CE_BG,CE_SURFACE , CE_ERROR} from '../tokens';
 import {
-  Balloon, Church, HeartHandshake, Sparkles, Search, PizzaIcon, Video, Presentation } from "lucide-react";
+  Church, Search, Video, Presentation, Bell, MapPin,
+  LandPlot, HandPlatter, HeartHandshake, Sparkles, ChevronDown, Heart,
+  ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 import ChallengeCard from "@/components/ChallengeCard";
 import OOTDCard from "@/components/OOTDCard";
-import VideoBackground from "@/components/VideoBackground";
 
 import { useLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/lib/supabase";
@@ -40,27 +42,212 @@ type Event = {
   community_id?: string | null;
 };
 
-const filterChips = [
-  { id: "all", label: "All", icon: null },
-  { id: "conference", label: "Conference", icon: Presentation },
-  { id: "spiritual", label: "Spiritual", icon: Church },
-  { id: "fhe", label: "FHE", icon: Balloon },
-  { id: "food", label: "Provide Food", icon: PizzaIcon },
-  { id: "popular", label: "Popular", icon: Sparkles },
-  { id: "service", label: "Service", icon: HeartHandshake },
-  { id: "virtual", label: "Virtual", icon: Video },
+// ── Design tokens ──────────────────────────────────────────────────────────
+const DARK     = "#2C2523";
+const MID      = "#635C59";
+const TEAL     = "#1F4E5B";
+const CORMORANT = "'Cormorant Garamond', Georgia, serif";
+const INTER     = "'Inter', sans-serif";
 
+// ── TZ helper (shared with GoingCard) ──────────────────────────────────────
+const TZ_ABBR: Record<string, string> = {
+  "America/Los_Angeles": "PT", "America/Denver": "MT",
+  "America/Phoenix": "MT",     "America/Chicago": "CT",
+  "America/New_York": "ET",    "America/Anchorage": "AKT",
+  "Pacific/Honolulu": "HT",
+};
+
+// ── GoingCard ───────────────────────────────────────────────────────────────
+const GoingCard = ({
+  event,
+  isSaved,
+  onToggleSave,
+  onNavigate,
+  cardWidth,
+}: {
+  event: any;
+  isSaved: boolean;
+  onToggleSave: (id: string, e: React.MouseEvent) => void;
+  onNavigate: (id: string) => void;
+  cardWidth?: number;
+}) => {
+  const t = event.start_time ?? event.time;
+
+  // Date + time label
+  const dateLabel = (() => {
+    const [y, m, d] = event.date.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+    const month   = date.toLocaleDateString("en-US", { month: "short" });
+    const datePart = `${weekday}, ${month} ${date.getDate()}`;
+    if (!t) return datePart;
+    const h = parseInt(t.split(":")[0]);
+    const min = t.split(":")[1];
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    const tzAbbr = event.timezone ? (TZ_ABBR[event.timezone] ?? "") : "";
+    const timePart = tzAbbr ? `${hour}:${min} ${ampm} ${tzAbbr}` : `${hour}:${min} ${ampm}`;
+    return `${datePart} · ${timePart}`;
+  })();
+
+  // Duration chip label — prefer stored field, else compute from times, else "Full Day"
+  const durationLabel = (() => {
+    if (event.duration) return event.duration;
+    const start = event.start_time ?? event.time;
+    const end   = event.end_time;
+    if (start && end) {
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (mins <= 0) return null;
+      const hrs = Math.floor(mins / 60);
+      const rem = mins % 60;
+      if (hrs === 0) return `${rem} min`;
+      if (rem === 0) return hrs === 1 ? "1 hr" : `${hrs} hrs`;
+      return `${hrs}h ${rem}m`;
+    }
+    if (!start) return "Full Day";
+    return null;
+  })();
+
+  return (
+    <>
+    <style>{`
+      @media (min-width: 768px) {
+        .going-card:hover .going-card-img { transform: scale(1.08); }
+      }
+      .going-card-img {
+        transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+    `}</style>
+    <div
+      onClick={() => onNavigate(event.id)}
+      className="going-card cursor-pointer transition-opacity hover:opacity-90 flex-shrink-0"
+      style={{
+        width: cardWidth ?? "65vw", maxWidth: cardWidth ?? 280,
+        display: "flex", flexDirection: "column",
+        background: "white",
+        border: "1px solid #E4DCCF",
+        borderRadius: 24,
+        overflow: "hidden",
+      }}
+    >
+      {/* Image */}
+      <div style={{ height: 160, flexShrink: 0, overflow: "hidden" }}>
+        {event.image_url ? (
+          <img src={event.image_url} alt={event.title} className="going-card-img" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "#E4DCCF" }} />
+        )}
+      </div>
+
+      {/* Content — flex:1 so it fills remaining height, space-between pins footer */}
+      <div style={{
+        padding: 16,
+        display: "flex", flexDirection: "column",
+        flex: 1,
+        justifyContent: "space-between",
+      }}>
+        {/* Info */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: TEAL, lineHeight: 1.4 }}>
+            {dateLabel}
+          </p>
+          <p style={{
+            fontFamily: INTER, fontSize: 18, fontWeight: 700, color: DARK, lineHeight: 1.2,
+            overflow: "hidden", display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+          }}>
+            {event.title}
+          </p>
+          {event.location && (
+            <p style={{ fontFamily: INTER, fontSize: 12, fontWeight: 400, color: MID, lineHeight: 1.4 }}>
+              {event.location}
+            </p>
+          )}
+        </div>
+
+        {/* Footer — always at bottom */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+          {durationLabel ? (
+            <div style={{ background: CE_SURFACE, borderRadius: 100, padding: "4px 10px" }}>
+              <span style={{ fontFamily: INTER, fontSize: 11, fontWeight: 500, color: MID, whiteSpace: "nowrap" }}>
+                {durationLabel}
+              </span>
+            </div>
+          ) : <div />}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 400, color: MID, whiteSpace: "nowrap" }}>
+              {event.attendees ?? 0} going
+            </span>
+            <button
+              onClick={(e) => onToggleSave(event.id, e)}
+              className="transition-opacity hover:opacity-80 flex items-center justify-center"
+              style={{
+                width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                background: isSaved ? TEAL : CE_SURFACE,
+              }}
+            >
+              <Heart
+                className="h-4 w-4"
+                style={{ color: isSaved ? "white" : MID }}
+                fill={isSaved ? "white" : "none"}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </>
+  );
+};
+
+const filterChips = [
+  { id: "all",        label: "All",          icon: null           },
+  { id: "conference", label: "Conference",   icon: Presentation   },
+  { id: "spiritual",  label: "Spiritual",    icon: Church         },
+  { id: "fhe",        label: "FHE",          icon: LandPlot       },
+  { id: "food",       label: "Provide Food", icon: HandPlatter    },
+  { id: "popular",    label: "Popular",      icon: Sparkles       },
+  { id: "service",    label: "Service",      icon: HeartHandshake },
+  { id: "virtual",    label: "Virtual",      icon: Video          },
 ];
 
 const Wards = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("read", false)
+      .then(({ count }) => setHasUnread((count ?? 0) > 0));
+  }, [userId]);
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [stepChallengeJoined, setStepChallengeJoined] = useState(false);
-  const isLoggedIn = true;
+  const [goingEvents, setGoingEvents] = useState<any[]>([]);
+  const [goingCardW, setGoingCardW] = useState(0);
+  const [goingNeedsLoop, setGoingNeedsLoop] = useState(false);
+  const goingContainerRef = useRef<HTMLDivElement>(null);
+  const goingScrollRef = useRef<HTMLDivElement>(null);
+  const goingPausedRef = useRef(false);
+  const goingAnimRef = useRef<number | null>(null);
+  const goingNeedsLoopRef = useRef(false);
+  const goingBehindStickyRef = useRef(false); // true when section has scrolled under the sticky header
+  const goingLeftFadeRef = useRef<HTMLDivElement>(null);
+  const goingRightFadeRef = useRef<HTMLDivElement>(null);
+  const goingLeftChevRef = useRef<HTMLButtonElement>(null);
+  const goingRightChevRef = useRef<HTMLButtonElement>(null);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation, locationLat, locationLng } = useLocation();
@@ -162,6 +349,24 @@ const Wards = () => {
       });
   }, [userId]);
 
+  // Fetch user's upcoming going events for "You're going" section
+  useEffect(() => {
+    if (!userId) { setGoingEvents([]); return; }
+    supabase
+      .from("rsvps")
+      .select("events(*)")
+      .eq("user_id", userId)
+      .eq("status", "going")
+      .then(({ data }) => {
+        const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
+        const toLocal = (d: string) => { const [y,m,day] = d.split("-").map(Number); return new Date(y,m-1,day); };
+        const upcoming = (data ?? [])
+          .map((r: any) => r.events)
+          .filter((e: any) => e && toLocal(e.date) >= todayDate);
+        setGoingEvents(upcoming);
+      });
+  }, [userId]);
+
   const toggleSaved = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!userId) { toast.error("Please log in to save events"); return; }
@@ -240,6 +445,9 @@ const Wards = () => {
     }
     if (activeFilter === "virtual") {
       result = result.filter((e) => e.virtual_link);
+    }
+    if (activeFilter === "popular") {
+      return result.sort((a, b) => (b.attendees ?? 0) - (a.attendees ?? 0));
     }
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
@@ -326,69 +534,330 @@ const Wards = () => {
 
   const { thisWeek, nextWeek, later } = groupEventsByTime(filteredEvents);
 
-  return (
-    <div className="relative flex min-h-screen flex-col pb-20">
+  // ── Going carousel helpers ───────────────────────────────────────────────
+  const updateGoingUI = () => {
+    if (window.innerWidth < 768) return; // mobile: native scroll only, no overlays
+    const el = goingScrollRef.current;
+    if (!el) return;
+    const atStart    = el.scrollLeft <= 4;
+    const overflows  = el.scrollWidth > el.clientWidth + 4;
+    const atEnd      = el.scrollLeft >= el.scrollWidth - el.clientWidth - 4;
+    const behindSticky = goingBehindStickyRef.current;
 
-      {/* ── Fixed video background ── */}
-      <VideoBackground />
+    // fades — always visible based only on scroll position, never hidden by sticky header
+    if (goingLeftFadeRef.current)
+      goingLeftFadeRef.current.style.opacity = atStart ? "0" : "1";
+    if (goingRightFadeRef.current)
+      goingRightFadeRef.current.style.opacity = (!overflows || atEnd) ? "0" : "1";
+
+    // chevrons: hide when no content to scroll, OR when behind sticky header
+    const leftVisible  = !atStart  && !behindSticky;
+    const rightVisible = !atEnd && overflows && !behindSticky;
+    if (goingLeftChevRef.current) {
+      goingLeftChevRef.current.style.opacity       = leftVisible  ? "1" : "0";
+      goingLeftChevRef.current.style.pointerEvents = leftVisible  ? "auto" : "none";
+    }
+    if (goingRightChevRef.current) {
+      goingRightChevRef.current.style.opacity       = rightVisible ? "1" : "0";
+      goingRightChevRef.current.style.pointerEvents = rightVisible ? "auto" : "none";
+    }
+  };
+
+  const scrollGoing = (dir: "left" | "right") => {
+    const el = goingScrollRef.current;
+    if (!el || !goingCardW) return;
+    goingPausedRef.current = true;
+    el.scrollBy({ left: dir === "right" ? goingCardW + 16 : -(goingCardW + 16), behavior: "smooth" });
+    setTimeout(() => { updateGoingUI(); goingPausedRef.current = false; }, 650);
+  };
+
+  // Measure container → card width + detect if looping is needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const measure = () => {
+      if (window.innerWidth < 768) { setGoingCardW(0); setGoingNeedsLoop(false); goingNeedsLoopRef.current = false; return; }
+      const el = goingContainerRef.current;
+      if (!el) return;
+      const w = 280; // fixed card width so cards always overflow on desktop
+      setGoingCardW(w);
+      // Total natural width of one set of cards
+      const totalW   = goingEvents.length * w + Math.max(0, goingEvents.length - 1) * 16;
+      const needsLoop = totalW > el.offsetWidth + 4;
+      setGoingNeedsLoop(needsLoop);
+      goingNeedsLoopRef.current = needsLoop;
+      setTimeout(updateGoingUI, 80);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [goingEvents.length]);
+
+  // Auto-scroll marquee — desktop only, seamless loop via card duplication
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (window.innerWidth < 768) return;
+    const el = goingScrollRef.current;
+    if (!el) return;
+
+    let accum = 0;
+    const SPEED = 0.45; // px per frame ≈ 27px/s
+
+    const tick = () => {
+      if (!goingPausedRef.current && el.scrollWidth > el.clientWidth + 4) {
+        accum += SPEED;
+        if (accum >= 1) {
+          const px = Math.floor(accum);
+          accum -= px;
+          el.scrollLeft += px;
+          // Seamless loop: silently jump back when we've scrolled through the first copy
+          if (goingNeedsLoopRef.current && el.scrollLeft >= el.scrollWidth / 2) {
+            el.scrollLeft -= el.scrollWidth / 2;
+          }
+          updateGoingUI();
+        }
+      }
+      goingAnimRef.current = requestAnimationFrame(tick);
+    };
+
+    goingAnimRef.current = requestAnimationFrame(tick);
+    return () => { if (goingAnimRef.current) cancelAnimationFrame(goingAnimRef.current); };
+  }, [goingCardW]);
+
+  // Track whether the carousel is scrolled behind the sticky header.
+  // We set a ref (goingBehindStickyRef) and call updateGoingUI — the animation
+  // loop also calls updateGoingUI every frame, so the ref value is always picked
+  // up correctly without fighting against the loop.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (window.innerWidth < 768) return;
+    const STICKY_H = 130; // sticky header height (title row + filter chips)
+
+    const check = () => {
+      const container = goingContainerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      // Hide chevrons only when their midpoint (center of container) passes the filter chips
+      const chevronY = rect.top + rect.height / 2;
+      const behind = chevronY < STICKY_H;
+      if (goingBehindStickyRef.current !== behind) {
+        goingBehindStickyRef.current = behind;
+        updateGoingUI();
+      }
+    };
+
+    window.addEventListener("scroll", check, { passive: true });
+    check(); // run once on mount in case page is already scrolled
+    return () => window.removeEventListener("scroll", check);
+  }, [goingCardW]);
+
+  return (
+    <div className="relative flex min-h-screen flex-col pb-20" style={{ background: CE_BG }}>
+      <style>{`
+        @keyframes bell-ring {
+          0%   { transform: rotate(0deg);   transform-origin: 50% 4px; }
+          8%   { transform: rotate(22deg);  transform-origin: 50% 4px; }
+          16%  { transform: rotate(-20deg); transform-origin: 50% 4px; }
+          24%  { transform: rotate(15deg);  transform-origin: 50% 4px; }
+          32%  { transform: rotate(-12deg); transform-origin: 50% 4px; }
+          40%  { transform: rotate(7deg);   transform-origin: 50% 4px; }
+          48%  { transform: rotate(0deg);   transform-origin: 50% 4px; }
+          100% { transform: rotate(0deg);   transform-origin: 50% 4px; }
+        }
+        .bell-ring {
+          animation: bell-ring 6.5s ease-in-out infinite;
+          display: block;
+        }
+      `}</style>
 
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10 relative">
-        <div
-          className="absolute inset-0 -z-10 bg-white/[0.96] backdrop-blur-sm md:backdrop-blur-md md:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)] md:[mask-image:linear-gradient(to_right,transparent_0%,transparent_25%,black_40%,black_60%,transparent_75%,transparent_100%)]"
-        />
-        <div className="px-3 py-3">
-          <div className="flex items-center justify-center max-w-4xl mx-auto relative">
-            <img src="/BeyondSundayLogo.png" alt="Beyond Sunday" className="md:hidden absolute left-0 h-10 w-auto object-contain" />
-            <LocationSelector value={location} onChange={setLocation} />
+      <div className="sticky top-0 z-10" style={{ background: CE_BG }}>
+
+        {/* Title row — city name is the location trigger */}
+        <div className="flex items-center justify-between px-5 md:px-3 pt-6 pb-4 max-w-6xl mx-auto">
+          <div className="relative">
+            <button
+              onClick={() => setLocationOpen((v) => !v)}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
+              aria-label="Change location"
+            >
+              <h1 style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
+                {cityName || "Events"}
+              </h1>
+              <ChevronDown className="h-5 w-5 mt-1" style={{ color: DARK }} />
+            </button>
+            <LocationSelector
+              value={location}
+              onChange={setLocation}
+              open={locationOpen}
+              onOpenChange={setLocationOpen}
+              dropdownAlign="left"
+            />
+          </div>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/search")}
-              className="md:hidden absolute right-0 p-2 hover:bg-accent rounded-full transition-colors"
+              className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+              style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
+              aria-label="Search"
             >
-              <Search className="h-5 w-5 text-foreground" />
+              <Search className="h-[18px] w-[18px]" style={{ color: DARK }} />
+            </button>
+            <button
+              onClick={() => { setHasUnread(false); navigate("/notifications"); }}
+              className="relative flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+              style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
+              aria-label="Notifications"
+            >
+              <Bell
+                className={`h-[18px] w-[18px]${hasUnread ? " bell-ring" : ""}`}
+                style={{ color: hasUnread ? "rgb(31, 78, 91)" : DARK, fill: hasUnread ? "rgb(31, 78, 91)" : "none" }}
+              />
+              {hasUnread && (
+                <span
+                  className="absolute"
+                  style={{ top: 6, right: 6, width: 11, height: 11, borderRadius: "50%", background: CE_ERROR, border: "2px solid rgb(31, 78, 91)" }}
+                />
+              )}
+            </button>
+            <button
+              onClick={() => navigate("/create-event")}
+              className="hidden md:flex items-center gap-1.5 transition-opacity hover:opacity-70"
+              style={{ height: 36, padding: "0 16px", borderRadius: 999, background: TEAL, border: "none", cursor: "pointer" }}
+            >
+              <span style={{ color: CE_BG, fontSize: 24, lineHeight: 1, marginTop: -1 }}>+</span>
+              <span style={{ color: CE_BG, fontSize: 13, fontWeight: 600, fontFamily: INTER }}>Create Event</span>
             </button>
           </div>
         </div>
 
         {/* Filter chips */}
         <div className="pb-3">
-          <div className="max-w-4xl mx-auto px-5 md:px-0">
-            <div
-              className="flex md:justify-center gap-2 overflow-x-auto -mr-5 pr-10 md:mr-0 md:pr-0"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {filterChips.map((chip) => {
-                const Icon = chip.icon;
-                return (
-                  <button
-                    key={chip.id}
-                    onClick={() => setActiveFilter(chip.id)}
-                    className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                      activeFilter === chip.id
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-white text-foreground border-[#BBBBBB] hover:bg-gray-50"
-                    }`}
-                  >
-                    {Icon && <Icon className="h-3.5 w-3.5" />}
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div
+            className="flex gap-2 overflow-x-auto px-5 md:px-3 max-w-6xl mx-auto"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {filterChips.map((chip) => {
+              const Icon = chip.icon;
+              const active = activeFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveFilter(chip.id)}
+                  className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
+                  style={{
+                    padding: "8px 16px",
+                    fontFamily: INTER,
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 500,
+                    ...(active
+                      ? { background: TEAL, color: CE_BG, border: "none" }
+                      : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
+                  }}
+                >
+                  {Icon && <Icon className="h-3.5 w-3.5" />}
+                  {chip.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* ── Main content ── */}
-      <main className="flex-1 px-5 py-4">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <main className="flex-1 px-5 md:px-3 py-4">
+        <div className="max-w-6xl mx-auto space-y-8">
+
+          {/* ── You're going ── */}
+          {goingEvents.length > 0 && (
+            <div className="space-y-3">
+              <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+                You're going
+              </h2>
+              <div ref={goingContainerRef} style={{ position: "relative" }}>
+                {/* Left edge fade — desktop only, ref-controlled opacity */}
+                <div
+                  ref={goingLeftFadeRef}
+                  className="hidden md:block"
+                  style={{
+                    position: "absolute", left: 0, top: 0, bottom: 0, width: 120,
+                    background: `linear-gradient(to right, ${CE_BG} 0%, ${CE_BG} 35%, transparent 100%)`,
+                    pointerEvents: "none", zIndex: 5,
+                    opacity: 0, transition: "opacity 0.4s ease",
+                  }}
+                />
+                {/* Right edge fade — desktop only */}
+                <div
+                  ref={goingRightFadeRef}
+                  className="hidden md:block"
+                  style={{
+                    position: "absolute", right: 0, top: 0, bottom: 0, width: 120,
+                    background: `linear-gradient(to left, ${CE_BG} 0%, ${CE_BG} 35%, transparent 100%)`,
+                    pointerEvents: "none", zIndex: 5,
+                    opacity: 0, transition: "opacity 0.4s ease",
+                  }}
+                />
+                {/* Left chevron — desktop only, opacity-controlled */}
+                <button
+                  ref={goingLeftChevRef}
+                  onClick={() => scrollGoing("left")}
+                  className="hidden md:flex items-center justify-center"
+                  style={{
+                    opacity: 0, pointerEvents: "none",
+                    transition: "opacity 0.25s ease",
+                    position: "absolute", left: -20, top: "50%", transform: "translateY(-50%)",
+                    zIndex: 10, width: 40, height: 40, borderRadius: "50%",
+                    background: "white", border: "none", cursor: "pointer",
+                    boxShadow: "0 2px 18px rgba(0,0,0,0.11), 0 1px 4px rgba(0,0,0,0.07)",
+                  }}
+                >
+                  <ChevronLeft size={18} color={DARK} strokeWidth={2} />
+                </button>
+                {/* Right chevron — desktop only */}
+                <button
+                  ref={goingRightChevRef}
+                  onClick={() => scrollGoing("right")}
+                  className="hidden md:flex items-center justify-center"
+                  style={{
+                    opacity: 0, pointerEvents: "none",
+                    transition: "opacity 0.25s ease",
+                    position: "absolute", right: -20, top: "50%", transform: "translateY(-50%)",
+                    zIndex: 10, width: 40, height: 40, borderRadius: "50%",
+                    background: "white", border: "none", cursor: "pointer",
+                    boxShadow: "0 2px 18px rgba(0,0,0,0.11), 0 1px 4px rgba(0,0,0,0.07)",
+                  }}
+                >
+                  <ChevronRight size={18} color={DARK} strokeWidth={2} />
+                </button>
+                {/* Scrollable card strip */}
+                <div
+                  ref={goingScrollRef}
+                  onScroll={updateGoingUI}
+                  onMouseEnter={() => { goingPausedRef.current = true; }}
+                  onMouseLeave={() => { goingPausedRef.current = false; }}
+                  className="flex gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" as any, alignItems: "stretch" }}
+                >
+                  {(goingNeedsLoop ? [...goingEvents, ...goingEvents] : goingEvents).map((event, idx) => (
+                    <GoingCard
+                      key={`going-${idx}-${event.id}`}
+                      event={event}
+                      isSaved={savedEvents.has(event.id)}
+                      onToggleSave={toggleSaved}
+                      onNavigate={(id) => navigate(`/event/${id}`)}
+                      cardWidth={goingCardW || undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Challenge Card */}
           {isLoggedIn && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Weekly Challenge</h2>
-              </div>
+              <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+                Weekly Challenge
+              </h2>
               <div
                 className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
@@ -405,7 +874,7 @@ const Wards = () => {
                 <div key={label as string} className="space-y-3">
                   <div className="sk h-5 w-24" />
                   <div
-                    className="flex gap-4 overflow-x-auto -mx-5 px-5 md:grid md:grid-cols-4 md:mx-0 md:px-0"
+                    className="flex gap-4 overflow-x-auto -mx-5 px-5 md:grid md:grid-cols-4 lg:grid-cols-5 md:mx-0 md:px-0"
                     style={{ scrollbarWidth: "none" }}
                   >
                     {Array.from({ length: count as number }).map((_, i) => (
@@ -426,7 +895,7 @@ const Wards = () => {
               {/* This Week */}
               <div className="space-y-3" ref={thisWeekRef}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>This Week</h2>
+                  <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>This Week</h2>
                   {isLoggedIn && (
                     <button
                       onClick={() => {
@@ -448,7 +917,7 @@ const Wards = () => {
                   )}
                 </div>
                 {thisWeek.length > 0 ? (
-                  <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                  <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     {thisWeek.map((event) => (
                       <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
                     ))}
@@ -468,9 +937,9 @@ const Wards = () => {
 
               {/* Next Week */}
 <div className="space-y-3" ref={nextWeekRef}>
-  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Next Week</h2>
+  <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>Next Week</h2>
   {nextWeek.length > 0 ? (
-    <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+    <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       {nextWeek.map((event) => (
         <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
       ))}
@@ -482,13 +951,13 @@ const Wards = () => {
 
               {/* Later */}
 <div className="space-y-3 mt-8" ref={laterRef}>
-  <h2 className="text-base font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>Later</h2>
+  <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>Later</h2>
   {later.filter(e => !e.is_recurring).length > 0 ? (
     <div className="space-y-6">
       {Object.entries(groupByMonth([...later.filter(e => !e.is_recurring)].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))).map(([month, evts]) => (
         <div key={month} className="space-y-3" ref={(el) => { monthRefs.current[month] = el; }}>
           <h3 className="text-sm font-semibold text-muted-foreground">{month}</h3>
-          <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {evts.map((event) => (
               <div key={event.id} data-event-id={event.id}><EventCard event={event} creatorWard={creatorWards[event.user_id]} communityName={event.community_id ? communityNames[event.community_id] : undefined} communityAvatar={event.community_id ? communityAvatars[event.community_id] : undefined} communityId={event.community_id ?? null} isSaved={savedEvents.has(event.id)} onToggleSave={toggleSaved} /></div>
             ))}

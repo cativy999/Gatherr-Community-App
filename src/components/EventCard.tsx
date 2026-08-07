@@ -74,7 +74,7 @@ const stateFromCoords = (lat: number, lng: number): string | null => {
   return null;
 };
 
-const getRegionTag = (
+export const getRegionTag = (
   location: string | null | undefined,
   lat: number | null | undefined,
   lng: number | null | undefined
@@ -147,6 +147,7 @@ const getInitialColor = (name: string) => {
 const EventCard = ({ event, creatorWard, communityName, communityAvatar, communityId, isSaved = false, onToggleSave }: EventCardProps) => {
   const navigate = useNavigate();
   const [attendeeAvatars, setAttendeeAvatars] = useState<{url: string | null; name: string}[]>([]);
+  const regionTag = getRegionTag(event.location, event.lat, event.lng);
 
   const foodIconMap: Record<string, any> = {
     pizza: Pizza,
@@ -219,17 +220,32 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
   const timeAndDuration = [timePart, durationPart].filter(Boolean).join(" · ");
 
   return (
+    <>
+    <style>{`
+      @media (min-width: 768px) {
+        .ec-img-wrap:hover .ec-img {
+          transform: scale(1.08);
+        }
+        }
+      .ec-img {
+        transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+    `}</style>
     <div
       onClick={() => navigate(`/event/${event.id}`)}
       className="bg-transparent rounded-2xl cursor-pointer flex-shrink-0 min-w-0 w-[65vw] md:w-full select-none"
       style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {/* Image */}
-      <div className="relative">
+      <div className="ec-img-wrap relative overflow-hidden rounded-2xl">
         {event.image_url ? (
-          <img src={event.image_url} alt={event.title} className="w-full h-44 object-cover rounded-2xl" />
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="ec-img w-full h-44 object-cover"
+          />
         ) : (
-          <div className="w-full h-44 bg-secondary rounded-2xl flex items-center justify-center">
+          <div className="w-full h-44 bg-secondary flex items-center justify-center">
             <span className="text-xs text-muted-foreground">No image</span>
           </div>
         )}
@@ -261,15 +277,6 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
         )}
 
 
-        {/* Region tag bottom right */}
-        {(() => {
-          const tag = getRegionTag(event.location, event.lat, event.lng);
-          return tag ? (
-            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm">
-              <span className="text-white text-[10px] font-bold tracking-wide">{tag}</span>
-            </div>
-          ) : null;
-        })()}
 
         {/* Heart top right */}
         <button
@@ -332,6 +339,7 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
 
       </div>
     </div>
+    </>
   );
 };
 

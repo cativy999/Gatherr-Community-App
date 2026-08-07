@@ -1,3 +1,4 @@
+import { CE_BG } from '../tokens';
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -57,7 +58,7 @@ const LogSteps = () => {
   return (
     <div
       style={{
-        background: "#f4f0e6",
+        background: CE_BG,
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
