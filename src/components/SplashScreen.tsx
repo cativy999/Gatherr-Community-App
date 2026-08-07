@@ -29,23 +29,19 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "#ffffff",
+        background: "#FAF6F0",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        paddingBottom: "22%",
+        paddingBottom: "20%",
         opacity: exiting ? 0 : 1,
         transition: `opacity ${EXIT_MS}ms ease`,
       }}
     >
       <img
-        src="/spashscreen.png"
+        src="/Icon Large.png"
         alt="Beyond Sunday"
-        style={{
-          width: 120,
-          height: 120,
-          borderRadius: 28,
-        }}
+        style={{ width: 135, height: "auto" }}
       />
     </div>
   );
