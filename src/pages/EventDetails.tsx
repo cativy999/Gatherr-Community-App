@@ -219,10 +219,11 @@ const EventDetails = () => {
     descCheckTimerRef.current = setTimeout(() => {
       const desktopEl = descContainerDesktopRef.current;
       const mobileEl  = descContainerMobileRef.current;
-      // Pick whichever is currently visible (not display:none)
-      const el = (desktopEl && desktopEl.offsetHeight > 0) ? desktopEl
-               : (mobileEl  && mobileEl.offsetHeight  > 0) ? mobileEl
-               : null;
+      // Use viewport width to select the correct container — more reliable than
+      // offsetHeight which can be 0 mid-layout or when display:none hasn't
+      // propagated yet.
+      const isMobile = window.innerWidth < 768;
+      const el = isMobile ? (mobileEl ?? desktopEl) : (desktopEl ?? mobileEl);
       if (!el) return;
       // Always compare against the collapsed height (9rem), not current height —
       // otherwise when expanded, scrollHeight === offsetHeight → false negative.
@@ -235,12 +236,18 @@ const EventDetails = () => {
   // Fire when event description first loads (wait for fonts)
   useEffect(() => {
     if (!event?.description) return;
+    // Belt-and-suspenders: fire at 100ms, 500ms, and 1500ms to catch late
+    // font loads and async layout on mobile.
+    const t1 = window.setTimeout(() => scheduleDescCheck(0), 500);
+    const t2 = window.setTimeout(() => scheduleDescCheck(0), 1500);
     if (typeof document !== "undefined" && document.fonts?.ready) {
       document.fonts.ready.then(() => scheduleDescCheck(100));
     } else {
       scheduleDescCheck(250);
     }
     return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
       if (descCheckTimerRef.current) clearTimeout(descCheckTimerRef.current);
     };
   }, [event?.description, scheduleDescCheck]);
@@ -251,8 +258,10 @@ const EventDetails = () => {
     scheduleDescCheck(50);
   }, [windowWidth, scheduleDescCheck, event?.description]);
   const [showAllComments, setShowAllComments] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
-  const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const [shareMenuOpenMobile, setShareMenuOpenMobile] = useState(false);
+  const [shareMenuOpenDesktop, setShareMenuOpenDesktop] = useState(false);
+  const shareButtonMobileRef = useRef<HTMLButtonElement>(null);
+  const shareButtonDesktopRef = useRef<HTMLButtonElement>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replies, setReplies] = useState<Record<string, any[]>>({});
@@ -1235,8 +1244,8 @@ const EventDetails = () => {
             <>
               <div className="relative">
                 <button
-                  ref={shareButtonRef}
-                  onClick={() => setShareMenuOpen(prev => !prev)}
+                  ref={shareButtonMobileRef}
+                  onClick={() => setShareMenuOpenMobile(prev => !prev)}
                   className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
                   style={{ width: 36, height: 36, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)" }}
                 >
@@ -1245,9 +1254,9 @@ const EventDetails = () => {
                   </svg>
                 </button>
                 <ShareMenu
-                  open={shareMenuOpen}
-                  onClose={() => setShareMenuOpen(false)}
-                  triggerRef={shareButtonRef}
+                  open={shareMenuOpenMobile}
+                  onClose={() => setShareMenuOpenMobile(false)}
+                  triggerRef={shareButtonMobileRef}
                   items={[
                     { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
                     { label: "Share Link", onClick: () => navigator.share?.({ title: event.title, url: shareUrl }), hidden: !navigator.share },
@@ -2379,8 +2388,8 @@ const EventDetails = () => {
             <>
               <div className="relative">
                 <button
-                  ref={shareButtonRef}
-                  onClick={() => setShareMenuOpen(prev => !prev)}
+                  ref={shareButtonDesktopRef}
+                  onClick={() => setShareMenuOpenDesktop(prev => !prev)}
                   className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
                   style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
                 >
@@ -2388,7 +2397,7 @@ const EventDetails = () => {
                     <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                   </svg>
                 </button>
-                <ShareMenu open={shareMenuOpen} onClose={() => setShareMenuOpen(false)} triggerRef={shareButtonRef}
+                <ShareMenu open={shareMenuOpenDesktop} onClose={() => setShareMenuOpenDesktop(false)} triggerRef={shareButtonDesktopRef}
                   items={[
                     { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
                     { label: "Share Link", onClick: () => navigator.share?.({ title: event.title, url: shareUrl }), hidden: !navigator.share },
