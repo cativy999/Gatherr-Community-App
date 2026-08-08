@@ -131,7 +131,7 @@ const Welcome = () => {
       {/* Logo — centered, upper third */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: "30%" }}>
         <img
-          src="/Icon Large.png"
+          src="/icon-large.png"
           alt="Beyond Sunday"
           style={{ width: 135, height: "auto" }}
         />

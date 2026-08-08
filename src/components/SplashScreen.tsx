@@ -39,7 +39,7 @@ const SplashScreen = ({ onFinish }: SplashScreenProps) => {
       }}
     >
       <img
-        src="/Icon Large.png"
+        src="/icon-large.png"
         alt="Beyond Sunday"
         style={{ width: 135, height: "auto" }}
       />
