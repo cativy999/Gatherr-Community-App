@@ -224,7 +224,11 @@ const EventDetails = () => {
                : (mobileEl  && mobileEl.offsetHeight  > 0) ? mobileEl
                : null;
       if (!el) return;
-      setDescOverflows(el.scrollHeight > el.offsetHeight + 2);
+      // Always compare against the collapsed height (9rem), not current height —
+      // otherwise when expanded, scrollHeight === offsetHeight → false negative.
+      const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const collapsedPx = 9 * remPx;
+      setDescOverflows(el.scrollHeight > collapsedPx + 2);
     }, delay);
   }, []);
 
