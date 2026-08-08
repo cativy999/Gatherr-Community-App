@@ -128,17 +128,17 @@ const Welcome = () => {
         <MarqueeBanner />
       </div>
 
-      {/* Logo — centered, upper third */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: "30%" }}>
+      {/* All content centered as one group — logo + tagline + buttons */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 40px 40px" }}>
+        {/* Logo */}
         <img
           src="/icon-large.png"
           alt="Beyond Sunday"
-          style={{ width: 135, height: "auto" }}
+          style={{ width: 135, height: "auto", marginBottom: 56 }}
         />
-      </div>
 
-      {/* Bottom section — tagline + buttons */}
-      <div style={{ padding: "0 40px 56px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+      {/* Tagline + buttons */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, width: "100%", maxWidth: 307 }}>
         <p style={{
           fontFamily: "'Inter', sans-serif",
           fontSize: 14,
@@ -235,6 +235,7 @@ const Welcome = () => {
         >
           Skip for now
         </button>
+      </div>
       </div>
     </div>
   );
