@@ -1456,7 +1456,7 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
               {/* Header */}
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType(null); }}
+                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType("carpooling"); }}
                   className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
                   style={{ width: 40, height: 40, background: "#E4DCCF" }}
                 >
@@ -1566,7 +1566,7 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
               {/* Header */}
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType(null); }}
+                  onClick={() => { setModal(null); setRequestOpen(true); setNeedType("carpooling"); }}
                   className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
                   style={{ width: 40, height: 40, background: "#E4DCCF" }}
                 >
