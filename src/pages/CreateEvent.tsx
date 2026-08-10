@@ -1765,7 +1765,7 @@ const CreateEvent = () => {
       {/* Event Name */}
       <div>
         <FieldLabel required>Event Name</FieldLabel>
-        <input style={inputCls} placeholder="e.g. Community Picnic" value={title} maxLength={80}
+        <input className="ds-input" style={inputCls} placeholder="e.g. Community Picnic" value={title} maxLength={80}
           onChange={(e) => { const v = e.target.value; setTitle(v.charAt(0).toUpperCase() + v.slice(1)); }} />
         <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, textAlign: "right", marginTop: 4 }}>{title.length}/80</p>
       </div>
@@ -1873,7 +1873,7 @@ const CreateEvent = () => {
         <div style={{ position: "relative" }} ref={locationRef}>
           <div style={{ position: "relative" }}>
             <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: MID_W }} />
-            <input style={{ ...inputCls, paddingLeft: 40 }} placeholder="Search address or paste virtual link…"
+            <input className="ds-input" style={{ ...inputCls, paddingLeft: 40 }} placeholder="Search address or paste virtual link…"
               value={locationSearch || virtualLink}
               onChange={(e) => {
                 const v = e.target.value;
@@ -1936,6 +1936,7 @@ const CreateEvent = () => {
         <FieldLabel required>Description</FieldLabel>
         <div style={{ position: "relative" }}>
           <textarea ref={descriptionTextareaRef} placeholder="Tell people about your event…" maxLength={2000}
+            className="ds-input"
             style={{ width: "100%", minHeight: 160, borderRadius: 14, border: `1.5px solid ${DIV_W}`, background: "white", padding: "14px 16px", fontFamily: SANS_W, fontSize: 15, color: DARK_W, outline: "none", resize: isMobile ? "none" : "vertical", overflowY: "auto", overflowX: "hidden", boxSizing: "border-box" }}
             value={description}
             onChange={(e) => { const v = e.target.value; setDescription(v.charAt(0).toUpperCase() + v.slice(1)); }} />
@@ -2033,7 +2034,7 @@ const CreateEvent = () => {
         <FieldLabel>Social Link</FieldLabel>
         {socialLinks.map((link, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <input style={{ ...inputCls, flex: 1 }} type="url" placeholder="https://instagram.com/p/…"
+            <input className="ds-input" style={{ ...inputCls, flex: 1 }} type="url" placeholder="https://instagram.com/p/…"
               value={link} onChange={(e) => { const n=[...socialLinks]; n[i]=e.target.value; setSocialLinks(n); }} />
             {socialLinks.length > 1 && <button type="button" onClick={() => setSocialLinks(socialLinks.filter((_,j)=>j!==i))} style={{ background:"none",border:"none",cursor:"pointer",color:MID_W,flexShrink:0 }}><X style={{width:16,height:16}}/></button>}
           </div>
@@ -2350,9 +2351,9 @@ const CreateEvent = () => {
           <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Choose a style</p>
             <div className="flex flex-wrap gap-2">{AI_STYLES.map(s => <button key={s.key} type="button" onClick={() => setAiStyle(s.key)} className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${aiStyle===s.key?"bg-black text-white border-black":"bg-white text-black border-gray-300"}`}>{s.label}</button>)}</div></div>
           <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Title on image <span className="text-xs text-gray-400">(optional)</span></p>
-            <input type="text" placeholder="e.g. Meet & Eat, Beach Bbq Night…" className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-black" value={aiTitle} onChange={e=>setAiTitle(e.target.value.replace(/\b\w/g,c=>c.toUpperCase()))} /></div>
+            <input type="text" placeholder="e.g. Meet & Eat, Beach Bbq Night…" className="ds-input w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 outline-none" value={aiTitle} onChange={e=>setAiTitle(e.target.value.replace(/\b\w/g,c=>c.toUpperCase()))} /></div>
           <div className="space-y-2"><p className="text-sm font-medium text-muted-foreground">Describe your event</p>
-            <textarea rows={3} placeholder="e.g. BBQ sunset near the beach…" className="w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 resize-none outline-none" value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} /></div>
+            <textarea rows={3} placeholder="e.g. BBQ sunset near the beach…" className="ds-input w-full text-sm rounded-xl border border-gray-300 px-3 py-2.5 resize-none outline-none" value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} /></div>
           {aiPreview && <div className="rounded-xl overflow-hidden border border-gray-200"><img src={aiPreview} alt="Generated" className="w-full h-48 object-cover" /></div>}
           <div className="flex items-center justify-between text-xs text-muted-foreground">{aiGenerations}/{AI_MAX_GENERATIONS} generations used {aiGenerations>=AI_MAX_GENERATIONS&&<span className="text-red-400 font-medium">No more generations</span>}</div>
           <div className="flex gap-2">{aiPreview?<><button type="button" onClick={applyAiImage} className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold">✅ Use this image</button><button type="button" onClick={generateImage} disabled={generating||aiGenerations>=AI_MAX_GENERATIONS} className="h-11 px-4 rounded-xl border border-gray-300 text-gray-500 text-sm disabled:opacity-40">{generating?<Loader2 className="h-4 w-4 animate-spin"/>:"🔄"}</button></>:<button type="button" onClick={generateImage} disabled={generating||aiGenerations>=AI_MAX_GENERATIONS} className="flex-1 h-11 rounded-xl bg-black text-white text-sm font-semibold disabled:opacity-60">{generating?<><Loader2 className="h-4 w-4 animate-spin inline mr-1"/>Generating…</>:"🎨 Generate"}</button>}</div>
