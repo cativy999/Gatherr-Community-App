@@ -1,4 +1,4 @@
-import { CE_BG,CE_LIGHT,CE_MUTED,CE_SURFACE,CE_TEAL_PRESS,CE_ERROR,CE_SUCCESS,CE_SUCCESS_BG_LIGHT } from '../tokens';
+import { CE_BG,CE_LIGHT,CE_MUTED,CE_SURFACE,CE_TEAL_PRESS,CE_ERROR,CE_SUCCESS,CE_SUCCESS_BG,CE_SUCCESS_BG_LIGHT } from '../tokens';
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -626,8 +626,8 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
             <div
               className="flex-1 rounded-2xl cursor-pointer transition-opacity hover:opacity-80 flex flex-col"
               style={{
-                background: myConfirmedDriver ? "rgba(34,139,74,0.08)" : "#fff",
-                border: myConfirmedDriver ? "1px solid rgba(34,139,74,0.25)" : `1px solid ${CE_LIGHT}`,
+                background: myConfirmedDriver ? CE_SUCCESS_BG_LIGHT : "#fff",
+                border: myConfirmedDriver ? `1px solid ${CE_SUCCESS_BG}` : `1px solid ${CE_LIGHT}`,
               }}
               onClick={() => setMyPostMenuOpen(true)}
             >
@@ -676,14 +676,16 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
                 </div>
               </div>
               {myConfirmedDriver && myAcceptedRide && !myAcceptedRide.phone_number && (
-                <div className="px-4 pb-3 border-t border-green-100">
+                <div className="px-4 pb-3" style={{ borderTop: `1px solid ${CE_SUCCESS_BG}` }}>
                   <p className="text-xs text-muted-foreground pt-2 pb-1.5">Add your phone so your driver can reach you</p>
                   <div className="flex gap-2">
                     <input type="tel" value={riderPhoneInput} onChange={(e) => setRiderPhoneInput(e.target.value)}
                       placeholder="(555) 000-0000"
-                      className="flex-1 h-9 rounded-xl border border-green-200 bg-white px-3 text-sm focus:border-green-500 focus:outline-none transition-colors" />
+                      className="flex-1 h-9 rounded-xl bg-white px-3 text-sm focus:outline-none transition-colors"
+                      style={{ border: `1px solid ${CE_SUCCESS_BG}` }} />
                     <button onClick={updateRiderPhone} disabled={submitting || !riderPhoneInput.trim()}
-                      className="px-3 h-9 rounded-xl bg-green-600 text-white text-xs font-semibold disabled:opacity-40 shrink-0 whitespace-nowrap hover:bg-green-700 transition-colors">
+                      className="px-3 h-9 rounded-xl text-white text-xs font-semibold disabled:opacity-40 shrink-0 whitespace-nowrap transition-opacity hover:opacity-80"
+                      style={{ background: CE_SUCCESS }}>
                       {submitting ? "…" : "Send"}
                     </button>
                   </div>
@@ -882,14 +884,14 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
             <div className="space-y-4">
               {/* Confirmed ride info */}
               {myConfirmedDriver && (
-                <div className="rounded-2xl bg-green-50 border border-green-200 p-4 space-y-1">
+                <div className="rounded-2xl p-4 space-y-1" style={{ background: CE_SUCCESS_BG_LIGHT, border: `1px solid ${CE_SUCCESS_BG}` }}>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: CE_SUCCESS }}>
                       <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                     </div>
-                    <p className="text-sm font-bold text-green-800">Ride confirmed</p>
+                    <p className="text-sm font-bold" style={{ color: CE_SUCCESS }}>Ride confirmed</p>
                   </div>
-                  <p className="text-xs text-green-700 ml-9">
+                  <p className="text-xs ml-9" style={{ color: CE_SUCCESS }}>
                     {myConfirmedDriver.profile.name} · {myConfirmedDriver.departure_window} · {myConfirmedDriver.pickup_offered ? "They'll pick you up" : "Meet them there"}
                   </p>
                   {myConfirmedDriver.phone_number && (
@@ -1209,7 +1211,16 @@ export default function CarpoolSection({ eventId, eventLocation }: { eventId: st
                             {isMe
                               ? <span className="font-bold" style={{ fontSize: 11, color: "#2C2523" }}>Your ride</span>
                               : myReqForThis ? (
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${myReqForThis.status === "accepted" ? "bg-green-100 text-green-700" : myReqForThis.status === "declined" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}>
+                                <span
+                                  className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                                  style={
+                                    myReqForThis.status === "accepted"
+                                      ? { background: CE_SUCCESS_BG, color: CE_SUCCESS }
+                                      : myReqForThis.status === "declined"
+                                      ? { background: "#FEE2E2", color: "#DC2626" }
+                                      : { background: "#FEF9C3", color: "#92400E" }
+                                  }
+                                >
                                   {myReqForThis.status === "accepted" ? "✓ In" : myReqForThis.status === "declined" ? "Declined" : "Pending"}
                                 </span>
                               ) : (
