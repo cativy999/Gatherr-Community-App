@@ -4,6 +4,26 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
+// ── Inject hover + active states for search bar ───────────────────────────
+if (typeof document !== "undefined" && !document.getElementById("search-input-style")) {
+  const s = document.createElement("style");
+  s.id = "search-input-style";
+  s.textContent = `
+    .search-interactive {
+      transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }
+    .search-interactive:hover {
+      border-color: #1F4E5B !important;
+      box-shadow: 0px 0px 3.95px rgba(0, 0, 0, 0.25);
+    }
+    .search-interactive:focus-within {
+      border: 2px solid #1F4E5B !important;
+      box-shadow: 0 0 0 4px #EDE5DA !important;
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 // ── Design tokens ──────────────────────────────────────────────────────────
 const BG       = CE_BG;
 const DARK     = "#2C2523";
@@ -177,7 +197,7 @@ const Search = () => {
 
         {/* ── Search bar ──────────────────────────────────────────────── */}
         <div
-          className="flex items-center gap-2"
+          className="ds-search-wrap search-interactive flex items-center gap-2"
           style={{
             background: "white", borderRadius: 14,
             border: `1px solid ${DIVIDER}`,

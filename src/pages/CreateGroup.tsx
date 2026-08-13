@@ -11,6 +11,28 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+// ─── Inject hover + active glow for inputs on this page only ─────────────────
+if (typeof document !== "undefined" && !document.getElementById("cg-input-style")) {
+  const s = document.createElement("style");
+  s.id = "cg-input-style";
+  s.textContent = `
+    .cg-interactive {
+      transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }
+    .cg-interactive:hover {
+      border-color: #1F4E5B !important;
+      box-shadow: 0px 0px 3.95px rgba(0, 0, 0, 0.25);
+    }
+    .cg-interactive:focus,
+    .cg-interactive:focus-visible {
+      border: 2px solid #1F4E5B !important;
+      box-shadow: 0 0 0 4px #EDE5DA !important;
+      outline: none !important;
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 // ─── Design tokens (matching CreateEvent) ────────────────────────────────────
 const CG_DARK  = "#2C2523";
 const CG_TEAL  = "#1F4E5B";
@@ -763,6 +785,7 @@ const CreateGroup = () => {
               <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
               <input value={address} onChange={(e) => setAddress(e.target.value)}
                 placeholder="e.g. 3400 Sawtelle Blvd, Los Angeles, CA"
+                className="ds-input cg-interactive"
                 style={{ ...cgInput, paddingLeft: 40 }} />
             </div>
           </div>
@@ -773,6 +796,7 @@ const CreateGroup = () => {
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell people about your group..."
               maxLength={500}
+              className="ds-input cg-interactive"
               style={{ ...cgInput, height: 112, resize: "none", paddingTop: 12, display: "block" }} />
             <p style={{ fontFamily: CG_SANS, fontSize: 11, color: CG_MID, textAlign: "right", marginTop: 4 }}>{description.length}/500</p>
           </div>
@@ -783,6 +807,7 @@ const CreateGroup = () => {
             <textarea value={goodToKnow} onChange={(e) => setGoodToKnow(e.target.value)}
               placeholder="e.g. Sacrament Meeting: 12:30 PM, Parking available..."
               maxLength={300}
+              className="ds-input cg-interactive"
               style={{ ...cgInput, height: 96, resize: "none", paddingTop: 12, display: "block" }} />
           </div>
 
@@ -794,19 +819,19 @@ const CreateGroup = () => {
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EBF0FB", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Link style={{ width: 16, height: 16, color: "#1877F2" }} />
                 </div>
-                <input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="Facebook URL" style={cgInput} />
+                <input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="Facebook URL" className="ds-input cg-interactive" style={cgInput} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FCEEF5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Link2 style={{ width: 16, height: 16, color: "#E1306C" }} />
                 </div>
-                <input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Instagram URL" style={cgInput} />
+                <input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Instagram URL" className="ds-input cg-interactive" style={cgInput} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EDFAF3", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Globe style={{ width: 16, height: 16, color: "#16A34A" }} />
                 </div>
-                <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website URL" style={cgInput} />
+                <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website URL" className="ds-input cg-interactive" style={cgInput} />
               </div>
             </div>
           </div>
@@ -842,6 +867,7 @@ const CreateGroup = () => {
                     <Search style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
                     <input type="text" value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)}
                       placeholder="Search by name…" autoComplete="off"
+                      className="ds-input cg-interactive"
                       style={{ ...cgInput, paddingLeft: 40 }} />
                     {adminSearch && (
                       <button type="button" onClick={() => { setAdminSearch(""); setAdminResults([]); }}

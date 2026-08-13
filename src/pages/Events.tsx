@@ -66,7 +66,7 @@ const groupByDate = (evs: any[]) => {
 };
 
 // ── Event card (Figma-matched) ──────────────────────────────────────────────
-const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
+const EventCard = ({ event, onClick, isDesktop }: { event: any; onClick: () => void; isDesktop?: boolean }) => {
   const timeStr = getEventTime(event);
   const ageLabel = event.age_min
     ? `Ages ${event.age_min}${event.age_max ? `–${event.age_max}` : "+"}`
@@ -91,6 +91,8 @@ const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
       @media (min-width: 768px) {
         .ev-card:hover .ev-thumb { transform: scale(1.1); }
         .ev-card:hover .ev-thumb-overlay { opacity: 1; }
+        .ev-thumb-wrap { width: 123px !important; height: 123px !important; border-radius: 12px !important; }
+        .ev-thumb { width: 123px !important; height: 123px !important; }
       }
     `}</style>
     <div
@@ -101,6 +103,7 @@ const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
         padding: 14, border: `1px solid ${DIVIDER}`,
       }}
     >
+      {/* Left: text details */}
       <div className="flex-1 min-w-0" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {timeStr && (
           <p style={{
@@ -129,7 +132,20 @@ const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
             </span>
           </div>
         </div>
+        {/* Age pill — desktop: lives here in left column */}
+        {isDesktop && ageLabel && (
+          <span style={{
+            background: CE_SUCCESS_BG, color: CE_SUCCESS_TEXT,
+            fontFamily: INTER, fontSize: 11, fontWeight: 600,
+            padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
+            alignSelf: "flex-start", marginTop: 4,
+          }}>
+            {ageLabel}
+          </span>
+        )}
       </div>
+
+      {/* Right: image (+ age pill on mobile) */}
       <div className="flex-shrink-0 flex flex-col items-end" style={{ gap: 8 }}>
         {event.image_url ? (
           <div className="ev-thumb-wrap" style={{ width: 80, height: 80 }}>
@@ -144,9 +160,10 @@ const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
             </div>
           </div>
         ) : (
-          <div style={{ width: 80, height: 80, borderRadius: 8, background: ICON_BG, flexShrink: 0 }} />
+          <div className="ev-thumb-wrap" style={{ width: 80, height: 80, background: ICON_BG, flexShrink: 0 }} />
         )}
-        {ageLabel && (
+        {/* Age pill — mobile only: stays in right column */}
+        {!isDesktop && ageLabel && (
           <span style={{
             background: CE_SUCCESS_BG, color: CE_SUCCESS_TEXT,
             fontFamily: INTER, fontSize: 11, fontWeight: 600,
@@ -163,12 +180,13 @@ const EventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
 
 // ── Timeline section ────────────────────────────────────────────────────────
 const TimelineSection = ({
-  label, dateGroups, onNavigate, isLastSection,
+  label, dateGroups, onNavigate, isLastSection, isDesktop,
 }: {
   label: string;
   dateGroups: { date: string; events: any[] }[];
   onNavigate: (id: string) => void;
   isLastSection: boolean;
+  isDesktop?: boolean;
 }) => (
   <div style={{ marginBottom: 8 }}>
     {/* Section label */}
@@ -186,7 +204,25 @@ const TimelineSection = ({
       const isVeryLast = isLastInSection && isLastSection;
       const { monthDay, weekday } = fmtDateLabel(date);
       return (
-        <div key={date} style={{ display: "flex", gap: 12 }}>
+        <div key={date} style={{ display: "flex", gap: isDesktop ? 0 : 12 }}>
+
+          {/* ── Desktop date column (left of timeline) ── */}
+          {isDesktop && (
+            <div style={{
+              width: 110, flexShrink: 0,
+              display: "flex", flexDirection: "column", alignItems: "flex-end",
+              paddingRight: 16, paddingTop: 2,
+            }}>
+              <span style={{ fontFamily: CORMORANT, fontSize: 20, fontWeight: 700, color: DARK, lineHeight: 1.1 }}>
+                {monthDay}
+              </span>
+              {weekday && (
+                <span style={{ fontFamily: INTER, fontSize: 13, color: MID, marginTop: 2 }}>
+                  {weekday}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* ── Timeline track ── */}
           <div style={{ width: 24, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
@@ -203,22 +239,24 @@ const TimelineSection = ({
           </div>
 
           {/* ── Node content ── */}
-          <div style={{ flex: 1, paddingBottom: isVeryLast ? 0 : 28 }}>
-            {/* Date label */}
-            <div style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 10 }}>
-              <span style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
-                {monthDay}
-              </span>
-              {weekday && (
-                <span style={{ fontFamily: INTER, fontSize: 13, color: MID }}>
-                  {weekday}
+          <div style={{ flex: 1, paddingBottom: isVeryLast ? 0 : 28, paddingLeft: isDesktop ? 12 : 0 }}>
+            {/* Date label — mobile only */}
+            {!isDesktop && (
+              <div style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 10 }}>
+                <span style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+                  {monthDay}
                 </span>
-              )}
-            </div>
+                {weekday && (
+                  <span style={{ fontFamily: INTER, fontSize: 13, color: MID }}>
+                    {weekday}
+                  </span>
+                )}
+              </div>
+            )}
             {/* Event cards */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {events.map((ev) => (
-                <EventCard key={ev.id} event={ev} onClick={() => onNavigate(ev.id)} />
+                <EventCard key={ev.id} event={ev} onClick={() => onNavigate(ev.id)} isDesktop={isDesktop} />
               ))}
             </div>
           </div>
@@ -255,6 +293,13 @@ const Events = () => {
   const [loading, setLoading]     = useState(false);
   const [menuOpen, setMenuOpen]   = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Close menu on outside click
   useEffect(() => {
@@ -312,9 +357,9 @@ const Events = () => {
   const endNextWeek = new Date(endThisWeek);
   endNextWeek.setDate(endThisWeek.getDate() + 7);
 
-  const thisWeek  = events.filter(ev => toLocal(ev.date) <= endThisWeek);
-  const nextWeek  = events.filter(ev => { const d = toLocal(ev.date); return d > endThisWeek && d <= endNextWeek; });
-  const later     = events.filter(ev => toLocal(ev.date) > endNextWeek);
+  const thisWeek  = events.filter(ev => isRecurring(ev.date) || toLocal(ev.date) <= endThisWeek);
+  const nextWeek  = events.filter(ev => { const d = toLocal(ev.date); return !isRecurring(ev.date) && d > endThisWeek && d <= endNextWeek; });
+  const later     = events.filter(ev => !isRecurring(ev.date) && toLocal(ev.date) > endNextWeek);
 
   const sections = [
     { label: "This Week", groups: groupByDate(thisWeek)  },
@@ -324,7 +369,7 @@ const Events = () => {
 
   return (
     <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
-      <div className="max-w-2xl mx-auto px-5">
+      <div className="mx-auto px-3" style={{ maxWidth: 864 }}>
 
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between pt-8 pb-5">
@@ -426,6 +471,7 @@ const Events = () => {
                 dateGroups={groups}
                 onNavigate={(id) => navigate(`/event/${id}`)}
                 isLastSection={si === sections.length - 1}
+                isDesktop={isDesktop}
               />
             ))}
           </div>

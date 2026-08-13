@@ -221,7 +221,7 @@ const AccountInfo = () => {
                         onChange={(e) => setLocationSearch(e.target.value)}
                         placeholder="Search any city…"
                         autoFocus
-                        className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                        className="ds-input w-full px-3 py-2.5 rounded-xl text-sm outline-none"
                         style={{
                           background: "white",
                           border: `1px solid ${DIVIDER}`,
@@ -256,7 +256,7 @@ const AccountInfo = () => {
                       value={tempValue}
                       onChange={(e) => setTempValue(e.target.value)}
                       autoFocus
-                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      className="ds-input w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
                       style={{
                         background: "white",
                         border: `1px solid ${DIVIDER}`,
@@ -274,7 +274,7 @@ const AccountInfo = () => {
                       placeholder="Enter your age"
                       min={13} max={120}
                       autoFocus
-                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      className="ds-input w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
                       style={{
                         background: "white",
                         border: `1px solid ${DIVIDER}`,

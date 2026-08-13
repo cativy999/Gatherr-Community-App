@@ -5,6 +5,19 @@ import { Users, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import ShareMenu from "@/components/ShareMenu";
 
+// ── Hover-zoom CSS (desktop only) ─────────────────────────────────────────
+if (typeof document !== "undefined" && !document.getElementById("gc-zoom-style")) {
+  const s = document.createElement("style");
+  s.id = "gc-zoom-style";
+  s.textContent = `
+    .gc-img { transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    @media (min-width: 768px) {
+      .gc-img-wrap:hover .gc-img { transform: scale(1.08); }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 // ── Design tokens ──────────────────────────────────────────────────────────
 const BG      = CE_BG;
 const DARK    = "#2C2523";
@@ -38,13 +51,15 @@ const GroupCard = ({ group, onClick }: { group: any; onClick: () => void }) => (
     style={{ borderRadius: 20 }}
   >
     <div className="relative flex-shrink-0">
-      {group.cover_image_url ? (
-        <img src={group.cover_image_url} alt={group.name} className="w-full object-cover" style={{ height: 140 }} />
-      ) : (
-        <div className="w-full flex items-center justify-center" style={{ height: 140, background: DIVIDER }}>
-          <Users className="h-8 w-8" style={{ color: MID }} />
-        </div>
-      )}
+      <div className="gc-img-wrap overflow-hidden" style={{ height: 140 }}>
+        {group.cover_image_url ? (
+          <img src={group.cover_image_url} alt={group.name} className="gc-img w-full object-cover" style={{ height: 140 }} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: DIVIDER }}>
+            <Users className="h-8 w-8" style={{ color: MID }} />
+          </div>
+        )}
+      </div>
       <div className="absolute -bottom-5 left-3">
         <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex items-center justify-center bg-gray-200">
           {group.avatar_url

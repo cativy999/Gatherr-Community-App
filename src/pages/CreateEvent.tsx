@@ -1,8 +1,29 @@
 import { CE_DARK,CE_TEAL,CE_MID,CE_DIV,CE_GOLD,CE_BG,CE_SURFACE,CE_TEAL_PRESS,CE_ERROR,CE_SIDEBAR,CE_SANS,CE_SERIF } from '../tokens';
+
+// ── Inject hover + active states for trigger divs (dates, times) ─────────────
+if (typeof document !== "undefined" && !document.getElementById("ce-trigger-style")) {
+  const s = document.createElement("style");
+  s.id = "ce-trigger-style";
+  s.textContent = `
+    .ce-trigger {
+      transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }
+    .ce-trigger:hover {
+      border-color: #1F4E5B !important;
+      box-shadow: 0px 0px 3.95px rgba(0, 0, 0, 0.25);
+    }
+    .ce-trigger.ce-open,
+    .ce-trigger.ce-open:hover {
+      border: 2px solid #1F4E5B !important;
+      box-shadow: 0 0 0 4px #EDE5DA;
+    }
+  `;
+  document.head.appendChild(s);
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, User, X, Check, Eye, RefreshCw, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, MoreHorizontal, MessageSquare, User, X, Check, Eye, RefreshCw, ArrowRight } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -167,10 +188,16 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
   }, [open, isMobile]);
 
   const trigger = (
-    <div className="h-12 flex items-center justify-between px-3 rounded-xl border border-black bg-white cursor-pointer"
-      onClick={() => setOpen(o => !o)}>
-      <span className={`text-sm ${value ? 'text-black' : 'text-muted-foreground'}`}>{value ? formatTime(value) : placeholder}</span>
-      <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open && !isMobile ? 'rotate-180' : ''}`} />
+    <div
+      className={`ce-trigger${open ? ' ce-open' : ''} flex items-center justify-between rounded-xl bg-white cursor-pointer`}
+      style={{
+        height: 52, padding: "0 16px",
+        border: open ? `2px solid ${CE_TEAL}` : `1.5px solid ${CE_DIV}`,
+      }}
+      onClick={() => setOpen(o => !o)}
+    >
+      <span style={{ fontSize: 15, fontFamily: CE_SANS, color: value ? CE_DARK : CE_MID }}>{value ? formatTime(value) : placeholder}</span>
+      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open && !isMobile ? 'rotate-180' : ''}`} style={{ color: CE_MID }} />
     </div>
   );
 
@@ -199,7 +226,7 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
     <div className="relative flex-1" ref={outerRef}>
       {trigger}
       {open && (
-        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white border border-black rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto">
+        <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto" style={{ border: `1.5px solid ${CE_DIV}` }}>
           {TIME_OPTIONS.map(t => (
             <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
               className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${value === t ? 'font-bold' : 'text-black'}`}>
@@ -455,7 +482,7 @@ const CERangePicker = ({
         {/* Start Date */}
         <div style={{ opacity: startDisabled ? 0.4 : 1, pointerEvents: startDisabled ? 'none' : 'auto' }}>
           <CEFieldLabel required>Start Date</CEFieldLabel>
-          <div style={triggerField} onClick={() => isMobile ? openMobile('start') : openDesktop()}>
+          <div className={`ce-trigger${open ? ' ce-open' : ''}`} style={triggerField} onClick={() => isMobile ? openMobile('start') : openDesktop()}>
             <span style={{ fontFamily: CE_SANS, fontSize: 14, color: startValue ? CE_DARK : CE_MID }}>
               {startValue ? fmtShort(startValue) : 'Pick a date'}
             </span>
@@ -465,7 +492,7 @@ const CERangePicker = ({
         {/* End Date */}
         <div style={{ opacity: endDisabled ? 0.4 : 1, pointerEvents: endDisabled ? 'none' : 'auto' }}>
           <CEFieldLabel>End Date</CEFieldLabel>
-          <div style={triggerField} onClick={() => isMobile ? openMobile('end') : openDesktop()}>
+          <div className={`ce-trigger${open ? ' ce-open' : ''}`} style={triggerField} onClick={() => isMobile ? openMobile('end') : openDesktop()}>
             <span style={{ fontFamily: CE_SANS, fontSize: 14, color: endValue ? CE_DARK : CE_MID }}>
               {endValue ? fmtShort(endValue) : '– –'}
             </span>
@@ -675,6 +702,12 @@ const CreateEvent = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [maxStepReached, setMaxStepReached] = useState(1);
+  const [mobilePreview, setMobilePreview] = useState(false);
+  const [mobileEllipsisOpen, setMobileEllipsisOpen] = useState(false);
+  const [mobileFeedbackOpen, setMobileFeedbackOpen] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1280);
   const [formScrolled, setFormScrolled] = useState(false);
@@ -1557,6 +1590,7 @@ const CreateEvent = () => {
         <div style={{ position: "relative" }}>
           <select value={communityId ?? ""}
             onChange={(e) => setCommunityId(e.target.value === "" ? null : e.target.value)}
+            className="ds-input"
             style={{ ...inputCls, paddingLeft: 48, appearance: "none", cursor: "pointer" }}>
             <option value="">{myProfile?.name || "My Profile"}</option>
             {ownedGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -2467,7 +2501,7 @@ const CreateEvent = () => {
               <div
                 ref={formScrollRef}
                 className="ce-form-scroll"
-                style={{ height: "100%", overflowY: "auto", paddingTop: 4, paddingBottom: 32 }}
+                style={{ height: "100%", overflowY: "auto", paddingTop: 4, paddingBottom: 32, paddingLeft: 5, paddingRight: 5 }}
                 onScroll={(e) => setFormScrolled((e.currentTarget).scrollTop > 8)}
               >
                 {step === 1 && Step1Fields()}
@@ -2499,53 +2533,150 @@ const CreateEvent = () => {
       </div>
 
       {/* ── MOBILE ──────────────────────────────────────────────────────────── */}
-      <div className="md:hidden flex flex-col" style={{ minHeight: "100vh" }}>
-        {/* Sticky top header */}
-        <div style={{ position: "sticky", top: 0, zIndex: 20, background: "white", paddingTop: 16, paddingBottom: 12, borderBottom: `1px solid ${DIV_W}` }}>
-          <div style={{ padding: "0 20px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-            <p style={{ fontFamily: SANS_W, fontSize: 12, fontWeight: 700, color: TEAL_W, letterSpacing: "0.06em", textTransform: "uppercase" }}>Step {step} of 4</p>
-            <p style={{ fontFamily: SANS_W, fontSize: 12, fontWeight: 500, color: MID_W }}>{STEPS_META[step-1].label}</p>
-          </div>
-          <div style={{ padding: "0 12px" }}>{ProgressBar()}</div>
-        </div>
+      <div className="md:hidden flex flex-col" style={{ minHeight: "100vh", background: CE_BG }}>
 
-        {/* Scrollable content */}
-        <div style={{ flex: 1, padding: "28px 20px", paddingBottom: 100 }}>
-          {/* Step heading */}
-          <h1 style={{ fontFamily: SANS_W, fontSize: 28, fontWeight: 700, color: TEAL_W, marginBottom: 4 }}>
-            {STEPS_META[step-1].label}
-          </h1>
-          <p style={{ fontFamily: SANS_W, fontSize: 13, color: MID_W, marginBottom: 28 }}>
-            {step===1 && "Enter the key information for your event below."}
-            {step===2 && "Add a description and any extra details for your event."}
-            {step===3 && "Set audience filters, food options, and group assignments for your event."}
-            {step===4 && "This is a preview of your event page. Would you like to go ahead and publish it?"}
-          </p>
-
-          {/* Step 1 mobile: cover photo first, then Post As, then fields */}
-          {step === 1 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {CoverPhotoBlock({})}
-              {PostAsDropdown()}
-              {Step1Fields()}
+        {/* Ellipsis action sheet */}
+        <CESheet open={mobileEllipsisOpen} onClose={() => setMobileEllipsisOpen(false)} title="Options">
+          <button type="button"
+            onClick={() => { setMobileEllipsisOpen(false); setTimeout(() => setMobileFeedbackOpen(true), 60); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: `1px solid ${DIV_W}` }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: CE_SURFACE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <MessageSquare style={{ width: 18, height: 18, color: CE_TEAL }} />
             </div>
-          )}
-          {step === 2 && Step2Fields()}
-          {step === 3 && Step3Fields()}
-          {step === 4 && Step4Preview()}
-        </div>
+            <span style={{ fontFamily: CE_SANS, fontSize: 15, fontWeight: 500, color: CE_DARK }}>Share Feedback</span>
+          </button>
+        </CESheet>
 
-        {/* Sticky bottom footer */}
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "14px 20px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: DARK_W, background: "none", border: "none", cursor: "pointer" }}>
-            <ArrowLeft style={{ width: 16, height: 16 }} /> Back
-          </button>
-          <button type="button" onClick={goNext} disabled={loading}
-            style={{ fontFamily: SANS_W, fontSize: 15, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
-            {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
-            {step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →"}
-          </button>
-        </div>
+        {/* Feedback sheet */}
+        <CESheet open={mobileFeedbackOpen} onClose={() => { setMobileFeedbackOpen(false); setFeedbackMessage(""); setFeedbackSubmitted(false); }} title="Share Feedback">
+          <div style={{ padding: "16px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ fontFamily: CE_SANS, fontSize: 14, color: CE_MID, lineHeight: 1.6 }}>
+              Your feedback, ideas, and suggestions help us improve the app. We'd love to hear what you think.
+            </p>
+            {feedbackSubmitted ? (
+              <div style={{ textAlign: "center", paddingTop: 12, paddingBottom: 12 }}>
+                <p style={{ fontFamily: CE_SANS, fontSize: 15, fontWeight: 600, color: CE_TEAL }}>🙏 Thank you so much!</p>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  placeholder="Share your thoughts…"
+                  rows={4}
+                  style={{ width: "100%", borderRadius: 14, border: `1.5px solid ${DIV_W}`, padding: "12px 14px", fontFamily: CE_SANS, fontSize: 14, color: CE_DARK, resize: "none", outline: "none", boxSizing: "border-box" }}
+                />
+                <button type="button"
+                  onClick={async () => {
+                    if (!feedbackMessage.trim()) return;
+                    setFeedbackSubmitting(true);
+                    await supabase.from("feedback").insert({
+                      message: feedbackMessage.trim(),
+                      page_name: "Create Event",
+                      page_url: window.location.pathname,
+                      user_id: session?.user?.id ?? null,
+                      created_at: new Date().toISOString(),
+                    });
+                    setFeedbackSubmitting(false);
+                    setFeedbackSubmitted(true);
+                    setFeedbackMessage("");
+                    setTimeout(() => { setFeedbackSubmitted(false); setMobileFeedbackOpen(false); }, 2000);
+                  }}
+                  disabled={!feedbackMessage.trim() || feedbackSubmitting}
+                  style={{ width: "100%", height: 50, borderRadius: 14, background: feedbackMessage.trim() ? CE_DARK : DIV_W, border: "none", fontFamily: CE_SANS, fontSize: 15, fontWeight: 600, color: feedbackMessage.trim() ? "white" : CE_MID, cursor: feedbackMessage.trim() ? "pointer" : "default", transition: "background 0.15s" }}>
+                  {feedbackSubmitting ? "Submitting…" : "Submit Feedback"}
+                </button>
+              </>
+            )}
+          </div>
+        </CESheet>
+
+        {/* ── FORM PAGE ── */}
+        {!mobilePreview && (
+          <>
+            {/* Sticky top header */}
+            <div style={{ position: "sticky", top: 0, zIndex: 20, background: CE_BG, paddingTop: 16, paddingBottom: 12, borderBottom: `1px solid ${DIV_W}` }}>
+              <div style={{ padding: "0 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                <button type="button" onClick={goPrev} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                  <ChevronLeft style={{ width: 24, height: 24, color: DARK_W }} />
+                </button>
+                <h1 style={{ fontFamily: SANS_W, fontSize: 18, fontWeight: 700, color: DARK_W, flex: 1 }}>
+                  {isEditing ? "Edit Event" : "Create Your Event"}
+                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                  {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
+                    <button type="button" onClick={() => setDeleteOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: CE_ERROR, display: "flex", alignItems: "center" }}>
+                      <Trash2 style={{ width: 20, height: 20 }} />
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setMobileEllipsisOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", color: DARK_W }}>
+                    <MoreHorizontal style={{ width: 22, height: 22 }} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable content — all fields on one page */}
+            <div style={{ flex: 1, paddingBottom: 100 }}>
+              {/* Cover Photo */}
+              <div style={{ padding: "20px 20px 0" }}>
+                {CoverPhotoBlock({})}
+              </div>
+              {/* All form sections */}
+              <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
+                {PostAsDropdown()}
+                {Step1Fields()}
+                {Step2Fields()}
+                {Step3Fields()}
+              </div>
+            </div>
+
+            {/* Sticky footer — Preview button */}
+            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "14px 20px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))" }}>
+              <button type="button" onClick={() => {
+                if (!title.trim()) { toast.error("Please enter an event name"); return; }
+                if (!isRecurring && !date) { toast.error("Please pick a start date"); return; }
+                if (!address && !virtualLink) { toast.error("Please add a location"); return; }
+                setMobilePreview(true);
+                window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+              }}
+                style={{ width: "100%", height: 52, borderRadius: 999, background: "transparent", border: `2px solid ${TEAL_W}`, fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: TEAL_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Eye style={{ width: 18, height: 18 }} /> Preview
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── PREVIEW PAGE ── */}
+        {mobilePreview && (
+          <>
+            {/* Sticky header */}
+            <div style={{ position: "sticky", top: 0, zIndex: 20, background: "white", paddingTop: 16, paddingBottom: 12, borderBottom: `1px solid ${DIV_W}` }}>
+              <div style={{ padding: "0 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                <button type="button" onClick={() => { setMobilePreview(false); window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                  <ChevronLeft style={{ width: 24, height: 24, color: DARK_W }} />
+                </button>
+                <h1 style={{ fontFamily: SANS_W, fontSize: 18, fontWeight: 700, color: DARK_W, flex: 1 }}>Preview</h1>
+              </div>
+            </div>
+
+            {/* Preview card */}
+            <div style={{ flex: 1, padding: "20px 20px 120px" }}>
+              {Step4Preview()}
+            </div>
+
+            {/* Sticky footer — Publish Now */}
+            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "14px 20px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))" }}>
+              <button type="button" onClick={handleSubmit} disabled={loading}
+                style={{ width: "100%", height: 52, borderRadius: 999, background: TEAL_W, border: "none", fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+                {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : null}
+                {isEditing ? "Save Changes" : "Publish Now"} →
+              </button>
+            </div>
+          </>
+        )}
+
       </div>
     </div>
   );

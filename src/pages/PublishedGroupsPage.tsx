@@ -1,4 +1,17 @@
 import { CE_BG } from '../tokens';
+
+// Hover-zoom (reuse the same CSS injected by Community.tsx — no-op if already there)
+if (typeof document !== "undefined" && !document.getElementById("gc-zoom-style")) {
+  const s = document.createElement("style");
+  s.id = "gc-zoom-style";
+  s.textContent = `
+    .gc-img { transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    @media (min-width: 768px) {
+      .gc-img-wrap:hover .gc-img { transform: scale(1.08); }
+    }
+  `;
+  document.head.appendChild(s);
+}
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Loader2, MoreHorizontal, Trash2, Pencil, Users } from "lucide-react";
@@ -96,18 +109,20 @@ const PublishedGroupsPage = () => {
     >
       {/* Cover image */}
       <div className="relative">
-        {group.cover_image_url ? (
-          <img
-            src={group.cover_image_url}
-            alt={group.name}
-            className="w-full object-cover"
-            style={{ height: 140 }}
-          />
-        ) : (
-          <div className="w-full flex items-center justify-center bg-gray-100" style={{ height: 140 }}>
-            <Users className="h-8 w-8 text-gray-400" />
-          </div>
-        )}
+        <div className="gc-img-wrap overflow-hidden" style={{ height: 140 }}>
+          {group.cover_image_url ? (
+            <img
+              src={group.cover_image_url}
+              alt={group.name}
+              className="gc-img w-full object-cover"
+              style={{ height: 140 }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <Users className="h-8 w-8 text-gray-400" />
+            </div>
+          )}
+        </div>
 
         {/* Role badge */}
         <div className="absolute top-3 left-3">
