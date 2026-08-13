@@ -1,0 +1,347 @@
+import { CE_BG,CE_LIGHT } from '../tokens';
+import { Slider } from "@/components/ui/slider";
+import { MapPin, ChevronLeft, Check, X, Loader2, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useLocation } from "@/contexts/LocationContext";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const ICON_BG = "#E4DCCF";
+const DIVIDER = CE_LIGHT;
+
+interface LocationResult {
+  display_name: string;
+  place_id: number;
+}
+
+const AccountInfo = () => {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const { setPreferredAge, preferredAgeMin, preferredAgeMax } = useUserProfile();
+  const { setLocation: setGlobalLocation } = useLocation();
+
+  const user = session?.user;
+
+  const [name, setName]         = useState("");
+  const [location, setLocation] = useState("");
+  const [ward, setWard]         = useState("");
+  const [age, setAge]           = useState<string>("");
+  const [tempAge, setTempAge]   = useState<string>("");
+  const [ageRange, setAgeRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
+  const [editing, setEditing]   = useState<string | null>(null);
+  const [tempValue, setTempValue] = useState("");
+  const [tempRange, setTempRange] = useState<[number, number]>([preferredAgeMin, preferredAgeMax]);
+  const [saving, setSaving]     = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("name, location, ward, preferred_age_min, preferred_age_max, age")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setName(data.name ?? "");
+        setLocation(data.location || "");
+        setWard(data.ward || "");
+        setAge(data.age ? String(data.age) : "");
+        const min = data.preferred_age_min ?? preferredAgeMin;
+        const max = data.preferred_age_max ?? preferredAgeMax;
+        setAgeRange([min, max]);
+        setTempRange([min, max]);
+      });
+  }, [user]);
+
+  const searchLocations = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) { setLocationResults([]); return; }
+    setLocationLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`
+      );
+      setLocationResults(await res.json());
+    } catch { setLocationResults([]); }
+    setLocationLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (editing === "location") searchLocations(locationSearch);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [locationSearch, editing, searchLocations]);
+
+  const formatLocation = (r: LocationResult) => {
+    const parts = r.display_name.split(", ");
+    return parts.length >= 3 ? `${parts[0]}, ${parts[parts.length - 2]}` : parts.slice(0, 2).join(", ");
+  };
+
+  const startEdit = (field: string) => {
+    if (field === "ageRange")   setTempRange([...ageRange]);
+    else if (field === "location") { setLocationSearch(""); setLocationResults([]); }
+    else if (field === "name")  setTempValue(name);
+    else if (field === "ward")  setTempValue(ward);
+    else if (field === "age")   setTempAge(age);
+    setEditing(field);
+  };
+
+  const saveField = async (field: string) => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      if (field === "name") {
+        await supabase.from("profiles").upsert({ user_id: user.id, name: tempValue }, { onConflict: "user_id" });
+        setName(tempValue);
+        toast.success("Name updated!");
+      } else if (field === "ward") {
+        await supabase.from("profiles").upsert({ user_id: user.id, ward: tempValue }, { onConflict: "user_id" });
+        setWard(tempValue);
+        toast.success("Ward updated!");
+      } else if (field === "age") {
+        await supabase.from("profiles").upsert({ user_id: user.id, age: parseInt(tempAge) }, { onConflict: "user_id" });
+        setAge(tempAge);
+        toast.success("Age updated!");
+      } else if (field === "ageRange") {
+        await supabase.from("profiles").upsert({
+          user_id: user.id,
+          preferred_age_min: tempRange[0],
+          preferred_age_max: tempRange[1],
+        }, { onConflict: "user_id" });
+        setAgeRange(tempRange);
+        setPreferredAge(tempRange[0], tempRange[1]);
+        toast.success("Age range updated!");
+      }
+    } catch { toast.error("Something went wrong"); }
+    setSaving(false);
+    setEditing(null);
+  };
+
+  const selectLocation = async (result: LocationResult) => {
+    if (!user) return;
+    const formatted = formatLocation(result);
+    await supabase.from("profiles").upsert({ user_id: user.id, location: formatted }, { onConflict: "user_id" });
+    setLocation(formatted);
+    setGlobalLocation(formatted);
+    setEditing(null);
+    toast.success("Location updated!");
+  };
+
+  const handleRangeChange = (val: number[]) => {
+    let [low, high] = val as [number, number];
+    if (high - low > 10) {
+      if (low !== tempRange[0]) high = Math.min(low + 10, 80);
+      else low = Math.max(high - 10, 18);
+    }
+    setTempRange([low, high]);
+  };
+
+  const fields = [
+    { key: "name",     label: "Name",      value: name },
+    { key: "age",      label: "Age",       value: age },
+    { key: "location", label: "Location",  value: location },
+    { key: "ward",     label: "LDS Ward",  value: ward },
+    { key: "ageRange", label: "Age Range", value: `${ageRange[0]}–${ageRange[1]}` },
+  ];
+
+  return (
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="max-w-2xl mx-auto px-5">
+
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 pt-8 pb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+            style={{ background: ICON_BG }}
+          >
+            <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
+          </button>
+          <h1
+            className="font-bold leading-tight"
+            style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 32 }}
+          >
+            Account Info
+          </h1>
+        </div>
+
+        {/* ── Field rows ─────────────────────────────────────────────── */}
+        <div>
+          {fields.map(({ key, label, value }, i) => (
+            <div key={key}>
+              {editing === key ? (
+                /* ── Edit state ── */
+                <div className="py-4">
+                  <p
+                    className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+                    style={{ color: MID }}
+                  >
+                    {label}
+                  </p>
+
+                  {/* Age range slider */}
+                  {key === "ageRange" && (
+                    <div className="space-y-4 mb-4">
+                      <div
+                        className="flex justify-between text-sm font-semibold"
+                        style={{
+                          paddingLeft:  `${((tempRange[0] - 18) / 62) * 100}%`,
+                          paddingRight: `${((80 - tempRange[1]) / 62) * 100}%`,
+                          color: TEAL,
+                        }}
+                      >
+                        <span>{tempRange[0]}</span>
+                        <span>{tempRange[1]}</span>
+                      </div>
+                      <Slider
+                        min={18} max={80} step={1}
+                        value={tempRange}
+                        onValueChange={handleRangeChange}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* Location search */}
+                  {key === "location" && (
+                    <div className="space-y-2 mb-4">
+                      <input
+                        value={locationSearch}
+                        onChange={(e) => setLocationSearch(e.target.value)}
+                        placeholder="Search any city…"
+                        autoFocus
+                        className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                        style={{
+                          background: "white",
+                          border: `1px solid ${DIVIDER}`,
+                          color: DARK,
+                          fontFamily: "'Inter', sans-serif",
+                        }}
+                      />
+                      {locationLoading && (
+                        <div className="flex justify-center py-2">
+                          <Loader2 className="h-4 w-4 animate-spin" style={{ color: MID }} />
+                        </div>
+                      )}
+                      <div className="max-h-44 overflow-y-auto space-y-0.5">
+                        {locationResults.map((r) => (
+                          <button
+                            key={r.place_id}
+                            onClick={() => selectLocation(r)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left rounded-xl transition-colors hover:opacity-80"
+                            style={{ background: "white", color: DARK }}
+                          >
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" style={{ color: MID }} />
+                            {formatLocation(r)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Text / number inputs */}
+                  {(key === "name" || key === "ward") && (
+                    <input
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      autoFocus
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      style={{
+                        background: "white",
+                        border: `1px solid ${DIVIDER}`,
+                        color: DARK,
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    />
+                  )}
+
+                  {key === "age" && (
+                    <input
+                      type="number"
+                      value={tempAge}
+                      onChange={(e) => setTempAge(e.target.value)}
+                      placeholder="Enter your age"
+                      min={13} max={120}
+                      autoFocus
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      style={{
+                        background: "white",
+                        border: `1px solid ${DIVIDER}`,
+                        color: DARK,
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    />
+                  )}
+
+                  {/* Save / Cancel — not shown for location (auto-saves on selection) */}
+                  {key !== "location" && (
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => setEditing(null)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+                        style={{ background: "#E4DCCF", border: "1px solid #D4CCBF", color: DARK }}
+                      >
+                        <X className="h-3.5 w-3.5" /> Cancel
+                      </button>
+                      <button
+                        onClick={() => saveField(key)}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                        style={{ background: TEAL }}
+                      >
+                        {saving
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Check className="h-3.5 w-3.5" />}
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── View state ── */
+                <button
+                  onClick={() => startEdit(key)}
+                  className="w-full flex items-center justify-between py-4 text-left transition-opacity hover:opacity-70"
+                >
+                  <div>
+                    <p
+                      className="text-[11px] font-semibold uppercase tracking-widest"
+                      style={{ color: MID }}
+                    >
+                      {label}
+                    </p>
+                    <p
+                      className="text-base mt-0.5"
+                      style={{ color: DARK, fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {value || "Not set"}
+                    </p>
+                  </div>
+                  <Pencil className="h-4 w-4 flex-shrink-0" style={{ color: MID }} />
+                </button>
+              )}
+
+              {/* Divider between rows */}
+              {i < fields.length - 1 && (
+                <div className="h-px" style={{ background: DIVIDER }} />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AccountInfo;

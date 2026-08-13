@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
@@ -17,6 +15,18 @@ if (typeof document !== "undefined" && !document.getElementById("welcome-marquee
     }
     .welcome-marquee-track {
       animation: welcome-marquee-scroll 30s linear infinite;
+    }
+    .welcome-input {
+      transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }
+    .welcome-input:hover {
+      border-color: #1F4E5B !important;
+      box-shadow: 0px 0px 3.95px rgba(0, 0, 0, 0.25);
+    }
+    .welcome-input:focus {
+      border: 2px solid #1F4E5B !important;
+      box-shadow: 0 0 0 4px #EDE5DA !important;
+      outline: none;
     }
   `;
   document.head.appendChild(s);
@@ -242,35 +252,63 @@ const Welcome = () => {
 
   // EMAIL SCREEN
   if (step === "email") return (
-    <div className="flex min-h-screen flex-col px-6 py-12" style={{ background: "#FAF6F0" }}>
-      <div className="w-full max-w-md mx-auto space-y-8">
-        <button onClick={() => { setStep("home"); setError(""); }} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back
+    <div style={{ minHeight: "100svh", background: "#FAF6F0", display: "flex", flexDirection: "column", padding: "48px 24px" }}>
+      <div style={{ width: "100%", maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 32 }}>
+        {/* Back */}
+        <button
+          onClick={() => { setStep("home"); setError(""); }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#635C59", width: "fit-content" }}
+        >
+          <ArrowLeft style={{ width: 16, height: 16 }} /> Back
         </button>
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Enter your email</h1>
-          <p className="text-muted-foreground">We'll send you a magic link to sign in instantly — no password needed.</p>
+
+        {/* Heading */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 40, fontWeight: 700, color: "#2C2523", lineHeight: 1.1, margin: 0 }}>
+            Enter your email
+          </h1>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#635C59", lineHeight: 1.55, margin: 0 }}>
+            We'll send you a magic link to sign in instantly — no password needed.
+          </p>
         </div>
-        <div className="space-y-4">
-          <Input
+
+        {/* Form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
             type="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMagicLink()}
-            className="h-14 text-base"
-            autoComplete="email" 
+            autoComplete="email"
             autoFocus
+            style={{
+              width: "100%", boxSizing: "border-box",
+              height: 54, padding: "0 18px",
+              borderRadius: 14, border: "1.5px solid #E4DCCF",
+              background: "white", outline: "none",
+              fontFamily: "'Inter', sans-serif", fontSize: 15, color: "#2C2523",
+            }}
+            className="welcome-input"
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button size="lg" className="w-full h-14 text-base font-semibold" onClick={handleSendMagicLink} disabled={!email.trim() || loading}>
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-              <>
-                <Mail className="mr-2 h-5 w-5" />
-                Send Magic Link
-              </>
-            )}
-          </Button>
+          {error && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
+          <button
+            onClick={handleSendMagicLink}
+            disabled={!email.trim() || loading}
+            style={{
+              width: "100%", height: 54, borderRadius: 999,
+              background: !email.trim() || loading ? "#C8BFB8" : "#1F4E5B",
+              border: "none", cursor: !email.trim() || loading ? "not-allowed" : "pointer",
+              fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600,
+              color: "#FAF6F0", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: "background 0.2s",
+            }}
+          >
+            {loading
+              ? <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} />
+              : <><Mail style={{ width: 18, height: 18 }} /> Send Magic Link</>
+            }
+          </button>
         </div>
       </div>
     </div>
@@ -278,23 +316,30 @@ const Welcome = () => {
 
   // SENT SCREEN
   if (step === "sent") return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6" style={{ background: "#FAF6F0" }}>
-      <div className="w-full max-w-md space-y-6 text-center">
-        <div className="flex justify-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-accent">
-            <Mail className="h-12 w-12 text-primary" strokeWidth={2} />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Check your email</h1>
-          <p className="text-muted-foreground">We sent a code to</p>
-          <p className="font-semibold text-foreground">{email}</p>
+    <div style={{ minHeight: "100svh", background: "#FAF6F0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px" }}>
+      <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 28, textAlign: "center" }}>
+
+        {/* Icon */}
+        <div style={{ width: 80, height: 80, borderRadius: 24, background: "#E8F0EE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Mail style={{ width: 36, height: 36, color: "#1F4E5B" }} strokeWidth={1.8} />
         </div>
 
-        {/* OTP code entry — keeps everything inside the app so the
-            PWA session is created here, not in Safari */}
-        <div className="space-y-3 text-left">
-          <Input
+        {/* Heading */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 40, fontWeight: 700, color: "#2C2523", lineHeight: 1.1, margin: 0 }}>
+            Check your email
+          </h1>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#635C59", margin: 0 }}>
+            We sent a sign-in code to
+          </p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, color: "#2C2523", margin: 0 }}>
+            {email}
+          </p>
+        </div>
+
+        {/* OTP entry */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
             type="text"
             autoCapitalize="none"
             autoCorrect="off"
@@ -302,33 +347,48 @@ const Welcome = () => {
             value={otp}
             onChange={(e) => { setOtp(e.target.value.replace(/[-\s]/g, "")); setOtpError(""); }}
             onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
-            className="h-14 text-center text-2xl tracking-widest font-bold"
+            style={{
+              width: "100%", boxSizing: "border-box",
+              height: 54, padding: "0 18px",
+              borderRadius: 14, border: "1.5px solid #E4DCCF",
+              background: "white", outline: "none",
+              fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700,
+              color: "#2C2523", textAlign: "center", letterSpacing: "0.2em",
+            }}
+            className="welcome-input"
           />
-          {otpError && <p className="text-sm text-destructive">{otpError}</p>}
-          <Button
-            size="lg"
-            className="w-full h-14 text-base font-semibold"
+          {otpError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#C0392B", margin: 0 }}>{otpError}</p>}
+          <button
             onClick={handleVerifyOtp}
             disabled={verifying || otp.trim().length < 4}
+            style={{
+              width: "100%", height: 54, borderRadius: 999,
+              background: verifying || otp.trim().length < 4 ? "#C8BFB8" : "#1F4E5B",
+              border: "none", cursor: verifying || otp.trim().length < 4 ? "not-allowed" : "pointer",
+              fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600,
+              color: "#FAF6F0", display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.2s",
+            }}
           >
-            {verifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue"}
-          </Button>
+            {verifying ? <Loader2 style={{ width: 20, height: 20, animation: "spin 1s linear infinite" }} /> : "Continue"}
+          </button>
         </div>
 
-        <p className="text-xs text-muted-foreground">
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: "#635C59", margin: 0 }}>
           Can't find it? Check your spam folder 📬
         </p>
-        <div className="flex flex-col items-center gap-2">
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <button
             onClick={handleResend}
             disabled={loading}
-            className="text-sm font-medium text-primary hover:underline transition-colors disabled:opacity-50"
+            style={{ background: "none", border: "none", cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 500, color: "#1F4E5B", textDecoration: "underline", opacity: loading ? 0.5 : 1 }}
           >
             {loading ? "Sending…" : "Resend code"}
           </button>
           <button
             onClick={() => { setStep("email"); setError(""); setOtp(""); setOtpError(""); }}
-            className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#635C59", textDecoration: "underline" }}
           >
             Use a different email
           </button>

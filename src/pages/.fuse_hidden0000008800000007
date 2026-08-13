@@ -1,0 +1,360 @@
+import { CE_BG,CE_LIGHT } from '../tokens';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, CalendarDays, CheckCircle2, Clock, Copy, MoreHorizontal, Trash2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const DIVIDER = CE_LIGHT;
+
+// ── Types ──────────────────────────────────────────────────────────────────
+type Event = {
+  id: string;
+  title: string;
+  date: string;
+  start_time?: string | null;
+  location: string;
+  image_url: string | null;
+  age_min?: number;
+  age_max?: number;
+  user_id: string;
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const toLocal = (d: string) => {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(y, m - 1, day);
+};
+
+const formatDate = (dateStr: string, timeStr?: string | null) => {
+  const date = toLocal(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (!timeStr) return date;
+  const [h, min] = timeStr.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return `${date} • ${hour}:${String(min).padStart(2, "0")} ${ampm}`;
+};
+
+const groupByWeek = (events: Event[]) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(today); endOfWeek.setDate(today.getDate() + 7);
+  const endOfNextWeek = new Date(endOfWeek); endOfNextWeek.setDate(endOfWeek.getDate() + 7);
+  const thisWeek: Event[] = [], nextWeek: Event[] = [], later: Event[] = [];
+  events.forEach((e) => {
+    const d = toLocal(e.date);
+    if (d < endOfWeek) thisWeek.push(e);
+    else if (d < endOfNextWeek) nextWeek.push(e);
+    else later.push(e);
+  });
+  return { thisWeek, nextWeek, later };
+};
+
+// ── Component ──────────────────────────────────────────────────────────────
+const PublishedEventsPage = () => {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenuId(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user) { setLoading(false); return; }
+    setLoading(true);
+    setEvents([]);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const uid = session.user.id;
+
+    const fetchAll = async () => {
+      const { data: owned } = await supabase
+        .from("events")
+        .select("id, title, date, start_time, location, image_url, age_min, age_max, user_id")
+        .eq("user_id", uid)
+        .eq("status", "published")
+        .order("date", { ascending: activeTab === "upcoming" });
+
+      const { data: cohostRows } = await supabase
+        .from("event_cohosts")
+        .select("event_id")
+        .eq("user_id", uid);
+      const cohostIds = (cohostRows ?? []).map((r: any) => r.event_id);
+
+      let cohostEvents: Event[] = [];
+      if (cohostIds.length > 0) {
+        const { data: cohosted } = await supabase
+          .from("events")
+          .select("id, title, date, start_time, location, image_url, age_min, age_max, user_id")
+          .in("id", cohostIds)
+          .eq("status", "published")
+          .order("date", { ascending: activeTab === "upcoming" });
+        cohostEvents = (cohosted ?? []) as Event[];
+      }
+
+      const seen = new Set<string>();
+      const merged = [...(owned ?? []), ...cohostEvents].filter((e: any) => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return activeTab === "upcoming" ? toLocal(e.date) >= today : toLocal(e.date) < today;
+      }) as Event[];
+
+      setEvents(merged);
+      setLoading(false);
+    };
+
+    fetchAll();
+  }, [session, activeTab]);
+
+  const deleteEvent = async (id: string) => {
+    setOpenMenuId(null);
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) { toast.error("Failed to delete event"); return; }
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    toast.success("Event deleted");
+  };
+
+  const duplicateEvent = async (id: string) => {
+    setOpenMenuId(null);
+    if (!session?.user) return;
+    const { data, error } = await supabase.from("events").select("*").eq("id", id).single();
+    if (error || !data) { toast.error("Failed to duplicate event"); return; }
+    const { id: _id, created_at: _ca, ...rest } = data;
+    const { data: newEvent, error: insertError } = await supabase
+      .from("events")
+      .insert({ ...rest, title: `${data.title} (Copy)`, status: "published", user_id: session.user.id })
+      .select("id, title, date, start_time, location, image_url, age_min, age_max, user_id")
+      .single();
+    if (insertError || !newEvent) { toast.error("Failed to duplicate"); return; }
+    setEvents((prev) => {
+      const idx = prev.findIndex((e) => e.id === id);
+      const next = [...prev];
+      next.splice(idx + 1, 0, newEvent);
+      return next;
+    });
+    toast.success("Event duplicated!");
+  };
+
+  // ── Event Card ─────────────────────────────────────────────────────────
+  const EventCard = ({ event }: { event: Event }) => (
+    <div
+      onClick={() => navigate(`/create-event/${event.id}`)}
+      className="bg-white overflow-hidden cursor-pointer hover:shadow-md transition-shadow flex flex-col"
+      style={{ borderRadius: 20 }}
+    >
+      {/* Cover image */}
+      <div className="relative flex-shrink-0">
+        {event.image_url ? (
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="w-full object-cover"
+            style={{ height: 140 }}
+          />
+        ) : (
+          <div
+            className="w-full flex items-center justify-center"
+            style={{ height: 140, background: DIVIDER }}
+          >
+            <CalendarDays className="h-8 w-8" style={{ color: MID }} />
+          </div>
+        )}
+
+        {/* ··· menu */}
+        <div
+          className="absolute top-2.5 right-2.5"
+          ref={openMenuId === event.id ? menuRef : null}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === event.id ? null : event.id); }}
+            className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.88)" }}
+          >
+            <MoreHorizontal className="h-4 w-4" style={{ color: DARK }} />
+          </button>
+
+          {openMenuId === event.id && (
+            <div
+              className="absolute right-0 top-9 z-20 overflow-hidden shadow-lg"
+              style={{ background: "white", borderRadius: 14, minWidth: 140, border: `1px solid ${DIVIDER}` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => duplicateEvent(event.id)}
+                className="w-full flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-gray-50"
+                style={{ color: DARK }}
+              >
+                <Copy className="h-3.5 w-3.5" style={{ color: MID }} /> Duplicate
+              </button>
+              <div className="h-px" style={{ background: DIVIDER }} />
+              <button
+                onClick={() => deleteEvent(event.id)}
+                className="w-full flex items-center gap-2 px-4 py-3 text-sm transition-colors hover:bg-red-50"
+                style={{ color: "#DC2626" }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Text */}
+      <div className="px-3 pt-3 pb-4 flex flex-col gap-1">
+        <h3
+          className="font-semibold text-sm leading-snug line-clamp-2"
+          style={{ color: DARK, fontFamily: "'Inter', sans-serif" }}
+        >
+          {event.title}
+        </h3>
+        <p className="text-xs" style={{ color: MID }}>
+          {formatDate(event.date, event.start_time)}
+        </p>
+      </div>
+    </div>
+  );
+
+  // ── Section group ──────────────────────────────────────────────────────
+  const Section = ({ label, items }: { label: string; items: Event[] }) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-7">
+        <h2
+          className="font-semibold mb-3"
+          style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: "1.25rem" }}
+        >
+          {label}
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+          {items.map((e) => <EventCard key={e.id} event={e} />)}
+        </div>
+      </div>
+    );
+  };
+
+  const { thisWeek, nextWeek, later } = groupByWeek(events);
+
+  // ── Skeleton ───────────────────────────────────────────────────────────
+  const Skeleton = () => (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white overflow-hidden" style={{ borderRadius: 20 }}>
+          <div className="sk w-full" style={{ height: 140, borderRadius: 0 }} />
+          <div className="p-3 flex flex-col gap-2">
+            <div className="sk h-4 w-4/5" />
+            <div className="sk h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="max-w-5xl mx-auto px-5">
+
+        {/* Back + Title */}
+        <div className="flex items-center gap-4 pt-8 pb-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+            style={{ background: "#E4DCCF" }}
+          >
+            <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
+          </button>
+          <h1
+            className="font-bold leading-tight"
+            style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 32 }}
+          >
+            Published Events{!loading && ` (${events.length})`}
+          </h1>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-7">
+          {([
+            { id: "upcoming", label: "Upcoming", Icon: CheckCircle2 },
+            { id: "past",     label: "Past",     Icon: Clock },
+          ] as const).map(({ id, label, Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all"
+                style={active
+                  ? { background: TEAL, color: "white", border: "none" }
+                  : { background: "#E4DCCF", color: DARK, border: `1px solid ${CE_LIGHT}` }
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <Skeleton />
+        ) : events.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: DIVIDER }}
+            >
+              <CalendarDays className="h-8 w-8" style={{ color: TEAL }} />
+            </div>
+            <div>
+              <p
+                className="text-xl font-semibold"
+                style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK }}
+              >
+                {activeTab === "upcoming" ? "No upcoming events" : "No past events"}
+              </p>
+              <p className="text-sm mt-1" style={{ color: MID }}>
+                {activeTab === "upcoming"
+                  ? "Events you publish will appear here."
+                  : "Your past events will show up here."}
+              </p>
+            </div>
+            {activeTab === "upcoming" && (
+              <button
+                onClick={() => navigate("/create-event")}
+                className="px-6 py-2.5 rounded-full text-sm font-semibold text-white"
+                style={{ background: TEAL }}
+              >
+                Create Event
+              </button>
+            )}
+          </div>
+        ) : activeTab === "upcoming" ? (
+          <div>
+            <Section label="This Week"  items={thisWeek} />
+            <Section label="Next Week"  items={nextWeek} />
+            <Section label="Later"      items={later} />
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+            {events.map((e) => <EventCard key={e.id} event={e} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PublishedEventsPage;

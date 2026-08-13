@@ -1,0 +1,172 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { House, Calendar1, Plus, UsersRound, Search, User } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import CreateActionModal from "./CreateActionModal";
+
+const NAV_ITEMS = [
+  { id: "home",      label: "Home",      icon: House,      path: "/wards" },
+  { id: "calendar",  label: "My Events", icon: Calendar1,  path: "/events" },
+  { id: "plus",      label: "Create",    icon: Plus,       path: null },
+  { id: "community", label: "Community", icon: UsersRound, path: "/community" },
+  { id: "search",    label: "Search",    icon: Search,     path: "/search" },
+  { id: "profile",   label: "Profile",   icon: User,       path: "/profile" },
+];
+
+const DesktopSidebar = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { session } = useAuth();
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", session.user.id)
+      .single()
+      .then(({ data }) => setAvatarUrl(data?.avatar_url ?? null));
+  }, [session?.user?.id]);
+
+  // Unread notifications (tags/mentions, replies, likes on events you posted)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const fetchUnread = () => {
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", session.user.id)
+        .eq("read", false)
+        .then(({ count }) => setUnreadCount(count ?? 0));
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [session?.user?.id]);
+
+  const ICON_COLOR        = "#5E5F60";  // inactive gray
+  const ICON_COLOR_ACTIVE = "#2C2523";  // active dark
+
+  return (
+    <>
+      <aside
+        className="hidden md:flex fixed left-0 top-0 h-full flex-col z-30"
+        style={{
+          width: 96,
+          overflow: "visible",
+          background: "#ffffff",
+          borderRight: "1px solid #E4DCCF",
+        }}
+      >
+        {/* Logo → home */}
+        <div
+          className="cursor-pointer flex items-center justify-center"
+          style={{ paddingTop: 32, paddingBottom: 32 }}
+          onClick={() => navigate("/wards")}
+        >
+          <img src="/Newbyondsundayicon.png" alt="Beyond Sunday" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+        </div>
+
+        {/* Nav items */}
+        <div className="flex flex-col items-center" style={{ gap: 20, overflow: "visible" }}>
+          {NAV_ITEMS.map((item) => {
+            const isActive = !!item.path && pathname === item.path;
+            const isHovered = hoveredItem === item.id;
+            const iconColor = isActive ? ICON_COLOR_ACTIVE : ICON_COLOR;
+
+            return (
+              <div
+                key={item.id}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
+                onClick={() => {
+                  if (item.id === "plus") setCreateModalOpen(true);
+                  else if (item.path) navigate(item.path);
+                }}
+                style={{
+                  position: "relative",
+                  height: 44,
+                  width: 48,
+                  cursor: "pointer",
+                  overflow: "visible",
+                  borderRadius: 100,
+                }}
+              >
+                {/* Pill background on hover/active */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 100,
+                    background: isActive ? "#E4DCCF" : isHovered ? "#F5F1EC" : "transparent",
+                    transition: "background 0.15s ease",
+                    pointerEvents: "none",
+                  }}
+                />
+
+                {/* Icon centered */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {item.id === "profile" && avatarUrl ? (
+                    <div style={{ position: "relative" }}>
+                      <img
+                        src={avatarUrl}
+                        referrerPolicy="no-referrer"
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          outline: isActive ? `2px solid ${ICON_COLOR_ACTIVE}` : "none",
+                        }}
+                      />
+                      {unreadCount > 0 && (
+                        <span style={{
+                          position: "absolute", top: -2, right: -4,
+                          minWidth: 14, height: 14,
+                          background: CE_ERROR, color: "#fff",
+                          fontSize: 9, fontWeight: 700, borderRadius: "50%",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          padding: "0 2px", lineHeight: 1,
+                        }}>
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <item.icon
+                      style={{ width: 22, height: 22 }}
+                      color={iconColor}
+                      strokeWidth={isActive ? 2.5 : 2.2}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </aside>
+
+      <CreateActionModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        isDesktop
+      />
+    </>
+  );
+};
+
+export default DesktopSidebar;

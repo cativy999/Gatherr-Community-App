@@ -1,0 +1,590 @@
+import { CE_BG,CE_LIGHT } from '../tokens';
+import { MapPin, Globe, Link, Link2, Pencil, ChevronLeft, Users } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { groupByWeek } from "@/components/TimelineSection";
+import ShareMenu from "@/components/ShareMenu";
+
+// ── Design tokens ──────────────────────────────────────────────────────────
+const BG      = CE_BG;
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const ICON_BG = "#E4DCCF";
+const DIVIDER = CE_LIGHT;
+const GARAMOND  = "'EB Garamond', Georgia, serif";
+const CORMORANT = "'Cormorant Garamond', Georgia, serif";
+const DOT_COLOR = "#5B8A7A";
+const INTER    = "'Inter', sans-serif";
+
+const AVATAR_SHADOW = "0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10)";
+const BUTTON_SHADOW = "0 2px 8px rgba(0,0,0,0.18)";
+
+// ── Timezone abbreviation map ──────────────────────────────────────────────
+const TZ_ABBR: Record<string, string> = {
+  "America/Los_Angeles": "PT",
+  "America/Denver":      "MT",
+  "America/Phoenix":     "MT",
+  "America/Chicago":     "CT",
+  "America/New_York":    "ET",
+  "America/Anchorage":   "AKT",
+  "Pacific/Honolulu":    "HT",
+};
+const getTzAbbr = (tz: string | null | undefined) => tz ? (TZ_ABBR[tz] ?? "") : "";
+
+const formatTime = (t: string) =>
+  new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+const getEventTime = (event: any) => {
+  const t = event.start_time ?? event.time;
+  if (!t) return null;
+  const base = formatTime(t);
+  const tz = getTzAbbr(event.timezone);
+  return tz ? `${base} ${tz}` : base;
+};
+
+// ── Group events by date key ───────────────────────────────────────────────
+const groupByDate = (events: any[]) => {
+  const sorted = [...events].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.time ?? "").localeCompare(b.time ?? "");
+  });
+  const groups: { key: string; label: string; dayOfWeek: string; events: any[] }[] = [];
+  const seen = new Map<string, number>();
+  sorted.forEach((ev) => {
+    const [y, m, d] = ev.date.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const label = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "long" });
+    const key = ev.date;
+    if (seen.has(key)) {
+      groups[seen.get(key)!].events.push(ev);
+    } else {
+      seen.set(key, groups.length);
+      groups.push({ key, label, dayOfWeek, events: [ev] });
+    }
+  });
+  return groups;
+};
+
+// ── Event card ─────────────────────────────────────────────────────────────
+const EventCard = ({ event, navigate }: { event: any; navigate: (p: string) => void }) => {
+  const timeStr = getEventTime(event);
+  const ageLabel = event.age_min
+    ? `Ages ${event.age_min}${event.age_max ? `–${event.age_max}` : "+"}`
+    : null;
+
+  return (
+    <div
+      onClick={() => navigate(`/event/${event.id}`)}
+      className="flex gap-3 cursor-pointer transition-opacity hover:opacity-80"
+      style={{ background: "white", borderRadius: 12, padding: "12px 12px 12px 14px" }}
+    >
+      {/* Left: text */}
+      <div className="flex-1 min-w-0" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {timeStr && (
+          <p
+            style={{
+              color: TEAL,
+              fontFamily: INTER,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {timeStr}
+          </p>
+        )}
+        <h3
+          style={{
+            color: DARK,
+            fontFamily: GARAMOND,
+            fontSize: 16,
+            fontWeight: 400,
+            lineHeight: 1.25,
+          }}
+        >
+          {event.title}
+        </h3>
+        {event.location && (
+          <div className="flex items-center gap-1" style={{ marginTop: 2 }}>
+            <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: MID }} />
+            <span
+              className="line-clamp-1"
+              style={{ color: MID, fontFamily: INTER, fontSize: 12 }}
+            >
+              {event.location}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <Users className="h-3 w-3" style={{ color: MID }} />
+          <span style={{ color: MID, fontFamily: INTER, fontSize: 12 }}>
+            {event.attendees ?? 0} going
+          </span>
+        </div>
+      </div>
+
+      {/* Right: image + age chip stacked directly under image */}
+      <div
+        className="flex-shrink-0 flex flex-col items-end"
+        style={{ gap: 6 }}
+      >
+        {event.image_url ? (
+          <img
+            src={event.image_url}
+            alt={event.title}
+            style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
+          />
+        ) : (
+          <div style={{ width: 84, height: 84, borderRadius: 10, background: ICON_BG, flexShrink: 0 }} />
+        )}
+        {ageLabel && (
+          <span
+            style={{
+              background: "#DCEAE5",
+              color: "#5B8A7A",
+              fontFamily: INTER,
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "4px 10px",
+              borderRadius: 100,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {ageLabel}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Events section ─────────────────────────────────────────────────────────
+const EventsSection = ({
+  label, events, navigate,
+}: { label: string; events: any[]; navigate: (p: string) => void }) => {
+  if (events.length === 0) return null;
+  const dateGroups = groupByDate(events);
+  return (
+    <div className="space-y-3">
+      {/* Section label e.g. "THIS WEEK" */}
+      <p
+        className="text-[11px] font-semibold tracking-widest uppercase"
+        style={{ color: MID, fontFamily: INTER }}
+      >
+        {label}
+      </p>
+
+      {dateGroups.map(({ key, label: dateLabel, dayOfWeek, events: dayEvents }) => (
+        <div key={key} className="flex gap-3">
+          {/* Bullet + vertical line */}
+          <div className="flex flex-col items-center flex-shrink-0" style={{ paddingTop: 5 }}>
+            <div
+              className="rounded-full flex-shrink-0"
+              style={{
+                width: 9,
+                height: 9,
+                background: DOT_COLOR,
+                border: "2px solid white",
+              }}
+            />
+            <div className="w-px flex-1" style={{ background: DIVIDER, marginTop: 4 }} />
+          </div>
+
+          {/* Date + cards */}
+          <div className="flex-1" style={{ paddingBottom: 20 }}>
+            {/* Date header */}
+            <div className="flex items-baseline gap-2" style={{ marginBottom: 10 }}>
+              <span style={{ fontFamily: CORMORANT, fontSize: 19, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+                {dateLabel}
+              </span>
+              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 400, color: MID, lineHeight: 1 }}>
+                {dayOfWeek}
+              </span>
+            </div>
+
+            {/* Event cards */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {dayEvents.map((ev) => (
+                <EventCard key={ev.id} event={ev} navigate={navigate} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Main component ─────────────────────────────────────────────────────────
+const GroupProfile = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { session } = useAuth();
+  const [group, setGroup]                       = useState<any>(null);
+  const [events, setEvents]                     = useState<any[]>([]);
+  const [creatorProfiles, setCreatorProfiles]   = useState<Record<string, any>>({});
+  const [communityProfiles, setCommunityProfiles] = useState<Record<string, any>>({});
+  const [groupCreator, setGroupCreator]         = useState<any>(null);
+  const [groupCoAdmin, setGroupCoAdmin]         = useState<any>(null);
+  const [loading, setLoading]                   = useState(true);
+  const [isCoAdmin, setIsCoAdmin]               = useState(false);
+  const [shareMenuOpen, setShareMenuOpen]       = useState(false);
+  const shareButtonRef                          = useRef<HTMLButtonElement>(null);
+
+  const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
+
+  // ── Share to story ─────────────────────────────────────────────────────
+  const shareToStory = async () => {
+    setShareMenuOpen(false);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080; canvas.height = 1920;
+    const ctx = canvas.getContext("2d")!;
+    const drawBackground = () => {
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, "#0f0f0f"); bg.addColorStop(1, "#1a1a1a");
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+    const drawOverlayAndText = () => {
+      const overlay = ctx.createLinearGradient(0, canvas.height * 0.35, 0, canvas.height);
+      overlay.addColorStop(0, "rgba(0,0,0,0)"); overlay.addColorStop(0.5, "rgba(0,0,0,0.6)"); overlay.addColorStop(1, "rgba(0,0,0,0.92)");
+      ctx.fillStyle = overlay; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number, font: string) => {
+        ctx.font = font; ctx.fillStyle = "white";
+        const words = text.split(" "); let line = ""; let cy = y;
+        for (const word of words) {
+          const test = line + word + " ";
+          if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line.trim(), x, cy); line = word + " "; cy += lineHeight; }
+          else line = test;
+        }
+        ctx.fillText(line.trim(), x, cy); return cy;
+      };
+      const pad = 90; const maxW = canvas.width - pad * 2;
+      const titleY = wrapText(group.name || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
+      if (group.address) { ctx.font = "48px 'Helvetica Neue', Helvetica, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.75)"; ctx.fillText(group.address, pad, titleY + 80); }
+    };
+    const doShare = async () => new Promise<void>((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
+        const file = new File([blob], "beyond-sunday-group.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file] }); } catch (e: any) { if (e?.name !== "AbortError") toast.error("Sharing failed"); }
+        } else {
+          const url = URL.createObjectURL(blob); const a = document.createElement("a");
+          a.href = url; a.download = "beyond-sunday-group.png"; a.click(); URL.revokeObjectURL(url);
+          toast.success("Image saved! Upload it to your Instagram Story.");
+        }
+        resolve();
+      }, "image/png");
+    });
+    drawBackground();
+    if (group.cover_image_url) {
+      await new Promise<void>((resolve) => {
+        const img = new Image(); img.crossOrigin = "anonymous";
+        img.onload = () => { const scale = Math.max(canvas.width / img.width, canvas.height / img.height); const x = (canvas.width - img.width * scale) / 2; const y = (canvas.height - img.height * scale) / 2; ctx.drawImage(img, x, y, img.width * scale, img.height * scale); resolve(); };
+        img.onerror = () => resolve(); img.src = group.cover_image_url;
+      });
+    }
+    drawOverlayAndText(); await doShare();
+  };
+
+  // ── Co-admin check ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id || !session?.user.id) return;
+    supabase.from("group_admins").select("id").eq("group_id", id).eq("user_id", session.user.id).eq("status", "accepted").maybeSingle()
+      .then(({ data }) => setIsCoAdmin(!!data));
+  }, [id, session?.user.id]);
+
+  // ── Data fetching ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    supabase.from("groups").select("*").eq("id", id).single().then(async ({ data: groupData }) => {
+      setGroup(groupData); setLoading(false);
+      if (!groupData) return;
+
+      if (groupData.user_id) {
+        const { data: cd } = await supabase.from("profiles").select("name, avatar_url").eq("user_id", groupData.user_id).maybeSingle();
+        if (cd) setGroupCreator({ name: cd.name, avatar_url: cd.avatar_url ?? null });
+      }
+
+      const { data: adminRow } = await supabase.from("group_admins").select("user_id").eq("group_id", groupData.id).eq("status", "accepted").maybeSingle();
+      if (adminRow?.user_id) {
+        const { data: ap } = await supabase.from("profiles").select("name, avatar_url").eq("user_id", adminRow.user_id).maybeSingle();
+        if (ap) setGroupCoAdmin({ name: ap.name, avatar_url: ap.avatar_url ?? null });
+      }
+
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id, timezone";
+      const dateFilter = `end_date.gte.${today},and(end_date.is.null,date.gte.${today})`;
+
+      const { data: communityEvents } = await supabase.from("events").select(FIELDS).eq("status", "published").eq("community_id", groupData.id).or(dateFilter).order("date", { ascending: true });
+
+      const { data: wardProfiles } = await supabase.from("profiles").select("user_id, name, avatar_url").eq("ward", groupData.name);
+      let wardEvents: any[] = [];
+      if (wardProfiles && wardProfiles.length > 0) {
+        const wardUserIds = wardProfiles.map((p: any) => p.user_id);
+        const { data } = await supabase.from("events").select(FIELDS).eq("status", "published").in("user_id", wardUserIds).is("community_id", null).or(dateFilter).order("date", { ascending: true });
+        wardEvents = data ?? [];
+      }
+
+      const seen = new Set<string>();
+      const eventsData = [...(communityEvents ?? []), ...wardEvents].filter((e: any) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+      setEvents(eventsData);
+
+      const individualEvents = eventsData.filter((e: any) => !e.community_id);
+      if (individualEvents.length > 0) {
+        const uids = [...new Set(individualEvents.map((e: any) => e.user_id))];
+        const { data: cd } = await supabase.from("profiles").select("user_id, name, avatar_url").in("user_id", uids as string[]);
+        const map: Record<string, any> = {};
+        (cd ?? []).forEach((p: any) => { map[p.user_id] = { name: p.name, avatar_url: p.avatar_url ?? null }; });
+        setCreatorProfiles(map);
+      }
+
+      const communityEventsList = eventsData.filter((e: any) => e.community_id);
+      if (communityEventsList.length > 0) {
+        const ugids = [...new Set(communityEventsList.map((e: any) => e.community_id))];
+        const { data: gd } = await supabase.from("groups").select("id, name, avatar_url").in("id", ugids as string[]);
+        const cmap: Record<string, any> = {};
+        (gd ?? []).forEach((g: any) => { cmap[g.id] = { name: g.name, avatar_url: g.avatar_url ?? null }; });
+        setCommunityProfiles(cmap);
+      }
+    });
+  }, [id]);
+
+  if (loading) return (
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="sk w-full" style={{ height: 220, borderRadius: 0 }} />
+      <div className="flex justify-center -mt-10 mb-4">
+        <div className="sk w-20 h-20 rounded-full" />
+      </div>
+      <div className="flex flex-col items-center gap-2 px-6 mb-6">
+        <div className="sk h-7 w-48" />
+        <div className="sk h-4 w-32" />
+      </div>
+    </div>
+  );
+
+  if (!group) return (
+    <div className="flex min-h-screen items-center justify-center" style={{ color: MID }}>Group not found</div>
+  );
+
+  const { thisWeek, nextWeek, later } = groupByWeek(events);
+  const isOwnerOrAdmin = session?.user?.id === group?.user_id || isCoAdmin;
+
+  return (
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+
+      {/* ── Hero cover ───────────────────────────────────────────────── */}
+      <div className="relative w-full overflow-hidden" style={{ height: 220 }}>
+        {group.cover_image_url ? (
+          <img src={group.cover_image_url} alt={group.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: DIVIDER }} />
+        )}
+
+        {/* Back — white frosted circle, safe-area aware */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute left-4 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-80"
+          style={{
+            top: "max(16px, env(safe-area-inset-top, 16px))",
+            background: "rgba(255,255,255,0.88)",
+            boxShadow: BUTTON_SHADOW,
+          }}
+        >
+          <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
+        </button>
+
+        {/* Share — white frosted circle, safe-area aware */}
+        <button
+          ref={shareButtonRef}
+          onClick={() => setShareMenuOpen((o) => !o)}
+          className="absolute right-4 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-80"
+          style={{
+            top: "max(16px, env(safe-area-inset-top, 16px))",
+            background: "rgba(255,255,255,0.88)",
+            boxShadow: BUTTON_SHADOW,
+          }}
+          aria-label="Share"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+          </svg>
+        </button>
+
+        <ShareMenu
+          open={shareMenuOpen}
+          onClose={() => setShareMenuOpen(false)}
+          triggerRef={shareButtonRef}
+          items={[
+            { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
+            { label: "Share Link", onClick: () => navigator.share?.({ title: group.name, url: shareUrl }), hidden: !navigator.share },
+            { label: "Share to Story", onClick: shareToStory },
+          ]}
+        />
+
+        {/* Admin edit */}
+        {isOwnerOrAdmin && (
+          <button
+            onClick={() => navigate(`/create-group/${id}`)}
+            className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.88)", color: DARK, boxShadow: BUTTON_SHADOW }}
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+        )}
+      </div>
+
+      {/* ── Avatar — overlaps cover bottom ───────────────────────────── */}
+      <div className="flex justify-center -mt-10 mb-4" style={{ position: "relative", zIndex: 1 }}>
+        <div
+          className="w-20 h-20 rounded-full border-4 border-white overflow-hidden flex items-center justify-center bg-gray-100"
+          style={{ boxShadow: AVATAR_SHADOW }}
+        >
+          {group.avatar_url
+            ? <img src={group.avatar_url} className="w-full h-full object-cover" alt={group.name} />
+            : <span className="text-3xl">👥</span>}
+        </div>
+      </div>
+
+      {/* ── Group name + location + admins ───────────────────────────── */}
+      <div className="flex flex-col items-center text-center px-6 gap-2 max-w-2xl mx-auto w-full">
+        <h1
+          className="leading-tight"
+          style={{ fontFamily: GARAMOND, color: DARK, fontSize: 26, fontWeight: 400 }}
+        >
+          {group.name}
+        </h1>
+
+        {group.address && (
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(group.address)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-start gap-1 text-sm transition-opacity hover:opacity-70"
+            style={{ color: TEAL, maxWidth: "100%" }}
+          >
+            <MapPin className="h-3.5 w-3.5 flex-shrink-0" style={{ marginTop: 2 }} />
+            <span className="line-clamp-2 text-left">{group.address}</span>
+          </a>
+        )}
+
+        {(groupCreator || groupCoAdmin) && (
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            {[
+              groupCreator && { label: "Admin", person: groupCreator },
+              groupCoAdmin && { label: "Co-admin", person: groupCoAdmin },
+            ].filter(Boolean).map((item: any) => (
+              <div key={item.label} className="flex items-center gap-1.5">
+                {item.person.avatar_url ? (
+                  <img src={item.person.avatar_url} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full object-cover" alt="" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ background: MID }}>
+                    {item.person.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs" style={{ color: MID, fontFamily: INTER }}>
+                  {item.label}: <span className="font-semibold" style={{ color: DARK }}>{item.person.name}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Social link chips ────────────────────────────────────────── */}
+      {(group.facebook_url || group.instagram_url || group.website_url) && (
+        <div className="flex justify-center gap-2 mt-4 px-5 flex-wrap">
+          {group.facebook_url && (
+            <a href={group.facebook_url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ background: ICON_BG, border: `1px solid #D4CCBF`, color: DARK, fontFamily: INTER }}>
+              <Link className="h-3.5 w-3.5" /> Facebook
+            </a>
+          )}
+          {group.instagram_url && (
+            <a href={group.instagram_url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ background: ICON_BG, border: `1px solid #D4CCBF`, color: DARK, fontFamily: INTER }}>
+              <Link2 className="h-3.5 w-3.5" /> Instagram
+            </a>
+          )}
+          {group.website_url && (
+            <a href={group.website_url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ background: ICON_BG, border: `1px solid #D4CCBF`, color: DARK, fontFamily: INTER }}>
+              <Globe className="h-3.5 w-3.5" /> Website
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* ── Main content ─────────────────────────────────────────────── */}
+      <main className="px-5 pt-6 pb-4 space-y-7 max-w-2xl mx-auto w-full">
+
+        <div className="h-px" style={{ background: DIVIDER }} />
+
+        {/* About */}
+        {group.description && (
+          <div className="space-y-2">
+            <h2 style={{ fontFamily: GARAMOND, color: DARK, fontSize: 20, fontWeight: 400 }}>
+              About
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER }}>
+              {group.description}
+            </p>
+          </div>
+        )}
+
+        {/* Good to Know */}
+        {group.good_to_know && (
+          <div className="space-y-2">
+            <h2 style={{ fontFamily: GARAMOND, color: DARK, fontSize: 20, fontWeight: 400 }}>
+              Good to Know
+            </h2>
+            <div className="rounded-2xl px-4 py-4" style={{ background: "white" }}>
+              {group.good_to_know.includes(":") ? (() => {
+                const colonIdx = group.good_to_know.indexOf(":");
+                const title = group.good_to_know.slice(0, colonIdx).trim();
+                const body  = group.good_to_know.slice(colonIdx + 1).trim();
+                return (
+                  <>
+                    <p className="text-sm font-semibold mb-1" style={{ color: TEAL, fontFamily: INTER }}>{title}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER }}>{body}</p>
+                  </>
+                );
+              })() : (
+                <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER }}>{group.good_to_know}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Events */}
+        <div className="space-y-4">
+          <h2 style={{ fontFamily: GARAMOND, color: DARK, fontSize: 20, fontWeight: 400 }}>
+            Events
+          </h2>
+
+          {events.length > 0 ? (
+            <div className="space-y-6">
+              <EventsSection label="This Week" events={thisWeek} navigate={navigate} />
+              <EventsSection label="Next Week" events={nextWeek} navigate={navigate} />
+              <EventsSection label="Later"     events={later}    navigate={navigate} />
+            </div>
+          ) : (
+            <div className="py-6 px-4 rounded-2xl text-center" style={{ background: "white" }}>
+              <p className="text-sm" style={{ color: MID, fontFamily: INTER }}>No upcoming events</p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default GroupProfile;

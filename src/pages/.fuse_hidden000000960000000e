@@ -1,0 +1,890 @@
+import { CE_BG } from '../tokens';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft, MapPin, Image as ImageIcon, Loader2,
+  Link, Link2, Globe, Check, Search, X, ChevronDown, UserPlus,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+// ─── Design tokens (matching CreateEvent) ────────────────────────────────────
+const CG_DARK  = "#2C2523";
+const CG_TEAL  = "#1F4E5B";
+const CG_MID   = "#635C59";
+const CG_DIV   = "#E4DCCF";
+const CG_SANS  = "'Inter', sans-serif";
+
+const cgInput: React.CSSProperties = {
+  width: "100%", padding: "12px 16px", borderRadius: 14,
+  border: `1px solid ${CG_DIV}`, fontFamily: CG_SANS,
+  fontSize: 14, color: CG_DARK, background: "white", outline: "none",
+};
+
+const CgLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  <p style={{ fontFamily: CG_SANS, fontSize: 11, fontWeight: 700, color: CG_MID, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+    {children}{required && <span style={{ color: CG_TEAL, marginLeft: 2 }}>*</span>}
+  </p>
+);
+
+// ─── Co-Admin types ───────────────────────────────────────────────────────────
+
+interface CoAdminInfo {
+  adminId: string;        // group_admins.id
+  userId: string;
+  name: string;
+  avatar_url: string | null;
+  status: "pending" | "accepted";
+}
+
+// ─── Ward data ───────────────────────────────────────────────────────────────
+
+interface WardEntry {
+  name: string;
+  city?: string;
+  type: "YSA" | "SA" | "MSA" | "Branch";
+  state: string;
+  region: string;
+}
+
+const WARD_DATA: WardEntry[] = [
+  // ── California · Orange County ──────────────────────────────────────────
+  { state: "California", region: "Orange County", name: "Huntington Beach YSA",      city: "Huntington Beach", type: "YSA" },
+  { state: "California", region: "Orange County", name: "Huntington Beach SA",       city: "Huntington Beach", type: "SA"  },
+  { state: "California", region: "Orange County", name: "Heritage Park Mid-Singles", city: "Orange County",    type: "MSA" },
+  { state: "California", region: "Orange County", name: "Heritage Park SA",          city: "Orange County",    type: "SA"  },
+  { state: "California", region: "Orange County", name: "Newport Area YSA",          city: "Newport Beach",    type: "YSA" },
+  { state: "California", region: "Orange County", name: "Irvine Area YSA",           city: "Irvine",           type: "YSA" },
+  { state: "California", region: "Orange County", name: "San Clemente YSA",          city: "San Clemente",     type: "YSA" },
+
+  // ── California · Los Angeles ────────────────────────────────────────────
+  { state: "California", region: "Los Angeles", name: "Santa Monica YSA",       city: "Santa Monica",    type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "Santa Monica 3rd YSA",   city: "Santa Monica",    type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "South Bay YSA",          city: "Torrance",        type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "San Gabriel Valley YSA", city: "San Gabriel",     type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "Los Angeles 1st YSA",    city: "Los Angeles",     type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "UCLA Ward",              city: "Westwood",        type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "USC Ward",               city: "Los Angeles",     type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "West Valley YSA",        city: "West Hills",      type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "Chatsworth 3rd YSA",     city: "Chatsworth",      type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "Santa Clarita 2nd YSA",  city: "Santa Clarita",   type: "YSA" },
+  { state: "California", region: "Los Angeles", name: "Los Angeles Midsingles",  city: "Los Angeles",     type: "MSA" },
+  { state: "California", region: "Los Angeles", name: "Glendale SA Ward",       city: "Glendale",        type: "SA"  },
+  { state: "California", region: "Los Angeles", name: "Glendale Single Adult",  city: "Glendale",        type: "SA"  },
+
+  // ── California · Inland Empire ──────────────────────────────────────────
+  { state: "California", region: "Inland Empire", name: "Inland Empire YSA",        city: "Rancho Cucamonga", type: "YSA" },
+  { state: "California", region: "Inland Empire", name: "Inland Empire Mid-Singles", city: "Rancho Cucamonga", type: "MSA" },
+  { state: "California", region: "Inland Empire", name: "Corona Single Adult",       city: "Corona",           type: "SA"  },
+  { state: "California", region: "Inland Empire", name: "Chino Valley YSA",          city: "Chino",            type: "YSA" },
+  { state: "California", region: "Inland Empire", name: "Claremont 3rd YSA",         city: "Claremont",        type: "YSA" },
+  { state: "California", region: "Inland Empire", name: "Riverside 1st YSA",         city: "Riverside",        type: "YSA" },
+
+  // ── California · San Diego ──────────────────────────────────────────────
+  { state: "California", region: "San Diego", name: "San Diego Bay YSA",   city: "San Diego",   type: "YSA" },
+  { state: "California", region: "San Diego", name: "Cowles Mountain YSA", city: "San Diego",   type: "YSA" },
+
+  // ── California · Sacramento ─────────────────────────────────────────────
+  { state: "California", region: "Sacramento", name: "Folsom Lake YSA", city: "Folsom", type: "YSA" },
+
+  // ── California · Bay Area ───────────────────────────────────────────────
+  { state: "California", region: "Bay Area", name: "Berkeley YSA",      city: "Berkeley",   type: "YSA" },
+  { state: "California", region: "Bay Area", name: "Antioch YSA",       city: "Antioch",    type: "YSA" },
+  { state: "California", region: "Bay Area", name: "Silicon Valley YSA", city: "San Jose",  type: "YSA" },
+  { state: "California", region: "Bay Area", name: "Stanford Singles",   city: "Palo Alto", type: "YSA" },
+  { state: "California", region: "Bay Area", name: "East Bay Singles",   city: "Oakland",   type: "SA"  },
+
+  // ── Nevada · Las Vegas ──────────────────────────────────────────────────
+  { state: "Nevada", region: "Las Vegas", name: "Redrock YSA Ward",          city: "Las Vegas", type: "YSA"    },
+  { state: "Nevada", region: "Las Vegas", name: "Robindale YSA Ward",        city: "Las Vegas", type: "YSA"    },
+  { state: "Nevada", region: "Las Vegas", name: "Virgin Valley YSA Branch",  city: "Mesquite",  type: "Branch" },
+  { state: "Nevada", region: "Las Vegas", name: "Las Vegas Single Adult Ward", city: "Las Vegas", type: "SA"   },
+  { state: "Nevada", region: "Las Vegas", name: "Las Vegas Mid-Singles",     city: "Las Vegas", type: "MSA"    },
+];
+
+const ALL_US_STATES = [
+  "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+  "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
+  "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
+  "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
+  "New Hampshire","New Jersey","New Mexico","New York","North Carolina",
+  "North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island",
+  "South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont",
+  "Virginia","Washington","West Virginia","Wisconsin","Wyoming",
+];
+
+const STATES_WITH_WARDS = [...new Set(WARD_DATA.map((w) => w.state))];
+
+type FilterType = "All" | "YSA" | "MSA" | "SA";
+
+const TYPE_COLOR: Record<string, string> = {
+  YSA:    "bg-blue-100 text-blue-700",
+  MSA:    "bg-purple-100 text-purple-700",
+  SA:     "bg-orange-100 text-orange-700",
+  Branch: "bg-green-100 text-green-700",
+};
+
+// ─── WardPicker component ─────────────────────────────────────────────────────
+
+interface WardPickerProps {
+  value: string;
+  onChange: (ward: string) => void;
+  claimedWards: string[];
+  userId: string;
+}
+
+const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) => {
+  const [open, setOpen]               = useState(false);
+  const [isVisible, setIsVisible]     = useState(false);
+  const [stateQuery, setStateQuery]   = useState("");
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [filter, setFilter]           = useState<FilterType>("All");
+  const [showCantFind, setShowCantFind] = useState(false);
+  const [customWard, setCustomWard]   = useState("");
+  const [submitting, setSubmitting]   = useState(false);
+
+  // Trigger slide-in after mount
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
+    }
+  }, [open]);
+
+  // Pre-select state when editing an existing group
+  useEffect(() => {
+    if (!open || !value) return;
+    const found = WARD_DATA.find((w) => w.name === value);
+    if (found) {
+      setSelectedState(found.state);
+      setStateQuery(found.state);
+    }
+  }, [open, value]);
+
+  const stateMatches =
+    stateQuery.length > 0
+      ? ALL_US_STATES.filter((s) =>
+          s.toLowerCase().startsWith(stateQuery.toLowerCase())
+        )
+      : [];
+
+  const wardsForState = selectedState
+    ? WARD_DATA.filter((w) => w.state === selectedState)
+    : [];
+
+  const filteredWards =
+    filter === "All"
+      ? wardsForState
+      : wardsForState.filter((w) => {
+          if (filter === "YSA") return w.type === "YSA" || w.type === "Branch";
+          if (filter === "MSA") return w.type === "MSA";
+          if (filter === "SA")  return w.type === "SA";
+          return true;
+        });
+
+  // Group filtered wards by region
+  const byRegion: Record<string, WardEntry[]> = {};
+  filteredWards.forEach((w) => {
+    if (!byRegion[w.region]) byRegion[w.region] = [];
+    byRegion[w.region].push(w);
+  });
+
+  const handleSelectState = (state: string) => {
+    setSelectedState(state);
+    setStateQuery(state);
+    setFilter("All");
+    setShowCantFind(false);
+  };
+
+  const handleSelectWard = (wardName: string) => {
+    const isClaimed = claimedWards.includes(wardName) && wardName !== value;
+    if (isClaimed) return;
+    onChange(wardName);
+    setOpen(false);
+  };
+
+  const ADMIN_USER_ID = "57ff4ff5-bbeb-40f4-a518-4688ba45552c";
+
+  const handleSubmitCustomWard = async () => {
+    if (!customWard.trim()) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("notifications").insert({
+      user_id: ADMIN_USER_ID,
+      type: "ward_request",
+      message: `Someone wants to add "${customWard.trim()}" to the ward list.`,
+      read: false,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Couldn't submit. Please try again.");
+      return;
+    }
+    setCustomWard("");
+    setShowCantFind(false);
+    toast.success("Got it! We'll add your ward to the list soon 🙏");
+  };
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setOpen(false);
+      setShowCantFind(false);
+      const found = WARD_DATA.find((w) => w.name === value);
+      setSelectedState(found?.state ?? null);
+      setStateQuery(found?.state ?? "");
+    }, 280);
+  };
+
+  return (
+    <>
+      {/* ── Trigger button ── */}
+      <button
+        type="button"
+        onClick={() => { setIsVisible(false); setOpen(true); }}
+        style={{ ...cgInput, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, cursor: "pointer", border: `1px solid ${CG_DIV}` }}
+      >
+        <span style={{ color: value ? CG_DARK : CG_MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {value || "Select a ward..."}
+        </span>
+        <ChevronDown style={{ width: 16, height: 16, color: CG_MID, flexShrink: 0 }} />
+      </button>
+
+      {/* ── Modal backdrop ── */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${isVisible ? "opacity-100" : "opacity-0"}`}
+            onClick={handleClose}
+          />
+
+          {/* Sheet — bottom sheet on mobile, centered modal on desktop */}
+          <div className={`relative bg-background flex flex-col shadow-xl
+            rounded-t-2xl h-[85vh]
+            md:rounded-2xl md:h-[72vh] md:w-full md:max-w-lg
+            transition-all duration-300 ease-out
+            ${isVisible
+              ? "translate-y-0 md:scale-100 md:opacity-100"
+              : "translate-y-full md:translate-y-0 md:scale-95 md:opacity-0"
+            }`}>
+            {/* Drag handle (mobile only) */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
+              <div className="w-10 h-1 rounded-full bg-border" />
+            </div>
+
+            {/* Header */}
+            <div className="px-4 pb-3 pt-3 flex items-center justify-between border-b flex-shrink-0">
+              <h2 className="text-lg font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>
+                Select Your Ward
+              </h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="p-2 rounded-full hover:bg-accent transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+
+            {/* ── State search ── */}
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={stateQuery}
+                  onChange={(e) => {
+                    setStateQuery(e.target.value);
+                    setSelectedState(null);
+                  }}
+                  placeholder="Search by state  (e.g. Nevada, California)"
+                  className="w-full h-12 pl-9 pr-9 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  autoComplete="off"
+                />
+                {stateQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setStateQuery(""); setSelectedState(null); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              {/* State suggestions */}
+              {stateMatches.length > 0 && !selectedState && (
+                <div className="mt-1 rounded-xl border border-input bg-background shadow-lg overflow-hidden">
+                  {stateMatches.slice(0, 6).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleSelectState(s)}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-accent border-b border-border last:border-0 flex items-center justify-between"
+                    >
+                      <span>{s}</span>
+                      {!STATES_WITH_WARDS.includes(s) && (
+                        <span className="text-xs text-muted-foreground">No wards yet</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Empty state: no state selected yet ── */}
+            {!selectedState && stateQuery.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                <Search className="h-10 w-10 opacity-30" />
+                <p className="text-sm">Type a state to find your ward</p>
+              </div>
+            )}
+
+            {/* ── State selected: show wards ── */}
+            {selectedState && (
+              <div className="space-y-4">
+
+                {/* Filter tabs */}
+                <div className="flex gap-2 flex-wrap">
+                  {(["All", "YSA", "MSA", "SA"] as FilterType[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFilter(f)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        filter === f
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-transparent text-muted-foreground border-border hover:border-foreground"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Ward list */}
+                {wardsForState.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No wards listed for {selectedState} yet.
+                  </p>
+                ) : filteredWards.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No {filter} wards in {selectedState}.
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    {Object.entries(byRegion).map(([region, wards]) => (
+                      <div key={region}>
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                          {region}
+                        </p>
+                        <div className="space-y-2">
+                          {wards.map((ward) => {
+                            const isClaimed  = claimedWards.includes(ward.name) && ward.name !== value;
+                            const isSelected = value === ward.name;
+                            return (
+                              <button
+                                key={ward.name}
+                                type="button"
+                                onClick={() => handleSelectWard(ward.name)}
+                                disabled={isClaimed}
+                                className={`w-full text-left px-4 py-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                                  isSelected
+                                    ? "border-foreground bg-foreground/5"
+                                    : isClaimed
+                                    ? "border-border bg-muted/50 opacity-60 cursor-not-allowed"
+                                    : "border-border hover:border-foreground hover:bg-accent cursor-pointer"
+                                }`}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-sm font-medium truncate ${isClaimed ? "text-muted-foreground" : ""}`}>
+                                    {ward.name}
+                                  </p>
+                                  {ward.city && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">{ward.city}</p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLOR[ward.type] ?? "bg-gray-100 text-gray-600"}`}>
+                                    {ward.type}
+                                  </span>
+                                  {isClaimed && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                                      Claimed
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <Check className="h-4 w-4 text-foreground" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Can't find your ward */}
+                <div className="pt-4 pb-6 border-t border-border">
+                  {!showCantFind ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCantFind(true)}
+                      className="text-sm text-primary underline underline-offset-2"
+                    >
+                      Can't find your ward?
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium">Enter your ward name</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          We'll review and add it to the list soon.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={customWard}
+                          onChange={(e) => setCustomWard(e.target.value)}
+                          placeholder="e.g. Provo 12th Ward"
+                          className="flex-1 h-10 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSubmitCustomWard(); }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleSubmitCustomWard}
+                          disabled={!customWard.trim() || submitting}
+                          size="sm"
+                          className="h-10 rounded-lg px-4"
+                        >
+                          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit"}
+                        </Button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCantFind(false)}
+                        className="text-xs text-muted-foreground underline underline-offset-2"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
+          </div>{/* end sheet */}
+        </div>
+      )}
+    </>
+  );
+};
+
+// ─── CreateGroup page ─────────────────────────────────────────────────────────
+
+const CreateGroup = () => {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const { id } = useParams();
+  const isEditing = !!id;
+  const coverInputRef  = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [name, setName]               = useState("");
+  const [description, setDescription] = useState("");
+  const [goodToKnow, setGoodToKnow]   = useState("");
+  const [address, setAddress]         = useState("");
+  const [facebook, setFacebook]       = useState("");
+  const [instagram, setInstagram]     = useState("");
+  const [website, setWebsite]         = useState("");
+  const [coverPreview, setCoverPreview]   = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile]   = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [saving, setSaving]         = useState(false);
+  const [claimedWards, setClaimedWards] = useState<string[]>([]);
+  const [existingCoverUrl, setExistingCoverUrl]   = useState<string | null>(null);
+  const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
+
+  // Co-admin state
+  const [coAdmin, setCoAdmin]           = useState<CoAdminInfo | null>(null);
+  const [adminSearch, setAdminSearch]   = useState("");
+  const [adminResults, setAdminResults] = useState<{ user_id: string; name: string; avatar_url: string | null }[]>([]);
+  const [searchingAdmin, setSearchingAdmin] = useState(false);
+  const [invitingAdmin, setInvitingAdmin]   = useState(false);
+
+  // Load claimed wards (all group names except current group when editing)
+  useEffect(() => {
+    supabase
+      .from("groups")
+      .select("name, id")
+      .then(({ data }) => {
+        setClaimedWards(
+          (data ?? [])
+            .filter((g: any) => g.id !== id)
+            .map((g: any) => g.name)
+        );
+      });
+  }, [id]);
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (!id) return;
+    supabase.from("groups").select("*").eq("id", id).single().then(({ data }) => {
+      if (!data) return;
+      setName(data.name ?? "");
+      setDescription(data.description ?? "");
+      setGoodToKnow(data.good_to_know ?? "");
+      setAddress(data.address ?? "");
+      setFacebook(data.facebook_url ?? "");
+      setInstagram(data.instagram_url ?? "");
+      setWebsite(data.website_url ?? "");
+      if (data.cover_image_url) { setCoverPreview(data.cover_image_url); setExistingCoverUrl(data.cover_image_url); }
+      if (data.avatar_url)      { setAvatarPreview(data.avatar_url);     setExistingAvatarUrl(data.avatar_url); }
+    });
+  }, [id]);
+
+  // Load existing co-admin for this group
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from("group_admins")
+      .select("id, user_id, status")
+      .eq("group_id", id)
+      .in("status", ["pending", "accepted"])
+      .maybeSingle()
+      .then(async ({ data: adminRow }) => {
+        if (!adminRow) { setCoAdmin(null); return; }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, avatar_url")
+          .eq("user_id", adminRow.user_id)
+          .maybeSingle();
+        setCoAdmin({
+          adminId:    adminRow.id,
+          userId:     adminRow.user_id,
+          name:       profile?.name ?? "Unknown",
+          avatar_url: profile?.avatar_url ?? null,
+          status:     adminRow.status as "pending" | "accepted",
+        });
+      });
+  }, [id]);
+
+  // Debounced admin user search
+  useEffect(() => {
+    if (!adminSearch.trim()) { setAdminResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearchingAdmin(true);
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, name, avatar_url")
+        .ilike("name", `%${adminSearch.trim()}%`)
+        .neq("user_id", session?.user.id ?? "")
+        .limit(6);
+      setAdminResults(data ?? []);
+      setSearchingAdmin(false);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [adminSearch, session?.user.id]);
+
+  const handleImagePick = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setPreview: (v: string) => void,
+    setFile: (f: File) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (file: File, folder: string) => {
+    const fileName = `${folder}/${session!.user.id}-${Date.now()}.jpg`;
+    const { error } = await supabase.storage.from("group-images").upload(fileName, file);
+    if (error) return null;
+    const { data } = supabase.storage.from("group-images").getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
+  const handleInviteAdmin = async (profile: { user_id: string; name: string; avatar_url: string | null }) => {
+    if (!id || !session?.user.id) return;
+    setInvitingAdmin(true);
+    // Insert group_admins row
+    const { data: adminRow, error: adminErr } = await supabase
+      .from("group_admins")
+      .insert({ group_id: id, user_id: profile.user_id, invited_by: session.user.id, status: "pending" })
+      .select("id")
+      .single();
+    if (adminErr || !adminRow) {
+      toast.error("Couldn't send invite.");
+      setInvitingAdmin(false);
+      return;
+    }
+    // Send in-app notification
+    await supabase.from("notifications").insert({
+      user_id:      profile.user_id,
+      from_user_id: session.user.id,
+      type:         "group_coadmin_invite",
+      message:      `You've been invited to co-admin the "${name}" group.`,
+      reference_id: adminRow.id,
+      read:         false,
+    });
+    setCoAdmin({ adminId: adminRow.id, userId: profile.user_id, name: profile.name, avatar_url: profile.avatar_url, status: "pending" });
+    setAdminSearch("");
+    setAdminResults([]);
+    setInvitingAdmin(false);
+    toast.success(`Invite sent to ${profile.name}!`);
+  };
+
+  const handleRemoveCoAdmin = async (adminId: string) => {
+    const { error } = await supabase
+      .from("group_admins")
+      .update({ status: "declined" })
+      .eq("id", adminId);
+    if (error) { toast.error("Couldn't remove co-admin."); return; }
+    setCoAdmin(null);
+    toast.success("Co-admin removed.");
+  };
+
+  const handleCreate = async () => {
+    if (!name.trim()) { toast.error("Please select a ward"); return; }
+    if (!session?.user) return;
+
+    setSaving(true);
+
+    let coverUrl  = existingCoverUrl;
+    let avatarUrl = existingAvatarUrl;
+
+    if (coverFile)  coverUrl  = await uploadImage(coverFile,  "covers");
+    if (avatarFile) avatarUrl = await uploadImage(avatarFile, "avatars");
+
+    const payload = {
+      user_id:           session.user.id,
+      name:              name.trim(),
+      description:       description.trim(),
+      good_to_know:      goodToKnow.trim(),
+      address:           address.trim(),
+      facebook_url:      facebook.trim()  || null,
+      instagram_url:     instagram.trim() || null,
+      website_url:       website.trim()   || null,
+      cover_image_url:   coverUrl,
+      avatar_url:        avatarUrl,
+    };
+
+    let error;
+    if (isEditing) {
+      ({ error } = await supabase.from("groups").update(payload).eq("id", id));
+    } else {
+      ({ error } = await supabase.from("groups").insert(payload));
+    }
+
+    if (error) {
+      console.error(error);
+      toast.error(isEditing ? "Failed to update group." : "Failed to create group. Try again.");
+    } else {
+      toast.success(isEditing ? "Group updated! ✅" : "Group created! 🎉");
+      navigate(isEditing ? `/group/${id}` : "/community");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ background: CE_BG, minHeight: "100vh" }}>
+
+      {/* ── Header ── */}
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: CE_BG, borderBottom: `1px solid ${CG_DIV}`, padding: "14px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <button type="button" onClick={() => navigate(-1)}
+          style={{ width: 36, height: 36, borderRadius: "50%", background: CG_DIV, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ArrowLeft style={{ width: 18, height: 18, color: CG_DARK }} />
+        </button>
+        <h1 style={{ fontFamily: CG_SANS, fontSize: 20, fontWeight: 700, color: CG_DARK, margin: 0 }}>
+          {isEditing ? "Edit Group" : "Create Group"}
+        </h1>
+      </div>
+
+      {/* ── Form ── */}
+      <main style={{ padding: "32px 24px 100px", maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+          {/* Cover Photo */}
+          <div>
+            <CgLabel>Cover Photo</CgLabel>
+            <div onClick={() => coverInputRef.current?.click()}
+              style={{ position: "relative", width: "100%", height: 180, borderRadius: 16, overflow: "hidden", background: CG_DIV, cursor: "pointer" }}>
+              {coverPreview
+                ? <img src={coverPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <ImageIcon style={{ width: 28, height: 28, color: CG_MID }} />
+                  </div>}
+              <div style={{ position: "absolute", bottom: 14, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+                <span style={{ fontFamily: CG_SANS, fontSize: 13, fontWeight: 600, color: "white", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", padding: "7px 18px", borderRadius: 999 }}>
+                  {coverPreview ? "Update Cover Photo" : "Add Cover Photo"}
+                </span>
+              </div>
+            </div>
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handleImagePick(e, setCoverPreview, setCoverFile)} />
+          </div>
+
+          {/* Avatar */}
+          <div>
+            <CgLabel>Group Profile Picture</CgLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div onClick={() => avatarInputRef.current?.click()}
+                style={{ width: 72, height: 72, borderRadius: "50%", background: CG_DIV, cursor: "pointer", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {avatarPreview
+                  ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <ImageIcon style={{ width: 24, height: 24, color: CG_MID }} />}
+              </div>
+              <p style={{ fontFamily: CG_SANS, fontSize: 13, color: CG_MID }}>Tap to upload a profile picture for your group</p>
+            </div>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handleImagePick(e, setAvatarPreview, setAvatarFile)} />
+          </div>
+
+          {/* Ward Picker */}
+          <div>
+            <CgLabel required>Select Your Ward</CgLabel>
+            <WardPicker value={name} onChange={setName} claimedWards={claimedWards} userId={session?.user.id ?? ""} />
+          </div>
+
+          {/* Address */}
+          <div>
+            <CgLabel>Address</CgLabel>
+            <div style={{ position: "relative" }}>
+              <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
+              <input value={address} onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. 3400 Sawtelle Blvd, Los Angeles, CA"
+                style={{ ...cgInput, paddingLeft: 40 }} />
+            </div>
+          </div>
+
+          {/* About */}
+          <div>
+            <CgLabel>About</CgLabel>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder="Tell people about your group..."
+              maxLength={500}
+              style={{ ...cgInput, height: 112, resize: "none", paddingTop: 12, display: "block" }} />
+            <p style={{ fontFamily: CG_SANS, fontSize: 11, color: CG_MID, textAlign: "right", marginTop: 4 }}>{description.length}/500</p>
+          </div>
+
+          {/* Good to Know */}
+          <div>
+            <CgLabel>Good to Know</CgLabel>
+            <textarea value={goodToKnow} onChange={(e) => setGoodToKnow(e.target.value)}
+              placeholder="e.g. Sacrament Meeting: 12:30 PM, Parking available..."
+              maxLength={300}
+              style={{ ...cgInput, height: 96, resize: "none", paddingTop: 12, display: "block" }} />
+          </div>
+
+          {/* Social Links */}
+          <div>
+            <CgLabel>Social Links</CgLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EBF0FB", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Link style={{ width: 16, height: 16, color: "#1877F2" }} />
+                </div>
+                <input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="Facebook URL" style={cgInput} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FCEEF5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Link2 style={{ width: 16, height: 16, color: "#E1306C" }} />
+                </div>
+                <input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Instagram URL" style={cgInput} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#EDFAF3", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Globe style={{ width: 16, height: 16, color: "#16A34A" }} />
+                </div>
+                <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website URL" style={cgInput} />
+              </div>
+            </div>
+          </div>
+
+          {/* Co-Admin (edit mode only) */}
+          {isEditing && (
+            <div style={{ paddingTop: 20, borderTop: `1px solid ${CG_DIV}` }}>
+              <div style={{ marginBottom: 14 }}>
+                <CgLabel>Co-Admin</CgLabel>
+                <p style={{ fontFamily: CG_SANS, fontSize: 13, color: CG_MID, marginTop: -4 }}>Invite one person to help manage this group</p>
+              </div>
+              {coAdmin ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 14, border: `1px solid ${CG_DIV}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: CG_DIV, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {coAdmin.avatar_url
+                        ? <img src={coAdmin.avatar_url} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontFamily: CG_SANS, fontSize: 14, fontWeight: 700, color: CG_DARK }}>{coAdmin.name.charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: CG_SANS, fontSize: 14, fontWeight: 600, color: CG_DARK, margin: 0 }}>{coAdmin.name}</p>
+                      <p style={{ fontFamily: CG_SANS, fontSize: 12, color: CG_MID, margin: 0 }}>{coAdmin.status === "pending" ? "Invite pending…" : "Co-admin"}</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => handleRemoveCoAdmin(coAdmin.adminId)}
+                    style={{ fontFamily: CG_SANS, fontSize: 13, fontWeight: 600, color: CE_ERROR, background: "none", border: "none", cursor: "pointer", padding: "6px 12px", borderRadius: 8 }}>
+                    {coAdmin.status === "pending" ? "Cancel" : "Remove"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "relative" }}>
+                    <Search style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: CG_MID, pointerEvents: "none" }} />
+                    <input type="text" value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)}
+                      placeholder="Search by name…" autoComplete="off"
+                      style={{ ...cgInput, paddingLeft: 40 }} />
+                    {adminSearch && (
+                      <button type="button" onClick={() => { setAdminSearch(""); setAdminResults([]); }}
+                        style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}>
+                        <X style={{ width: 16, height: 16, color: CG_MID }} />
+                      </button>
+                    )}
+                  </div>
+                  {(adminResults.length > 0 || searchingAdmin) && (
+                    <div style={{ marginTop: 4, borderRadius: 14, border: `1px solid ${CG_DIV}`, background: "white", boxShadow: "0 4px 16px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+                      {searchingAdmin
+                        ? <div style={{ display: "flex", justifyContent: "center", padding: 16 }}><Loader2 style={{ width: 16, height: 16, color: CG_MID }} className="animate-spin" /></div>
+                        : adminResults.map((p) => (
+                          <button key={p.user_id} type="button" disabled={invitingAdmin} onClick={() => handleInviteAdmin(p)}
+                            style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", fontFamily: CG_SANS, fontSize: 14, color: CG_DARK, background: "none", border: "none", borderBottom: `1px solid ${CG_DIV}`, cursor: "pointer", textAlign: "left" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: CG_DIV, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {p.avatar_url
+                                ? <img src={p.avatar_url} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                : <span style={{ fontSize: 12, fontWeight: 700, color: CG_DARK }}>{p.name.charAt(0).toUpperCase()}</span>}
+                            </div>
+                            <span style={{ fontWeight: 600 }}>{p.name}</span>
+                            {invitingAdmin && <Loader2 style={{ width: 14, height: 14, color: CG_MID, marginLeft: "auto" }} className="animate-spin" />}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button type="button" onClick={handleCreate} disabled={saving || !name.trim()}
+            style={{ width: "100%", padding: "15px 0", borderRadius: 999, background: saving || !name.trim() ? CG_MID : CG_TEAL, border: "none", cursor: saving || !name.trim() ? "not-allowed" : "pointer", fontFamily: CG_SANS, fontSize: 16, fontWeight: 700, color: "white", display: "flex", alignItems: "center", justifyContent: "center", opacity: saving || !name.trim() ? 0.6 : 1 }}>
+            {saving
+              ? <Loader2 style={{ width: 20, height: 20 }} className="animate-spin" />
+              : isEditing ? "Save Changes" : "Create Group"}
+          </button>
+
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default CreateGroup;
