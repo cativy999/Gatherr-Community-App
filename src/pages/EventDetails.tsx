@@ -737,7 +737,8 @@ const EventDetails = () => {
     setShareMenuOpenMobile(false);
     setShareMenuOpenDesktop(false);
 
-    await document.fonts.ready;
+    // Explicitly load the font variant needed for canvas drawing
+    await document.fonts.load("bold 108px 'Cormorant Garamond'");
 
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
