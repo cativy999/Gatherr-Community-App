@@ -1939,7 +1939,7 @@ const EventDetails = () => {
                 className="flex gap-3 justify-center flex-wrap pb-1"
                 style={{ overflowX: "auto", scrollbarWidth: "none" }}
               >
-                {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
+                {(event.additional_info ?? []).map((item: {title: string; description: string; icon?: string}, idx: number) => {
                   const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
                   const isLong = item.description && item.description.length > 60;
                   return (
@@ -3030,7 +3030,7 @@ const EventDetails = () => {
             );
           })()}
           <div className="flex gap-4 flex-wrap justify-center">
-            {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
+            {(event.additional_info ?? []).map((item: {title: string; description: string; icon?: string}, idx: number) => {
               const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
               const isLong = item.description && item.description.length > 130;
               return (
