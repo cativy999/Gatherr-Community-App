@@ -20,7 +20,7 @@ const BG      = CE_BG;
 const DARK    = "#2C2523";
 const MID     = "#635C59";
 const TEAL    = "#1F4E5B";
-const ICON_BG = "#EFECE6";
+const ICON_BG = "#F0EAE2";
 const DIVIDER = CE_LIGHT;
 const SERIF   = "'EB Garamond', Georgia, serif";
 
@@ -734,7 +734,8 @@ const EventDetails = () => {
   };
 
   const shareToStory = async () => {
-    setShareMenuOpen(false);
+    setShareMenuOpenMobile(false);
+    setShareMenuOpenDesktop(false);
 
     const canvas = document.createElement("canvas");
     canvas.width = 1080;

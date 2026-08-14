@@ -14,7 +14,7 @@ if (typeof document !== "undefined" && !document.getElementById("gc-zoom-style")
 }
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2, MoreHorizontal, Trash2, Pencil, Users } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, Trash2, Pencil, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -223,8 +223,16 @@ const PublishedGroupsPage = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: TEAL }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 12 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white overflow-hidden" style={{ borderRadius: 24 }}>
+                <div className="sk w-full" style={{ height: 140, borderRadius: 0 }} />
+                <div className="p-3 flex flex-col gap-2 pt-7">
+                  <div className="sk h-4 w-4/5" />
+                  <div className="sk h-3 w-3/5" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center text-center pt-16 pb-8 px-6">

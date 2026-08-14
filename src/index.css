@@ -54,7 +54,7 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
-.sk { animation: sk-pulse 1.6s ease-in-out infinite; background-color: #e5e7eb; border-radius: 0.75rem; }
+.sk { animation: sk-pulse 1.6s ease-in-out infinite; background-color: #F0EAE2; border-radius: 0.75rem; }
 
 @layer base {
   :root {
