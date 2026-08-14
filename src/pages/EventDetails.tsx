@@ -836,7 +836,8 @@ const EventDetails = () => {
 
     drawBackground();
 
-    if (event.image_url) {
+    const shareImageUrl = images[currentImageIdx] || event.image_url;
+    if (shareImageUrl) {
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
@@ -848,7 +849,7 @@ const EventDetails = () => {
           resolve();
         };
         img.onerror = () => resolve();
-        img.src = event.image_url;
+        img.src = shareImageUrl;
       });
     }
 
