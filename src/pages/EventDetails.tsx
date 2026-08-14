@@ -1885,49 +1885,10 @@ const EventDetails = () => {
                 />
               </button>
             )}
-            {/* Social Links */}
-            {event.social_links?.filter(Boolean).length > 0 && (() => {
-              const links = event.social_links.filter(Boolean);
-              const getPlatform = (url: string) => {
-                if (/facebook\.com/i.test(url)) return "facebook";
-                if (/instagram\.com/i.test(url)) return "instagram";
-                return "link";
-              };
-              return (
-                <div className="flex flex-wrap gap-2 pt-1 justify-center">
-                  {links.map((link: string, i: number) => {
-                    const platform = getPlatform(link);
-                    return (
-                      <a
-                        key={i}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[140px] overflow-hidden"
-                        style={{ background: ICON_BG }}
-                      >
-                        {platform === "facebook" && (
-                          <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
-                        )}
-                        {platform === "instagram" && (
-                          <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />
-                        )}
-                        {platform === "link" && (
-                          <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />
-                        )}
-                        <span className="text-xs font-medium truncate" style={{ color: TEAL }}>
-                          {platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}
-                        </span>
-                      </a>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </div>
 
           {/* ── Things to Know ────────────────────────────────── */}
-          {event.additional_info && event.additional_info.length > 0 && (
+          {(event.additional_info?.length > 0 || event.social_links?.filter(Boolean).length > 0) && (
             <>
               <div style={{ height: 1, background: DIVIDER }} />
             <div className="space-y-3 pt-6">
@@ -1935,6 +1896,45 @@ const EventDetails = () => {
                 <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
                 <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Things to Know</h2>
               </div>
+              {/* Social Links — centered under title */}
+              {event.social_links?.filter(Boolean).length > 0 && (() => {
+                const links = event.social_links.filter(Boolean);
+                const getPlatform = (url: string) => {
+                  if (/facebook\.com/i.test(url)) return "facebook";
+                  if (/instagram\.com/i.test(url)) return "instagram";
+                  return "link";
+                };
+                return (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {links.map((link: string, i: number) => {
+                      const platform = getPlatform(link);
+                      return (
+                        <a
+                          key={i}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[140px] overflow-hidden"
+                          style={{ background: ICON_BG }}
+                        >
+                          {platform === "facebook" && (
+                            <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+                          )}
+                          {platform === "instagram" && (
+                            <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />
+                          )}
+                          {platform === "link" && (
+                            <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />
+                          )}
+                          <span className="text-xs font-medium truncate" style={{ color: TEAL }}>
+                            {platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}
+                          </span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               <div
                 className="flex gap-3 justify-center flex-wrap pb-1"
                 style={{ overflowX: "auto", scrollbarWidth: "none" }}
@@ -2621,25 +2621,6 @@ const EventDetails = () => {
                 />
               </button>
             )}
-            {event.social_links?.filter(Boolean).length > 0 && (() => {
-              const links = event.social_links.filter(Boolean);
-              const getPlatform = (url: string) => /facebook\.com/i.test(url) ? "facebook" : /instagram\.com/i.test(url) ? "instagram" : "link";
-              return (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {links.map((link: string, i: number) => {
-                    const platform = getPlatform(link);
-                    return (
-                      <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[140px] overflow-hidden" style={{ background: ICON_BG }}>
-                        {platform === "facebook" && <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>}
-                        {platform === "instagram" && <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />}
-                        {platform === "link" && <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />}
-                        <span className="text-xs font-medium truncate" style={{ color: TEAL }}>{platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </div>
 
           {/* Divider */}
@@ -3022,13 +3003,32 @@ const EventDetails = () => {
       </div>{/* end two-column */}
 
       {/* ── Desktop: Things to Know ───────────────────────────────────────── */}
-      {event.additional_info && event.additional_info.length > 0 && (
+      {(event.additional_info?.length > 0 || event.social_links?.filter(Boolean).length > 0) && (
         <div className="hidden md:block pl-[calc(96px+48px)] pr-[calc(96px+48px)] pb-12">
           <div style={{ height: 1, background: DIVIDER, marginBottom: 32 }} />
-          <div className="flex items-center justify-center gap-1 mb-8">
+          <div className="flex items-center justify-center gap-1 mb-4">
             <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
             <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Things to Know</h2>
           </div>
+          {event.social_links?.filter(Boolean).length > 0 && (() => {
+            const links = event.social_links.filter(Boolean);
+            const getPlatform = (url: string) => /facebook\.com/i.test(url) ? "facebook" : /instagram\.com/i.test(url) ? "instagram" : "link";
+            return (
+              <div className="flex flex-wrap gap-2 justify-center mb-8">
+                {links.map((link: string, i: number) => {
+                  const platform = getPlatform(link);
+                  return (
+                    <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 rounded-full transition-opacity hover:opacity-70 max-w-[160px] overflow-hidden" style={{ background: ICON_BG }}>
+                      {platform === "facebook" && <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>}
+                      {platform === "instagram" && <img src="/icons/instagram.png" alt="Instagram" className="h-4 w-4 flex-shrink-0 object-contain" />}
+                      {platform === "link" && <Link className="h-4 w-4 flex-shrink-0" style={{ color: TEAL }} />}
+                      <span className="text-xs font-medium truncate" style={{ color: TEAL }}>{platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : truncateUrl(link)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div className="flex gap-4 flex-wrap justify-center">
             {event.additional_info.map((item: {title: string; description: string; icon?: string}, idx: number) => {
               const IconComp = item.icon ? INFO_ICON_MAP[item.icon] : CheckCircle2;
