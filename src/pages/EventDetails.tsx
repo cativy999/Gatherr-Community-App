@@ -737,6 +737,8 @@ const EventDetails = () => {
     setShareMenuOpenMobile(false);
     setShareMenuOpenDesktop(false);
 
+    await document.fonts.ready;
+
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1920;
@@ -780,7 +782,7 @@ const EventDetails = () => {
 
       const pad = 90;
       const maxW = canvas.width - pad * 2;
-      const titleY = wrapText(event.title || "", pad, 1380, maxW, 110, "bold 96px 'Helvetica Neue', Helvetica, sans-serif");
+      const titleY = wrapText(event.title || "", pad, 1380, maxW, 120, "bold 108px 'Cormorant Garamond', Georgia, serif");
 
       const dateStr = event.is_recurring
         ? getRecurringLabelFull(event)
