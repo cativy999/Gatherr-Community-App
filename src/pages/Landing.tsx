@@ -55,7 +55,7 @@ if (typeof document !== "undefined" && !document.getElementById("landing-style")
       50% { transform: translateY(-7px); }
     }
     .landing-photo-card {
-      position: absolute;
+      display: block;
       border-radius: 8px;
       background: #ffffff;
       border: none;
@@ -88,6 +88,46 @@ const Landing = () => {
   const goToWelcome = () => navigate("/welcome");
   const [events, setEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const heroRef = useRef<HTMLElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleHeroMouseMove = (e: React.MouseEvent) => {
+    if (window.innerWidth < 768 || !heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const canvasLeft = rect.left + (rect.width - 1024) / 2;
+    const mx = e.clientX;
+    const my = e.clientY;
+
+    PHOTOS.forEach((p, i) => {
+      const el = cardRefs.current[i];
+      if (!el) return;
+      const cardCx = canvasLeft + p.left + p.w / 2;
+      // clamp cardCy so off-screen tops still register repulsion at their visible edge
+      const rawCy = rect.top + p.top + p.h / 2;
+      const cardCy = Math.max(rect.top + 20, rawCy);
+      const dx = mx - cardCx;
+      const dy = my - cardCy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const radius = 180;
+      if (dist < radius && dist > 0) {
+        const force = (1 - dist / radius) * 65;
+        el.style.transform = `translate(${-(dx / dist) * force}px, ${-(dy / dist) * force}px)`;
+        el.style.transition = "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+      } else {
+        el.style.transform = "translate(0,0)";
+        el.style.transition = "transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+      }
+    });
+  };
+
+  const handleHeroMouseLeave = () => {
+    cardRefs.current.forEach(el => {
+      if (el) {
+        el.style.transform = "translate(0,0)";
+        el.style.transition = "transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+      }
+    });
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -125,24 +165,30 @@ const Landing = () => {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section style={{ position: "relative", height: 700, overflow: "hidden" }}>
+      <section ref={heroRef} style={{ position: "relative", height: 700, overflow: "hidden" }} onMouseMove={handleHeroMouseMove} onMouseLeave={handleHeroMouseLeave}>
         {/* 1024px canvas centered — all cards sit at exact Figma px coords */}
         <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", width: 1024, top: 0, bottom: 0, pointerEvents: "none" }}>
           {PHOTOS.map((p, i) => (
-            <img
+            // Outer div: handles repulsion translate via JS
+            <div
               key={i}
-              src={p.src}
-              alt=""
-              className="landing-photo-card"
-              style={{
-                left: p.left,
-                top: p.top,
-                width: p.w,
-                height: p.h,
-                "--float-delay": p.delay,
-                "--float-dur": p.dur,
-              } as React.CSSProperties}
-            />
+              ref={el => { cardRefs.current[i] = el; }}
+              style={{ position: "absolute", left: p.left, top: p.top, width: p.w, height: p.h }}
+            >
+              {/* Inner img: handles float animation independently */}
+              <img
+                src={p.src}
+                alt=""
+                className="landing-photo-card"
+                style={{
+                  position: "static",
+                  width: "100%",
+                  height: "100%",
+                  "--float-delay": p.delay,
+                  "--float-dur": p.dur,
+                } as React.CSSProperties}
+              />
+            </div>
           ))}
         </div>
 
