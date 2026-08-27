@@ -19,6 +19,13 @@ if (typeof document !== "undefined" && !document.getElementById("welcome-marquee
     .welcome-input {
       transition: border-color 0.2s ease, box-shadow 0.25s ease;
     }
+    .welcome-input::placeholder {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      letter-spacing: 0;
+      font-size: 16px;
+      color: #B0A89E;
+    }
     .welcome-input:hover {
       border-color: #1F4E5B !important;
       box-shadow: 0px 0px 3.95px rgba(0, 0, 0, 0.25);
