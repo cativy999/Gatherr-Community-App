@@ -95,7 +95,7 @@ const Landing = () => {
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const { data } = await supabase
         .from("events")
-        .select("id, title, image_url, date, start_time, time, is_free, location")
+        .select("id, title, image_url, date, start_time, end_time, time, end_date, is_free, location, created_at, timezone")
         .eq("status", "published")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
         .order("created_at", { ascending: false })
@@ -232,22 +232,45 @@ const Landing = () => {
             </p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
-              {events.map((ev) => (
-                <div key={ev.id} className="landing-event-card" onClick={() => navigate(`/event/${ev.id}`)} style={{ cursor: "pointer", borderRadius: 16, overflow: "hidden", background: "white" }}>
-                  <div style={{ height: 110, overflow: "hidden", background: "#F0EAE2" }}>
-                    {ev.image_url && <img src={ev.image_url} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
-                  </div>
-                  <div style={{ padding: "10px 12px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 500, color: DARK, background: "white", border: "1px solid #eee", borderRadius: 999, padding: "2px 8px" }}>
-                        {ev.is_free === false ? "Paid" : "Free"}
-                      </span>
+              {events.map((ev) => {
+                const isNew = ev.created_at
+                  ? (Date.now() - new Date(ev.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7
+                  : false;
+                const TZ_ABBR: Record<string,string> = { "America/Los_Angeles":"PT","America/Denver":"MT","America/Phoenix":"MT","America/Chicago":"CT","America/New_York":"ET" };
+                const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+                const timePart = ev.start_time ? fmt(ev.start_time) : ev.time ? fmt(ev.time) : "";
+                const tzStr = ev.timezone ? (TZ_ABBR[ev.timezone] ?? "") : "";
+                const [y, m, d] = ev.date.split("-").map(Number);
+                const dateStr = new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                const cityLine = ev.location ? ev.location.split(",").slice(0, 2).join(",").trim() : null;
+                return (
+                  <div
+                    key={ev.id}
+                    className="landing-event-card"
+                    onClick={() => navigate(`/event/${ev.id}`)}
+                    style={{ cursor: "pointer", background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.07)" }}
+                  >
+                    {/* Image */}
+                    <div style={{ height: 140, overflow: "hidden", background: "#F0EAE2" }}>
+                      {ev.image_url
+                        ? <img src={ev.image_url} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <div style={{ width: "100%", height: "100%", background: "#F0EAE2" }} />}
                     </div>
-                    <p style={{ fontFamily: INTER, fontSize: 13, fontWeight: 500, color: DARK, margin: "0 0 4px", lineHeight: 1.3 }}>{ev.title}</p>
-                    <p style={{ fontFamily: INTER, fontSize: 11, color: "#69696C", margin: 0 }}>{fmtEventDate(ev)}</p>
+                    {/* Info — matches Wards card style */}
+                    <div style={{ padding: "10px 12px 12px" }}>
+                      {/* Date/time in teal above title */}
+                      <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, margin: "0 0 3px", letterSpacing: "0.01em" }}>
+                        {dateStr}{timePart ? ` · ${timePart}${tzStr ? ` ${tzStr}` : ""}` : ""}
+                      </p>
+                      {/* Bold title */}
+                      <p style={{ fontFamily: "'Hanken Grotesk', 'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: DARK, margin: "0 0 3px", lineHeight: 1.25 }}>{ev.title}</p>
+                      {/* Location */}
+                      {cityLine && <p style={{ fontFamily: INTER, fontSize: 11, color: "#8C8884", margin: 0 }}>{cityLine}</p>}
+                      {isNew && <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, color: "#FF3FA5", marginTop: 4, display: "block" }}>✦ New</span>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -277,12 +300,12 @@ const Landing = () => {
           <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, marginBottom: 24 }}>Interactive Features</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <img
-              src="https://www.figma.com/api/mcp/asset/c16e57a4-a4ac-495a-82cb-20bac094b172.png"
+              src="/pioneertrailstepchallenge.png"
               alt="Step Challenge"
               style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
             />
             <img
-              src="https://www.figma.com/api/mcp/asset/f2923618-7d27-4d41-a089-bd9b7a1ba01a.png"
+              src="/OOTD/OOTD component 2.png"
               alt="OOTD"
               style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
             />
