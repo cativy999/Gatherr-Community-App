@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
 import Welcome from "./pages/Welcome";
+import Landing from "./pages/Landing";
 import OnboardingAge from "./pages/OnboardingAge";
 import Wards from "./pages/Wards";
 import CreateEvent from "./pages/CreateEvent";
@@ -92,7 +93,7 @@ const AuthListener = () => {
             return;
           }
           const currentPath = window.location.pathname;
-          if (currentPath !== "/") return; // already on the right page
+          if (currentPath !== "/" && currentPath !== "/welcome") return; // already on the right page
           navigate("/wards");
         } else {
           navigate("/onboarding/name");
@@ -103,7 +104,7 @@ const AuthListener = () => {
   return null;
 };
 
-const hideNavPaths = ["/", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
+const hideNavPaths = ["/", "/welcome", "/onboarding/name", "/onboarding/age", "/challenge", "/log-steps", "/ootd", "/ootd/review"];
 // /event/ is here because EventDetails has its own RSVP bottom bar (Going/Interested)
 // that occupies the bottom slot — the global BottomNav would conflict with it.
 const hideNavPatterns = ["/create-event", "/cohost-invite", "/group-admin-invite", "/event/"];
@@ -180,7 +181,8 @@ const App = () => {
               <ContentLayout>
               <PageTransition>
               <Routes>
-                <Route path="/" element={<Welcome />} />
+                <Route path="/" element={<Landing />} />
+                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/onboarding/name" element={<OnboardingName />} />
                 <Route path="/onboarding/age" element={<OnboardingAge />} />
                 <Route path="/wards" element={<Wards />} />
