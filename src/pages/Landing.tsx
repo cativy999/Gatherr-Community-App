@@ -111,7 +111,7 @@ const Landing = () => {
 
       {/* ── Nav — floats over hero ──────────────────────────────────── */}
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, background: "transparent" }}>
-        <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 36, width: "auto" }} />
+        <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 52, width: "auto" }} />
         <button
           onClick={goToWelcome}
           style={{
@@ -145,6 +145,18 @@ const Landing = () => {
             />
           ))}
         </div>
+
+        {/* Bottom fog — subtle gradient fade, no blur */}
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 110,
+          background: "linear-gradient(to bottom, transparent 0%, rgba(250,246,240,0.6) 50%, #FAF6F0 100%)",
+          pointerEvents: "none",
+          zIndex: 3,
+        }} />
 
         {/* Center content — viewport-centered, sits above the cards */}
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
