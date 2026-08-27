@@ -15,19 +15,18 @@ const PHOTOS = [
   { src: "https://www.figma.com/api/mcp/asset/5f38f9f1-c300-4a74-9188-df5c07ad00aa.png", left: 355,  top: -95,  w: 166, h: 148, delay: "0s",   dur: "3.2s" },
   { src: "https://www.figma.com/api/mcp/asset/f2cf0949-90d2-4fd8-b3ce-0102035ae5ba.png", left: 560,  top: -95,  w: 121, h: 144, delay: "1.2s", dur: "4.1s" },
   { src: "https://www.figma.com/api/mcp/asset/59a3bfc2-0318-44f1-8b7e-971f30f79224.png", left: 810,  top: -35,  w: 135, h: 121, delay: "0.8s", dur: "4.4s" },
-  // left column — x < 264
-  { src: "https://www.figma.com/api/mcp/asset/9145c8a4-7761-4d22-861b-914d2b1d186d.png", left: -15,  top: 18,   w: 109, h: 143, delay: "0.3s", dur: "3.5s" },
-  { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: 105,  top: 42,   w: 117, h: 140, delay: "0.5s", dur: "3.8s" },
-  { src: "https://www.figma.com/api/mcp/asset/d9d8c52b-3e49-4072-8b93-eaac78d23223.png", left: -35,  top: 155,  w: 115, h: 103, delay: "2.0s", dur: "3.1s" },
-  { src: "https://www.figma.com/api/mcp/asset/d2e28e04-58df-4977-9c3a-5e514ea19803.png", left: -45,  top: 248,  w: 208, h: 169, delay: "1.3s", dur: "4.5s" },
+  // left column — x < 264, clean vertical spacing (no overlaps)
+  { src: "https://www.figma.com/api/mcp/asset/9145c8a4-7761-4d22-861b-914d2b1d186d.png", left: 58,   top: 10,   w: 109, h: 143, delay: "0.3s", dur: "3.5s" }, // top=10, bottom=153
+  { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: -22,  top: 26,   w: 117, h: 140, delay: "0.5s", dur: "3.8s" }, // beside, bottom=166
+  { src: "https://www.figma.com/api/mcp/asset/d9d8c52b-3e49-4072-8b93-eaac78d23223.png", left: -30,  top: 192,  w: 115, h: 103, delay: "2.0s", dur: "3.1s" }, // gap=26, bottom=295
+  { src: "https://www.figma.com/api/mcp/asset/d2e28e04-58df-4977-9c3a-5e514ea19803.png", left: -48,  top: 318,  w: 208, h: 169, delay: "1.3s", dur: "4.5s" }, // gap=23, bottom=487
   // right column — x > 760
   { src: "https://www.figma.com/api/mcp/asset/a238f500-ff86-414d-ba2a-1d8b2e21ce2f.png", left: 808,  top: 245,  w: 153, h: 121, delay: "2.4s", dur: "4.2s" },
   { src: "https://www.figma.com/api/mcp/asset/566d088a-4e88-4292-8431-6d00b74f6cc9.png", left: 928,  top: 145,  w: 134, h: 106, delay: "1.1s", dur: "3.7s" },
   { src: "https://www.figma.com/api/mcp/asset/33a2c555-609d-46db-bf66-daa29877b9c4.png", left: 978,  top: 285,  w: 113, h: 101, delay: "1.7s", dur: "3.4s" },
   // bottom strip — y > 482
-  { src: "https://www.figma.com/api/mcp/asset/2885e836-a85f-4eaa-bdb1-e3501116f4e2.png", left: -25,  top: 510,  w: 101, h: 121, delay: "1.8s", dur: "3.9s" },
-  { src: "https://www.figma.com/api/mcp/asset/c842d007-6dc3-460e-a19d-6ab07be07041.png", left: 145,  top: 522,  w: 181, h: 122, delay: "0.9s", dur: "4.3s" },
-  { src: "https://www.figma.com/api/mcp/asset/004b30dc-8f56-4830-9ea7-3d5fd37b75bf.png", left: 20,   top: 590,  w: 151, h: 102, delay: "2.1s", dur: "3.6s" },
+  { src: "https://www.figma.com/api/mcp/asset/2885e836-a85f-4eaa-bdb1-e3501116f4e2.png", left: -28,  top: 502,  w: 101, h: 121, delay: "1.8s", dur: "3.9s" },
+  { src: "https://www.figma.com/api/mcp/asset/c842d007-6dc3-460e-a19d-6ab07be07041.png", left: 155,  top: 548,  w: 181, h: 122, delay: "0.9s", dur: "4.3s" }, // moved down ~50px
   { src: "https://www.figma.com/api/mcp/asset/a16005cb-c6db-4fed-91e5-83a197206ef2.png", left: 415,  top: 578,  w: 175, h: 138, delay: "0.4s", dur: "3.3s" },
   { src: "https://www.figma.com/api/mcp/asset/730841b3-320f-43a6-ae07-91a769180f31.png", left: 598,  top: 555,  w: 181, h: 102, delay: "1.5s", dur: "4.0s" },
   { src: "https://www.figma.com/api/mcp/asset/d1a18a53-e563-481f-81ea-e9854e994aee.png", left: 878,  top: 462,  w: 131, h: 139, delay: "0.6s", dur: "3.8s" },
@@ -108,10 +107,10 @@ const Landing = () => {
   }, []);
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", fontFamily: INTER, overflowX: "hidden" }}>
+    <div style={{ background: BG, minHeight: "100vh", fontFamily: INTER, overflowX: "hidden", position: "relative" }}>
 
-      {/* ── Nav ────────────────────────────────────────────────────── */}
-      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", position: "relative", zIndex: 10, background: "transparent" }}>
+      {/* ── Nav — floats over hero ──────────────────────────────────── */}
+      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, background: "transparent" }}>
         <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 36, width: "auto" }} />
         <button
           onClick={goToWelcome}
@@ -126,7 +125,7 @@ const Landing = () => {
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
-      <section style={{ position: "relative", height: 640, overflow: "hidden" }}>
+      <section style={{ position: "relative", height: 700, overflow: "hidden" }}>
         {/* 1024px canvas centered — all cards sit at exact Figma px coords */}
         <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", width: 1024, top: 0, bottom: 0, pointerEvents: "none" }}>
           {PHOTOS.map((p, i) => (
