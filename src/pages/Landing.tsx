@@ -29,9 +29,6 @@ const PHOTOS = [
   { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: 267.75, top: 91.3,   w: 78.2,  h: 93.1,  delay: "0.5s",  dur: "3.8s" },
 ];
 
-// LA bounding box roughly: lat 33.7–34.3, lng -118.7 to -117.9
-const LA_LAT_MIN = 33.7, LA_LAT_MAX = 34.3;
-const LA_LNG_MIN = -118.7, LA_LNG_MAX = -117.9;
 
 // Inject gradient text style
 if (typeof document !== "undefined" && !document.getElementById("landing-style")) {
@@ -93,14 +90,10 @@ const Landing = () => {
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const { data } = await supabase
         .from("events")
-        .select("id, title, image_url, date, start_time, time, is_free, lat, lng, location")
+        .select("id, title, image_url, date, start_time, time, is_free, location")
         .eq("status", "published")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
-        .gte("lat", LA_LAT_MIN)
-        .lte("lat", LA_LAT_MAX)
-        .gte("lng", LA_LNG_MIN)
-        .lte("lng", LA_LNG_MAX)
-        .order("date", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(8);
       setEvents(data ?? []);
       setEventsLoading(false);
@@ -196,16 +189,13 @@ const Landing = () => {
       {/* ── Events Grid ────────────────────────────────────────────── */}
       <section style={{ background: BG, padding: "64px 40px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-            <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, margin: 0 }}>
-              Upcoming events near <span style={{ color: TEAL }}>Los Angeles, CA</span>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, margin: "0 0 4px" }}>
+              What's happening in the community
             </h2>
-            <button
-              onClick={goToWelcome}
-              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 13, fontWeight: 500, color: TEAL }}
-            >
-              See all events
-            </button>
+            <p style={{ fontFamily: INTER, fontSize: 13, color: "#BDBAB5", margin: 0 }}>
+              Real events created by people just like you
+            </p>
           </div>
           {eventsLoading ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
@@ -243,6 +233,24 @@ const Landing = () => {
               ))}
             </div>
           )}
+
+          {/* CTA below grid */}
+          <div style={{ textAlign: "center", marginTop: 32 }}>
+            <button
+              onClick={goToWelcome}
+              style={{
+                background: TEAL, color: "#FAF6F0", border: "none", cursor: "pointer",
+                padding: "14px 36px", borderRadius: 999,
+                fontFamily: INTER, fontSize: 15, fontWeight: 600,
+                display: "inline-flex", alignItems: "center", gap: 8,
+              }}
+            >
+              Events near you →
+            </button>
+            <p style={{ fontFamily: INTER, fontSize: 12, color: "#BDBAB5", marginTop: 10 }}>
+              Sign in to see what's happening in your area
+            </p>
+          </div>
         </div>
       </section>
 
