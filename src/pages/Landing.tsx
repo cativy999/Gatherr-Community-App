@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const CORMORANT = "'Cormorant Garamond', Georgia, serif";
 const INTER = "'Inter', sans-serif";
@@ -28,16 +29,9 @@ const PHOTOS = [
   { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: 267.75, top: 91.3,   w: 78.2,  h: 93.1,  delay: "0.5s",  dur: "3.8s" },
 ];
 
-const EVENT_CARDS = [
-  { title: "From Pints to Predictions", date: "Wed, Jul 15 · 4:30 PM", src: "https://www.figma.com/api/mcp/asset/6dc5cb21-845b-49f5-9207-c296c75375b0.png" },
-  { title: "Pick Up Games at Spielbound", date: "Sun, Jul 19 · 1:30 PM", src: "https://www.figma.com/api/mcp/asset/07a7d0e4-520d-478f-9ba2-6a3abebd3d9d.png" },
-  { title: "ProductTank Omaha Happy Hour", date: "Thu, Jul 9 · 7:00 PM", src: "https://www.figma.com/api/mcp/asset/daeb357d-ae6c-48b8-878b-95012625d986.png" },
-  { title: "Adventures at the Joslyn Art Museum", date: "Sat, Jul 25 · 10:20 AM", src: "https://www.figma.com/api/mcp/asset/01200f05-6b1e-4124-9034-2402961b0144.png" },
-  { title: "Prairie Python Meetup", date: "Tue, Jul 14 · 5:30 PM", src: "https://www.figma.com/api/mcp/asset/34eed2af-3c1f-4bc0-af82-20478c6cc3ea.png" },
-  { title: "Dinner at Hunan Fusion", date: "Wed, Jul 8 · 6:00 PM", src: "https://www.figma.com/api/mcp/asset/5b907018-05ca-41e5-916b-3f780921cfe1.png" },
-  { title: "Live Music — Women of Rock", date: "Sat, Jul 11 · 7:00 PM", src: "https://www.figma.com/api/mcp/asset/d9aeb569-4532-4a73-8e22-679ced061486.png" },
-  { title: "Hijinks and Drinks at the Backline!", date: "Thu, Jul 16 · 5:45 PM", src: "https://www.figma.com/api/mcp/asset/7a733ace-ff32-4366-bd50-74658676a454.png" },
-];
+// LA bounding box roughly: lat 33.7–34.3, lng -118.7 to -117.9
+const LA_LAT_MIN = 33.7, LA_LAT_MAX = 34.3;
+const LA_LNG_MIN = -118.7, LA_LNG_MAX = -117.9;
 
 // Inject gradient text style
 if (typeof document !== "undefined" && !document.getElementById("landing-style")) {
@@ -76,9 +70,43 @@ if (typeof document !== "undefined" && !document.getElementById("landing-style")
   document.head.appendChild(s);
 }
 
+const fmtEventDate = (ev: any) => {
+  if (!ev.date) return "";
+  const [y, m, d] = ev.date.split("-").map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  const dayStr = dateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  if (!ev.start_time && !ev.time) return dayStr;
+  const t = ev.start_time ?? ev.time;
+  const timeStr = new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${dayStr} · ${timeStr}`;
+};
+
 const Landing = () => {
   const navigate = useNavigate();
   const goToWelcome = () => navigate("/welcome");
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, image_url, date, start_time, time, is_free, lat, lng, location")
+        .eq("status", "published")
+        .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
+        .gte("lat", LA_LAT_MIN)
+        .lte("lat", LA_LAT_MAX)
+        .gte("lng", LA_LNG_MIN)
+        .lte("lng", LA_LNG_MAX)
+        .order("date", { ascending: true })
+        .limit(8);
+      setEvents(data ?? []);
+      setEventsLoading(false);
+    };
+    load();
+  }, []);
 
   return (
     <div style={{ background: BG, minHeight: "100vh", fontFamily: INTER, overflowX: "hidden" }}>
@@ -170,7 +198,7 @@ const Landing = () => {
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
             <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, margin: 0 }}>
-              Events near <span style={{ color: TEAL }}>Los Angeles, CA</span>
+              Upcoming events near <span style={{ color: TEAL }}>Los Angeles, CA</span>
             </h2>
             <button
               onClick={goToWelcome}
@@ -179,22 +207,42 @@ const Landing = () => {
               See all events
             </button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
-            {EVENT_CARDS.map((ev, i) => (
-              <div key={i} className="landing-event-card" onClick={goToWelcome} style={{ cursor: "pointer", borderRadius: 16, overflow: "hidden", background: "white" }}>
-                <div style={{ height: 110, overflow: "hidden" }}>
-                  <img src={ev.src} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-                <div style={{ padding: "10px 12px 12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 500, color: DARK, background: "white", border: "1px solid #eee", borderRadius: 999, padding: "2px 8px" }}>Free</span>
+          {eventsLoading ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
+              {[1,2,3,4,5,6,7,8].map(i => (
+                <div key={i} style={{ borderRadius: 16, overflow: "hidden", background: "white" }}>
+                  <div className="sk" style={{ height: 110, borderRadius: 0 }} />
+                  <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div className="sk h-4 w-4/5" />
+                    <div className="sk h-3 w-3/5" />
                   </div>
-                  <p style={{ fontFamily: INTER, fontSize: 13, fontWeight: 500, color: DARK, margin: "0 0 4px", lineHeight: 1.3 }}>{ev.title}</p>
-                  <p style={{ fontFamily: INTER, fontSize: 11, color: "#69696C", margin: 0 }}>{ev.date}</p>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : events.length === 0 ? (
+            <p style={{ fontFamily: INTER, fontSize: 14, color: "#BDBAB5", textAlign: "center", padding: "40px 0" }}>
+              No upcoming events near LA yet — check back soon!
+            </p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
+              {events.map((ev) => (
+                <div key={ev.id} className="landing-event-card" onClick={() => navigate(`/event/${ev.id}`)} style={{ cursor: "pointer", borderRadius: 16, overflow: "hidden", background: "white" }}>
+                  <div style={{ height: 110, overflow: "hidden", background: "#F0EAE2" }}>
+                    {ev.image_url && <img src={ev.image_url} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                  </div>
+                  <div style={{ padding: "10px 12px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 500, color: DARK, background: "white", border: "1px solid #eee", borderRadius: 999, padding: "2px 8px" }}>
+                        {ev.is_free === false ? "Paid" : "Free"}
+                      </span>
+                    </div>
+                    <p style={{ fontFamily: INTER, fontSize: 13, fontWeight: 500, color: DARK, margin: "0 0 4px", lineHeight: 1.3 }}>{ev.title}</p>
+                    <p style={{ fontFamily: INTER, fontSize: 11, color: "#69696C", margin: 0 }}>{fmtEventDate(ev)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
