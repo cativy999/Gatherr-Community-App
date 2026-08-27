@@ -300,12 +300,12 @@ const Landing = () => {
           <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, marginBottom: 24 }}>Interactive Features</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
             <img
-              src="/pioneertrailstepchallenge.png"
+              src="/landing page/step.png"
               alt="Step Challenge"
               style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
             />
             <img
-              src="/OOTD/OOTD component 2.png"
+              src="/landing page/OOTD.png"
               alt="OOTD"
               style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
             />
