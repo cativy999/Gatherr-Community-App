@@ -8,25 +8,29 @@ const TEAL = "#1F4E5B";
 const DARK = "#2C2523";
 const BG = "#FAF6F0";
 
-// Scattered photo cards — exact Figma positions (1024px canvas)
-// delay/dur are staggered so each card floats independently
+// Scattered photo cards — 1.5× size, spread to edges, none overlaps center text box
+// Center no-go zone (approx): x 264–760, y 158–482
 const PHOTOS = [
-  { src: "https://www.figma.com/api/mcp/asset/5f38f9f1-c300-4a74-9188-df5c07ad00aa.png", left: 434.09, top: -6.23,  w: 110.4, h: 98.3,  delay: "0s",    dur: "3.2s" },
-  { src: "https://www.figma.com/api/mcp/asset/d1a18a53-e563-481f-81ea-e9854e994aee.png", left: 790.04, top: 449.23, w: 87.1,  h: 92.6,  delay: "0.6s",  dur: "3.8s" },
-  { src: "https://www.figma.com/api/mcp/asset/f2cf0949-90d2-4fd8-b3ce-0102035ae5ba.png", left: 577.16, top: -11.18, w: 80.4,  h: 95.7,  delay: "1.2s",  dur: "4.1s" },
-  { src: "https://www.figma.com/api/mcp/asset/9145c8a4-7761-4d22-861b-914d2b1d186d.png", left: 171.7,  top: 51.69,  w: 72.8,  h: 95.5,  delay: "0.3s",  dur: "3.5s" },
-  { src: "https://www.figma.com/api/mcp/asset/2885e836-a85f-4eaa-bdb1-e3501116f4e2.png", left: 47.44,  top: 486.36, w: 67.5,  h: 80.4,  delay: "1.8s",  dur: "3.9s" },
-  { src: "https://www.figma.com/api/mcp/asset/c842d007-6dc3-460e-a19d-6ab07be07041.png", left: 261.8,  top: 504.67, w: 120.3, h: 81.2,  delay: "0.9s",  dur: "4.3s" },
-  { src: "https://www.figma.com/api/mcp/asset/004b30dc-8f56-4830-9ea7-3d5fd37b75bf.png", left: 155.86, top: 571.51, w: 100.5, h: 67.8,  delay: "2.1s",  dur: "3.6s" },
-  { src: "https://www.figma.com/api/mcp/asset/730841b3-320f-43a6-ae07-91a769180f31.png", left: 577.16, top: 531.9,  w: 120.3, h: 67.8,  delay: "1.5s",  dur: "4.0s" },
-  { src: "https://www.figma.com/api/mcp/asset/a16005cb-c6db-4fed-91e5-83a197206ef2.png", left: 438.05, top: 552.69, w: 116.9, h: 92.1,  delay: "0.4s",  dur: "3.3s" },
-  { src: "https://www.figma.com/api/mcp/asset/a238f500-ff86-414d-ba2a-1d8b2e21ce2f.png", left: 676.17, top: 292.29, w: 102.0, h: 80.4,  delay: "2.4s",  dur: "4.2s" },
-  { src: "https://www.figma.com/api/mcp/asset/566d088a-4e88-4292-8431-6d00b74f6cc9.png", left: 846.47, top: 187.34, w: 89.2,  h: 70.3,  delay: "1.1s",  dur: "3.7s" },
-  { src: "https://www.figma.com/api/mcp/asset/33a2c555-609d-46db-bf66-daa29877b9c4.png", left: 891.03, top: 310.61, w: 75.2,  h: 67.0,  delay: "1.7s",  dur: "3.4s" },
-  { src: "https://www.figma.com/api/mcp/asset/59a3bfc2-0318-44f1-8b7e-971f30f79224.png", left: 710.82, top: 38.59,  w: 90.2,  h: 80.4,  delay: "0.8s",  dur: "4.4s" },
-  { src: "https://www.figma.com/api/mcp/asset/d9d8c52b-3e49-4072-8b93-eaac78d23223.png", left: 83.59,  top: 167.54, w: 76.9,  h: 68.5,  delay: "2.0s",  dur: "3.1s" },
-  { src: "https://www.figma.com/api/mcp/asset/d2e28e04-58df-4977-9c3a-5e514ea19803.png", left: 122.22, top: 271.0,  w: 138.6, h: 112.4, delay: "1.3s",  dur: "4.5s" },
-  { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: 267.75, top: 91.3,   w: 78.2,  h: 93.1,  delay: "0.5s",  dur: "3.8s" },
+  // top strip — above text box
+  { src: "https://www.figma.com/api/mcp/asset/5f38f9f1-c300-4a74-9188-df5c07ad00aa.png", left: 355,  top: -95,  w: 166, h: 148, delay: "0s",   dur: "3.2s" },
+  { src: "https://www.figma.com/api/mcp/asset/f2cf0949-90d2-4fd8-b3ce-0102035ae5ba.png", left: 560,  top: -95,  w: 121, h: 144, delay: "1.2s", dur: "4.1s" },
+  { src: "https://www.figma.com/api/mcp/asset/59a3bfc2-0318-44f1-8b7e-971f30f79224.png", left: 810,  top: -35,  w: 135, h: 121, delay: "0.8s", dur: "4.4s" },
+  // left column — x < 264
+  { src: "https://www.figma.com/api/mcp/asset/9145c8a4-7761-4d22-861b-914d2b1d186d.png", left: -15,  top: 18,   w: 109, h: 143, delay: "0.3s", dur: "3.5s" },
+  { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: 105,  top: 42,   w: 117, h: 140, delay: "0.5s", dur: "3.8s" },
+  { src: "https://www.figma.com/api/mcp/asset/d9d8c52b-3e49-4072-8b93-eaac78d23223.png", left: -35,  top: 155,  w: 115, h: 103, delay: "2.0s", dur: "3.1s" },
+  { src: "https://www.figma.com/api/mcp/asset/d2e28e04-58df-4977-9c3a-5e514ea19803.png", left: -45,  top: 248,  w: 208, h: 169, delay: "1.3s", dur: "4.5s" },
+  // right column — x > 760
+  { src: "https://www.figma.com/api/mcp/asset/a238f500-ff86-414d-ba2a-1d8b2e21ce2f.png", left: 808,  top: 245,  w: 153, h: 121, delay: "2.4s", dur: "4.2s" },
+  { src: "https://www.figma.com/api/mcp/asset/566d088a-4e88-4292-8431-6d00b74f6cc9.png", left: 928,  top: 145,  w: 134, h: 106, delay: "1.1s", dur: "3.7s" },
+  { src: "https://www.figma.com/api/mcp/asset/33a2c555-609d-46db-bf66-daa29877b9c4.png", left: 978,  top: 285,  w: 113, h: 101, delay: "1.7s", dur: "3.4s" },
+  // bottom strip — y > 482
+  { src: "https://www.figma.com/api/mcp/asset/2885e836-a85f-4eaa-bdb1-e3501116f4e2.png", left: -25,  top: 510,  w: 101, h: 121, delay: "1.8s", dur: "3.9s" },
+  { src: "https://www.figma.com/api/mcp/asset/c842d007-6dc3-460e-a19d-6ab07be07041.png", left: 145,  top: 522,  w: 181, h: 122, delay: "0.9s", dur: "4.3s" },
+  { src: "https://www.figma.com/api/mcp/asset/004b30dc-8f56-4830-9ea7-3d5fd37b75bf.png", left: 20,   top: 590,  w: 151, h: 102, delay: "2.1s", dur: "3.6s" },
+  { src: "https://www.figma.com/api/mcp/asset/a16005cb-c6db-4fed-91e5-83a197206ef2.png", left: 415,  top: 578,  w: 175, h: 138, delay: "0.4s", dur: "3.3s" },
+  { src: "https://www.figma.com/api/mcp/asset/730841b3-320f-43a6-ae07-91a769180f31.png", left: 598,  top: 555,  w: 181, h: 102, delay: "1.5s", dur: "4.0s" },
+  { src: "https://www.figma.com/api/mcp/asset/d1a18a53-e563-481f-81ea-e9854e994aee.png", left: 878,  top: 462,  w: 131, h: 139, delay: "0.6s", dur: "3.8s" },
 ];
 
 
@@ -54,10 +58,12 @@ if (typeof document !== "undefined" && !document.getElementById("landing-style")
     .landing-photo-card {
       position: absolute;
       border-radius: 8px;
-      border: 3px solid rgba(207,207,207,0.32);
+      background: #ffffff;
+      border: none;
       overflow: hidden;
       object-fit: cover;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      /* outside stroke via box-shadow ring + drop shadow */
+      box-shadow: 0 0 0 5px rgba(255,255,255,1), 0px 1px 3.4px rgba(0,0,0,0.35);
       animation: hero-float var(--float-dur, 3.5s) ease-in-out infinite;
       animation-delay: var(--float-delay, 0s);
     }
@@ -105,7 +111,7 @@ const Landing = () => {
     <div style={{ background: BG, minHeight: "100vh", fontFamily: INTER, overflowX: "hidden" }}>
 
       {/* ── Nav ────────────────────────────────────────────────────── */}
-      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", position: "relative", zIndex: 10 }}>
+      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", position: "relative", zIndex: 10, background: "transparent" }}>
         <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 36, width: "auto" }} />
         <button
           onClick={goToWelcome}
