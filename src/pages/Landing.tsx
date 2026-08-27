@@ -35,8 +35,12 @@ const PHOTOS = [
 ];
 
 
-// Inject gradient text style
-if (typeof document !== "undefined" && !document.getElementById("landing-style")) {
+// Inject styles (always update so hot-reload works)
+if (typeof document !== "undefined") {
+  let existing = document.getElementById("landing-style");
+  if (existing) existing.remove();
+}
+if (typeof document !== "undefined") {
   const s = document.createElement("style");
   s.id = "landing-style";
   s.textContent = `
@@ -70,6 +74,18 @@ if (typeof document !== "undefined" && !document.getElementById("landing-style")
     }
     .landing-event-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
     .landing-event-card { transition: all 0.2s ease; }
+    @keyframes land-fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes land-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .land-enter-photo {
+      animation: land-fade-in 1s ease both;
+      animation-delay: var(--enter-delay, 0s);
+    }
     @media (max-width: 767px) {
       .hero-hide-mobile { display: none !important; }
       .hero-mobile-bottom { display: block !important; }
@@ -103,6 +119,13 @@ const Landing = () => {
   const [eventsLoading, setEventsLoading] = useState(true);
   const heroRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [navScrolled, setNavScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
 
   const handleHeroMouseMove = (e: React.MouseEvent) => {
@@ -204,7 +227,7 @@ const Landing = () => {
     <div style={{ background: BG, minHeight: "100vh", fontFamily: INTER, overflowX: "hidden", position: "relative" }}>
 
       {/* ── Nav — floats over hero ──────────────────────────────────── */}
-      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", position: "absolute", top: 0, left: 0, right: 0, zIndex: 20, background: "transparent" }}>
+      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, background: navScrolled ? "#FAF6F0" : "transparent", borderBottom: navScrolled ? "0.5px solid rgba(0,0,0,0.1)" : "none", transition: "background 0.3s ease, border-bottom 0.3s ease" }}>
         <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 52, width: "auto" }} />
         <button
           onClick={goToWelcome}
@@ -227,8 +250,11 @@ const Landing = () => {
             <div
               key={i}
               ref={el => { cardRefs.current[i] = el; }}
-              className={i < 2 ? "hero-hide-mobile" : undefined}
-              style={{ position: "absolute", left: p.left, top: p.top, width: p.w, height: p.h }}
+              className={`land-enter-photo${i < 2 ? " hero-hide-mobile" : ""}`}
+              style={{
+                position: "absolute", left: p.left, top: p.top, width: p.w, height: p.h,
+                "--enter-delay": `${0.75 + i * 0.07}s`,
+              } as React.CSSProperties}
             >
               {/* Inner img: handles float animation independently */}
               <img
@@ -292,12 +318,12 @@ const Landing = () => {
           <div style={{ position: "absolute", inset: "-32px -48px", background: "rgba(250,246,240,0.7)", backdropFilter: "blur(12px)", borderRadius: 24, zIndex: -1 }} />
 
           <div style={{ fontFamily: INTER, fontSize: 52.6, fontWeight: 300, letterSpacing: "-0.53px", lineHeight: 1.1, textAlign: "center", cursor: "default" }}>
-            <div style={{ color: "#131313", padding: "2px 0" }}>BEYOND</div>
-            <div style={{ color: "#131313", padding: "2px 0", marginBottom: 4 }}>SUNDAY</div>
-            <div className="landing-gradient-text" style={{ fontWeight: 600 }}>start here</div>
+            <div style={{ color: "#131313", padding: "2px 0", animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>BEYOND</div>
+            <div style={{ color: "#131313", padding: "2px 0", marginBottom: 4, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>SUNDAY</div>
+            <div className="landing-gradient-text" style={{ fontWeight: 600, animation: "land-fade-up 0.5s ease both", animationDelay: "0.25s" }}>start here</div>
           </div>
 
-          <p style={{ fontFamily: INTER, fontSize: 17, color: "#aba7a0", maxWidth: 420, lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontFamily: INTER, fontSize: 17, color: "#aba7a0", maxWidth: 420, lineHeight: 1.6, margin: 0, animation: "land-fade-up 0.45s ease both", animationDelay: "0.45s" }}>
             Whatever you want to plan — a{" "}
             <span style={{ textDecoration: "underline" }}>Monday dance party</span>,{" "}
             a <span style={{ textDecoration: "underline" }}>service project</span>,{" "}
@@ -305,7 +331,7 @@ const Landing = () => {
             — Beyond Sunday makes it effortless to create and share.
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, animation: "land-fade-up 0.4s ease both", animationDelay: "0.45s" }}>
             <button
               onClick={goToWelcome}
               style={{
