@@ -11,27 +11,28 @@ const BG = "#FAF6F0";
 // Scattered photo cards — sized for 100vh hero (~900px tall)
 // Center no-go zone (approx): x 240–784, y 270–630
 // Side columns (x < 240 or x > 784) are safe at any y
+// Image URLs — fresh from Figma node 3171:8692
+const WOMEN     = "https://www.figma.com/api/mcp/asset/d81970eb-3789-442b-b240-c24d6d27621b.png"; // colorful street women
+const GAMENIGHT = "https://www.figma.com/api/mcp/asset/f24b251c-a777-4fd7-aa77-7488b9ba55df.png"; // Game Night (full composite)
+const RUNNER    = "https://www.figma.com/api/mcp/asset/786ba441-bde9-4800-9ddc-2ffe357b42a2.png"; // Runner
+const SWIMMER   = "https://www.figma.com/api/mcp/asset/9128444a-cfc9-470c-b0c5-3e5fd34162b2.png"; // Swimmer
+const BOOKM     = "https://www.figma.com/api/mcp/asset/5c9eabbe-eea3-42e9-b97c-0c7c57636a14.png"; // Book of Mormon
+const PICKLE    = "https://www.figma.com/api/mcp/asset/5406242e-7b5d-4d27-b325-ed80680d1cec.png"; // Pickleball Wednesday
+const ANCHOR    = "https://www.figma.com/api/mcp/asset/f401f638-fc6e-4c5e-beb7-9236e1d51e01.png"; // Anchored in Christ
+const SURFER    = "https://www.figma.com/api/mcp/asset/d70c2d12-1b11-44b0-be4f-00781c866dd8.png"; // Surfer
+
+// Positions taken pixel-perfect from Figma node 3171:8692 (1024px canvas)
 const PHOTOS = [
-  // top strip — peek in from above
-  { src: "https://www.figma.com/api/mcp/asset/5f38f9f1-c300-4a74-9188-df5c07ad00aa.png", left: 340,  top: -85,  w: 215, h: 192, delay: "0s",   dur: "3.2s" },
-  { src: "https://www.figma.com/api/mcp/asset/f2cf0949-90d2-4fd8-b3ce-0102035ae5ba.png", left: 545,  top: -80,  w: 158, h: 187, delay: "1.2s", dur: "4.1s" },
-  { src: "https://www.figma.com/api/mcp/asset/59a3bfc2-0318-44f1-8b7e-971f30f79224.png", left: 800,  top: -30,  w: 176, h: 158, delay: "0.8s", dur: "4.4s" },
-  // left column — all left of x=240, safe at any y
-  { src: "https://www.figma.com/api/mcp/asset/9145c8a4-7761-4d22-861b-914d2b1d186d.png", left: -95,  top: 25,   w: 142, h: 186, delay: "0.3s", dur: "3.5s" },
-  { src: "https://www.figma.com/api/mcp/asset/af92f4de-a4b7-4567-ac85-500277cf0d71.png", left: -10,  top: 55,   w: 152, h: 182, delay: "0.5s", dur: "3.8s" },
-  // left column (mid) — moved back to left side
-  { src: "https://www.figma.com/api/mcp/asset/d9d8c52b-3e49-4072-8b93-eaac78d23223.png", left: -55,  top: 280,  w: 150, h: 134, delay: "2.0s", dur: "3.1s" },
-  { src: "https://www.figma.com/api/mcp/asset/d2e28e04-58df-4977-9c3a-5e514ea19803.png", left: -130, top: 460,  w: 272, h: 220, delay: "1.3s", dur: "4.5s" },
-  // right column — all right of x=784, safe at any y
-  { src: "https://www.figma.com/api/mcp/asset/a238f500-ff86-414d-ba2a-1d8b2e21ce2f.png", left: 815,  top: 330,  w: 200, h: 158, delay: "2.4s", dur: "4.2s" },
-  { src: "https://www.figma.com/api/mcp/asset/566d088a-4e88-4292-8431-6d00b74f6cc9.png", left: 932,  top: 165,  w: 174, h: 138, delay: "1.1s", dur: "3.7s" },
-  { src: "https://www.figma.com/api/mcp/asset/33a2c555-609d-46db-bf66-daa29877b9c4.png", left: 1002, top: 390,  w: 148, h: 132, delay: "1.7s", dur: "3.4s" },
-  // bottom strip — peek in from below
-  { src: "https://www.figma.com/api/mcp/asset/2885e836-a85f-4eaa-bdb1-e3501116f4e2.png", left: -45,  top: 645,  w: 132, h: 158, delay: "1.8s", dur: "3.9s" },
-  { src: "https://www.figma.com/api/mcp/asset/c842d007-6dc3-460e-a19d-6ab07be07041.png", left: 130,  top: 710,  w: 236, h: 158, delay: "0.9s", dur: "4.3s" },
-  { src: "https://www.figma.com/api/mcp/asset/a16005cb-c6db-4fed-91e5-83a197206ef2.png", left: 392,  top: 745,  w: 228, h: 180, delay: "0.4s", dur: "3.3s" },
-  { src: "https://www.figma.com/api/mcp/asset/730841b3-320f-43a6-ae07-91a769180f31.png", left: 582,  top: 725,  w: 236, h: 134, delay: "1.5s", dur: "4.0s" },
-  { src: "https://www.figma.com/api/mcp/asset/d1a18a53-e563-481f-81ea-e9854e994aee.png", left: 872,  top: 615,  w: 171, h: 181, delay: "0.6s", dur: "3.8s" },
+  // ── Left side ──
+  { src: GAMENIGHT, left: 140, top: 52,  w: 126, h: 134, radius: "50%", shadow: "0 0 0 5px rgba(255,255,255,0.32)", delay: "0s",   dur: "4.1s" },
+  { src: SWIMMER,   left: 37,  top: 224, w: 103, h: 98,  radius: 35,    shadow: "0 0 0 3px rgba(0,0,0,0.32)",      delay: "0.6s", dur: "3.5s" },
+  { src: RUNNER,    left: 175, top: 372, w: 97,  h: 97,  radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.2s", dur: "4.3s" },
+  { src: BOOKM,     left: 61,  top: 438, w: 69,  h: 69,  radius: "50%", shadow: "0 0 0 3px rgba(207,207,207,0.32)",delay: "0.9s", dur: "3.8s" },
+  // ── Right side ──
+  { src: PICKLE, left: 761, top: 79,  w: 60,  h: 53,  radius: 4,     shadow: "0 0 0 2px rgba(207,207,207,0.32)",delay: "0.3s", dur: "3.7s" },
+  { src: ANCHOR, left: 903, top: 170, w: 82,  h: 70,  radius: 11,    shadow: "none",                            delay: "0.8s", dur: "4.0s" },
+  { src: SURFER, left: 776, top: 293, w: 114, h: 83,  radius: 17,    shadow: "none",                            delay: "1.5s", dur: "3.4s" },
+  { src: WOMEN,  left: 869, top: 415, w: 107, h: 114, radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.0s", dur: "4.2s" },
 ];
 
 
@@ -60,17 +61,16 @@ if (typeof document !== "undefined") {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-7px); }
     }
-    .landing-photo-card {
-      display: block;
-      border-radius: 8px;
-      background: #ffffff;
-      border: none;
+    .landing-photo-clip {
+      width: 100%; height: 100%;
       overflow: hidden;
-      object-fit: cover;
-      /* outside stroke via box-shadow ring + drop shadow */
-      box-shadow: 0 0 0 5px rgba(255,255,255,1), 0px 1px 3.4px rgba(0,0,0,0.35);
       animation: hero-float var(--float-dur, 3.5s) ease-in-out infinite;
       animation-delay: var(--float-delay, 0s);
+    }
+    .landing-photo-card {
+      display: block;
+      width: 100%; height: 100%;
+      object-fit: cover;
     }
     .landing-event-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
     .landing-event-card { transition: all 0.2s ease; }
@@ -120,6 +120,7 @@ const Landing = () => {
   const heroRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [navScrolled, setNavScrolled] = useState(false);
+  const [canvasScale, setCanvasScale] = useState(() => window.innerWidth / 1024);
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 10);
@@ -127,33 +128,37 @@ const Landing = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setCanvasScale(window.innerWidth / 1024);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
 
   const handleHeroMouseMove = (e: React.MouseEvent) => {
     if (window.innerWidth < 768 || !heroRef.current) return;
     const rect = heroRef.current.getBoundingClientRect();
-    const canvasLeft = rect.left + (rect.width - 1024) / 2;
     const mx = e.clientX;
     const my = e.clientY;
 
     PHOTOS.forEach((p, i) => {
       const el = cardRefs.current[i];
       if (!el) return;
-      const cardCx = canvasLeft + p.left + p.w / 2;
+      const elRect = el.getBoundingClientRect();
+      const cardCx = elRect.left + elRect.width / 2;
       // For cards mostly above the fold, use their visible bottom edge as interaction point
       // so repulsion pushes them sideways (visible) rather than further up (invisible)
-      const isTopCard = p.top < -20;
-      const rawCy = rect.top + p.top + p.h / 2;
-      const cardCy = isTopCard ? rect.top + Math.max(0, p.top + p.h) * 0.5 : rawCy;
+      const cardCy = elRect.top + elRect.height / 2;
       const dx = mx - cardCx;
       const dy = my - cardCy;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const radius = 200;
-      const forceMult = isTopCard ? 95 : 65;
+      const radius = 280;
+      const forceMult = 120;
       if (dist < radius && dist > 0) {
         const force = (1 - dist / radius) * forceMult;
         // For top cards, suppress vertical component so they move sideways
         const fx = -(dx / dist) * force;
-        const fy = isTopCard ? -(dy / dist) * force * 0.2 : -(dy / dist) * force;
+        const fy = -(dy / dist) * force;
         el.style.transform = `translate(${fx}px, ${fy}px)`;
         el.style.transition = "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
       } else {
@@ -175,26 +180,24 @@ const Landing = () => {
   const handleHeroClick = (e: React.MouseEvent) => {
     if (window.innerWidth < 768 || !heroRef.current) return;
     const rect = heroRef.current.getBoundingClientRect();
-    const canvasLeft = rect.left + (rect.width - 1024) / 2;
     const mx = e.clientX;
     const my = e.clientY;
 
     PHOTOS.forEach((p, i) => {
       const el = cardRefs.current[i];
       if (!el) return;
-      const cardCx = canvasLeft + p.left + p.w / 2;
-      const isTopCard = p.top < -20;
-      const rawCy = rect.top + p.top + p.h / 2;
-      const cardCy = isTopCard ? rect.top + Math.max(0, p.top + p.h) * 0.5 : rawCy;
+      const elRect = el.getBoundingClientRect();
+      const cardCx = elRect.left + elRect.width / 2;
+      const cardCy = elRect.top + elRect.height / 2;
       const dx = mx - cardCx;
       const dy = my - cardCy;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const radius = 350;
-      const forceMult = isTopCard ? 180 : 130;
+      const forceMult = 130;
       if (dist < radius && dist > 0) {
         const force = (1 - dist / radius) * forceMult;
         const fx = -(dx / dist) * force;
-        const fy = isTopCard ? -(dy / dist) * force * 0.2 : -(dy / dist) * force;
+        const fy = -(dy / dist) * force;
         el.style.transform = `translate(${fx}px, ${fy}px)`;
         el.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
         // spring back after burst
@@ -243,32 +246,49 @@ const Landing = () => {
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
       <section ref={heroRef} style={{ position: "relative", height: "100vh", minHeight: 700, overflow: "hidden" }} onMouseMove={handleHeroMouseMove} onMouseLeave={handleHeroMouseLeave} onClick={handleHeroClick}>
-        {/* 1024px canvas centered — all cards sit at exact Figma px coords */}
-        <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", width: 1024, top: 0, bottom: 0, pointerEvents: "none" }}>
+        {/* 1024px canvas — scaled to fill viewport width, matching Figma at any screen size */}
+        <div style={{
+          position: "absolute", left: "50%", top: 0, bottom: 0,
+          width: 1024, pointerEvents: "none",
+          transform: `translateX(-50%) scale(${canvasScale})`,
+          transformOrigin: "top center",
+        }}>
           {PHOTOS.map((p, i) => (
             // Outer div: handles repulsion translate via JS
             <div
               key={i}
               ref={el => { cardRefs.current[i] = el; }}
-              className={`land-enter-photo${i < 2 ? " hero-hide-mobile" : ""}`}
+              className="land-enter-photo hero-hide-mobile"
               style={{
-                position: "absolute", left: p.left, top: p.top, width: p.w, height: p.h,
+                position: "absolute",
+                left: p.left,
+                top: p.top, width: p.w, height: p.h,
                 "--enter-delay": `${0.75 + i * 0.07}s`,
               } as React.CSSProperties}
             >
-              {/* Inner img: handles float animation independently */}
-              <img
-                src={p.src}
-                alt=""
-                className="landing-photo-card"
+              {/* Clip wrapper: float animation + shape clip */}
+              <div
+                className="landing-photo-clip"
                 style={{
-                  position: "static",
-                  width: "100%",
-                  height: "100%",
+                  borderRadius: p.radius,
+                  boxShadow: p.shadow,
                   "--float-delay": p.delay,
                   "--float-dur": p.dur,
                 } as React.CSSProperties}
-              />
+              >
+                <img
+                  src={p.src}
+                  alt=""
+                  className="landing-photo-card"
+                  style={{
+                    width: (p as any).imgW || (p.zoom ? `${p.zoom * 100}%` : "100%"),
+                    height: (p as any).imgH || (p.zoom ? `${p.zoom * 100}%` : "100%"),
+                    marginLeft: (p as any).imgX !== undefined ? (p as any).imgX : (p.zoom ? `${-(p.zoom - 1) * 50}%` : 0),
+                    marginTop: (p as any).imgY !== undefined ? (p as any).imgY : (p.zoom ? `${-(p.zoom - 1) * 50}%` : 0),
+                    objectPosition: (p as any).objectPosition || "center",
+                  }}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -280,19 +300,19 @@ const Landing = () => {
           display: "none",
         }} className="hero-mobile-bottom">
           {/* Left */}
-          <img src={PHOTOS[12].src} alt="" style={{
+          <img src={PHOTOS[0].src} alt="" style={{
             position: "absolute", left: -16, bottom: -10, width: 150, height: 115,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
           }} />
           {/* Center */}
-          <img src={PHOTOS[13].src} alt="" style={{
+          <img src={PHOTOS[6].src} alt="" style={{
             position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: -18, width: 145, height: 110,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
           }} />
           {/* Right */}
-          <img src={PHOTOS[14].src} alt="" style={{
+          <img src={PHOTOS[7].src} alt="" style={{
             position: "absolute", right: -16, bottom: -5, width: 155, height: 108,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
@@ -314,13 +334,11 @@ const Landing = () => {
         {/* Center content — viewport-centered, sits above the cards */}
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", paddingBottom: 24 }}>
         <div style={{ position: "relative", zIndex: 2, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "0 24px" }}>
-          {/* Blur backdrop */}
-          <div style={{ position: "absolute", inset: "-32px -48px", background: "rgba(250,246,240,0.7)", backdropFilter: "blur(12px)", borderRadius: 24, zIndex: -1 }} />
 
-          <div style={{ fontFamily: INTER, fontSize: 52.6, fontWeight: 300, letterSpacing: "-0.53px", lineHeight: 1.1, textAlign: "center", cursor: "default" }}>
-            <div style={{ color: "#131313", padding: "2px 0", animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>BEYOND</div>
-            <div style={{ color: "#131313", padding: "2px 0", marginBottom: 4, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>SUNDAY</div>
-            <div className="landing-gradient-text" style={{ fontWeight: 600, animation: "land-fade-up 0.5s ease both", animationDelay: "0.25s" }}>start here</div>
+          <div style={{ fontFamily: CORMORANT, fontSize: 72, fontWeight: 600, letterSpacing: "-4px", lineHeight: 1.1, textAlign: "center", cursor: "default" }}>
+            <div style={{ color: "#131313", padding: "2px 0", lineHeight: 1, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>Find an Event.</div>
+            <div style={{ color: "#131313", padding: "2px 0", marginTop: -5, marginBottom: -8, lineHeight: 1, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>Meet Your People.</div>
+            <div className="landing-gradient-text" style={{ fontFamily: INTER, fontWeight: 600, letterSpacing: "normal", animation: "land-fade-up 0.5s ease both", animationDelay: "0.25s" }}>start here</div>
           </div>
 
           <p style={{ fontFamily: INTER, fontSize: 17, color: "#aba7a0", maxWidth: 420, lineHeight: 1.6, margin: 0, animation: "land-fade-up 0.45s ease both", animationDelay: "0.45s" }}>
