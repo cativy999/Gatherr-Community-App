@@ -762,7 +762,7 @@ const EventDetails = () => {
       ctx.closePath();
     };
 
-    // Extract dominant color from image and darken to ~25% brightness
+    // Extract dominant color then darken via HSL (keeps hue/saturation, drops lightness to ~15%)
     const getDominantDarkColor = (img: HTMLImageElement): [number, number, number] => {
       const s = document.createElement("canvas");
       s.width = 50; s.height = 50;
@@ -772,10 +772,35 @@ const EventDetails = () => {
       let r = 0, g = 0, b = 0;
       for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
       const count = d.length / 4;
-      r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
-      // Darken: target ~25% of original brightness
-      const f = 0.25;
-      return [Math.round(r * f), Math.round(g * f), Math.round(b * f)];
+      r /= count; g /= count; b /= count;
+      // Convert to HSL
+      const rn = r/255, gn = g/255, bn = b/255;
+      const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+      const l = (max + min) / 2;
+      const d2 = max - min;
+      let h = 0, sat = 0;
+      if (d2 > 0) {
+        sat = d2 / (1 - Math.abs(2 * l - 1));
+        if (max === rn) h = ((gn - bn) / d2) % 6;
+        else if (max === gn) h = (bn - rn) / d2 + 2;
+        else h = (rn - gn) / d2 + 4;
+        h = ((h * 60) + 360) % 360;
+      }
+      // Lock lightness to 15%, keep hue + boost saturation slightly
+      const targetL = 0.15;
+      const targetS = Math.min(sat * 1.2, 1);
+      // Convert back to RGB
+      const c = (1 - Math.abs(2 * targetL - 1)) * targetS;
+      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      const m = targetL - c / 2;
+      let rr = 0, gg = 0, bb = 0;
+      if (h < 60)       { rr=c; gg=x; bb=0; }
+      else if (h < 120) { rr=x; gg=c; bb=0; }
+      else if (h < 180) { rr=0; gg=c; bb=x; }
+      else if (h < 240) { rr=0; gg=x; bb=c; }
+      else if (h < 300) { rr=x; gg=0; bb=c; }
+      else              { rr=c; gg=0; bb=x; }
+      return [Math.round((rr+m)*255), Math.round((gg+m)*255), Math.round((bb+m)*255)];
     };
 
     // Load event image
@@ -792,12 +817,9 @@ const EventDetails = () => {
     }
 
     // ── Background ──
-    let bgR = 15, bgG = 15, bgB = 15;
+    let bgR = 20, bgG = 15, bgB = 15;
     if (eventImg) {
       [bgR, bgG, bgB] = getDominantDarkColor(eventImg);
-      // If still too bright, darken further
-      const br = (bgR * 299 + bgG * 587 + bgB * 114) / 1000;
-      if (br > 80) { bgR = Math.round(bgR * 0.45); bgG = Math.round(bgG * 0.45); bgB = Math.round(bgB * 0.45); }
     }
     ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
     ctx.fillRect(0, 0, W, H);
@@ -898,7 +920,7 @@ const EventDetails = () => {
     // ── Date / Time row (bottom of card) ──
     const rowFontSize = Math.round(15 * SCALE);
     ctx.font = `${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillStyle = "rgba(255,255,255,0.70)";
     const rowY = cardY + cardH - Math.round(28 * SCALE);
 
     const dateStr = event.is_recurring
