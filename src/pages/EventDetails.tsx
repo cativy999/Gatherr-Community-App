@@ -1964,7 +1964,7 @@ const EventDetails = () => {
             >
               <div>
                 <p
-                  className="text-sm leading-relaxed whitespace-pre-wrap text-justify"
+                  className="text-sm leading-relaxed whitespace-pre-wrap text-center"
                   style={{ color: MID }}
                 >
                   {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
@@ -2702,7 +2702,7 @@ const EventDetails = () => {
               style={{ overflow: "hidden", height: DESC_COLLAPSED }}
             >
               <div>
-                <p className="text-base leading-relaxed whitespace-pre-wrap text-justify" style={{ color: MID }}>
+                <p className="text-base leading-relaxed whitespace-pre-wrap" style={{ color: MID }}>
                   {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
                 </p>
               </div>
