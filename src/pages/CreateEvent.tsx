@@ -196,7 +196,9 @@ const TimePicker = ({ value, onChange, placeholder, clearable }: { value: string
       }}
       onClick={() => setOpen(o => !o)}
     >
-      <span style={{ fontSize: 15, fontFamily: CE_SANS, color: value ? CE_DARK : CE_MID }}>{value ? formatTime(value) : placeholder}</span>
+      <span style={{ fontSize: 15, fontFamily: CE_SANS, color: value ? CE_DARK : (clearable ? CE_DARK : CE_MID) }}>
+        {value ? formatTime(value) : clearable ? "-- : --" : placeholder}
+      </span>
       <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open && !isMobile ? 'rotate-180' : ''}`} style={{ color: CE_MID }} />
     </div>
   );
