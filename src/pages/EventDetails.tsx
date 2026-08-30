@@ -839,23 +839,17 @@ const EventDetails = () => {
     const cardH = Math.round(481 * SCALE);
     const cardR = Math.round(12.733 * SCALE);
 
-    // Glass gradient border (1.5px stroke)
-    const bw = Math.round(1.5 * SCALE);
-    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
-    borderGrad.addColorStop(0, "rgba(153,153,153,0.55)");
-    borderGrad.addColorStop(0.5, "rgba(255,255,255,0.18)");
-    borderGrad.addColorStop(1, "rgba(255,255,255,0.55)");
-    ctx.save();
-    roundRectPath(cardX - bw, cardY - bw, cardW + bw*2, cardH + bw*2, cardR + bw);
-    ctx.fillStyle = borderGrad;
-    ctx.fill();
-    ctx.restore();
-
-    // Card dark glass fill
+    // Card fill — gradient from Figma: rgba(153,153,153,0.29) → rgba(255,255,255,0.09) at 36% → rgba(255,255,255,0.29) at 94%
     ctx.save();
     roundRectPath(cardX, cardY, cardW, cardH, cardR);
-    ctx.fillStyle = "rgba(8,8,8,0.70)";
-    ctx.fill();
+    ctx.clip();
+    const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+    cardGrad.addColorStop(0,       "rgba(153,153,153,0.29)");
+    cardGrad.addColorStop(0.36058, "rgba(255,255,255,0.09)");
+    cardGrad.addColorStop(0.94231, "rgba(255,255,255,0.29)");
+    cardGrad.addColorStop(1,       "rgba(255,255,255,0.29)");
+    ctx.fillStyle = cardGrad;
+    ctx.fillRect(cardX, cardY, cardW, cardH);
     ctx.restore();
 
     // ── Event photo inside card ──
@@ -923,17 +917,23 @@ const EventDetails = () => {
     ctx.fillStyle = "rgba(255,255,255,0.70)";
     const rowY = cardY + cardH - Math.round(28 * SCALE);
 
+    // Date — Bold white
+    ctx.font = `bold ${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,1)";
     const dateStr = event.is_recurring
       ? getRecurringLabelFull(event)
       : eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
     ctx.fillText(dateStr, textX, rowY);
 
+    // Time — Medium 70% white
     if (event.start_time) {
       const [h, m] = event.start_time.split(":").map(Number);
       const ampm = h >= 12 ? "PM" : "AM";
       const hour = h % 12 || 12;
       const timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
       const gap = Math.round(7.836 * SCALE);
+      ctx.font = `500 ${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.70)";
       ctx.fillText(timeStr, textX + ctx.measureText(dateStr).width + gap, rowY);
     }
 

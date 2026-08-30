@@ -1644,6 +1644,12 @@ const CreateEvent = () => {
                         {preview ? `Update ${slideLabels[idx]}` : `Add ${slideLabels[idx]}`}
                       </span>
                     </div>
+                    {preview && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
+                        style={{ position: "absolute", top: 10, right: isExtra && preview ? 42 : 10, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Eye size={16} color="white" />
+                      </button>
+                    )}
                     {isExtra && preview && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); removeExtraImage(idx - 1); }}
                         style={{ position: "absolute", top: 10, right: 10, width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "white", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>✕</button>
@@ -2440,9 +2446,9 @@ const CreateEvent = () => {
       </Dialog>
 
       {/* Image lightbox */}
-      {imageExpanded && imagePreview && (
+      {imageExpanded && ([imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview) && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setImageExpanded(false)}>
-          <img src={imagePreview} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
+          <img src={[imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview!} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
           <button className="absolute top-5 right-5 p-2 bg-white/20 rounded-full" onClick={() => setImageExpanded(false)}>
             <X className="w-5 h-5 text-white" />
           </button>
