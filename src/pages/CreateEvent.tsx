@@ -23,7 +23,7 @@ if (typeof document !== "undefined" && !document.getElementById("ce-trigger-styl
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, MoreHorizontal, MessageSquare, User, X, Check, Eye, RefreshCw, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, MoreHorizontal, MessageSquare, User, X, Check, Eye, Expand, RefreshCw, ArrowRight } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -1660,8 +1660,8 @@ const CreateEvent = () => {
                     </div>
                     {preview && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
-                        style={{ position: "absolute", top: 10, right: isExtra && preview ? 42 : 10, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Eye size={16} color="white" />
+                        style={{ position: "absolute", bottom: 50, right: 12, width: 30, height: 30, borderRadius: "50%", background: "rgba(0,0,0,0.30)", backdropFilter: "blur(8px)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5 }}>
+                        <Expand size={14} color="white" />
                       </button>
                     )}
                     {isExtra && preview && (
@@ -1721,14 +1721,14 @@ const CreateEvent = () => {
               type="button"
               onClick={(e) => { e.stopPropagation(); setImageExpanded(true); }}
               style={{
-                position: "absolute", top: 10, right: 10,
-                width: 34, height: 34, borderRadius: "50%",
-                background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+                position: "absolute", bottom: 50, right: 12,
+                width: 30, height: 30, borderRadius: "50%",
+                background: "rgba(0,0,0,0.30)", backdropFilter: "blur(8px)",
                 border: "none", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 5,
               }}
             >
-              <Eye size={16} color="white" />
+              <Expand size={14} color="white" />
             </button>
           )}
         </div>
@@ -2478,17 +2478,14 @@ const CreateEvent = () => {
 
           {/* ─ Fixed header ─────────────────────────────────────────────────── */}
           <div style={{ flexShrink: 0, padding: `36px ${bodyHPad}px 20px ${bodyHPad}px`, display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Back + optional delete */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: "none", cursor: "pointer" }}>
-                <ArrowLeft style={{ width: 16, height: 16 }} /> Back
-              </button>
-              {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
+            {/* Optional delete (editing only) */}
+            {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <Button variant="ghost" size="icon" className="p-2 rounded-full text-red-500 hover:bg-red-50" onClick={() => setDeleteOpen(true)} disabled={loading}>
                   <Trash2 className="h-5 w-5" />
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             {/* Progress bar */}
             {ProgressBar()}
             {/* Title row: heading LEFT | PostAs RIGHT (step 1 only) */}
