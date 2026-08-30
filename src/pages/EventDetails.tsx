@@ -737,124 +737,215 @@ const EventDetails = () => {
     setShareMenuOpenMobile(false);
     setShareMenuOpenDesktop(false);
 
-    // Explicitly load the font variant needed for canvas drawing
-    await document.fonts.load("bold 108px 'Cormorant Garamond'");
+    // Figma frame: 390×693px. Scale to 1080×1921 for IG story resolution.
+    const SCALE = 1080 / 390;
+    const W = 1080;
+    const H = Math.round(693 * SCALE);
 
     const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1920;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    const drawBackground = () => {
-      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bg.addColorStop(0, "#0f0f0f");
-      bg.addColorStop(1, "#1a1a1a");
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Round-rect path helper
+    const roundRectPath = (x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
     };
 
-    const drawOverlayAndText = () => {
-      const overlay = ctx.createLinearGradient(0, canvas.height * 0.35, 0, canvas.height);
-      overlay.addColorStop(0, "rgba(0,0,0,0)");
-      overlay.addColorStop(0.5, "rgba(0,0,0,0.6)");
-      overlay.addColorStop(1, "rgba(0,0,0,0.92)");
-      ctx.fillStyle = overlay;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number, font: string, color = "white") => {
-        ctx.font = font;
-        ctx.fillStyle = color;
-        const words = text.split(" ");
-        let line = "";
-        let currentY = y;
-        for (const word of words) {
-          const test = line + word + " ";
-          if (ctx.measureText(test).width > maxWidth && line) {
-            ctx.fillText(line.trim(), x, currentY);
-            line = word + " ";
-            currentY += lineHeight;
-          } else {
-            line = test;
-          }
-        }
-        ctx.fillText(line.trim(), x, currentY);
-        return currentY;
-      };
-
-      const pad = 90;
-      const maxW = canvas.width - pad * 2;
-      const titleY = wrapText(event.title || "", pad, 1380, maxW, 120, "bold 108px 'Cormorant Garamond', Georgia, serif");
-
-      const dateStr = event.is_recurring
-        ? getRecurringLabelFull(event)
-        : eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-      ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.fillText(dateStr, pad, titleY + 80);
-
-      if (event.start_time) {
-        const [h, m] = event.start_time.split(":").map(Number);
-        const ampm = h >= 12 ? "PM" : "AM";
-        const hour = h % 12 || 12;
-        ctx.font = "52px 'Helvetica Neue', Helvetica, sans-serif";
-        ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.fillText(`${hour}:${String(m).padStart(2, "0")} ${ampm}`, pad, titleY + 150);
-      }
-
-      if (event.location) {
-        ctx.font = "48px 'Helvetica Neue', Helvetica, sans-serif";
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.fillText(event.location, pad, titleY + 230);
-      }
-
+    // Extract dominant color from image and darken to ~25% brightness
+    const getDominantDarkColor = (img: HTMLImageElement): [number, number, number] => {
+      const s = document.createElement("canvas");
+      s.width = 50; s.height = 50;
+      const sc = s.getContext("2d")!;
+      sc.drawImage(img, 0, 0, 50, 50);
+      const d = sc.getImageData(0, 0, 50, 50).data;
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+      const count = d.length / 4;
+      r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+      // Darken: target ~25% of original brightness
+      const f = 0.25;
+      return [Math.round(r * f), Math.round(g * f), Math.round(b * f)];
     };
 
-    const doShare = async () => {
-      return new Promise<void>((resolve) => {
-        canvas.toBlob(async (blob) => {
-          if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
-          const file = new File([blob], "beyond-sunday-event.png", { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({ files: [file] });
-            } catch (e: any) {
-              if (e?.name !== "AbortError") toast.error("Sharing failed");
-            }
-          } else {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "beyond-sunday-event.png";
-            a.click();
-            URL.revokeObjectURL(url);
-            toast.success("Image saved! Upload it to your Instagram Story.");
-          }
-          resolve();
-        }, "image/png");
-      });
-    };
-
-    drawBackground();
-
+    // Load event image
     const shareImageUrl = images[currentImageIdx] || event.image_url;
+    let eventImg: HTMLImageElement | null = null;
     if (shareImageUrl) {
-      await new Promise<void>((resolve) => {
+      eventImg = await new Promise<HTMLImageElement | null>((resolve) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.onload = () => {
-          const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-          const x = (canvas.width - img.width * scale) / 2;
-          const y = (canvas.height - img.height * scale) / 2;
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-          resolve();
-        };
-        img.onerror = () => resolve();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
         img.src = shareImageUrl;
       });
     }
 
-    drawOverlayAndText();
-    await doShare();
+    // ── Background ──
+    let bgR = 15, bgG = 15, bgB = 15;
+    if (eventImg) {
+      [bgR, bgG, bgB] = getDominantDarkColor(eventImg);
+      // If still too bright, darken further
+      const br = (bgR * 299 + bgG * 587 + bgB * 114) / 1000;
+      if (br > 80) { bgR = Math.round(bgR * 0.45); bgG = Math.round(bgG * 0.45); bgB = Math.round(bgB * 0.45); }
+    }
+    ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle dark vignette on background
+    const vgn = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.8);
+    vgn.addColorStop(0, "rgba(0,0,0,0)");
+    vgn.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = vgn;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Frosted glass card ──
+    // Figma: 319×481px card, centered horizontally, top = 84px (in 390×693 frame)
+    const cardX = Math.round(35.5 * SCALE);
+    const cardY = Math.round(84 * SCALE);
+    const cardW = Math.round(319 * SCALE);
+    const cardH = Math.round(481 * SCALE);
+    const cardR = Math.round(12.733 * SCALE);
+
+    // Glass gradient border (1.5px stroke)
+    const bw = Math.round(1.5 * SCALE);
+    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+    borderGrad.addColorStop(0, "rgba(153,153,153,0.55)");
+    borderGrad.addColorStop(0.5, "rgba(255,255,255,0.18)");
+    borderGrad.addColorStop(1, "rgba(255,255,255,0.55)");
+    ctx.save();
+    roundRectPath(cardX - bw, cardY - bw, cardW + bw*2, cardH + bw*2, cardR + bw);
+    ctx.fillStyle = borderGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // Card dark glass fill
+    ctx.save();
+    roundRectPath(cardX, cardY, cardW, cardH, cardR);
+    ctx.fillStyle = "rgba(8,8,8,0.70)";
+    ctx.fill();
+    ctx.restore();
+
+    // ── Event photo inside card ──
+    const photoPad = Math.round(16 * SCALE);
+    const photoW = cardW - photoPad * 2;
+    const photoH = Math.round(213.531 * SCALE);
+    const photoX = cardX + photoPad;
+    const photoY = cardY + photoPad;
+    const photoR = Math.round(13.386 * SCALE);
+
+    if (eventImg) {
+      ctx.save();
+      roundRectPath(photoX, photoY, photoW, photoH, photoR);
+      ctx.clip();
+      const sc = Math.max(photoW / eventImg.width, photoH / eventImg.height);
+      const dw = eventImg.width * sc;
+      const dh = eventImg.height * sc;
+      ctx.drawImage(eventImg, photoX + (photoW - dw) / 2, photoY + (photoH - dh) / 2, dw, dh);
+      ctx.restore();
+    }
+
+    // ── Text content ──
+    const textPad = Math.round(20 * SCALE);
+    const textMaxW = cardW - textPad * 2;
+    const textX = cardX + textPad;
+
+    // Helper: wrap text, return next Y
+    const wrapLines = (text: string, x: number, startY: number, maxW: number, lineH: number, maxLines = 99): number => {
+      const words = text.split(" ");
+      let line = "";
+      let y = startY;
+      let drawn = 0;
+      for (const word of words) {
+        const test = line ? line + " " + word : word;
+        if (ctx.measureText(test).width > maxW && line) {
+          if (drawn >= maxLines - 1) { ctx.fillText(line + "…", x, y); drawn++; break; }
+          ctx.fillText(line, x, y);
+          drawn++; y += lineH; line = word;
+        } else { line = test; }
+      }
+      if (line && drawn < maxLines) { ctx.fillText(line, x, y); y += lineH; }
+      return y;
+    };
+
+    // Title — Inter Bold 24px
+    const titleSize = Math.round(24 * SCALE);
+    const titleLineH = Math.round(30 * SCALE);
+    ctx.font = `bold ${titleSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = "#ffffff";
+    const titleStartY = photoY + photoH + Math.round(20 * SCALE) + titleSize * 0.8;
+    const afterTitle = wrapLines(event.title || "", textX, titleStartY, textMaxW, titleLineH, 2);
+
+    // Description — Inter Regular 14px, max 4 lines
+    if (event.description) {
+      const descSize = Math.round(14 * SCALE);
+      const descLineH = Math.round(20 * SCALE);
+      ctx.font = `${descSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.70)";
+      wrapLines(event.description, textX, afterTitle + Math.round(6 * SCALE) + descSize * 0.8, textMaxW, descLineH, 4);
+    }
+
+    // ── Date / Time row (bottom of card) ──
+    const rowFontSize = Math.round(15 * SCALE);
+    ctx.font = `${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    const rowY = cardY + cardH - Math.round(28 * SCALE);
+
+    const dateStr = event.is_recurring
+      ? getRecurringLabelFull(event)
+      : eventDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    ctx.fillText(dateStr, textX, rowY);
+
+    if (event.start_time) {
+      const [h, m] = event.start_time.split(":").map(Number);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const hour = h % 12 || 12;
+      const timeStr = `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+      const gap = Math.round(7.836 * SCALE);
+      ctx.fillText(timeStr, textX + ctx.measureText(dateStr).width + gap, rowY);
+    }
+
+    // ── B. logo bottom-right of card ──
+    const logoW = Math.round(38.908 * SCALE);
+    const logoH = Math.round(34.503 * SCALE);
+    await new Promise<void>((resolve) => {
+      const logo = new Image();
+      logo.onload = () => {
+        ctx.drawImage(logo, cardX + cardW - textPad - logoW, cardY + cardH - textPad - logoH, logoW, logoH);
+        resolve();
+      };
+      logo.onerror = () => resolve();
+      logo.src = "/icon-large.png";
+    });
+
+    // ── Share / download ──
+    await new Promise<void>((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Couldn't generate image"); resolve(); return; }
+        const file = new File([blob], "beyond-sunday-event.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file] }); }
+          catch (e: any) { if (e?.name !== "AbortError") toast.error("Sharing failed"); }
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = "beyond-sunday-event.png"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success("Image saved! Upload it to your Instagram Story.");
+        }
+        resolve();
+      }, "image/png");
+    });
   };
 
   const handleReaction = async (commentId: string, emoji: string) => {
