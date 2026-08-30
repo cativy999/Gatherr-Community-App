@@ -145,7 +145,7 @@ const CESheet = ({ open, onClose, title, children }: {
   );
 };
 
-const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => {
+const TimePicker = ({ value, onChange, placeholder, clearable }: { value: string; onChange: (v: string) => void; placeholder: string; clearable?: boolean }) => {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const listRef  = useRef<HTMLDivElement>(null);
@@ -203,6 +203,13 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
 
   const sheetRows = (
     <div ref={listRef}>
+      {clearable && (
+        <button key="clear" type="button" onClick={() => { onChange(""); setOpen(false); }}
+          style={{ width: '100%', textAlign: 'left', padding: '16px 24px', fontFamily: CE_SANS, fontSize: 16, fontWeight: !value ? 700 : 400, color: !value ? CE_TEAL : CE_MID, background: 'none', border: 'none', cursor: 'pointer', borderBottom: `1px solid ${CE_DIV}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          -- : --
+          {!value && <Check style={{ width: 18, height: 18, color: CE_TEAL }} />}
+        </button>
+      )}
       {TIME_OPTIONS.map(t => (
         <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
           style={{ width: '100%', textAlign: 'left', padding: '16px 24px', fontFamily: CE_SANS, fontSize: 16, fontWeight: value === t ? 700 : 400, color: value === t ? CE_TEAL : CE_DARK, background: 'none', border: 'none', cursor: 'pointer', borderBottom: `1px solid ${CE_DIV}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -227,6 +234,13 @@ const TimePicker = ({ value, onChange, placeholder }: { value: string; onChange:
       {trigger}
       {open && (
         <div ref={listRef} className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg z-30 overflow-hidden max-h-48 overflow-y-auto" style={{ border: `1.5px solid ${CE_DIV}` }}>
+          {clearable && (
+            <button key="clear" type="button" onClick={() => { onChange(""); setOpen(false); }}
+              className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${!value ? 'font-bold' : ''}`}
+              style={{ color: !value ? CE_TEAL : CE_MID }}>
+              -- : --
+            </button>
+          )}
           {TIME_OPTIONS.map(t => (
             <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
               className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${value === t ? 'font-bold' : 'text-black'}`}>
@@ -768,8 +782,8 @@ const CreateEvent = () => {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [noImageConfirmOpen, setNoImageConfirmOpen] = useState(false);
-  const [minAge, setMinAge] = useState<string>("");
-  const [maxAge, setMaxAge] = useState<string>("");
+  const [minAge, setMinAge] = useState<string>(() => !id ? (localStorage.getItem("bs_last_min_age") || "") : "");
+  const [maxAge, setMaxAge] = useState<string>(() => !id ? (localStorage.getItem("bs_last_max_age") || "") : "");
 
   // Group Assignment
   const [groupAssignmentEnabled, setGroupAssignmentEnabled] = useState(false);
@@ -1846,7 +1860,7 @@ const CreateEvent = () => {
         </div>
         <div>
           <FieldLabel required>End Time</FieldLabel>
-          <TimePicker value={endTime} onChange={setEndTime} placeholder="4:30 PM" />
+          <TimePicker value={endTime} onChange={setEndTime} placeholder="4:30 PM" clearable />
         </div>
       </div>
 
@@ -1902,7 +1916,7 @@ const CreateEvent = () => {
           </div>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 1 }}><FieldLabel>Start</FieldLabel><TimePicker value={startTime} onChange={setStartTime} placeholder="Start time" /></div>
-            <div style={{ flex: 1 }}><FieldLabel>End</FieldLabel><TimePicker value={endTime} onChange={setEndTime} placeholder="End time" /></div>
+            <div style={{ flex: 1 }}><FieldLabel>End</FieldLabel><TimePicker value={endTime} onChange={setEndTime} placeholder="End time" clearable /></div>
           </div>
         </div>
       )}
@@ -2108,7 +2122,7 @@ const CreateEvent = () => {
               <div onMouseDown={(e) => e.stopPropagation()}
                 style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, maxHeight: 200, overflowY: "auto" }}>
                 {[18,25,30,35,40,45,50,55,60].map(a => (
-                  <button key={a} type="button" onClick={() => { setMinAge(String(a)); setMinAgeOpen(false); }}
+                  <button key={a} type="button" onClick={() => { setMinAge(String(a)); localStorage.setItem("bs_last_min_age", String(a)); setMinAgeOpen(false); }}
                     style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,fontWeight:minAge===String(a)?700:400,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>{a}</button>
                 ))}
               </div>
@@ -2116,7 +2130,7 @@ const CreateEvent = () => {
             {/* Mobile bottom sheet */}
             <CESheet open={!!(minAgeOpen && isMobile)} onClose={() => setMinAgeOpen(false)} title="Min Age">
               {[18,25,30,35,40,45,50,55,60].map(a => (
-                <button key={a} type="button" onClick={() => { setMinAge(String(a)); setMinAgeOpen(false); }}
+                <button key={a} type="button" onClick={() => { setMinAge(String(a)); localStorage.setItem("bs_last_min_age", String(a)); setMinAgeOpen(false); }}
                   style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:minAge===String(a)?700:400,color:minAge===String(a)?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
                   {a}{minAge===String(a)&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
                 </button>
@@ -2137,21 +2151,21 @@ const CreateEvent = () => {
             {maxAgeOpen && !isMobile && (
               <div onMouseDown={(e) => e.stopPropagation()}
                 style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4, background: "white", border: `1px solid ${DIV_W}`, borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 30, maxHeight: 200, overflowY: "auto" }}>
-                <button type="button" onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }} style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>No limit</button>
+                <button type="button" onClick={() => { setMaxAge("+"); localStorage.setItem("bs_last_max_age", "+"); setMaxAgeOpen(false); }} style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>No limit</button>
                 {[25,30,35,40,45,50,55,60].map(a => (
-                  <button key={a} type="button" onClick={() => { setMaxAge(String(a)); setMaxAgeOpen(false); }}
+                  <button key={a} type="button" onClick={() => { setMaxAge(String(a)); localStorage.setItem("bs_last_max_age", String(a)); setMaxAgeOpen(false); }}
                     style={{ width:"100%",textAlign:"left",padding:"10px 16px",fontFamily:SANS_W,fontSize:14,fontWeight:maxAge===String(a)?700:400,color:DARK_W,background:"none",border:"none",cursor:"pointer" }}>{a}</button>
                 ))}
               </div>
             )}
             {/* Mobile bottom sheet */}
             <CESheet open={!!(maxAgeOpen && isMobile)} onClose={() => setMaxAgeOpen(false)} title="Max Age">
-              <button type="button" onClick={() => { setMaxAge("+"); setMaxAgeOpen(false); }}
+              <button type="button" onClick={() => { setMaxAge("+"); localStorage.setItem("bs_last_max_age", "+"); setMaxAgeOpen(false); }}
                 style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:maxAge==="+"?700:400,color:maxAge==="+"?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
                 No limit{maxAge==="+"&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
               </button>
               {[25,30,35,40,45,50,55,60].map(a => (
-                <button key={a} type="button" onClick={() => { setMaxAge(String(a)); setMaxAgeOpen(false); }}
+                <button key={a} type="button" onClick={() => { setMaxAge(String(a)); localStorage.setItem("bs_last_max_age", String(a)); setMaxAgeOpen(false); }}
                   style={{ width:"100%",textAlign:"left",padding:"16px 24px",fontFamily:SANS_W,fontSize:16,fontWeight:maxAge===String(a)?700:400,color:maxAge===String(a)?TEAL_W:DARK_W,background:"none",border:"none",cursor:"pointer",borderBottom:`1px solid ${DIV_W}`,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
                   {a}{maxAge===String(a)&&<Check style={{width:18,height:18,color:TEAL_W}}/>}
                 </button>
