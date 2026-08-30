@@ -33,6 +33,8 @@ const notifIcon = (type: string): string => {
     case "group_coadmin_invite": return "👑";
     case "group_coadmin_accepted": return "✅";
     case "group_coadmin_declined": return "👋";
+    case "new_signup":           return "👤";
+    case "new_event":            return "📅";
     default:                     return "🔔";
   }
 };
