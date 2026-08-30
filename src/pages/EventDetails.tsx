@@ -154,7 +154,7 @@ const EventDetails = () => {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [myName, setMyName] = useState<string>("");
   const [linksExpanded, setLinksExpanded] = useState(false);
-  const [descExpanded, setDescExpanded] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [descOverflows, setDescOverflows] = useState(false);
   const descContainerMobileRef  = useRef<HTMLDivElement>(null);
   const descContainerDesktopRef = useRef<HTMLDivElement>(null);
@@ -1960,11 +1960,11 @@ const EventDetails = () => {
             <div
               ref={descContainerMobileRef}
               className="relative"
-              style={{ overflow: "hidden", height: DESC_COLLAPSED }}
+              style={{ overflow: "hidden", height: descExpanded ? "auto" : DESC_COLLAPSED }}
             >
               <div>
                 <p
-                  className="text-sm leading-relaxed whitespace-pre-wrap text-center"
+                  className="text-sm leading-relaxed whitespace-pre-wrap text-justify"
                   style={{ color: MID }}
                 >
                   {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
@@ -2702,7 +2702,7 @@ const EventDetails = () => {
               style={{ overflow: "hidden", height: DESC_COLLAPSED }}
             >
               <div>
-                <p className="text-base leading-relaxed whitespace-pre-wrap" style={{ color: MID }}>
+                <p className="text-base leading-relaxed whitespace-pre-wrap text-justify" style={{ color: MID }}>
                   {renderDescription(event.description?.replace(/\n{3,}/g, '\n\n').trim())}
                 </p>
               </div>
