@@ -755,7 +755,7 @@ const Wards = () => {
         </div>
 
         {/* Filter chips */}
-        <div className="pb-3">
+        <div className="pb-3 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
           <div
             className="flex gap-2 overflow-x-auto px-5 md:px-3 max-w-6xl mx-auto"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
