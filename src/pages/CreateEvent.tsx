@@ -1830,7 +1830,7 @@ const CreateEvent = () => {
       {/* Category */}
       <div>
         <FieldLabel>Choose a Category</FieldLabel>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, paddingLeft: 20, paddingRight: 20, marginLeft: -20, marginRight: -20, scrollbarWidth: "none" }}>
           {CATEGORIES.map(({ id, label, Icon }) => {
             const active = wardType === id;
             return (
@@ -2010,7 +2010,7 @@ const CreateEvent = () => {
 
       <div ref={extraDetailsSectionRef}>
         <FieldLabel>Extra Details</FieldLabel>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4, paddingLeft: 20, paddingRight: 20, marginLeft: -20, marginRight: -20, scrollbarWidth: "none" }}>
           {[{title:"What to Bring",icon:"check"},{title:"Parking",icon:"car"},{title:"Schedule",icon:"calendar"},{title:"Cost Details",icon:"dollar"},{title:"Kids Welcome",icon:"balloon"}]
             .filter(s => !additionalInfo.some(item => item.title === s.title))
             .map(s => <button key={s.title} type="button" onClick={() => {
