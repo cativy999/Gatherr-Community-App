@@ -762,48 +762,7 @@ const EventDetails = () => {
       ctx.closePath();
     };
 
-    // Extract dominant color then darken via HSL (keeps hue/saturation, drops lightness to ~15%)
-    const getDominantDarkColor = (img: HTMLImageElement): [number, number, number] => {
-      const s = document.createElement("canvas");
-      s.width = 50; s.height = 50;
-      const sc = s.getContext("2d")!;
-      sc.drawImage(img, 0, 0, 50, 50);
-      const d = sc.getImageData(0, 0, 50, 50).data;
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
-      const count = d.length / 4;
-      r /= count; g /= count; b /= count;
-      // Convert to HSL
-      const rn = r/255, gn = g/255, bn = b/255;
-      const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
-      const l = (max + min) / 2;
-      const d2 = max - min;
-      let h = 0, sat = 0;
-      if (d2 > 0) {
-        sat = d2 / (1 - Math.abs(2 * l - 1));
-        if (max === rn) h = ((gn - bn) / d2) % 6;
-        else if (max === gn) h = (bn - rn) / d2 + 2;
-        else h = (rn - gn) / d2 + 4;
-        h = ((h * 60) + 360) % 360;
-      }
-      // Lock lightness to 15%, keep hue + boost saturation slightly
-      const targetL = 0.15;
-      const targetS = Math.min(sat * 1.2, 1);
-      // Convert back to RGB
-      const c = (1 - Math.abs(2 * targetL - 1)) * targetS;
-      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-      const m = targetL - c / 2;
-      let rr = 0, gg = 0, bb = 0;
-      if (h < 60)       { rr=c; gg=x; bb=0; }
-      else if (h < 120) { rr=x; gg=c; bb=0; }
-      else if (h < 180) { rr=0; gg=c; bb=x; }
-      else if (h < 240) { rr=0; gg=x; bb=c; }
-      else if (h < 300) { rr=x; gg=0; bb=c; }
-      else              { rr=c; gg=0; bb=x; }
-      return [Math.round((rr+m)*255), Math.round((gg+m)*255), Math.round((bb+m)*255)];
-    };
-
-    // Load event image
+    // Load event image (crossOrigin required so canvas stays exportable)
     const shareImageUrl = images[currentImageIdx] || event.image_url;
     let eventImg: HTMLImageElement | null = null;
     if (shareImageUrl) {
@@ -816,20 +775,25 @@ const EventDetails = () => {
       });
     }
 
-    // ── Background ──
-    let bgR = 20, bgG = 15, bgB = 15;
+    // ── Background: blurred event image (IG story standard) ──
     if (eventImg) {
-      [bgR, bgG, bgB] = getDominantDarkColor(eventImg);
+      // Draw slightly overscaled + blurred to fill frame and hide blur edge artifacts
+      ctx.save();
+      ctx.filter = "blur(40px)";
+      const bsc = Math.max((W + 120) / eventImg.width, (H + 120) / eventImg.height);
+      const bw = eventImg.width * bsc;
+      const bh = eventImg.height * bsc;
+      ctx.drawImage(eventImg, (W - bw) / 2, (H - bh) / 2, bw, bh);
+      ctx.filter = "none";
+      ctx.restore();
+      // Dark overlay — light enough to let the image color show through
+      ctx.fillStyle = "rgba(0,0,0,0.30)";
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // Fallback: brand deep teal when image didn't load
+      ctx.fillStyle = "#0f2a32";
+      ctx.fillRect(0, 0, W, H);
     }
-    ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
-    ctx.fillRect(0, 0, W, H);
-
-    // Subtle dark vignette on background
-    const vgn = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.8);
-    vgn.addColorStop(0, "rgba(0,0,0,0)");
-    vgn.addColorStop(1, "rgba(0,0,0,0.35)");
-    ctx.fillStyle = vgn;
-    ctx.fillRect(0, 0, W, H);
 
     // ── Frosted glass card ──
     // Figma: 319×481px card, centered horizontally, top = 84px (in 390×693 frame)
@@ -3088,7 +3052,7 @@ const EventDetails = () => {
 
           {/* RSVP buttons */}
           {isGuest ? (
-            <button onClick={() => navigate("/")} className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
+            <button onClick={() => navigate("/welcome")} className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
               Log in to RSVP
             </button>
           ) : (
@@ -3230,7 +3194,7 @@ const EventDetails = () => {
         >
           {isGuest ? (
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/welcome")}
               className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
               style={{ background: TEAL }}
             >

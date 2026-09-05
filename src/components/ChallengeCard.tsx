@@ -146,7 +146,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       // Guest — send to login
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
       setShowVideo(false);
-      navigate("/");
+      navigate("/welcome");
       return;
     }
     if (audioRef.current) {

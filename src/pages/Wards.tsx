@@ -720,7 +720,7 @@ const Wards = () => {
               )}
             </button>
             <button
-              onClick={() => navigate("/create-event")}
+              onClick={() => navigate(isLoggedIn ? "/create-event" : "/welcome")}
               className="hidden md:flex items-center gap-1.5 transition-opacity hover:opacity-70"
               style={{ height: 36, padding: "0 16px", borderRadius: 999, background: TEAL, border: "none", cursor: "pointer" }}
             >
@@ -853,20 +853,18 @@ const Wards = () => {
           )}
 
           {/* Challenge Card */}
-          {isLoggedIn && (
-            <div className="space-y-3">
-              <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
-                Weekly Challenge
-              </h2>
-              <div
-                className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                <div className="w-[304px] sm:w-[344px] flex-shrink-0 md:w-auto"><OOTDCard tall={stepChallengeJoined} /></div>
-                <div className="w-[376px] sm:w-[400px] flex-shrink-0 md:w-auto"><ChallengeCard onHasJoinedChange={setStepChallengeJoined} /></div>
-              </div>
+          <div className="space-y-3">
+            <h2 style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+              Weekly Challenge
+            </h2>
+            <div
+              className="flex items-stretch gap-3 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:overflow-visible"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              <div className="w-[304px] sm:w-[344px] flex-shrink-0 md:w-auto"><OOTDCard tall={stepChallengeJoined} /></div>
+              <div className="w-[376px] sm:w-[400px] flex-shrink-0 md:w-auto"><ChallengeCard onHasJoinedChange={setStepChallengeJoined} /></div>
             </div>
-          )}
+          </div>
 
           {loading ? (
             <div className="space-y-8">
@@ -929,11 +927,10 @@ const Wards = () => {
 
               {/* Wards Near You — hidden for now */}
 
-              {/* Next Week + Later — soft gated for guests */}
-              <div className={!isLoggedIn ? "relative -mx-5 md:mx-0" : ""}>
+              {/* Next Week + Later */}
+              <div>
 
-              {/* Blurred content for guests */}
-              <div className={!isLoggedIn ? "pointer-events-none select-none blur-sm px-5 md:px-0" : ""}>
+              <div>
 
               {/* Next Week */}
 <div className="space-y-3" ref={nextWeekRef}>
@@ -973,10 +970,6 @@ const Wards = () => {
               {/* End blurred content */}
               </div>
 
-              {/* Gradient fade for guests */}
-              {!isLoggedIn && (
-                <div className="absolute -top-8 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent via-white/90 to-white pointer-events-none" />
-              )}
 
               {/* End soft gate wrapper */}
               </div>
