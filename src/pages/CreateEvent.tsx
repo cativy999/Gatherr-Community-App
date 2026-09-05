@@ -1569,6 +1569,7 @@ const CreateEvent = () => {
     { id: "drinks",   emoji: "🥤", label: "Drink" },
     { id: "icecream", emoji: "🍦", label: "Ice Cream" },
     { id: "salad",    emoji: "🥗", label: "Salad" },
+    { id: "smores",   emoji: "🍫", label: "S'mores" },
   ];
 
   // Guests can't create or edit events
