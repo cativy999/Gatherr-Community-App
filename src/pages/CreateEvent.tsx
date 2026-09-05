@@ -2650,8 +2650,13 @@ const CreateEvent = () => {
               </div>
             </div>
 
-            {/* Sticky footer — Preview button */}
-            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "14px 20px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))" }}>
+            {/* Sticky footer — Publish (primary) + Preview (secondary) */}
+            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <button type="button" onClick={handleSubmit} disabled={loading}
+                style={{ width: "100%", height: 52, borderRadius: 999, background: TEAL_W, border: "none", fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+                {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : null}
+                {isEditing ? "Save Changes" : "Publish Now"} →
+              </button>
               <button type="button" onClick={() => {
                 if (!title.trim()) { toast.error("Please enter an event name"); return; }
                 if (!isRecurring && !date) { toast.error("Please pick a start date"); return; }
@@ -2659,8 +2664,8 @@ const CreateEvent = () => {
                 setMobilePreview(true);
                 window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
               }}
-                style={{ width: "100%", height: 52, borderRadius: 999, background: "transparent", border: `2px solid ${TEAL_W}`, fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: TEAL_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <Eye style={{ width: 18, height: 18 }} /> Preview
+                style={{ width: "100%", height: 40, borderRadius: 999, background: "transparent", border: "none", fontFamily: SANS_W, fontSize: 14, fontWeight: 500, color: TEAL_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Eye style={{ width: 15, height: 15 }} /> Preview first
               </button>
             </div>
           </>
