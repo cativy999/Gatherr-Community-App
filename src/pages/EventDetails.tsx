@@ -775,25 +775,54 @@ const EventDetails = () => {
       });
     }
 
-    // ── Background: blurred event image (IG story standard) ──
-    if (eventImg) {
-      // Draw slightly overscaled + blurred to fill frame and hide blur edge artifacts
-      ctx.save();
-      ctx.filter = "blur(40px)";
-      const bsc = Math.max((W + 120) / eventImg.width, (H + 120) / eventImg.height);
-      const bw = eventImg.width * bsc;
-      const bh = eventImg.height * bsc;
-      ctx.drawImage(eventImg, (W - bw) / 2, (H - bh) / 2, bw, bh);
-      ctx.filter = "none";
-      ctx.restore();
-      // Dark overlay — light enough to let the image color show through
-      ctx.fillStyle = "rgba(0,0,0,0.30)";
-      ctx.fillRect(0, 0, W, H);
-    } else {
-      // Fallback: brand deep teal when image didn't load
-      ctx.fillStyle = "#0f2a32";
-      ctx.fillRect(0, 0, W, H);
-    }
+    // ── Extract dominant hue via bucketing (avoids grey-averaging problem) ──
+    const getDominantDarkColor = (img: HTMLImageElement): string => {
+      try {
+        const s = document.createElement("canvas");
+        s.width = 80; s.height = 80;
+        const sc = s.getContext("2d")!;
+        sc.drawImage(img, 0, 0, 80, 80);
+        const d = sc.getImageData(0, 0, 80, 80).data;
+        // Bucket pixels by hue (12 buckets × 30°), skip neutrals
+        const buckets = new Array(12).fill(0);
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i] / 255, g = d[i+1] / 255, b = d[i+2] / 255;
+          const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+          if (delta < 0.12 || max < 0.1 || min > 0.92) continue;
+          let h = 0;
+          if (max === r)      h = ((g - b) / delta) % 6;
+          else if (max === g) h = (b - r) / delta + 2;
+          else                h = (r - g) / delta + 4;
+          h = ((h * 60) + 360) % 360;
+          buckets[Math.floor(h / 30)]++;
+        }
+        const topBucket = buckets.indexOf(Math.max(...buckets));
+        // If no colorful pixels found, fall back to brand teal
+        if (Math.max(...buckets) === 0) return "#0f2a32";
+        const hue = topBucket * 30 + 15;
+        // Convert HSL (hue, 55%, 18%) → hex
+        const L = 0.18, S = 0.55;
+        const C = (1 - Math.abs(2 * L - 1)) * S;
+        const X = C * (1 - Math.abs((hue / 60) % 2 - 1));
+        const m = L - C / 2;
+        let rr = 0, gg = 0, bb = 0;
+        if (hue < 60)       { rr=C; gg=X; bb=0; }
+        else if (hue < 120) { rr=X; gg=C; bb=0; }
+        else if (hue < 180) { rr=0; gg=C; bb=X; }
+        else if (hue < 240) { rr=0; gg=X; bb=C; }
+        else if (hue < 300) { rr=X; gg=0; bb=C; }
+        else                { rr=C; gg=0; bb=X; }
+        const hex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+        return `#${hex(rr)}${hex(gg)}${hex(bb)}`;
+      } catch {
+        return "#0f2a32";
+      }
+    };
+
+    // ── Background: solid dark color from image's dominant hue ──
+    const bgColor = eventImg ? getDominantDarkColor(eventImg) : "#0f2a32";
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, W, H);
 
     // ── Frosted glass card ──
     // Figma: 319×481px card, centered horizontally, top = 84px (in 390×693 frame)
