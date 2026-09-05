@@ -1,7 +1,7 @@
 import { CE_ERROR } from '../tokens';
 import { House, Calendar1, Plus, UsersRound, User } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateActionModal from "@/components/CreateActionModal";
@@ -14,10 +14,29 @@ const INTER          = "'Inter', sans-serif";
 
 const BottomNav = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [tiltingId, setTiltingId] = useState<string | null>(null);
+
+  // ── Scroll-hide nav (mobile, /wards only) ──
+  const [navHidden, setNavHidden] = useState(false);
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    setNavHidden(false);
+    lastScrollY.current = window.scrollY;
+    if (location.pathname !== "/wards") return;
+    const onScroll = () => {
+      if (window.innerWidth >= 768) return;
+      const y = window.scrollY;
+      if (y > lastScrollY.current + 6) setNavHidden(true);
+      else if (y < lastScrollY.current - 6) setNavHidden(false);
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [location.pathname]);
 
   const triggerTilt = (id: string) => {
     setTiltingId(id);
@@ -101,6 +120,26 @@ const BottomNav = () => {
           animation: icon-tip 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
         }
       `}</style>
+      {/* Floating "+" stays visible when nav is hidden */}
+      <div
+        className="md:hidden fixed z-20"
+        style={{
+          bottom: `calc(env(safe-area-inset-bottom) + 24px)`,
+          left: "50%",
+          transform: "translateX(-50%)",
+          opacity: navHidden ? 1 : 0,
+          pointerEvents: navHidden ? "auto" : "none",
+          transition: "opacity 0.25s ease",
+        }}
+      >
+        <button
+          onClick={() => setCreateModalOpen(true)}
+          style={{ width: 48, height: 48, borderRadius: "50%", background: TEAL, border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.18)" }}
+        >
+          <Plus style={{ width: 20, height: 20, color: "white" }} strokeWidth={2.5} />
+        </button>
+      </div>
+
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-20"
         style={{
@@ -110,6 +149,8 @@ const BottomNav = () => {
           paddingBottom: `calc(env(safe-area-inset-bottom) + 28px)`,
           paddingLeft: 16,
           paddingRight: 16,
+          transform: navHidden ? "translateY(100%)" : "translateY(0)",
+          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         {/* Sliding active indicator — 5 flex items each 20% wide, plus is at 50% center so we skip it */}

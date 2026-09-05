@@ -230,6 +230,23 @@ const Wards = () => {
       .then(({ count }) => setHasUnread((count ?? 0) > 0));
   }, [userId]);
 
+  // ── Scroll-hide header/nav (mobile only) ──
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const titleRowRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(typeof window !== "undefined" ? window.scrollY : 0);
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      if (window.innerWidth >= 768) return;
+      const y = window.scrollY;
+      if (y > lastScrollY.current + 6) setHeaderHidden(true);
+      else if (y < lastScrollY.current - 6) setHeaderHidden(false);
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [stepChallengeJoined, setStepChallengeJoined] = useState(false);
@@ -670,10 +687,17 @@ const Wards = () => {
       `}</style>
 
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10" style={{ background: CE_BG }}>
+      <div
+        className="sticky z-10"
+        style={{
+          background: CE_BG,
+          top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
+          transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
 
         {/* Title row — city name is the location trigger */}
-        <div className="flex items-center justify-between px-5 md:px-3 pt-6 pb-4 max-w-6xl mx-auto">
+        <div ref={titleRowRef} className="flex items-center justify-between px-5 md:px-3 pt-6 pb-4 max-w-6xl mx-auto">
           <div className="relative">
             <button
               onClick={() => setLocationOpen((v) => !v)}
