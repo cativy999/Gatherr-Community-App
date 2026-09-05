@@ -2017,7 +2017,7 @@ const CreateEvent = () => {
               setAdditionalInfo([...additionalInfo, { title: s.title, description: "", icon: s.icon }]);
               setTimeout(() => scrollToVisible(extraDetailsSectionRef.current), 120);
             }}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, border: `1.5px dashed ${DIV_W}`, background: "white", fontFamily: SANS_W, fontSize: 12, color: MID_W, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${DIV_W}`, background: CE_SURFACE, fontFamily: SANS_W, fontSize: 13, fontWeight: 500, color: MID_W, cursor: "pointer", flexShrink: 0 }}>
               <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
               {s.title}</button>)}
         </div>
