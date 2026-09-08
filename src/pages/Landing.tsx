@@ -14,15 +14,15 @@ const BG = "#FAF6F0";
 // Photo layout positions (1024px canvas) — images come from Supabase events at runtime
 const PHOTO_SLOTS = [
   // ── Left side ──
-  { left: 140, top: 52,  w: 126, h: 134, radius: "50%", shadow: "0 0 0 5px rgba(255,255,255,0.32)", delay: "0s",   dur: "4.1s" },
-  { left: 37,  top: 224, w: 103, h: 98,  radius: 35,    shadow: "0 0 0 3px rgba(0,0,0,0.32)",      delay: "0.6s", dur: "3.5s" },
-  { left: 175, top: 372, w: 97,  h: 97,  radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.2s", dur: "4.3s" },
-  { left: 61,  top: 438, w: 69,  h: 69,  radius: "50%", shadow: "0 0 0 3px rgba(207,207,207,0.32)",delay: "0.9s", dur: "3.8s" },
+  { left: 140, top: 52,  w: 126, h: 134, radius: "50%", shadow: "0 0 0 5px rgba(255,255,255,0.32)", delay: "0s",   dur: "3.2s" },
+  { left: 37,  top: 224, w: 103, h: 98,  radius: 35,    shadow: "0 0 0 3px rgba(0,0,0,0.32)",      delay: "0.6s", dur: "2.7s" },
+  { left: 175, top: 372, w: 97,  h: 97,  radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.2s", dur: "3.3s" },
+  { left: 61,  top: 438, w: 69,  h: 69,  radius: "50%", shadow: "0 0 0 3px rgba(207,207,207,0.32)",delay: "0.9s", dur: "2.9s" },
   // ── Right side ──
-  { left: 761, top: 79,  w: 60,  h: 53,  radius: 4,     shadow: "0 0 0 2px rgba(207,207,207,0.32)",delay: "0.3s", dur: "3.7s" },
-  { left: 903, top: 170, w: 82,  h: 70,  radius: 11,    shadow: "none",                            delay: "0.8s", dur: "4.0s" },
-  { left: 776, top: 293, w: 114, h: 83,  radius: 17,    shadow: "none",                            delay: "1.5s", dur: "3.4s" },
-  { left: 869, top: 415, w: 107, h: 114, radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.0s", dur: "4.2s" },
+  { left: 761, top: 79,  w: 60,  h: 53,  radius: 4,     shadow: "0 0 0 2px rgba(207,207,207,0.32)",delay: "0.3s", dur: "2.8s" },
+  { left: 903, top: 170, w: 82,  h: 70,  radius: 11,    shadow: "none",                            delay: "0.8s", dur: "3.1s" },
+  { left: 776, top: 293, w: 114, h: 83,  radius: 17,    shadow: "none",                            delay: "1.5s", dur: "2.6s" },
+  { left: 869, top: 415, w: 107, h: 114, radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.0s", dur: "3.2s" },
 ];
 
 
@@ -49,7 +49,7 @@ if (typeof document !== "undefined") {
     }
     @keyframes hero-float {
       0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-7px); }
+      50% { transform: translateY(-9px); }
     }
     .landing-photo-clip {
       width: 100%; height: 100%;
