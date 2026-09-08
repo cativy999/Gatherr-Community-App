@@ -11,28 +11,18 @@ const BG = "#FAF6F0";
 // Scattered photo cards — sized for 100vh hero (~900px tall)
 // Center no-go zone (approx): x 240–784, y 270–630
 // Side columns (x < 240 or x > 784) are safe at any y
-// Image URLs — fresh from Figma node 3171:8692
-const WOMEN     = "https://www.figma.com/api/mcp/asset/d81970eb-3789-442b-b240-c24d6d27621b.png"; // colorful street women
-const GAMENIGHT = "https://www.figma.com/api/mcp/asset/f24b251c-a777-4fd7-aa77-7488b9ba55df.png"; // Game Night (full composite)
-const RUNNER    = "https://www.figma.com/api/mcp/asset/786ba441-bde9-4800-9ddc-2ffe357b42a2.png"; // Runner
-const SWIMMER   = "https://www.figma.com/api/mcp/asset/9128444a-cfc9-470c-b0c5-3e5fd34162b2.png"; // Swimmer
-const BOOKM     = "https://www.figma.com/api/mcp/asset/5c9eabbe-eea3-42e9-b97c-0c7c57636a14.png"; // Book of Mormon
-const PICKLE    = "https://www.figma.com/api/mcp/asset/5406242e-7b5d-4d27-b325-ed80680d1cec.png"; // Pickleball Wednesday
-const ANCHOR    = "https://www.figma.com/api/mcp/asset/f401f638-fc6e-4c5e-beb7-9236e1d51e01.png"; // Anchored in Christ
-const SURFER    = "https://www.figma.com/api/mcp/asset/d70c2d12-1b11-44b0-be4f-00781c866dd8.png"; // Surfer
-
-// Positions taken pixel-perfect from Figma node 3171:8692 (1024px canvas)
-const PHOTOS = [
+// Photo layout positions (1024px canvas) — images come from Supabase events at runtime
+const PHOTO_SLOTS = [
   // ── Left side ──
-  { src: GAMENIGHT, left: 140, top: 52,  w: 126, h: 134, radius: "50%", shadow: "0 0 0 5px rgba(255,255,255,0.32)", delay: "0s",   dur: "4.1s" },
-  { src: SWIMMER,   left: 37,  top: 224, w: 103, h: 98,  radius: 35,    shadow: "0 0 0 3px rgba(0,0,0,0.32)",      delay: "0.6s", dur: "3.5s" },
-  { src: RUNNER,    left: 175, top: 372, w: 97,  h: 97,  radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.2s", dur: "4.3s" },
-  { src: BOOKM,     left: 61,  top: 438, w: 69,  h: 69,  radius: "50%", shadow: "0 0 0 3px rgba(207,207,207,0.32)",delay: "0.9s", dur: "3.8s" },
+  { left: 140, top: 52,  w: 126, h: 134, radius: "50%", shadow: "0 0 0 5px rgba(255,255,255,0.32)", delay: "0s",   dur: "4.1s" },
+  { left: 37,  top: 224, w: 103, h: 98,  radius: 35,    shadow: "0 0 0 3px rgba(0,0,0,0.32)",      delay: "0.6s", dur: "3.5s" },
+  { left: 175, top: 372, w: 97,  h: 97,  radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.2s", dur: "4.3s" },
+  { left: 61,  top: 438, w: 69,  h: 69,  radius: "50%", shadow: "0 0 0 3px rgba(207,207,207,0.32)",delay: "0.9s", dur: "3.8s" },
   // ── Right side ──
-  { src: PICKLE, left: 761, top: 79,  w: 60,  h: 53,  radius: 4,     shadow: "0 0 0 2px rgba(207,207,207,0.32)",delay: "0.3s", dur: "3.7s" },
-  { src: ANCHOR, left: 903, top: 170, w: 82,  h: 70,  radius: 11,    shadow: "none",                            delay: "0.8s", dur: "4.0s" },
-  { src: SURFER, left: 776, top: 293, w: 114, h: 83,  radius: 17,    shadow: "none",                            delay: "1.5s", dur: "3.4s" },
-  { src: WOMEN,  left: 869, top: 415, w: 107, h: 114, radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.0s", dur: "4.2s" },
+  { left: 761, top: 79,  w: 60,  h: 53,  radius: 4,     shadow: "0 0 0 2px rgba(207,207,207,0.32)",delay: "0.3s", dur: "3.7s" },
+  { left: 903, top: 170, w: 82,  h: 70,  radius: 11,    shadow: "none",                            delay: "0.8s", dur: "4.0s" },
+  { left: 776, top: 293, w: 114, h: 83,  radius: 17,    shadow: "none",                            delay: "1.5s", dur: "3.4s" },
+  { left: 869, top: 415, w: 107, h: 114, radius: "50%", shadow: "0 0 0 4px rgba(207,207,207,0.32)",delay: "1.0s", dur: "4.2s" },
 ];
 
 
@@ -253,7 +243,9 @@ const Landing = () => {
           transform: `translateX(-50%) scale(${canvasScale})`,
           transformOrigin: "top center",
         }}>
-          {PHOTOS.map((p, i) => (
+          {PHOTO_SLOTS.map((p, i) => {
+            const src = events[i]?.image_url;
+            return (
             // Outer div: handles repulsion translate via JS
             <div
               key={i}
@@ -264,6 +256,7 @@ const Landing = () => {
                 left: p.left,
                 top: p.top, width: p.w, height: p.h,
                 "--enter-delay": `${0.75 + i * 0.07}s`,
+                opacity: src ? 1 : 0,
               } as React.CSSProperties}
             >
               {/* Clip wrapper: float animation + shape clip */}
@@ -276,21 +269,17 @@ const Landing = () => {
                   "--float-dur": p.dur,
                 } as React.CSSProperties}
               >
-                <img
-                  src={p.src}
-                  alt=""
-                  className="landing-photo-card"
-                  style={{
-                    width: (p as any).imgW || (p.zoom ? `${p.zoom * 100}%` : "100%"),
-                    height: (p as any).imgH || (p.zoom ? `${p.zoom * 100}%` : "100%"),
-                    marginLeft: (p as any).imgX !== undefined ? (p as any).imgX : (p.zoom ? `${-(p.zoom - 1) * 50}%` : 0),
-                    marginTop: (p as any).imgY !== undefined ? (p as any).imgY : (p.zoom ? `${-(p.zoom - 1) * 50}%` : 0),
-                    objectPosition: (p as any).objectPosition || "center",
-                  }}
-                />
+                {src && (
+                  <img
+                    src={src}
+                    alt=""
+                    className="landing-photo-card"
+                  />
+                )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Mobile-only bottom photos */}
@@ -300,23 +289,23 @@ const Landing = () => {
           display: "none",
         }} className="hero-mobile-bottom">
           {/* Left */}
-          <img src={PHOTOS[0].src} alt="" style={{
+          {events[0]?.image_url && <img src={events[0].image_url} alt="" style={{
             position: "absolute", left: -16, bottom: -10, width: 150, height: 115,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
-          }} />
+          }} />}
           {/* Center */}
-          <img src={PHOTOS[6].src} alt="" style={{
+          {events[6]?.image_url && <img src={events[6].image_url} alt="" style={{
             position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: -18, width: 145, height: 110,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
-          }} />
+          }} />}
           {/* Right */}
-          <img src={PHOTOS[7].src} alt="" style={{
+          {events[7]?.image_url && <img src={events[7].image_url} alt="" style={{
             position: "absolute", right: -16, bottom: -5, width: 155, height: 108,
             borderRadius: 10, objectFit: "cover",
             boxShadow: "0 0 0 4px rgba(255,255,255,1), 0 2px 8px rgba(0,0,0,0.2)",
-          }} />
+          }} />}
         </div>
 
         {/* Bottom fog — subtle gradient fade, no blur */}
