@@ -131,7 +131,7 @@ const Landing = () => {
     const mx = e.clientX;
     const my = e.clientY;
 
-    PHOTOS.forEach((p, i) => {
+    PHOTO_SLOTS.forEach((p, i) => {
       const el = cardRefs.current[i];
       if (!el) return;
       const elRect = el.getBoundingClientRect();
@@ -173,7 +173,7 @@ const Landing = () => {
     const mx = e.clientX;
     const my = e.clientY;
 
-    PHOTOS.forEach((p, i) => {
+    PHOTO_SLOTS.forEach((p, i) => {
       const el = cardRefs.current[i];
       if (!el) return;
       const elRect = el.getBoundingClientRect();
