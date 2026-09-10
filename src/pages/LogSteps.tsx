@@ -224,6 +224,12 @@ const LogSteps = () => {
             >
               Join the Challenge
             </button>
+            <button
+              onClick={() => navigate("/challenge")}
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.6)" }}
+            >
+              See the leaderboard →
+            </button>
           </div>
         )}
       </div>

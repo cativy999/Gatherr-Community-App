@@ -549,7 +549,7 @@ const Landing = () => {
             <img
               src="/step-challenge-ads.png"
               alt="Step Challenge"
-              onClick={() => navigate("/challenge")}
+              onClick={() => navigate("/log-steps")}
               style={{ width: "100%", borderRadius: 16, objectFit: "cover", cursor: "pointer" }}
             />
             <img
