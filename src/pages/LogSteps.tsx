@@ -33,9 +33,9 @@ const LogSteps = () => {
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
-    // Autoplay music
     if (audioRef.current) {
       audioRef.current.volume = 0.45;
+      audioRef.current.muted = false;
       audioRef.current.play().catch(() => {});
     }
     return () => {
@@ -43,12 +43,12 @@ const LogSteps = () => {
     };
   }, []);
 
-  const toggleMute = () => {
-    setMuted(m => {
-      if (audioRef.current) audioRef.current.muted = !m;
-      return !m;
-    });
-  };
+  // Dedicated effect — syncs muted state directly to DOM (React's muted prop is unreliable)
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
+
+  const toggleMute = () => setMuted(m => !m);
 
   const goBack = () => {
     setLeaving(true);
