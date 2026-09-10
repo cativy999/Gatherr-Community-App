@@ -712,11 +712,12 @@ const CERangePicker = ({
 
 // ── Post-publish share modal ─────────────────────────────────────────────────
 const ShareModal = ({
-  publishedEventId, title, date, startTime, eventLocation, address, description, isMobile, isEditing, onDismiss,
+  publishedEventId, title, date, startTime, eventLocation, address, description, isMobile, isEditing, onDismiss, minAge, maxAge,
 }: {
   publishedEventId: string | null; title: string; date: string; startTime: string;
   eventLocation: string; address: string; description: string;
   isMobile: boolean; isEditing: boolean; onDismiss: () => void;
+  minAge: string; maxAge: string;
 }) => {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -738,7 +739,13 @@ const ShareModal = ({
   // Build location hashtag from city in address (e.g. "123 Main St, Draper, UT" → #LDSDraper)
   const cityMatch = (address || eventLocation || '').match(/,\s*([^,]+?)\s*,?\s*[A-Z]{2}\b/);
   const cityTag = cityMatch ? ` #LDS${cityMatch[1].trim().replace(/\s+/g, '')}` : '';
-  const socialTags = `\n\n#BeyondSunday #YSA #LDSSingles${cityTag}`;
+  // YSA = 18-35; LDSSA = 36+
+  const maxAgeNum = maxAge && maxAge !== '+' ? parseInt(maxAge) : null;
+  const minAgeNum = minAge ? parseInt(minAge) : 18;
+  const isYSA = maxAgeNum === null ? minAgeNum <= 35 : maxAgeNum <= 35;
+  const socialTags = isYSA
+    ? `\n\n#BeyondSunday #YSA #LDSSingles${cityTag}`
+    : `\n\n#BeyondSunday #LDSSA${cityTag}`;
   const fullTextWithTags = fullText + socialTags;
 
   const copyAndOpen = async (text: string, url?: string) => {
@@ -2646,6 +2653,8 @@ const CreateEvent = () => {
         publishedEventId={publishedEventId}
         title={title}
         date={date}
+        minAge={minAge}
+        maxAge={maxAge}
         startTime={startTime}
         eventLocation={location}
         address={address}
