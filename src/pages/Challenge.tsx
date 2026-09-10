@@ -180,51 +180,19 @@ const Challenge = () => {
   const communityMiles = Math.floor(communitySteps / STEPS_PER_MILE);
 
   const fetchData = async () => {
-    if (!userId) return;
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("name, avatar_url")
-      .eq("user_id", userId)
-      .single();
-    if (profile) {
-      setMyName(profile.name || "");
-      setMyAvatar(profile.avatar_url || null);
-    }
-
-    const { data: myEntries } = await supabase
-      .from("step_entries")
-      .select("steps, logged_date, created_at")
-      .eq("user_id", userId);
-
-    const totalMySteps = (myEntries ?? []).reduce((s, e) => s + e.steps, 0);
-    setMySteps(totalMySteps);
-
-    const weekly: Record<string, number> = {};
-    (myEntries ?? []).forEach((e) => {
-      // Use `logged_date` column if set, fall back to created_at for old entries
-      const entryDate = e.logged_date ?? e.created_at?.slice(0, 10);
-      if (entryDate && entryDate >= toDateStr(weekStart)) {
-        weekly[entryDate] = (weekly[entryDate] || 0) + e.steps;
-      }
-    });
-    setWeeklySteps(weekly);
-
+    // ── Community data (available to everyone, logged in or not) ──
     const { data: allEntries } = await supabase
       .from("step_entries")
       .select("user_id, steps, created_at");
 
-    // Calculate journey days from first ever log
     if (allEntries && allEntries.length > 0) {
+      const communityTotal = allEntries.reduce((s, e) => s + e.steps, 0);
+      setCommunitySteps(communityTotal);
+
       const earliest = allEntries.reduce((min, e) =>
         e.created_at < min ? e.created_at : min, allEntries[0].created_at);
       const days = Math.floor((Date.now() - new Date(earliest).getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setJourneyDays(days);
-    }
-
-    if (allEntries) {
-      const communityTotal = allEntries.reduce((s, e) => s + e.steps, 0);
-      setCommunitySteps(communityTotal);
 
       const totals: Record<string, number> = {};
       allEntries.forEach((e) => {
@@ -251,6 +219,36 @@ const Challenge = () => {
         setLeaderboard(entries);
       }
     }
+
+    // ── Personal data (logged-in only) ──
+    if (!userId) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, avatar_url")
+      .eq("user_id", userId)
+      .single();
+    if (profile) {
+      setMyName(profile.name || "");
+      setMyAvatar(profile.avatar_url || null);
+    }
+
+    const { data: myEntries } = await supabase
+      .from("step_entries")
+      .select("steps, logged_date, created_at")
+      .eq("user_id", userId);
+
+    const totalMySteps = (myEntries ?? []).reduce((s, e) => s + e.steps, 0);
+    setMySteps(totalMySteps);
+
+    const weekly: Record<string, number> = {};
+    (myEntries ?? []).forEach((e) => {
+      const entryDate = e.logged_date ?? e.created_at?.slice(0, 10);
+      if (entryDate && entryDate >= toDateStr(weekStart)) {
+        weekly[entryDate] = (weekly[entryDate] || 0) + e.steps;
+      }
+    });
+    setWeeklySteps(weekly);
   };
 
   useEffect(() => { fetchData(); }, [userId]);
@@ -270,7 +268,7 @@ const Challenge = () => {
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 52, marginBottom: 29 }}>
           {/* Back arrow */}
           <button
-            onClick={() => navigate("/wards")}
+            onClick={() => navigate(userId ? "/wards" : "/")}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}
           >
             <ArrowLeft size={22} color="#000" />
@@ -282,7 +280,7 @@ const Challenge = () => {
               <Avatar style={{ width: 60, height: 60 }}>
                 <AvatarImage src={myAvatar ?? undefined} referrerPolicy="no-referrer" />
                 <AvatarFallback style={{ fontSize: 18 }}>
-                  {myName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?"}
+                  {userId ? (myName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?") : "🤠"}
                 </AvatarFallback>
               </Avatar>
               <img
@@ -294,16 +292,16 @@ const Challenge = () => {
 
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "'Holtwood One SC', serif", fontSize: 20, color: "#000", lineHeight: 1 }}>
-                Hi, {firstName}
+                {userId ? `Hi, ${firstName}` : "Pioneer Trail"}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 5 }}>
                 <MapPin size={13} color="#6e4731" />
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#000" }}>{myCity}</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#000" }}>{userId ? myCity : currentCity}</span>
               </div>
             </div>
 
-            {/* Scattered avatar cluster — clickable to flip */}
-            <div
+            {/* Scattered avatar cluster — logged-in only */}
+            {userId && <div
               onClick={() => setParticipantsFlipped(f => !f)}
               style={{ cursor: "pointer", position: "relative", width: 68, height: 58, flexShrink: 0 }}
             >
@@ -332,7 +330,7 @@ const Challenge = () => {
                   <span style={{ color: "#fff", fontSize: 7, fontWeight: 800 }}>+{leaderboard.length - 4}</span>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -381,7 +379,7 @@ const Challenge = () => {
                 style={{ flex: 1, background: "#2e0f02", color: "#fff", borderRadius: 27, height: 52, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 14, fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 500, boxShadow: "0 4px 2.4px rgba(0,0,0,0.12)" }}
               >
                 <Plus size={20} />
-                Log Your Steps Today
+                {userId ? "Log Your Steps Today" : "Log in to Start"}
               </button>
               <button
                 onClick={() => {
@@ -492,8 +490,8 @@ const Challenge = () => {
               </div>
             </div>
 
-            {/* This Week */}
-            <div>
+            {/* This Week — logged-in only */}
+            {userId && <div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 700, color: "#000", marginBottom: 20 }}>
                 This Week
               </div>
@@ -539,7 +537,7 @@ const Challenge = () => {
                   );
                 })}
               </div>
-            </div>
+            </div>}
 
           </div>
 
@@ -601,8 +599,8 @@ const Challenge = () => {
             </div>
           </div>
 
-          {/* Reset link */}
-          <div style={{ display: "flex", justifyContent: "center", paddingBottom: 8 }}>
+          {/* Reset link — logged-in only */}
+          {userId && <div style={{ display: "flex", justifyContent: "center", paddingBottom: 8 }}>
             <button
               onClick={async () => {
                 if (!userId) return;
@@ -615,7 +613,7 @@ const Challenge = () => {
             >
               Reset my steps
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 

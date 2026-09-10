@@ -547,9 +547,10 @@ const Landing = () => {
           <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, marginBottom: 24 }}>Interactive Features</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
             <img
-              src="/Step Challenge/Ads.png"
+              src="/step-challenge-ads.png"
               alt="Step Challenge"
-              style={{ width: "100%", borderRadius: 16, objectFit: "cover" }}
+              onClick={() => navigate("/challenge")}
+              style={{ width: "100%", borderRadius: 16, objectFit: "cover", cursor: "pointer" }}
             />
             <img
               src="/landing page/OOTD.png"
