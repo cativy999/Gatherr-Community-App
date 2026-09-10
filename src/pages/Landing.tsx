@@ -222,16 +222,44 @@ const Landing = () => {
       {/* ── Nav — floats over hero ──────────────────────────────────── */}
       <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, background: navScrolled ? "#FAF6F0" : "transparent", borderBottom: navScrolled ? "0.5px solid rgba(0,0,0,0.1)" : "none", transition: "background 0.3s ease, border-bottom 0.3s ease" }}>
         <img src="/icon-large.png" alt="Beyond Sunday" style={{ height: 52, width: "auto" }} />
-        <button
-          onClick={goToWelcome}
-          style={{
-            background: "rgba(21,21,21,0.06)", border: "none", cursor: "pointer",
-            padding: "6px 16px", borderRadius: 999,
-            fontFamily: INTER, fontSize: 13, fontWeight: 500, color: DARK,
-          }}
-        >
-          Sign In
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {/* Instagram */}
+          <a href="https://www.instagram.com/beyondsunday.app/" target="_blank" rel="noopener noreferrer"
+            style={{ color: "rgba(21,21,21,0.45)", transition: "color 0.2s", display: "flex" }}
+            onMouseEnter={e => (e.currentTarget.style.color = DARK)}
+            onMouseLeave={e => (e.currentTarget.style.color = "rgba(21,21,21,0.45)")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </a>
+          {/* LinkedIn */}
+          <a href="https://www.linkedin.com/company/beyond-sunday-app/?viewAsMember=true" target="_blank" rel="noopener noreferrer"
+            style={{ color: "rgba(21,21,21,0.45)", transition: "color 0.2s", display: "flex" }}
+            onMouseEnter={e => (e.currentTarget.style.color = DARK)}
+            onMouseLeave={e => (e.currentTarget.style.color = "rgba(21,21,21,0.45)")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2"/>
+              <line x1="8" y1="11" x2="8" y2="16"/>
+              <line x1="8" y1="8" x2="8" y2="8.5"/>
+              <line x1="12" y1="16" x2="12" y2="11"/>
+              <path d="M12 13a3 3 0 0 1 6 0v3"/>
+            </svg>
+          </a>
+          <button
+            onClick={goToWelcome}
+            style={{
+              background: "rgba(21,21,21,0.06)", border: "none", cursor: "pointer",
+              padding: "6px 16px", borderRadius: 999,
+              fontFamily: INTER, fontSize: 13, fontWeight: 500, color: DARK,
+            }}
+          >
+            Sign In
+          </button>
+        </div>
       </nav>
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
