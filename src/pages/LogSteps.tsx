@@ -27,14 +27,14 @@ const LogSteps = () => {
   const [saving, setSaving] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const isMobile = window.innerWidth < 768;
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
     if (audioRef.current) {
-      audioRef.current.volume = 0.45;
+      audioRef.current.volume = 0;  // start silent; user taps speaker to enable
       audioRef.current.play().catch(() => {});
     }
     return () => {

@@ -65,7 +65,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const [participantCount, setParticipantCount] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -99,7 +99,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
     if (showVideo) {
       document.body.style.overflow = "hidden";
       if (videoRef.current) { videoRef.current.muted = true; videoRef.current.play().catch(() => {}); }
-      if (audioRef.current) { audioRef.current.muted = false; audioRef.current.play().catch(() => {}); }
+      if (audioRef.current) { audioRef.current.volume = 0; audioRef.current.play().catch(() => {}); } // start silent
     } else {
       document.body.style.overflow = "";
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
