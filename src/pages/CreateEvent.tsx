@@ -735,6 +735,12 @@ const ShareModal = ({
   const locLine = eventLocation || address;
   const fullText = `🎉 ${title}\n📅 ${dtLine}\n📍 ${locLine}\n\n${description}\n\n👉 ${eventUrl}`;
 
+  // Build location hashtag from city in address (e.g. "123 Main St, Draper, UT" → #LDSDraper)
+  const cityMatch = (address || eventLocation || '').match(/,\s*([^,]+?)\s*,?\s*[A-Z]{2}\b/);
+  const cityTag = cityMatch ? ` #LDS${cityMatch[1].trim().replace(/\s+/g, '')}` : '';
+  const socialTags = `\n\n#BeyondSunday #YSA #LDSSingles${cityTag}`;
+  const fullTextWithTags = fullText + socialTags;
+
   const copyAndOpen = async (text: string, url?: string) => {
     try { await navigator.clipboard.writeText(text); } catch {}
     if (url) window.open(url, '_blank');
@@ -748,10 +754,24 @@ const ShareModal = ({
     switch (id) {
       case 'whatsapp':  await copy(fullText); window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
       case 'line':      await copy(fullText); window.open(`https://line.me/R/share?text=${encodeURIComponent(fullText)}`, '_blank'); break;
-      case 'facebook':  await copy(fullText); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details copied — paste into your post!'); break;
+      case 'facebook':  await copy(fullTextWithTags); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details + hashtags copied — paste into your post!'); break;
       case 'messenger': await copy(eventUrl); window.open('https://www.messenger.com/', '_blank'); toast.success('Link copied! Paste it in your Messenger chat'); break;
-      case 'ig-story':  await copy(eventUrl); window.open('https://www.instagram.com/', '_blank'); toast.success('Link copied! Create a Story → add Link sticker → paste'); break;
-      case 'ig-post':   await copy(fullText); window.open('https://www.instagram.com/', '_blank'); toast.success('Caption copied! Create a Post → paste'); break;
+      case 'ig-story':
+        await copy(eventUrl);
+        if (isMobile) {
+          // Try Instagram deep link first (opens app camera/story), fall back to web
+          const a = document.createElement('a');
+          a.href = 'instagram://story';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 1200);
+        } else {
+          window.open('https://www.instagram.com/', '_blank');
+        }
+        toast.success('Link copied! Create a Story → add Link sticker → paste');
+        break;
+      case 'ig-post':   await copy(fullTextWithTags); window.open('https://www.instagram.com/', '_blank'); toast.success('Caption + hashtags copied! Create a Post → paste'); break;
       case 'gmail':     await copy(fullText); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${sub}&body=${bod}`, '_blank'); break;
       case 'outlook':   await copy(fullText); window.open(`https://outlook.live.com/mail/deeplink/compose?subject=${sub}&body=${bod}`, '_blank'); break;
       case 'yahoo':     await copy(fullText); window.open(`https://compose.mail.yahoo.com/?subject=${sub}&body=${bod}`, '_blank'); break;
