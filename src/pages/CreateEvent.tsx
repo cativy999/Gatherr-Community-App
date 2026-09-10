@@ -883,6 +883,8 @@ const CreateEvent = () => {
   const [aiPreview, setAiPreview] = useState<string | null>(null);
   const [aiPendingFile, setAiPendingFile] = useState<File | null>(null);
   const [aiGenerations, setAiGenerations] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
   const AI_MAX_GENERATIONS = 3;
   const [additionalInfo, setAdditionalInfo] = useState<{title: string; description: string; icon?: string}[]>([]);
   const [communityId, setCommunityId] = useState<string | null>(null);
@@ -1510,7 +1512,10 @@ const CreateEvent = () => {
         confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#a855f7", "#ec4899", "#f97316"] });
         confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#facc15", "#4ade80", "#60a5fa"] });
       }, 200);
-      setTimeout(() => navigate("/wards", { state: { scrollToEventId: savedId } }), 2200);
+      setTimeout(() => {
+        setPublishedEventId(savedId ?? null);
+        setShareModalOpen(true);
+      }, 900);
     }
     setLoading(false);
   };
@@ -2461,6 +2466,168 @@ const CreateEvent = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Share Modal ────────────────────────────────────────────────────── */}
+      {shareModalOpen && (() => {
+        const eventUrl = `${window.location.origin}/event/${publishedEventId}`;
+        const fmtD = date ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const fmtT = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+        const dtLine = [fmtD, fmtT].filter(Boolean).join(' · ');
+        const locLine = location || address;
+        const fullText = `🎉 ${title}\n📅 ${dtLine}\n📍 ${locLine}\n\n${description}\n\n👉 ${eventUrl}`;
+
+        const copyAndOpen = async (text: string, url?: string) => {
+          try { await navigator.clipboard.writeText(text); } catch {}
+          if (url) window.open(url, '_blank');
+        };
+
+        const handlePlatform = async (id: string) => {
+          switch (id) {
+            case 'whatsapp':
+              await copyAndOpen(fullText, `https://wa.me/?text=${encodeURIComponent(fullText)}`);
+              break;
+            case 'line':
+              await copyAndOpen(fullText, `https://line.me/R/share?text=${encodeURIComponent(fullText)}`);
+              break;
+            case 'facebook':
+              await copyAndOpen(fullText, `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`);
+              toast.success('Details copied to clipboard!');
+              break;
+            case 'messenger':
+              await copyAndOpen(fullText, `fb-messenger://share?link=${encodeURIComponent(eventUrl)}`);
+              toast.success('Link copied — paste it in Messenger');
+              break;
+            case 'ig-story':
+              await copyAndOpen(eventUrl);
+              toast.success('Link copied! Open IG → Create Story → add Link sticker → paste');
+              break;
+            case 'ig-post':
+              await copyAndOpen(fullText);
+              toast.success('Caption copied! Open Instagram → new Post → paste');
+              break;
+            case 'email':
+              await copyAndOpen(fullText);
+              window.location.href = `mailto:?subject=${encodeURIComponent('🎉 ' + title)}&body=${encodeURIComponent(fullText)}`;
+              break;
+            case 'copy-link':
+              await copyAndOpen(eventUrl);
+              toast.success('Event link copied!');
+              break;
+          }
+        };
+
+        const dismiss = () => {
+          setShareModalOpen(false);
+          navigate('/wards', { state: { scrollToEventId: publishedEventId } });
+        };
+
+        const platforms = [
+          { id: 'whatsapp',  label: 'WhatsApp', bg: '#25D366', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.534 5.857L.054 23.447a.5.5 0 0 0 .499.553h.027l5.7-1.493A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.956 0-3.773-.575-5.297-1.556l-.38-.23-3.931 1.03 1.05-3.833-.247-.394A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+          )},
+          { id: 'line',      label: 'LINE',     bg: '#06C755', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M19.952 12.467c0-4.01-4.023-7.275-8.968-7.275S2.016 8.457 2.016 12.467c0 3.596 3.188 6.607 7.496 7.177.292.063.689.193.789.443.091.227.059.583.029.812l-.128.767c-.039.227-.181.887.776.483.957-.403 5.163-3.04 7.047-5.205 1.3-1.427 1.927-2.876 1.927-4.477zm-11.04 2.204H7.098a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .76 0v2.883h1.434a.38.38 0 0 1 0 .76zm1.332-.38a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .76 0v3.261zm4.024 0a.38.38 0 0 1-.655.26l-1.674-2.278v2.018a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .655-.26l1.674 2.278V11.03a.38.38 0 0 1 .76 0v3.261zm2.368 0a.38.38 0 0 1-.38.38h-1.818a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .38-.38h1.818a.38.38 0 0 1 0 .76h-1.438v.88h1.438a.38.38 0 0 1 0 .76h-1.438v.881h1.438a.38.38 0 0 1 .38.38z"/></svg>
+          )},
+          { id: 'facebook',  label: 'Facebook', bg: '#1877F2', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.514c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+          )},
+          { id: 'messenger', label: 'Messenger', bg: '#0084FF', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M12 0C5.374 0 0 4.975 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.626 0 12-4.974 12-11.111C24 4.975 18.626 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8.6l3.131 3.26 5.887-3.26-6.559 6.363z"/></svg>
+          )},
+          { id: 'ig-story',  label: 'IG Story', bg: 'linear-gradient(135deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="white" strokeWidth="2"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" fill="white"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="white" strokeWidth="2" strokeLinecap="round"/><text x="12" y="19.5" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="white">STORY</text></svg>
+          )},
+          { id: 'ig-post',   label: 'IG Post',  bg: 'linear-gradient(135deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="white" strokeWidth="2"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" fill="white"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="white" strokeWidth="2" strokeLinecap="round"/><text x="12" y="19.5" textAnchor="middle" fontSize="5" fontWeight="bold" fill="white">POST</text></svg>
+          )},
+          { id: 'email',     label: 'Email',    bg: '#6B7280', icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          )},
+          { id: 'copy-link', label: 'Copy Link', bg: CE_TEAL, icon: (
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          )},
+        ];
+
+        const modalContent = (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>🎉</div>
+              <p style={{ fontFamily: CE_SANS, fontSize: 18, fontWeight: 700, color: CE_DARK, margin: 0 }}>
+                {isEditing ? 'Event Updated!' : 'Event Published!'}
+              </p>
+              <p style={{ fontFamily: CE_SANS, fontSize: 14, color: CE_MID, margin: '4px 0 0' }}>
+                Share it so people can join
+              </p>
+            </div>
+
+            {/* Platform grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px 8px' }}>
+              {platforms.map(p => (
+                <button key={p.id} type="button" onClick={() => handlePlatform(p.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{
+                    width: 54, height: 54, borderRadius: 16,
+                    background: p.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    transition: 'transform 0.12s, box-shadow 0.12s',
+                  }}>
+                    {p.icon}
+                  </div>
+                  <span style={{ fontFamily: CE_SANS, fontSize: 11, fontWeight: 500, color: CE_DARK, textAlign: 'center', lineHeight: 1.2 }}>{p.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: CE_DIV }} />
+
+            {/* Skip */}
+            <button type="button" onClick={dismiss}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: CE_SANS, fontSize: 14, fontWeight: 500, color: CE_MID, padding: '4px 0', textAlign: 'center' }}>
+              Maybe Later →
+            </button>
+          </div>
+        );
+
+        if (isMobile) {
+          return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 300 }} onClick={dismiss}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
+              <div onClick={e => e.stopPropagation()} style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: 'white', borderRadius: '24px 24px 0 0',
+                padding: '16px 24px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                  <div style={{ width: 40, height: 4, borderRadius: 99, background: CE_DIV }} />
+                </div>
+                {modalContent}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={dismiss}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+            <div onClick={e => e.stopPropagation()} style={{
+              position: 'relative', background: 'white', borderRadius: 24,
+              boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
+              padding: '32px 36px', width: 420, maxWidth: '90vw',
+            }}>
+              <button type="button" onClick={dismiss} style={{
+                position: 'absolute', top: 16, right: 16,
+                background: CE_SURFACE, border: 'none', borderRadius: '50%',
+                width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <X style={{ width: 14, height: 14, color: CE_MID }} />
+              </button>
+              {modalContent}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Image lightbox */}
       {imageExpanded && ([imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview) && (
