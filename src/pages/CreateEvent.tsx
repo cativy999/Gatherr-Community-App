@@ -718,6 +718,16 @@ const ShareModal = ({
   eventLocation: string; address: string; description: string;
   isMobile: boolean; isEditing: boolean; onDismiss: () => void;
 }) => {
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const handleDismiss = () => {
+    setClosing(true);
+    setTimeout(() => onDismiss(), 340);
+  };
   const eventUrl = `${window.location.origin}/event/${publishedEventId}`;
   const fmtD = date ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
   const fmtT = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
@@ -766,46 +776,41 @@ const ShareModal = ({
 
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {/* Header */}
+      {/* Header — lead with the "already copied" insight */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, marginBottom: 6 }}>🎉</div>
-        <p style={{ fontFamily: CE_SANS, fontSize: 18, fontWeight: 700, color: CE_DARK, margin: 0 }}>
-          {isEditing ? 'Event Updated!' : 'Event Published!'}
+        <span style={{ display: 'inline-block', fontFamily: CE_SANS, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22C55E', background: '#F0FDF4', borderRadius: 99, padding: '3px 10px', marginBottom: 10 }}>
+          {isEditing ? '✓ Event Updated' : '✓ Event Published'}
+        </span>
+        <p style={{ fontFamily: CE_SANS, fontSize: 20, fontWeight: 800, color: CE_DARK, margin: '0 0 6px', lineHeight: 1.2 }}>
+          Tap a platform below.<br />Then just paste. Done.
         </p>
-        <p style={{ fontFamily: CE_SANS, fontSize: 14, color: CE_MID, margin: '4px 0 0' }}>Share it so people can join</p>
-      </div>
-
-      {/* Hint banner */}
-      <div style={{ background: '#F0F9F4', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{ fontSize: 16, flexShrink: 0 }}>📋</span>
-        <p style={{ fontFamily: CE_SANS, fontSize: 13, color: '#1F4E5B', margin: 0, lineHeight: 1.45 }}>
-          <strong>Everything is already copied!</strong> Just tap a platform below — all your event details (title, date, location, description & link) are ready to paste. No retyping needed.
+        <p style={{ fontFamily: CE_SANS, fontSize: 13, color: CE_MID, margin: 0, lineHeight: 1.5 }}>
+          Your event's title, date, location, description &amp; link<br />
+          are <strong style={{ color: CE_DARK }}>already in your clipboard</strong> — nothing to retype.
         </p>
       </div>
 
-      {/* Horizontally scrollable platform row */}
-      <div style={{ overflowX: 'auto', marginLeft: -4, marginRight: -4, paddingBottom: 4, scrollbarWidth: 'none' }}>
-        <div style={{ display: 'flex', gap: 6, padding: '4px 4px 0', width: 'max-content' }}>
-          {platforms.map(p => (
-            <button key={p.id} type="button" onClick={() => handlePlatform(p.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 64, flexShrink: 0 }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 15,
-                background: p.bg,
-                border: p.border ? `1.5px solid ${p.border}` : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-              }}>
-                {p.icon}
-              </div>
-              <span style={{ fontFamily: CE_SANS, fontSize: 10.5, fontWeight: 500, color: CE_DARK, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{p.label}</span>
-            </button>
-          ))}
-        </div>
+      {/* Platform grid — 4 columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px 6px' }}>
+        {platforms.map(p => (
+          <button key={p.id} type="button" onClick={() => handlePlatform(p.id)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 15,
+              background: p.bg,
+              border: p.border ? `1.5px solid ${p.border}` : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+            }}>
+              {p.icon}
+            </div>
+            <span style={{ fontFamily: CE_SANS, fontSize: 10.5, fontWeight: 500, color: CE_DARK, textAlign: 'center', lineHeight: 1.2 }}>{p.label}</span>
+          </button>
+        ))}
       </div>
 
       <div style={{ height: 1, background: CE_DIV }} />
-      <button type="button" onClick={onDismiss}
+      <button type="button" onClick={handleDismiss}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: CE_SANS, fontSize: 14, fontWeight: 500, color: CE_MID, padding: '4px 0', textAlign: 'center' }}>
         Maybe Later →
       </button>
@@ -814,9 +819,22 @@ const ShareModal = ({
 
   if (isMobile) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={onDismiss}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
-        <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'white', borderRadius: '24px 24px 0 0', padding: '16px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={handleDismiss}>
+        {/* Backdrop — fades in */}
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+          opacity: visible && !closing ? 1 : 0,
+          transition: 'opacity 0.22s ease',
+        }} />
+        {/* Sheet — slides up from below */}
+        <div onClick={e => e.stopPropagation()} style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'white', borderRadius: '24px 24px 0 0',
+          padding: '16px 20px', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))',
+          transform: visible && !closing ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
+          willChange: 'transform',
+        }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ width: 40, height: 4, borderRadius: 99, background: CE_DIV }} />
           </div>
@@ -827,10 +845,17 @@ const ShareModal = ({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onDismiss}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: 'white', borderRadius: 24, boxShadow: '0 16px 48px rgba(0,0,0,0.2)', padding: '32px 32px', width: 500, maxWidth: '92vw' }}>
-        <button type="button" onClick={onDismiss} style={{ position: 'absolute', top: 16, right: 16, background: CE_SURFACE, border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={handleDismiss}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', opacity: visible && !closing ? 1 : 0, transition: 'opacity 0.2s ease' }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        position: 'relative', background: 'white', borderRadius: 24,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.2)', padding: '32px 32px',
+        width: 500, maxWidth: '92vw',
+        opacity: visible && !closing ? 1 : 0,
+        transform: visible && !closing ? 'scale(1)' : 'scale(0.96)',
+        transition: 'opacity 0.2s ease, transform 0.2s ease',
+      }}>
+        <button type="button" onClick={handleDismiss} style={{ position: 'absolute', top: 16, right: 16, background: CE_SURFACE, border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <X style={{ width: 14, height: 14, color: CE_MID }} />
         </button>
         {content}
