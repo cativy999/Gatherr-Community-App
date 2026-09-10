@@ -835,11 +835,10 @@ const ShareModal = ({
           {isEditing ? '✓ Event Updated' : '✓ Event Published'}
         </span>
         <p style={{ fontFamily: CE_SANS, fontSize: 20, fontWeight: 800, color: CE_DARK, margin: '0 0 6px', lineHeight: 1.2 }}>
-          Tap a platform below.<br />Then just paste. Done.
+          Choose one and paste event details right away.
         </p>
         <p style={{ fontFamily: CE_SANS, fontSize: 13, color: CE_MID, margin: 0, lineHeight: 1.5 }}>
-          Your event's title, date, location, description &amp; link<br />
-          are <strong style={{ color: CE_DARK }}>already in your clipboard</strong> — nothing to retype.
+          Everything is already copied — title, date, location &amp; link.<br />No need to retype anything.
         </p>
       </div>
 
