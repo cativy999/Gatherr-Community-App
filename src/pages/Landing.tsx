@@ -64,6 +64,21 @@ if (typeof document !== "undefined") {
     }
     .landing-event-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
     .landing-event-card { transition: all 0.2s ease; }
+    @keyframes marquee {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .marquee-track {
+      display: flex;
+      animation: marquee 28s linear infinite;
+      width: max-content;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    .marquee-outer {
+      overflow: hidden;
+      mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+    }
     @keyframes land-fade-up {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -75,6 +90,10 @@ if (typeof document !== "undefined") {
     .land-enter-photo {
       animation: land-fade-in 1s ease both;
       animation-delay: var(--enter-delay, 0s);
+    }
+    @media (min-width: 768px) {
+      #marquee-desktop { display: block !important; }
+      #events-mobile   { display: none !important; }
     }
     @media (max-width: 767px) {
       .hero-hide-mobile { display: none !important; }
@@ -393,35 +412,78 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ── Events Grid ────────────────────────────────────────────── */}
-      <section style={{ background: BG, padding: "64px 40px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, margin: "0 0 4px" }}>
-              What's happening in the community
-            </h2>
-            <p style={{ fontFamily: INTER, fontSize: 13, color: "#BDBAB5", margin: 0 }}>
-              Real events created by people just like you
-            </p>
-          </div>
-          {eventsLoading ? (
-            <div className="events-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
-              {[1,2,3,4,5,6,7,8].map(i => (
-                <div key={i} style={{ borderRadius: 16, overflow: "hidden", background: "white" }}>
-                  <div className="sk" style={{ height: 110, borderRadius: 0 }} />
-                  <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div className="sk h-4 w-4/5" />
-                    <div className="sk h-3 w-3/5" />
-                  </div>
+      {/* ── Events ────────────────────────────────────────────── */}
+      <section style={{ background: BG, padding: "64px 0" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 40px", marginBottom: 28 }}>
+          <h2 style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: DARK, margin: "0 0 4px" }}>
+            What's happening in the community
+          </h2>
+          <p style={{ fontFamily: INTER, fontSize: 13, color: "#BDBAB5", margin: 0 }}>
+            Real events created by people just like you
+          </p>
+        </div>
+
+        {eventsLoading ? (
+          /* Loading skeleton — mobile grid only */
+          <div className="events-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16, padding: "0 40px" }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ borderRadius: 16, overflow: "hidden", background: "white" }}>
+                <div className="sk" style={{ height: 110, borderRadius: 0 }} />
+                <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="sk h-4 w-4/5" />
+                  <div className="sk h-3 w-3/5" />
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <p style={{ fontFamily: INTER, fontSize: 14, color: "#BDBAB5", textAlign: "center", padding: "40px 0" }}>
+            No upcoming events near LA yet — check back soon!
+          </p>
+        ) : (
+          <>
+            {/* ── Desktop: marquee ── */}
+            <div className="marquee-outer" style={{ display: "none" }} id="marquee-desktop">
+              <div className="marquee-track">
+                {[...events, ...events].map((ev, idx) => {
+                  const isNew = ev.created_at
+                    ? (Date.now() - new Date(ev.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7
+                    : false;
+                  const TZ_ABBR: Record<string,string> = { "America/Los_Angeles":"PT","America/Denver":"MT","America/Phoenix":"MT","America/Chicago":"CT","America/New_York":"ET" };
+                  const fmt = (t: string) => new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+                  const timePart = ev.start_time ? fmt(ev.start_time) : ev.time ? fmt(ev.time) : "";
+                  const tzStr = ev.timezone ? (TZ_ABBR[ev.timezone] ?? "") : "";
+                  const [y, m, d] = ev.date.split("-").map(Number);
+                  const dateStr = new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                  const cityLine = ev.location ? ev.location.split(",").slice(0, 2).join(",").trim() : null;
+                  return (
+                    <div
+                      key={`${ev.id}-${idx}`}
+                      className="landing-event-card"
+                      onClick={() => navigate(`/event/${ev.id}`)}
+                      style={{ cursor: "pointer", background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.07)", width: 200, flexShrink: 0, marginRight: 16 }}
+                    >
+                      <div style={{ height: 140, overflow: "hidden", background: "#F0EAE2" }}>
+                        {ev.image_url
+                          ? <img src={ev.image_url} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : <div style={{ width: "100%", height: "100%", background: "#F0EAE2" }} />}
+                      </div>
+                      <div style={{ padding: "10px 12px 12px" }}>
+                        <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, margin: "0 0 3px", letterSpacing: "0.01em" }}>
+                          {dateStr}{timePart ? ` · ${timePart}${tzStr ? ` ${tzStr}` : ""}` : ""}
+                        </p>
+                        <p style={{ fontFamily: "'Hanken Grotesk', 'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: DARK, margin: "0 0 3px", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ev.title}</p>
+                        {cityLine && <p style={{ fontFamily: INTER, fontSize: 11, color: "#8C8884", margin: 0 }}>{cityLine}</p>}
+                        {isNew && <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, color: "#FF3FA5", marginTop: 4, display: "block" }}>✦ New</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ) : events.length === 0 ? (
-            <p style={{ fontFamily: INTER, fontSize: 14, color: "#BDBAB5", textAlign: "center", padding: "40px 0" }}>
-              No upcoming events near LA yet — check back soon!
-            </p>
-          ) : (
-            <div className="events-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
+
+            {/* ── Mobile: 2-col grid ── */}
+            <div className="events-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16, padding: "0 40px" }} id="events-mobile">
               {events.map((ev) => {
                 const isNew = ev.created_at
                   ? (Date.now() - new Date(ev.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7
@@ -440,21 +502,16 @@ const Landing = () => {
                     onClick={() => navigate(`/event/${ev.id}`)}
                     style={{ cursor: "pointer", background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 1px 6px rgba(0,0,0,0.07)" }}
                   >
-                    {/* Image */}
                     <div className="event-card-image" style={{ height: 140, overflow: "hidden", background: "#F0EAE2" }}>
                       {ev.image_url
                         ? <img src={ev.image_url} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         : <div style={{ width: "100%", height: "100%", background: "#F0EAE2" }} />}
                     </div>
-                    {/* Info — matches Wards card style */}
                     <div className="event-card-body" style={{ padding: "10px 12px 12px" }}>
-                      {/* Date/time in teal above title */}
                       <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, margin: "0 0 3px", letterSpacing: "0.01em" }}>
                         {dateStr}{timePart ? ` · ${timePart}${tzStr ? ` ${tzStr}` : ""}` : ""}
                       </p>
-                      {/* Bold title */}
                       <p className="event-card-title" style={{ fontFamily: "'Hanken Grotesk', 'Inter', sans-serif", fontSize: 13, fontWeight: 700, color: DARK, margin: "0 0 3px", lineHeight: 1.25 }}>{ev.title}</p>
-                      {/* Location */}
                       {cityLine && <p style={{ fontFamily: INTER, fontSize: 11, color: "#8C8884", margin: 0 }}>{cityLine}</p>}
                       {isNew && <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, color: "#FF3FA5", marginTop: 4, display: "block" }}>✦ New</span>}
                     </div>
@@ -462,10 +519,11 @@ const Landing = () => {
                 );
               })}
             </div>
-          )}
+          </>
+        )}
 
           {/* CTA below grid */}
-          <div style={{ textAlign: "center", marginTop: 32 }}>
+          <div style={{ textAlign: "center", marginTop: 32, padding: "0 40px" }}>
             <button
               onClick={goToWelcome}
               style={{
@@ -481,7 +539,6 @@ const Landing = () => {
               Sign in to see what's happening in your area
             </p>
           </div>
-        </div>
       </section>
 
       {/* ── Interactive Features ────────────────────────────────────── */}
