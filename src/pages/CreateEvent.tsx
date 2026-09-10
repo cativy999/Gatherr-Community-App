@@ -758,27 +758,53 @@ const ShareModal = ({
 
   const handlePlatform = async (id: string) => {
     const copy = async (t: string) => { try { await navigator.clipboard.writeText(t); } catch {} };
+
+    // On mobile: try native app scheme first, fall back to web URL after a delay
+    const openMobile = (appScheme: string, webUrl: string) => {
+      const el = document.createElement('a');
+      el.href = appScheme;
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      el.click();
+      document.body.removeChild(el);
+      setTimeout(() => { window.location.href = webUrl; }, 1500);
+    };
+
     switch (id) {
-      case 'whatsapp':  await copy(fullText); window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
-      case 'line':      await copy(fullText); window.open(`https://line.me/R/share?text=${encodeURIComponent(fullText)}`, '_blank'); break;
-      case 'facebook':  await copy(fullText); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details copied — paste into your post!'); break;
-      case 'messenger': await copy(eventUrl); window.open('https://www.messenger.com/', '_blank'); toast.success('Link copied! Paste it in your Messenger chat'); break;
+      case 'whatsapp':
+        await copy(fullText);
+        if (isMobile) openMobile(`whatsapp://send?text=${encodeURIComponent(fullText)}`, `https://wa.me/?text=${encodeURIComponent(fullText)}`);
+        else window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank');
+        break;
+      case 'line':
+        await copy(fullText);
+        if (isMobile) openMobile(`line://msg/text/${encodeURIComponent(fullText)}`, `https://line.me/R/share?text=${encodeURIComponent(fullText)}`);
+        else window.open(`https://line.me/R/share?text=${encodeURIComponent(fullText)}`, '_blank');
+        break;
+      case 'facebook':
+        await copy(fullText);
+        if (isMobile) openMobile(`fb://facewebmodal/auth?target_url=${encodeURIComponent(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`)}`, `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`);
+        else window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500');
+        toast.success('Details copied — paste into your post!');
+        break;
+      case 'messenger':
+        await copy(eventUrl);
+        if (isMobile) openMobile(`fb-messenger://share?link=${encodeURIComponent(eventUrl)}`, 'https://www.messenger.com/');
+        else window.open('https://www.messenger.com/', '_blank');
+        toast.success('Link copied! Paste it in your Messenger chat');
+        break;
       case 'ig-story':
         await copy(eventUrl);
-        if (isMobile) {
-          // Try Instagram deep link first (opens app camera/story), fall back to web
-          const a = document.createElement('a');
-          a.href = 'instagram://story';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 1200);
-        } else {
-          window.open('https://www.instagram.com/', '_blank');
-        }
+        if (isMobile) openMobile('instagram://story', 'https://www.instagram.com/');
+        else window.open('https://www.instagram.com/', '_blank');
         toast.success('Link copied! Create a Story → add Link sticker → paste');
         break;
-      case 'ig-post':   await copy(fullTextWithTags); window.open('https://www.instagram.com/', '_blank'); toast.success('Caption + hashtags copied! Create a Post → paste'); break;
+      case 'ig-post':
+        await copy(fullTextWithTags);
+        if (isMobile) openMobile('instagram://camera', 'https://www.instagram.com/');
+        else window.open('https://www.instagram.com/', '_blank');
+        toast.success('Caption + hashtags copied! Create a Post → paste');
+        break;
       case 'gmail':     await copy(fullText); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${sub}&body=${bod}`, '_blank'); break;
       case 'outlook':   await copy(fullText); window.open(`https://outlook.live.com/mail/deeplink/compose?subject=${sub}&body=${bod}`, '_blank'); break;
       case 'yahoo':     await copy(fullText); window.open(`https://compose.mail.yahoo.com/?subject=${sub}&body=${bod}`, '_blank'); break;
