@@ -754,7 +754,7 @@ const ShareModal = ({
     switch (id) {
       case 'whatsapp':  await copy(fullText); window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
       case 'line':      await copy(fullText); window.open(`https://line.me/R/share?text=${encodeURIComponent(fullText)}`, '_blank'); break;
-      case 'facebook':  await copy(fullTextWithTags); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details + hashtags copied — paste into your post!'); break;
+      case 'facebook':  await copy(fullText); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details copied — paste into your post!'); break;
       case 'messenger': await copy(eventUrl); window.open('https://www.messenger.com/', '_blank'); toast.success('Link copied! Paste it in your Messenger chat'); break;
       case 'ig-story':
         await copy(eventUrl);
