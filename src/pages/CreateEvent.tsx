@@ -831,7 +831,7 @@ const ShareModal = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Header — lead with the "already copied" insight */}
       <div style={{ textAlign: 'center' }}>
-        <span style={{ display: 'inline-block', fontFamily: CE_SANS, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#22C55E', background: '#F0FDF4', borderRadius: 99, padding: '3px 10px', marginBottom: 10 }}>
+        <span style={{ display: 'inline-block', fontFamily: CE_SANS, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: CE_TEAL, background: CE_SURFACE, borderRadius: 99, padding: '3px 10px', marginBottom: 10 }}>
           {isEditing ? '✓ Event Updated' : '✓ Event Published'}
         </span>
         <p style={{ fontFamily: CE_SANS, fontSize: 20, fontWeight: 800, color: CE_DARK, margin: '0 0 6px', lineHeight: 1.2 }}>
