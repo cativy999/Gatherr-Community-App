@@ -53,7 +53,7 @@ const LogSteps = () => {
   const goBack = () => {
     setLeaving(true);
     if (audioRef.current) audioRef.current.pause();
-    setTimeout(() => navigate("/challenge"), 300);
+    setTimeout(() => navigate(-1), 300);
   };
 
   const handleSave = async () => {
