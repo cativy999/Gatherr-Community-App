@@ -99,7 +99,10 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
     if (showVideo) {
       document.body.style.overflow = "hidden";
       videoRef.current?.play().catch(() => {});
-      audioRef.current?.play().catch(() => {});
+      if (audioRef.current) {
+        audioRef.current.muted = muted; // force DOM to match React state (React's muted prop is unreliable)
+        audioRef.current.play().catch(() => {});
+      }
     } else {
       document.body.style.overflow = "";
       if (audioRef.current) {
@@ -108,7 +111,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       }
     }
     return () => { document.body.style.overflow = ""; };
-  }, [showVideo]);
+  }, [showVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pct = totalSteps !== null ? Math.min(100, (totalSteps / TRAIL_STEPS) * 100) : 0;
   const miles = totalSteps !== null ? Math.floor(totalSteps / STEPS_PER_MILE) : 0;
