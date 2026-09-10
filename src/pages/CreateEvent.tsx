@@ -730,58 +730,43 @@ const ShareModal = ({
     if (url) window.open(url, '_blank');
   };
 
+  const sub = encodeURIComponent('🎉 ' + title);
+  const bod = encodeURIComponent(fullText);
+
   const handlePlatform = async (id: string) => {
+    const copy = async (t: string) => { try { await navigator.clipboard.writeText(t); } catch {} };
     switch (id) {
-      case 'whatsapp':
-        await copyAndOpen(fullText, `https://wa.me/?text=${encodeURIComponent(fullText)}`);
-        break;
-      case 'line':
-        await copyAndOpen(fullText, `https://line.me/R/share?text=${encodeURIComponent(fullText)}`);
-        break;
-      case 'facebook':
-        try { await navigator.clipboard.writeText(fullText); } catch {}
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500');
-        toast.success('Details copied — paste them into the post!');
-        break;
-      case 'messenger':
-        try { await navigator.clipboard.writeText(eventUrl); } catch {}
-        window.open('https://www.messenger.com/', '_blank');
-        toast.success('Link copied! Paste it in Messenger');
-        break;
-      case 'ig-story':
-        try { await navigator.clipboard.writeText(eventUrl); } catch {}
-        window.open('https://www.instagram.com/', '_blank');
-        toast.success('Link copied! Create a Story → add Link sticker → paste');
-        break;
-      case 'ig-post':
-        try { await navigator.clipboard.writeText(fullText); } catch {}
-        window.open('https://www.instagram.com/', '_blank');
-        toast.success('Caption copied! Create a Post → paste');
-        break;
-      case 'email':
-        try { await navigator.clipboard.writeText(fullText); } catch {}
-        window.open(`mailto:?subject=${encodeURIComponent('🎉 ' + title)}&body=${encodeURIComponent(fullText)}`, '_blank');
-        break;
-      case 'copy-link':
-        try { await navigator.clipboard.writeText(eventUrl); } catch {}
-        toast.success('Event link copied!');
-        break;
+      case 'whatsapp':  await copy(fullText); window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
+      case 'line':      await copy(fullText); window.open(`https://line.me/R/share?text=${encodeURIComponent(fullText)}`, '_blank'); break;
+      case 'facebook':  await copy(fullText); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(eventUrl)}`, '_blank', 'width=600,height=500'); toast.success('Details copied — paste into your post!'); break;
+      case 'messenger': await copy(eventUrl); window.open('https://www.messenger.com/', '_blank'); toast.success('Link copied! Paste it in your Messenger chat'); break;
+      case 'ig-story':  await copy(eventUrl); window.open('https://www.instagram.com/', '_blank'); toast.success('Link copied! Create a Story → add Link sticker → paste'); break;
+      case 'ig-post':   await copy(fullText); window.open('https://www.instagram.com/', '_blank'); toast.success('Caption copied! Create a Post → paste'); break;
+      case 'gmail':     await copy(fullText); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${sub}&body=${bod}`, '_blank'); break;
+      case 'outlook':   await copy(fullText); window.open(`https://outlook.live.com/mail/deeplink/compose?subject=${sub}&body=${bod}`, '_blank'); break;
+      case 'yahoo':     await copy(fullText); window.open(`https://compose.mail.yahoo.com/?subject=${sub}&body=${bod}`, '_blank'); break;
+      case 'apple-mail': await copy(fullText); window.open(`mailto:?subject=${sub}&body=${bod}`, '_blank'); break;
+      case 'copy-link': await copy(eventUrl); toast.success('Event link copied!'); break;
     }
   };
 
   const platforms = [
-    { id: 'whatsapp',  label: 'WhatsApp', bg: '#25D366', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.534 5.857L.054 23.447a.5.5 0 0 0 .499.553h.027l5.7-1.493A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.956 0-3.773-.575-5.297-1.556l-.38-.23-3.931 1.03 1.05-3.833-.247-.394A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg> },
-    { id: 'line',      label: 'LINE',     bg: '#06C755', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M19.952 12.467c0-4.01-4.023-7.275-8.968-7.275S2.016 8.457 2.016 12.467c0 3.596 3.188 6.607 7.496 7.177.292.063.689.193.789.443.091.227.059.583.029.812l-.128.767c-.039.227-.181.887.776.483.957-.403 5.163-3.04 7.047-5.205 1.3-1.427 1.927-2.876 1.927-4.477zm-11.04 2.204H7.098a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .76 0v2.883h1.434a.38.38 0 0 1 0 .76zm1.332-.38a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .76 0v3.261zm4.024 0a.38.38 0 0 1-.655.26l-1.674-2.278v2.018a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .655-.26l1.674 2.278V11.03a.38.38 0 0 1 .76 0v3.261zm2.368 0a.38.38 0 0 1-.38.38h-1.818a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .38-.38h1.818a.38.38 0 0 1 0 .76h-1.438v.88h1.438a.38.38 0 0 1 0 .76h-1.438v.881h1.438a.38.38 0 0 1 .38.38z"/></svg> },
-    { id: 'facebook',  label: 'Facebook', bg: '#1877F2', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.514c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg> },
-    { id: 'messenger', label: 'Messenger', bg: '#0084FF', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M12 0C5.374 0 0 4.975 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.626 0 12-4.974 12-11.111C24 4.975 18.626 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8.6l3.131 3.26 5.887-3.26-6.559 6.363z"/></svg> },
-    { id: 'ig-story',  label: 'IG Story', bg: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
-    { id: 'ig-post',   label: 'IG Post',  bg: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="white" strokeWidth="0"/></svg> },
-    { id: 'email',     label: 'Email',    bg: '#6B7280', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> },
-    { id: 'copy-link', label: 'Copy Link', bg: CE_TEAL, icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
-  ];
+    { id: 'whatsapp',   label: 'WhatsApp',  bg: '#25D366', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.534 5.857L.054 23.447a.5.5 0 0 0 .499.553h.027l5.7-1.493A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.956 0-3.773-.575-5.297-1.556l-.38-.23-3.931 1.03 1.05-3.833-.247-.394A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg> },
+    { id: 'line',       label: 'LINE',      bg: '#06C755', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M19.952 12.467c0-4.01-4.023-7.275-8.968-7.275S2.016 8.457 2.016 12.467c0 3.596 3.188 6.607 7.496 7.177.292.063.689.193.789.443.091.227.059.583.029.812l-.128.767c-.039.227-.181.887.776.483.957-.403 5.163-3.04 7.047-5.205 1.3-1.427 1.927-2.876 1.927-4.477zm-11.04 2.204H7.098a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .76 0v2.883h1.434a.38.38 0 0 1 0 .76zm1.332-.38a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .76 0v3.261zm4.024 0a.38.38 0 0 1-.655.26l-1.674-2.278v2.018a.38.38 0 0 1-.76 0V11.03a.38.38 0 0 1 .655-.26l1.674 2.278V11.03a.38.38 0 0 1 .76 0v3.261zm2.368 0a.38.38 0 0 1-.38.38h-1.818a.38.38 0 0 1-.38-.38V11.03a.38.38 0 0 1 .38-.38h1.818a.38.38 0 0 1 0 .76h-1.438v.88h1.438a.38.38 0 0 1 0 .76h-1.438v.881h1.438a.38.38 0 0 1 .38.38z"/></svg> },
+    { id: 'facebook',   label: 'Facebook',  bg: '#1877F2', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.514c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg> },
+    { id: 'messenger',  label: 'Messenger', bg: '#0084FF', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M12 0C5.374 0 0 4.975 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.626 0 12-4.974 12-11.111C24 4.975 18.626 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8.6l3.131 3.26 5.887-3.26-6.559 6.363z"/></svg> },
+    { id: 'ig-story',   label: 'IG Story',  bg: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
+    { id: 'ig-post',    label: 'IG Post',   bg: 'linear-gradient(135deg,#f09433 0%,#dc2743 50%,#bc1888 100%)', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="white" strokeWidth="0"/></svg> },
+    { id: 'gmail',      label: 'Gmail',     bg: 'white',   border: '#E5E7EB', icon: <svg viewBox="0 0 24 24" width="26" height="26"><path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/><path fill="#4285F4" d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L0 7.273V5.457z"/></svg> },
+    { id: 'outlook',    label: 'Outlook',   bg: '#0078D4', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M24 7.387v10.478c0 .904-.732 1.636-1.636 1.636H8.727a1.636 1.636 0 0 1-1.636-1.636V7.387l8.727 5.454L24 7.387zm-1.636-2.478c.904 0 1.636.732 1.636 1.636v.545L15.818 11.5 7.09 7.09v-.545c0-.904.732-1.636 1.636-1.636h13.638zm-10.91 8.546V20h-5.09A3.273 3.273 0 0 1 3.09 16.727V7.273a3.273 3.273 0 0 1 3.274-3.273h5.09v7.273c0 .756.61 1.364 1.364 1.364H14v3.818h-1.182a1.364 1.364 0 0 1-1.364-1.364v-.861z"/><path d="M8 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 5.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg> },
+    { id: 'yahoo',      label: 'Yahoo',     bg: '#6001D2', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M0 4h5.5l6.5 9L18.5 4H24L13 18v6H11v-6L0 4z"/></svg> },
+    { id: 'apple-mail', label: 'Mail',      bg: '#3B82F6', icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> },
+    { id: 'copy-link',  label: 'Copy Link', bg: CE_TEAL,   icon: <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
+  ] as { id: string; label: string; bg: string; border?: string; icon: React.ReactNode }[];
 
   const content = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Header */}
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 28, marginBottom: 6 }}>🎉</div>
         <p style={{ fontFamily: CE_SANS, fontSize: 18, fontWeight: 700, color: CE_DARK, margin: 0 }}>
@@ -789,17 +774,36 @@ const ShareModal = ({
         </p>
         <p style={{ fontFamily: CE_SANS, fontSize: 14, color: CE_MID, margin: '4px 0 0' }}>Share it so people can join</p>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px 8px' }}>
-        {platforms.map(p => (
-          <button key={p.id} type="button" onClick={() => handlePlatform(p.id)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 54, height: 54, borderRadius: 16, background: p.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-              {p.icon}
-            </div>
-            <span style={{ fontFamily: CE_SANS, fontSize: 11, fontWeight: 500, color: CE_DARK, textAlign: 'center', lineHeight: 1.2 }}>{p.label}</span>
-          </button>
-        ))}
+
+      {/* Hint banner */}
+      <div style={{ background: '#F0F9F4', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <span style={{ fontSize: 16, flexShrink: 0 }}>📋</span>
+        <p style={{ fontFamily: CE_SANS, fontSize: 13, color: '#1F4E5B', margin: 0, lineHeight: 1.45 }}>
+          <strong>Everything is already copied!</strong> Just tap a platform below — all your event details (title, date, location, description & link) are ready to paste. No retyping needed.
+        </p>
       </div>
+
+      {/* Horizontally scrollable platform row */}
+      <div style={{ overflowX: 'auto', marginLeft: -4, marginRight: -4, paddingBottom: 4, scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 6, padding: '4px 4px 0', width: 'max-content' }}>
+          {platforms.map(p => (
+            <button key={p.id} type="button" onClick={() => handlePlatform(p.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 64, flexShrink: 0 }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 15,
+                background: p.bg,
+                border: p.border ? `1.5px solid ${p.border}` : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              }}>
+                {p.icon}
+              </div>
+              <span style={{ fontFamily: CE_SANS, fontSize: 10.5, fontWeight: 500, color: CE_DARK, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{p.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ height: 1, background: CE_DIV }} />
       <button type="button" onClick={onDismiss}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: CE_SANS, fontSize: 14, fontWeight: 500, color: CE_MID, padding: '4px 0', textAlign: 'center' }}>
@@ -812,7 +816,7 @@ const ShareModal = ({
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={onDismiss}>
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
-        <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'white', borderRadius: '24px 24px 0 0', padding: '16px 24px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>
+        <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'white', borderRadius: '24px 24px 0 0', padding: '16px 20px', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ width: 40, height: 4, borderRadius: 99, background: CE_DIV }} />
           </div>
@@ -825,7 +829,7 @@ const ShareModal = ({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onDismiss}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: 'white', borderRadius: 24, boxShadow: '0 16px 48px rgba(0,0,0,0.2)', padding: '32px 36px', width: 420, maxWidth: '90vw' }}>
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: 'white', borderRadius: 24, boxShadow: '0 16px 48px rgba(0,0,0,0.2)', padding: '32px 32px', width: 500, maxWidth: '92vw' }}>
         <button type="button" onClick={onDismiss} style={{ position: 'absolute', top: 16, right: 16, background: CE_SURFACE, border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <X style={{ width: 14, height: 14, color: CE_MID }} />
         </button>
