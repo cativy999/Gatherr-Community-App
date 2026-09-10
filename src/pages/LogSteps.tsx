@@ -45,7 +45,7 @@ const LogSteps = () => {
   const toggleMute = () => {
     if (!audioRef.current) return;
     const next = !muted;
-    audioRef.current.muted = next;
+    audioRef.current.volume = next ? 0 : 0.45;  // volume=0 works on all browsers; .muted is unreliable on Safari
     setMuted(next);
   };
 
