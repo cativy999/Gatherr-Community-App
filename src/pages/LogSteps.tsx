@@ -35,7 +35,6 @@ const LogSteps = () => {
     requestAnimationFrame(() => setVisible(true));
     if (audioRef.current) {
       audioRef.current.volume = 0.45;
-      audioRef.current.muted = false;
       audioRef.current.play().catch(() => {});
     }
     return () => {
@@ -43,12 +42,12 @@ const LogSteps = () => {
     };
   }, []);
 
-  // Dedicated effect — syncs muted state directly to DOM (React's muted prop is unreliable)
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.muted = muted;
-  }, [muted]);
-
-  const toggleMute = () => setMuted(m => !m);
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    const next = !muted;
+    audioRef.current.muted = next;
+    setMuted(next);
+  };
 
   const goBack = () => {
     setLeaving(true);

@@ -94,19 +94,12 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
       });
   }, [userId]);
 
-  // React's `muted` prop on <audio>/<video> is broken — it doesn't update the DOM.
-  // This effect is the single source of truth for mute state.
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.muted = muted;
-    if (videoRef.current) videoRef.current.muted = true; // video is always silent (visual only)
-  }, [muted]);
-
   // Lock body scroll while video overlay is open; start/stop audio
   useEffect(() => {
     if (showVideo) {
       document.body.style.overflow = "hidden";
       if (videoRef.current) { videoRef.current.muted = true; videoRef.current.play().catch(() => {}); }
-      if (audioRef.current) { audioRef.current.muted = muted; audioRef.current.play().catch(() => {}); }
+      if (audioRef.current) { audioRef.current.muted = false; audioRef.current.play().catch(() => {}); }
     } else {
       document.body.style.overflow = "";
       if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
@@ -146,7 +139,10 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setMuted(prev => !prev);
+    if (!audioRef.current) return;
+    const next = !muted;
+    audioRef.current.muted = next;
+    setMuted(next);
   };
 
   const closeOverlay = () => {
