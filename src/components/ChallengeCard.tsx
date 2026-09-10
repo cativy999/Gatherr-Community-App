@@ -113,6 +113,21 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
     return () => { document.body.style.overflow = ""; };
   }, [showVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Intercept browser back button / swipe-back gesture while overlay is open
+  useEffect(() => {
+    if (!showVideo) return;
+    // Push a dummy history entry so back button has somewhere to go
+    window.history.pushState({ videoOverlay: true }, '');
+    const handlePopState = () => {
+      // Back was pressed — close overlay instead of navigating away
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+      setShowVideo(false);
+      setIsExiting(false);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showVideo]);
+
   const pct = totalSteps !== null ? Math.min(100, (totalSteps / TRAIL_STEPS) * 100) : 0;
   const miles = totalSteps !== null ? Math.floor(totalSteps / STEPS_PER_MILE) : 0;
   const currentCity = getCurrentCity(pct);
