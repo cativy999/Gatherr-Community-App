@@ -2,7 +2,8 @@ import { CE_BG,CE_SURFACE , CE_ERROR} from '../tokens';
 import {
   Church, Search, Video, Presentation, Bell, MapPin,
   LandPlot, HandPlatter, HeartHandshake, Sparkles, ChevronDown, Heart,
-  ChevronLeft, ChevronRight } from "lucide-react";
+  ChevronLeft, ChevronRight, Calendar, LayoutGrid } from "lucide-react";
+import CalendarView from "@/components/CalendarView";
 import { useState, useEffect, useMemo, useRef } from "react";
 import LocationSelector from "@/components/LocationSelector";
 import ChallengeCard from "@/components/ChallengeCard";
@@ -264,6 +265,7 @@ const Wards = () => {
   const goingLeftChevRef = useRef<HTMLButtonElement>(null);
   const goingRightChevRef = useRef<HTMLButtonElement>(null);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'events' | 'calendar'>('events');
   const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
@@ -718,6 +720,31 @@ const Wards = () => {
             />
           </div>
           <div className="flex items-center gap-3">
+            {/* View toggle: calendar / grid */}
+            <div style={{ display: 'flex', alignItems: 'center', background: "rgba(0,0,0,0.05)", borderRadius: 999, padding: 2 }}>
+              <button
+                onClick={() => setViewMode('calendar')}
+                style={{
+                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: viewMode === 'calendar' ? TEAL : 'transparent',
+                  transition: 'background 0.2s',
+                }}
+                aria-label="Calendar view"
+              >
+                <Calendar size={16} color={viewMode === 'calendar' ? '#FAF6F0' : DARK} />
+              </button>
+              <button
+                onClick={() => setViewMode('events')}
+                style={{
+                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: viewMode === 'events' ? TEAL : 'transparent',
+                  transition: 'background 0.2s',
+                }}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={16} color={viewMode === 'events' ? '#FAF6F0' : DARK} />
+              </button>
+            </div>
             <button
               onClick={() => navigate("/search")}
               className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
@@ -790,6 +817,19 @@ const Wards = () => {
       {/* ── Main content ── */}
       <main className="flex-1 px-5 md:px-3 py-4">
         <div className="max-w-6xl mx-auto space-y-8">
+
+          {/* ── Calendar view ── */}
+          {viewMode === 'calendar' && (
+            <CalendarView
+              events={filteredEvents as any}
+              navigate={navigate}
+              isLoggedIn={isLoggedIn}
+              userId={userId}
+            />
+          )}
+
+          {/* ── Events view ── */}
+          {viewMode === 'events' && (<>
 
           {/* ── You're going ── */}
           {goingEvents.length > 0 && (
@@ -1000,6 +1040,9 @@ const Wards = () => {
 
             </>
           )}
+
+          </>) /* end viewMode === 'events' */}
+
         </div>
       </main>
 
