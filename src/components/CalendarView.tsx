@@ -300,20 +300,19 @@ export default function CalendarView({
           const isPast   = cell.key < todayKey;
           const dayEvts          = cell.overflow ? [] : (eventsByDate[cell.key] ?? []);
           const hasQCPlaceholder = !cell.overflow && qc?.date === cell.key;
-          const count            = dayEvts.length;
-          const manyMode         = count + (hasQCPlaceholder ? 1 : 0) > 4;
-          const gridCols         = manyMode ? 3 : count <= 1 ? 1 : count <= 3 ? count : 2;
-          const visible          = dayEvts; // show all in manyMode; otherwise natural slice below
-          const cardH            = manyMode ? 34 : count === 1 ? 72 : count <= 3 ? 60 : 46;
-          const showTimeBadge    = !manyMode && gridCols <= 2;
+          const count            = dayEvts.length + (hasQCPlaceholder ? 1 : 0);
+          const gridCols         = count <= 1 ? 1 : count <= 3 ? count : 3;
+          const gridRows         = count <= 3 ? 1 : count <= 6 ? 2 : 3;
+          const visible          = dayEvts;
+          const showTimeBadge    = count <= 2;
           const numColor = cell.overflow ? '#C8C3BC' : isPast ? '#B0A9A3' : isWeek ? RED : DARK;
           return (
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
               onClick={e => { if(cell.overflow) return; openQC(cell.key, e.currentTarget as HTMLElement); }}
-              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 24px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', minHeight:110, boxSizing:'border-box' }}>
+              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', height:150, boxSizing:'border-box', overflow:'hidden' }}>
               <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:6 }}>{cell.day}</span>
               {(visible.length > 0 || hasQCPlaceholder) && (
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gap:3 }}>
+                <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gridTemplateRows:`repeat(${gridRows},1fr)`, gap:3, height:112 }}>
                   {visible.map(evt => {
                     const t = evt.start_time || evt.time;
                     return (
@@ -321,7 +320,7 @@ export default function CalendarView({
                         onMouseEnter={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
                         onMouseLeave={hideHover}
                         onClick={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
-                        style={{ position:'relative', height:cardH, borderRadius:6, overflow:'hidden', background:evt.image_url?'#111':TEAL, opacity:isPast?0.5:1, boxShadow:'0 2px 8px rgba(0,0,0,0.10)' }}>
+                        style={{ position:'relative', borderRadius:6, overflow:'hidden', background:evt.image_url?'#111':TEAL, opacity:isPast?0.5:1, boxShadow:'0 2px 6px rgba(0,0,0,0.10)' }}>
                         {evt.image_url && <img src={evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>}
                         {showTimeBadge && <div style={{ position:'absolute', bottom:0, left:0, right:0, height:22, background:'linear-gradient(to top,rgba(0,0,0,0.65),transparent)' }}/>}
                         {showTimeBadge && t && <div style={{ position:'absolute', bottom:4, left:5 }}><span style={{ fontFamily:INTER, fontSize:8, fontWeight:700, color:'white', background:'rgba(0,0,0,0.45)', borderRadius:3, padding:'1px 4px' }}>{fmtTime(t)}</span></div>}
@@ -330,15 +329,15 @@ export default function CalendarView({
                     );
                   })}
                   {hasQCPlaceholder && (
-                    <div style={{ height:cardH, borderRadius:6, border:`2px dashed ${TEAL}`, background:'rgba(31,78,91,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <div style={{ borderRadius:6, border:`2px dashed ${TEAL}`, background:'rgba(31,78,91,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                       <span style={{ fontSize:16, color:TEAL, opacity:0.5 }}>+</span>
                     </div>
                   )}
                 </div>
               )}
               {dayEvts.length > 0 && !cell.overflow && (
-                <div style={{ position:'absolute', bottom:6, right:6, width:20, height:20, borderRadius:'50%', background:TEAL, border:'2px solid white', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  {userAvatar ? <img src={userAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <Users size={9} color="white"/>}
+                <div style={{ position:'absolute', bottom:4, right:4, width:18, height:18, borderRadius:'50%', background:TEAL, border:'2px solid white', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1 }}>
+                  {userAvatar ? <img src={userAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <Users size={8} color="white"/>}
                 </div>
               )}
               {!cell.overflow && !isPast && !dayEvts.length && isLoggedIn && (
