@@ -169,6 +169,7 @@ export default function CalendarView({
   const stayHover = useCallback(() => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
 
   const openQC = (dk: string, el: HTMLElement) => {
+    if (dk < todayKey) return; // no creating on past dates
     if (!isLoggedIn) { navigate('/welcome'); return; }
     const { top, left } = calcPos(el);
     setQcTitle(''); setQcType('event');
