@@ -172,6 +172,9 @@ export default function CalendarView({
     // Above if there's room; below if it would cover the chips
     let top = eR.top - wR.top - POPUP_H - 8;
     if (top < 0) top = eR.bottom - wR.top + 8;
+    // Clamp so popup never goes below the visible viewport
+    const maxTop = window.innerHeight - wR.top - POPUP_H - 8;
+    if (top > maxTop) top = Math.max(4, eR.top - wR.top - POPUP_H - 8);
     return { top, left };
   };
 
