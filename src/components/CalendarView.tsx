@@ -72,6 +72,65 @@ const todayKey = fmtDateKey(todayRaw);
 const POPUP_W = 300;
 const POPUP_H = 320;
 
+// ── US Holidays ────────────────────────────────────────────────────────────
+type HolidayType = 'dayoff' | 'some' | 'observance';
+type Holiday = { name: string; type: HolidayType };
+
+const getNthWeekday = (year: number, month: number, weekday: number, n: number): Date => {
+  if (n > 0) {
+    const first = new Date(year, month, 1);
+    const diff = ((weekday - first.getDay()) + 7) % 7;
+    return new Date(year, month, 1 + diff + (n - 1) * 7);
+  }
+  // n === -1 → last occurrence
+  const last = new Date(year, month + 1, 0);
+  const diff = ((last.getDay() - weekday) + 7) % 7;
+  return new Date(year, month, last.getDate() - diff);
+};
+
+const getEaster = (year: number): Date => {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mo = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const dy = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, mo, dy);
+};
+
+const buildHolidays = (year: number): Map<string, Holiday> => {
+  const map = new Map<string, Holiday>();
+  const add = (d: Date, name: string, type: HolidayType) => map.set(fmtDateKey(d), { name, type });
+  // Fixed
+  add(new Date(year, 0,  1),  "New Year's Day",    'dayoff');
+  add(new Date(year, 1,  14), "Valentine's Day",   'observance');
+  add(new Date(year, 2,  17), "St. Patrick's Day", 'observance');
+  add(new Date(year, 3,  22), "Earth Day",         'observance');
+  add(new Date(year, 5,  19), "Juneteenth",        'dayoff');
+  add(new Date(year, 6,  4),  "Independence Day",  'dayoff');
+  add(new Date(year, 9,  31), "Halloween",         'observance');
+  add(new Date(year, 10, 11), "Veterans Day",      'some');
+  add(new Date(year, 11, 25), "Christmas Day",     'dayoff');
+  add(new Date(year, 11, 31), "New Year's Eve",    'some');
+  // Nth weekday
+  add(getNthWeekday(year, 0, 1, 3),  "MLK Day",        'dayoff');
+  add(getNthWeekday(year, 1, 1, 3),  "Presidents' Day",'some');
+  add(getNthWeekday(year, 4, 0, 2),  "Mother's Day",   'observance');
+  add(getNthWeekday(year, 4, 1, -1), "Memorial Day",   'dayoff');
+  add(getNthWeekday(year, 5, 0, 3),  "Father's Day",   'observance');
+  add(getNthWeekday(year, 8, 1, 1),  "Labor Day",      'dayoff');
+  add(getNthWeekday(year, 9, 1, 2),  "Columbus Day",   'some');
+  // Easter
+  add(getEaster(year), "Easter", 'some');
+  // Thanksgiving + Black Friday
+  const tg = getNthWeekday(year, 10, 4, 4);
+  add(tg, "Thanksgiving", 'dayoff');
+  const bf = new Date(tg); bf.setDate(bf.getDate() + 1);
+  add(bf, "Black Friday", 'some');
+  return map;
+};
+
 // Sunday of the week containing `date`
 const getWeekStart = (date: Date) => {
   const d = new Date(date);
@@ -161,6 +220,13 @@ export default function CalendarView({
     });
     return map;
   }, [events, filter, allByDate, goingEventIds, interestedEventIds, savedEventIds]);
+
+  // Holidays for displayed year + next (covers Dec→Jan overflow cells)
+  const holidays = useMemo(() => {
+    const m = buildHolidays(year);
+    buildHolidays(year + 1).forEach((v, k) => m.set(k, v));
+    return m;
+  }, [year]);
 
   // ── Popup positioning (relative to wrapRef) ───────────────────────────
   const calcPos = (el: HTMLElement) => {
@@ -333,7 +399,24 @@ export default function CalendarView({
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
               onClick={e => { if(cell.overflow) return; openQC(cell.key, e.currentTarget as HTMLElement); }}
               style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', boxSizing:'border-box', overflow:'hidden' }}>
-              <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:6 }}>{cell.day}</span>
+              <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:3 }}>{cell.day}</span>
+              {!cell.overflow && holidays.has(cell.key) && (() => {
+                const h = holidays.get(cell.key)!;
+                return (
+                  <div style={{ marginBottom:4, display:'flex' }}>
+                    <span style={{
+                      fontFamily:INTER, fontSize:8, fontWeight:700, letterSpacing:'0.03em',
+                      padding:'2px 5px', borderRadius:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%',
+                      background: h.type==='dayoff' ? TEAL : h.type==='some' ? SURFACE : 'transparent',
+                      color: h.type==='dayoff' ? 'white' : MID,
+                      border: h.type==='observance' ? `1px solid ${DIV}` : 'none',
+                      opacity: isPast ? 0.5 : 1,
+                    }}>
+                      {h.type==='dayoff' ? '★ ' : ''}{h.name}
+                    </span>
+                  </div>
+                );
+              })()}
               {(visible.length > 0 || hasQCPlaceholder) && (
                 <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gridTemplateRows:`repeat(${gridRows},1fr)`, gap:3, height:'calc(100% - 28px)' }}>
                   {visible.map(evt => {
