@@ -298,15 +298,14 @@ export default function CalendarView({
           const isWeek   = col===0 || col===6;
           const isToday  = cell.key === todayKey;
           const isPast   = cell.key < todayKey;
-          const dayEvts        = cell.overflow ? [] : (eventsByDate[cell.key] ?? []);
+          const dayEvts          = cell.overflow ? [] : (eventsByDate[cell.key] ?? []);
           const hasQCPlaceholder = !cell.overflow && qc?.date === cell.key;
-          const totalItems     = Math.min(dayEvts.length, 4) + (hasQCPlaceholder ? 1 : 0);
-          const gridCols       = totalItems <= 1 ? 1 : totalItems <= 3 ? totalItems : 2;
-          const gridRows       = totalItems >= 4 ? 2 : 1;
-          const maxVisible     = gridCols * gridRows;
-          const visible        = dayEvts.slice(0, hasQCPlaceholder ? maxVisible - 1 : maxVisible);
-          const more           = dayEvts.length - visible.length;
-          const cardH          = totalItems === 1 ? 72 : totalItems <= 3 ? 60 : 46;
+          const count            = dayEvts.length;
+          const manyMode         = count + (hasQCPlaceholder ? 1 : 0) > 4;
+          const gridCols         = manyMode ? 3 : count <= 1 ? 1 : count <= 3 ? count : 2;
+          const visible          = dayEvts; // show all in manyMode; otherwise natural slice below
+          const cardH            = manyMode ? 34 : count === 1 ? 72 : count <= 3 ? 60 : 46;
+          const showTimeBadge    = !manyMode && gridCols <= 2;
           const numColor = cell.overflow ? '#C8C3BC' : isPast ? '#B0A9A3' : isWeek ? RED : DARK;
           return (
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
@@ -322,22 +321,21 @@ export default function CalendarView({
                         onMouseEnter={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
                         onMouseLeave={hideHover}
                         onClick={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
-                        style={{ position:'relative', height:cardH, borderRadius:6, overflow:'hidden', background:evt.image_url?'#111':TEAL, opacity:isPast?0.5:1, boxShadow:'0 2px 8px rgba(0,0,0,0.12)' }}>
+                        style={{ position:'relative', height:cardH, borderRadius:6, overflow:'hidden', background:evt.image_url?'#111':TEAL, opacity:isPast?0.5:1, boxShadow:'0 2px 8px rgba(0,0,0,0.10)' }}>
                         {evt.image_url && <img src={evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>}
-                        <div style={{ position:'absolute', bottom:0, left:0, right:0, height:22, background:'linear-gradient(to top,rgba(0,0,0,0.65),transparent)' }}/>
-                        {t && gridCols <= 2 && <div style={{ position:'absolute', bottom:4, left:5 }}><span style={{ fontFamily:INTER, fontSize:8, fontWeight:700, color:'white', background:'rgba(0,0,0,0.45)', borderRadius:3, padding:'1px 4px' }}>{fmtTime(t)}</span></div>}
-                        {!evt.image_url && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:gridCols===1?20:14, color:'rgba(255,255,255,0.5)' }}>✦</span></div>}
+                        {showTimeBadge && <div style={{ position:'absolute', bottom:0, left:0, right:0, height:22, background:'linear-gradient(to top,rgba(0,0,0,0.65),transparent)' }}/>}
+                        {showTimeBadge && t && <div style={{ position:'absolute', bottom:4, left:5 }}><span style={{ fontFamily:INTER, fontSize:8, fontWeight:700, color:'white', background:'rgba(0,0,0,0.45)', borderRadius:3, padding:'1px 4px' }}>{fmtTime(t)}</span></div>}
+                        {!evt.image_url && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:gridCols===1?20:12, color:'rgba(255,255,255,0.5)' }}>✦</span></div>}
                       </div>
                     );
                   })}
                   {hasQCPlaceholder && (
                     <div style={{ height:cardH, borderRadius:6, border:`2px dashed ${TEAL}`, background:'rgba(31,78,91,0.05)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontSize:18, color:TEAL, opacity:0.5 }}>+</span>
+                      <span style={{ fontSize:16, color:TEAL, opacity:0.5 }}>+</span>
                     </div>
                   )}
                 </div>
               )}
-              {more > 0 && <span style={{ fontFamily:INTER, fontSize:10, fontWeight:600, color:TEAL, display:'block', paddingLeft:2, marginTop:3 }}>+{more} more</span>}
               {dayEvts.length > 0 && !cell.overflow && (
                 <div style={{ position:'absolute', bottom:6, right:6, width:20, height:20, borderRadius:'50%', background:TEAL, border:'2px solid white', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {userAvatar ? <img src={userAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <Users size={9} color="white"/>}
@@ -562,7 +560,17 @@ export default function CalendarView({
           style={{ position:'absolute', top:hover.top, left:hover.left, zIndex:500, width:POPUP_W, background:'white', borderRadius:18, boxShadow:'0 12px 40px rgba(0,0,0,0.20)', border:`1px solid ${DIV}`, overflow:'hidden', pointerEvents:'auto' }}>
           {hover.evt.image_url && <div style={{ height:160, overflow:'hidden' }}><img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>}
           <div style={{ padding:'14px 16px' }}>
-            {(hover.evt.start_time||hover.evt.time) && <p style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color:TEAL, margin:'0 0 4px' }}>{fmtTime(hover.evt.start_time||hover.evt.time||'')}</p>}
+            {(() => {
+            const t = hover.evt.start_time || hover.evt.time;
+            const dk = hover.evt.date;
+            const dateStr = dk ? new Date(dk + 'T00:00:00').toLocaleDateString('en-US',{ weekday:'long', month:'long', day:'numeric' }) : '';
+            const timeStr = t ? fmtTime(t) : '';
+            return (dateStr || timeStr) ? (
+              <p style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color:TEAL, margin:'0 0 4px' }}>
+                {dateStr}{dateStr && timeStr ? ' · ' : ''}{timeStr}
+              </p>
+            ) : null;
+          })()}
             <p style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK, margin:'0 0 4px', lineHeight:1.3 }}>{hover.evt.title}</p>
             {hover.evt.location && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 6px' }}>{hover.evt.location}</p>}
             {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 12px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
