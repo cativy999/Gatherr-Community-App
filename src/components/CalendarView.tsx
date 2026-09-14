@@ -91,6 +91,7 @@ export default function CalendarView({
   const [qcType,   setQcType]   = useState<'event'|'task'|'appointment'>('event');
   const [saving,   setSaving]   = useState(false);
   const [now,      setNow]      = useState(new Date());
+  const [calGridH, setCalGridH] = useState(520);
 
   const hoverTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
   const wrapRef    = useRef<HTMLDivElement>(null);
@@ -99,6 +100,21 @@ export default function CalendarView({
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Fit the month grid to the visible viewport — always show all rows
+  useEffect(() => {
+    const measure = () => {
+      if (!wrapRef.current) return;
+      const rect = wrapRef.current.getBoundingClientRect();
+      // viewport height minus: distance of wrapper from top, component header (~80px),
+      // weekday label row (~40px), and 16px breathing room
+      const h = Math.max(360, window.innerHeight - rect.top - 136);
+      setCalGridH(h);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, []);
 
   // Close menus on outside click
@@ -293,7 +309,7 @@ export default function CalendarView({
           </div>
         ))}
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gridTemplateRows:`repeat(${Math.ceil(totalCells/7)},1fr)`, height:calGridH }}>
         {monthCells.map((cell, i) => {
           const col      = i % 7;
           const isWeek   = col===0 || col===6;
@@ -310,10 +326,10 @@ export default function CalendarView({
           return (
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
               onClick={e => { if(cell.overflow) return; openQC(cell.key, e.currentTarget as HTMLElement); }}
-              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', height:150, boxSizing:'border-box', overflow:'hidden' }}>
+              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', boxSizing:'border-box', overflow:'hidden' }}>
               <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:6 }}>{cell.day}</span>
               {(visible.length > 0 || hasQCPlaceholder) && (
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gridTemplateRows:`repeat(${gridRows},1fr)`, gap:3, height:112 }}>
+                <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gridTemplateRows:`repeat(${gridRows},1fr)`, gap:3, height:'calc(100% - 28px)' }}>
                   {visible.map(evt => {
                     const t = evt.start_time || evt.time;
                     return (
