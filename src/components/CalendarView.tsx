@@ -31,6 +31,7 @@ type CalEvent = {
   location?: string | null; ward_type?: string | null;
   description?: string | null; user_id?: string;
   timezone?: string | null;
+  attendees?: number | null;
 };
 type HoverState  = { evt: CalEvent; top: number; left: number };
 type QuickCreate = { date: string; top: number; left: number };
@@ -69,7 +70,7 @@ const fmtDateTimeLabel = (dk: string) => {
 const todayRaw = new Date();
 const todayKey = fmtDateKey(todayRaw);
 const POPUP_W = 300;
-const POPUP_H = 420;
+const POPUP_H = 320;
 
 // Sunday of the week containing `date`
 const getWeekStart = (date: Date) => {
@@ -581,16 +582,24 @@ export default function CalendarView({
       {hover && (
         <div onMouseEnter={stayHover} onMouseLeave={hideHover}
           style={{ position:'absolute', top:hover.top, left:hover.left, zIndex:500, width:POPUP_W, background:'white', borderRadius:18, boxShadow:'0 12px 40px rgba(0,0,0,0.20)', border:`1px solid ${DIV}`, overflow:'hidden', pointerEvents:'auto' }}>
-          <div style={{ position:'relative', height:170, overflow:'hidden', cursor:'pointer' }}
+          <div style={{ position:'relative', height:140, overflow:'hidden', cursor:'pointer' }}
             onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}>
             {hover.evt.image_url
               ? <img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               : <div style={{ width:'100%', height:'100%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:40, color:'rgba(255,255,255,0.3)' }}>✦</span></div>}
             <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)' }}/>
-            {/* Going avatars bottom-right */}
-            {userAvatar && goingEventIds.has(hover.evt.id) && (
-              <div style={{ position:'absolute', bottom:10, right:10, display:'flex' }}>
-                <img src={userAvatar} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:'2px solid white' }}/>
+            {/* Going avatars bottom-right — show if anyone is going */}
+            {((hover.evt.attendees ?? 0) > 0 || goingEventIds.has(hover.evt.id)) && (
+              <div style={{ position:'absolute', bottom:10, right:10, display:'flex', alignItems:'center', gap:5 }}>
+                {userAvatar && goingEventIds.has(hover.evt.id) && (
+                  <img src={userAvatar} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:'2px solid white' }}/>
+                )}
+                {(hover.evt.attendees ?? 0) > 0 && (
+                  <div style={{ background:'rgba(0,0,0,0.55)', borderRadius:100, padding:'3px 8px', display:'flex', alignItems:'center', gap:4 }}>
+                    <Users size={11} color="white"/>
+                    <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:'white' }}>{hover.evt.attendees}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

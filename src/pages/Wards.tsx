@@ -265,7 +265,11 @@ const Wards = () => {
   const goingLeftChevRef = useRef<HTMLButtonElement>(null);
   const goingRightChevRef = useRef<HTMLButtonElement>(null);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'events' | 'calendar'>('events');
+  const [viewMode, setViewMode] = useState<'events' | 'calendar'>(
+    () => (sessionStorage.getItem('wardsViewMode') as 'events' | 'calendar') || 'events'
+  );
+  // Persist viewMode so Back from event detail restores calendar
+  useEffect(() => { sessionStorage.setItem('wardsViewMode', viewMode); }, [viewMode]);
   const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
