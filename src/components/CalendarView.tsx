@@ -266,8 +266,8 @@ export default function CalendarView({
         <div style={{ display:'flex', background:SURFACE, borderRadius:100, padding:3, gap:1 }}>
           {(['year','month','week'] as const).map(v => (
             <button key={v} onClick={() => setViewMode(v)}
-              style={{ padding:'6px 14px', borderRadius:100, border: viewMode===v ? `1.5px solid ${GOLD}` : '1.5px solid transparent', cursor:'pointer', fontFamily:INTER, fontSize:13, fontWeight:viewMode===v?700:500, background:viewMode===v?'white':'transparent', color:viewMode===v?DARK:MID, transition:'all 0.15s', textTransform:'capitalize' }}>
-              {v}
+              style={{ padding:'6px 12px', borderRadius:100, border: viewMode===v ? `1.5px solid ${GOLD}` : '1.5px solid transparent', cursor:'pointer', fontFamily:INTER, fontSize:13, fontWeight:viewMode===v?700:500, background:viewMode===v?'white':'transparent', color:viewMode===v?DARK:MID, transition:'all 0.15s' }}>
+              {v[0].toUpperCase()}
             </button>
           ))}
         </div>
