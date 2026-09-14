@@ -150,11 +150,13 @@ export default function CalendarView({
     if (!wrap) return { top: 0, left: 0 };
     const wR = wrap.getBoundingClientRect();
     const eR = el.getBoundingClientRect();
-    let left = eR.right - wR.left + 8;
-    if (left + POPUP_W > wR.width) left = Math.max(0, eR.left - wR.left - POPUP_W - 8);
-    left = Math.max(0, Math.min(left, wR.width - POPUP_W - 4));
-    let top = eR.top - wR.top;
-    if (top + POPUP_H > wR.height) top = Math.max(0, wR.height - POPUP_H - 4);
+    // Center horizontally on the hovered element
+    let left = eR.left - wR.left + eR.width / 2 - POPUP_W / 2;
+    left = Math.max(4, Math.min(left, wR.width - POPUP_W - 4));
+    // Show above the element; fall back to below if not enough room
+    let top = eR.top - wR.top - POPUP_H - 8;
+    if (top < 4) top = eR.bottom - wR.top + 8;
+    top = Math.max(4, Math.min(top, wR.height - POPUP_H - 4));
     return { top, left };
   };
 
