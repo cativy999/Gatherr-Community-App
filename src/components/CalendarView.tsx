@@ -567,7 +567,7 @@ export default function CalendarView({
         .cal-year-day:hover span { opacity:0.7; }
         .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
         .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
-        @media(max-width:860px){ .cal2-plus { opacity:1 !important; } }
+        @media(max-width:860px){ .cal2-plus { display:none !important; } }
       `}</style>
 
       {Header}
