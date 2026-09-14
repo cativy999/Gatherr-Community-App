@@ -30,6 +30,7 @@ type CalEvent = {
   date: string; time?: string | null; start_time?: string | null;
   location?: string | null; ward_type?: string | null;
   description?: string | null; user_id?: string;
+  timezone?: string | null;
 };
 type HoverState  = { evt: CalEvent; top: number; left: number };
 type QuickCreate = { date: string; top: number; left: number };
@@ -587,7 +588,10 @@ export default function CalendarView({
             const dk = hover.evt.date;
             const dateStr = dk ? new Date(dk + 'T00:00:00').toLocaleDateString('en-US',{ weekday:'long', month:'long', day:'numeric' }) : '';
             const timeStr = t ? fmtTime(t) : '';
-            const tzAbbr = Intl.DateTimeFormat('en-US',{ timeZoneName:'short' }).formatToParts(new Date()).find(p => p.type==='timeZoneName')?.value ?? '';
+            const evtTz = hover.evt.timezone;
+            const tzAbbr = evtTz
+              ? (Intl.DateTimeFormat('en-US',{ timeZoneName:'short', timeZone: evtTz }).formatToParts(new Date()).find(p => p.type==='timeZoneName')?.value ?? '')
+              : (Intl.DateTimeFormat('en-US',{ timeZoneName:'short' }).formatToParts(new Date()).find(p => p.type==='timeZoneName')?.value ?? '');
             return (dateStr || timeStr) ? (
               <p style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color:TEAL, margin:'0 0 4px' }}>
                 {dateStr}{dateStr && timeStr ? ' · ' : ''}{timeStr}{tzAbbr ? ` ${tzAbbr}` : ''}
