@@ -290,7 +290,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id, description")
         .eq("status", "published")
         .eq("category", "ward")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
@@ -825,6 +825,8 @@ const Wards = () => {
               navigate={navigate}
               isLoggedIn={isLoggedIn}
               userId={userId}
+              goingEventIds={new Set(goingEvents.map((e: any) => e.id))}
+              savedEventIds={savedEvents}
             />
           )}
 

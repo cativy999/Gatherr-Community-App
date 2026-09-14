@@ -1,480 +1,579 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, X, MapPin, Clock } from 'lucide-react';
-import { CE_BG, CE_SURFACE } from '../tokens';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, X, MapPin, Clock, AlignJustify, Check, Star, Bookmark, Users } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
-const DARK     = "#2C2523";
-const MID      = "#635C59";
-const TEAL     = "#1F4E5B";
-const CORMORANT = "'Cormorant Garamond', Georgia, serif";
-const INTER     = "'Inter', sans-serif";
-const DIV       = "#E4DCCF";
+// ── Design tokens ──────────────────────────────────────────────────────────
+const DARK    = "#2C2523";
+const MID     = "#635C59";
+const TEAL    = "#1F4E5B";
+const DIV     = "#E4DCCF";
+const SURFACE = "#EFECE6";
+const BG      = "#FAF6F0";
+const RED     = "#DC2626";
+const INTER   = "'Inter', sans-serif";
 
-const MONTHS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
+const MONTHS      = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_HEADERS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
 
 type CalEvent = {
-  id: string;
-  title: string;
-  image_url: string | null;
-  date: string;
-  time?: string | null;
-  start_time?: string | null;
-  location?: string | null;
-  ward_type?: string | null;
+  id: string; title: string; image_url: string | null;
+  date: string; time?: string | null; start_time?: string | null;
+  location?: string | null; ward_type?: string | null;
+  description?: string | null; user_id?: string;
 };
+
+type HoverState = { evt: CalEvent; top: number; left: number; side: 'left'|'right' };
+type QuickCreate = { date: string; top: number; left: number; side: 'left'|'right' };
 
 interface Props {
   events: CalEvent[];
   navigate: (path: string, opts?: any) => void;
   isLoggedIn: boolean;
   userId?: string;
+  userName?: string;
+  userAvatar?: string | null;
+  savedEventIds?: Set<string>;
+  goingEventIds?: Set<string>;
+  interestedEventIds?: Set<string>;
 }
 
-const formatTime = (t: string) => {
+const fmtTime = (t: string) => {
   const [h, m] = t.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 || 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`;
+};
+const fmtDisplay = (dk: string) => {
+  const [y,m,d] = dk.split('-').map(Number);
+  return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+};
+const fmtDateTimeLabel = (dk: string) => {
+  const [y,m,d] = dk.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 };
 
-const CalendarView = ({ events, navigate, isLoggedIn, userId }: Props) => {
-  const todayRaw = new Date();
-  const todayKey = `${todayRaw.getFullYear()}-${String(todayRaw.getMonth()+1).padStart(2,'0')}-${String(todayRaw.getDate()).padStart(2,'0')}`;
+const todayRaw = new Date();
+const todayKey = `${todayRaw.getFullYear()}-${String(todayRaw.getMonth()+1).padStart(2,'0')}-${String(todayRaw.getDate()).padStart(2,'0')}`;
 
-  const [calDate, setCalDate] = useState(new Date(todayRaw.getFullYear(), todayRaw.getMonth(), 1));
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [panel, setPanel] = useState<'preview' | 'create' | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerStage, setPickerStage] = useState<'year' | 'month'>('year');
-  const [pickerYear, setPickerYear] = useState(todayRaw.getFullYear());
+const POPUP_W = 320;
+const POPUP_H = 380; // approx preview popup height
 
-  // Quick create form state
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventCategory, setEventCategory] = useState('fhe');
+export default function CalendarView({
+  events, navigate, isLoggedIn, userId, userName, userAvatar,
+  savedEventIds = new Set(), goingEventIds = new Set(), interestedEventIds = new Set(),
+}: Props) {
+  const [calDate,   setCalDate]   = useState(new Date(todayRaw.getFullYear(), todayRaw.getMonth(), 1));
+  const [viewMode,  setViewMode]  = useState<'year'|'month'|'week'>('month');
+  const [menuOpen,  setMenuOpen]  = useState(false);
+  const [filter,    setFilter]    = useState<'all'|'going'|'interested'|'saved'>('all');
+  const [hover,     setHover]     = useState<HoverState | null>(null);
+  const [qc,        setQc]        = useState<QuickCreate | null>(null);
+  const [qcTitle,   setQcTitle]   = useState('');
+  const [qcType,    setQcType]    = useState<'event'|'task'|'appointment'>('event');
+  const [saving,    setSaving]    = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const calRef = useRef<HTMLDivElement>(null);
 
-  const year  = calDate.getFullYear();
-  const month = calDate.getMonth();
+  const year        = calDate.getFullYear();
+  const month       = calDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay    = new Date(year, month, 1).getDay(); // 0=Sun
+  const firstDay    = new Date(year, month, 1).getDay();
 
+  const allEventsByDate = useMemo(() => {
+    const map: Record<string, CalEvent[]> = {};
+    events.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
+    return map;
+  }, [events]);
+
+  // Apply "My Events" filter
   const eventsByDate = useMemo(() => {
+    if (filter === 'all') return allEventsByDate;
     const map: Record<string, CalEvent[]> = {};
     events.forEach(e => {
+      const show =
+        (filter === 'going'      && goingEventIds.has(e.id)) ||
+        (filter === 'interested' && interestedEventIds.has(e.id)) ||
+        (filter === 'saved'      && savedEventIds.has(e.id));
+      if (!show) return;
       if (!map[e.date]) map[e.date] = [];
       map[e.date].push(e);
     });
     return map;
-  }, [events]);
+  }, [events, filter, allEventsByDate, goingEventIds, interestedEventIds, savedEventIds]);
 
-  const fmtDateKey = (y: number, m: number, d: number) =>
-    `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const fmtKey = (y: number, m: number, d: number) =>
+    `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-  const formatDisplayDate = (dateKey: string) => {
-    const [y, m, d] = dateKey.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  };
-
+  const goToday   = () => setCalDate(new Date(todayRaw.getFullYear(), todayRaw.getMonth(), 1));
   const prevMonth = () => setCalDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCalDate(new Date(year, month + 1, 1));
 
-  const handleDateClick = (dateKey: string) => {
-    const dayEvents = eventsByDate[dateKey] ?? [];
-    setSelectedDate(dateKey);
-    if (dayEvents.length > 0) setPanel('preview');
-    else setPanel(null);
-  };
-
-  const handlePlusClick = (e: React.MouseEvent, dateKey: string) => {
-    e.stopPropagation();
-    setSelectedDate(dateKey);
-    setEventTitle('');
-    setEventCategory('fhe');
-    setPanel('create');
-  };
-
-  const handleCreateContinue = () => {
+  const goCreate = (dk: string) => {
     if (!isLoggedIn) { navigate('/welcome'); return; }
-    navigate('/create-event', { state: { prefillDate: selectedDate, prefillCategory: eventCategory, prefillTitle: eventTitle } });
+    navigate('/create-event', { state: { prefillDate: dk, prefillTitle: qcTitle } });
   };
 
-  // Build total cells for the grid
+  // Close popups on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      const t = e.target as Element;
+      if (!t.closest('.cal-menu-btn') && !t.closest('.cal-menu-dropdown')) setMenuOpen(false);
+      if (!t.closest('.cal-qc-popup') && !t.closest('.cal2-cell')) setQc(null);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  // ── Hover preview helpers ─────────────────────────────────────────────
+  const showHover = useCallback((evt: CalEvent, el: HTMLElement) => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    const rect = el.getBoundingClientRect();
+    const calRect = calRef.current?.getBoundingClientRect();
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+    // Determine side: prefer right, fall back to left
+    const side: 'left'|'right' = rect.right + POPUP_W + 12 < vpW ? 'right' : 'left';
+    const rawLeft = side === 'right' ? rect.right + 8 : rect.left - POPUP_W - 8;
+    const rawTop  = Math.min(rect.top, vpH - POPUP_H - 20);
+    setHover({ evt, top: rawTop, left: rawLeft, side });
+  }, []);
+
+  const hideHover = useCallback(() => {
+    hoverTimerRef.current = setTimeout(() => setHover(null), 150);
+  }, []);
+
+  const stayHover = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+  }, []);
+
+  // ── Quick create popup position ───────────────────────────────────────
+  const openQC = (dk: string, el: HTMLElement) => {
+    if (!isLoggedIn) { navigate('/welcome'); return; }
+    const rect = el.getBoundingClientRect();
+    const vpW  = window.innerWidth;
+    const vpH  = window.innerHeight;
+    const side: 'left'|'right' = rect.right + POPUP_W + 12 < vpW ? 'right' : 'left';
+    const rawLeft = side === 'right' ? rect.right + 8 : rect.left - POPUP_W - 8;
+    const rawTop  = Math.min(rect.top, vpH - 420);
+    setQcTitle('');
+    setQcType('event');
+    setQc({ date: dk, top: rawTop, left: Math.max(8, rawLeft), side });
+  };
+
+  // ── Quick save ────────────────────────────────────────────────────────
+  const handleQuickSave = async () => {
+    if (!qcTitle.trim() || !qc) return;
+    if (!isLoggedIn) { navigate('/welcome'); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('events').insert({
+        title: qcTitle.trim(),
+        date: qc.date,
+        user_id: userId,
+        ward_type: 'general',
+      });
+      if (error) throw error;
+      toast.success('Event created!');
+      setQc(null);
+    } catch {
+      toast.error('Could not save — try More options');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Build grid cells ──────────────────────────────────────────────────
   const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
   const cells = Array.from({ length: totalCells }, (_, i) => {
     const day = i - firstDay + 1;
-    return (day < 1 || day > daysInMonth) ? null : day;
+    if (day < 1) {
+      const d = new Date(year, month, day);
+      return { day: d.getDate(), key: fmtKey(d.getFullYear(), d.getMonth(), d.getDate()), overflow: true };
+    }
+    if (day > daysInMonth) {
+      const d = new Date(year, month + 1, day - daysInMonth);
+      return { day: d.getDate(), key: fmtKey(d.getFullYear(), d.getMonth(), d.getDate()), overflow: true };
+    }
+    return { day, key: fmtKey(year, month, day), overflow: false };
   });
 
-  const selectedEvents = selectedDate ? (eventsByDate[selectedDate] ?? []) : [];
-
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  // Filter counts for "My Events" badge
+  const goingCount      = events.filter(e => goingEventIds.has(e.id)).length;
+  const interestedCount = events.filter(e => interestedEventIds.has(e.id)).length;
+  const savedCount      = events.filter(e => savedEventIds.has(e.id)).length;
 
   return (
     <>
       <style>{`
-        .cal-cell:hover .cal-plus-btn { opacity: 1 !important; }
-        .cal-cell { transition: background 0.12s; }
-        .cal-cell:hover { background: rgba(31,78,91,0.04) !important; }
-        @media (max-width: 767px) {
-          .cal-plus-btn { opacity: 1 !important; }
-          .cal-layout { flex-direction: column !important; }
-          .cal-panel { width: 100% !important; }
+        .cal2-cell { transition: background 0.1s; }
+        .cal2-cell:hover { background: rgba(44,37,35,0.025) !important; }
+        .cal2-cell:hover .cal2-plus { opacity:1 !important; }
+        .cal2-card { transition: transform 0.12s, box-shadow 0.12s; cursor:pointer; }
+        .cal2-card:hover { transform: scale(1.03); box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important; }
+        @media(max-width:860px){
+          .cal2-plus { opacity:1 !important; }
         }
       `}</style>
 
-      <div className="cal-layout" style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
 
-        {/* ── Left: Calendar grid ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Left */}
+        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <button onClick={prevMonth} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}>
+            <ChevronLeft size={20}/>
+          </button>
+          <button onClick={nextMonth} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}>
+            <ChevronRight size={20}/>
+          </button>
+          <span style={{ fontFamily:INTER, fontSize:22, fontWeight:700, color:DARK, marginLeft:6 }}>
+            {MONTHS[month]} {year}
+          </span>
+          <button onClick={goToday}
+            style={{ marginLeft:10, padding:'6px 16px', borderRadius:100, border:`1.5px solid ${DIV}`, background:'white', fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK, cursor:'pointer' }}>
+            Today
+          </button>
+        </div>
 
-          {/* Month / Year navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
-            <button
-              onClick={prevMonth}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, borderRadius: '50%', display: 'flex', alignItems: 'center' }}
-            >
-              <ChevronLeft size={22} color={DARK} />
-            </button>
+        {/* Right: avatar + hamburger + view toggle */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, position:'relative' }}>
 
-            {/* Month/Year label — click to open picker */}
-            <button
-              onClick={() => { setPickerYear(year); setPickerStage('year'); setShowPicker(v => !v); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <span style={{ fontFamily: CORMORANT, fontSize: 34, fontWeight: 700, color: DARK, lineHeight: 1 }}>
-                {MONTHS[month]} {year}
-              </span>
-            </button>
+          {/* User avatar */}
+          <button className="cal-menu-btn" onClick={() => setMenuOpen(v=>!v)}
+            style={{ background:'none', border:'none', cursor:'pointer', padding:0, display:'flex' }}>
+            {userAvatar
+              ? <img src={userAvatar} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', border:`2.5px solid ${TEAL}` }}/>
+              : <div style={{ width:36, height:36, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center', border:`2.5px solid ${TEAL}` }}>
+                  <span style={{ fontSize:14, color:'white', fontFamily:INTER, fontWeight:700 }}>{(userName||'M')[0].toUpperCase()}</span>
+                </div>
+            }
+          </button>
 
-            <button
-              onClick={nextMonth}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, borderRadius: '50%', display: 'flex', alignItems: 'center' }}
-            >
-              <ChevronRight size={22} color={DARK} />
-            </button>
+          {/* Hamburger */}
+          <button className="cal-menu-btn" onClick={() => setMenuOpen(v=>!v)}
+            style={{ background:'none', border:'none', cursor:'pointer', padding:6, display:'flex', color:DARK }}>
+            <AlignJustify size={20}/>
+          </button>
 
-            {/* Month/Year picker */}
-            {showPicker && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-                background: 'white', borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
-                padding: '20px 16px', zIndex: 200, minWidth: 280,
-                border: `1px solid ${DIV}`,
-              }}>
-                <button
-                  onClick={() => setShowPicker(false)}
-                  style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: MID, display: 'flex' }}
-                >
-                  <X size={16} />
-                </button>
-
-                {pickerStage === 'year' ? (
-                  <>
-                    <p style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: MID, textAlign: 'center', margin: '0 0 12px' }}>Select Year</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                      {Array.from({ length: 10 }, (_, i) => todayRaw.getFullYear() - 1 + i).map(y => (
-                        <button key={y} onClick={() => { setPickerYear(y); setPickerStage('month'); }}
-                          style={{
-                            padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                            fontFamily: INTER, fontSize: 13,
-                            fontWeight: y === year ? 700 : 400,
-                            background: y === year ? TEAL : 'transparent',
-                            color: y === year ? 'white' : DARK,
-                          }}>
-                          {y}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setPickerStage('year')}
-                      style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: TEAL, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 12, display: 'block' }}
-                    >
-                      ← {pickerYear}
-                    </button>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                      {MONTHS.map((mn, i) => {
-                        const isActive = i === month && pickerYear === year;
-                        return (
-                          <button key={mn} onClick={() => { setCalDate(new Date(pickerYear, i, 1)); setShowPicker(false); }}
-                            style={{
-                              padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                              fontFamily: INTER, fontSize: 13,
-                              fontWeight: isActive ? 700 : 400,
-                              background: isActive ? TEAL : 'transparent',
-                              color: isActive ? 'white' : DARK,
-                            }}>
-                            {mn.slice(0, 3)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Day-of-week headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
-            {DAY_HEADERS.map((d, i) => (
-              <div key={d} style={{
-                textAlign: 'center', fontFamily: INTER, fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.06em',
-                color: i === 0 || i === 6 ? '#C0392B' : MID,
-                padding: '4px 0',
-              }}>
-                {d}
-              </div>
+          {/* Year/Month/Week toggle */}
+          <div style={{ display:'flex', background:SURFACE, borderRadius:100, padding:3, gap:1 }}>
+            {(['year','month','week'] as const).map(v => (
+              <button key={v} onClick={() => setViewMode(v)}
+                style={{ padding:'6px 14px', borderRadius:100, border:'none', cursor:'pointer', fontFamily:INTER, fontSize:13, fontWeight:viewMode===v?700:500, background:viewMode===v?'white':'transparent', color:viewMode===v?DARK:MID, boxShadow:viewMode===v?'0 1px 4px rgba(0,0,0,0.10)':'none', transition:'all 0.15s', textTransform:'capitalize' }}>
+                {v}
+              </button>
             ))}
           </div>
 
-          {/* Calendar cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
-            {cells.map((day, i) => {
-              if (day === null) return <div key={`empty-${i}`} style={{ minHeight: 72 }} />;
-
-              const col       = i % 7;
-              const isWeekend = col === 0 || col === 6;
-              const dateKey   = fmtDateKey(year, month, day);
-              const dayEvts   = eventsByDate[dateKey] ?? [];
-              const isToday   = dateKey === todayKey;
-              const isSel     = dateKey === selectedDate;
-
-              return (
-                <div
-                  key={dateKey}
-                  className="cal-cell"
-                  onClick={() => handleDateClick(dateKey)}
-                  style={{
-                    minHeight: 72, borderRadius: 8, padding: '5px 4px',
-                    border: isSel ? `2px solid ${TEAL}` : '2px solid transparent',
-                    background: isToday ? `${TEAL}14` : 'transparent',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {/* Day number */}
-                  <div style={{
-                    fontFamily: INTER, fontSize: 12, fontWeight: isToday ? 700 : 400,
-                    color: isWeekend ? '#C0392B' : isToday ? TEAL : DARK,
-                    lineHeight: 1.2, marginBottom: 4,
-                  }}>
-                    {day}
-                  </div>
-
-                  {/* Event thumbnails */}
-                  {dayEvts.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 2 }}>
-                      {dayEvts.slice(0, 2).map(evt => (
-                        <div key={evt.id} style={{
-                          width: 22, height: 22, borderRadius: 5, overflow: 'hidden',
-                          background: evt.image_url ? 'transparent' : TEAL, flexShrink: 0,
-                          border: `1px solid ${DIV}`,
-                        }}>
-                          {evt.image_url
-                            ? <img src={evt.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 9, color: 'white', lineHeight: 1 }}>✦</span>
-                              </div>
-                          }
-                        </div>
-                      ))}
-                      {dayEvts.length > 2 && (
-                        <div style={{
-                          width: 22, height: 22, borderRadius: 5, background: CE_SURFACE, flexShrink: 0,
-                          border: `1px solid ${DIV}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <span style={{ fontFamily: INTER, fontSize: 8, color: MID, fontWeight: 700 }}>+{dayEvts.length - 2}</span>
-                        </div>
-                      )}
+          {/* "My Events" dropdown */}
+          {menuOpen && (
+            <div className="cal-menu-dropdown" style={{
+              position:'absolute', top:'calc(100% + 10px)', right:0, zIndex:400,
+              background:'white', borderRadius:18, boxShadow:'0 8px 32px rgba(0,0,0,0.16)',
+              border:`1px solid ${DIV}`, width:280, overflow:'hidden',
+            }}>
+              {/* Header */}
+              <div style={{ display:'flex', alignItems:'center', gap:12, padding:'16px 18px', borderBottom:`1px solid ${DIV}` }}>
+                {userAvatar
+                  ? <img src={userAvatar} alt="" style={{ width:38, height:38, borderRadius:'50%', objectFit:'cover', flexShrink:0 }}/>
+                  : <div style={{ width:38, height:38, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <span style={{ fontSize:15, color:'white', fontFamily:INTER, fontWeight:700 }}>{(userName||'M')[0].toUpperCase()}</span>
                     </div>
-                  )}
-
-                  {/* + button */}
-                  {isLoggedIn && (
-                    <button
-                      className="cal-plus-btn"
-                      onClick={(e) => handlePlusClick(e, dateKey)}
-                      style={{
-                        position: 'absolute', bottom: 4, right: 4,
-                        width: 18, height: 18, borderRadius: '50%',
-                        background: TEAL, border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        opacity: 0, transition: 'opacity 0.15s',
-                        zIndex: 2,
-                      }}
-                    >
-                      <span style={{ color: 'white', fontSize: 14, lineHeight: 1, marginTop: -1 }}>+</span>
-                    </button>
-                  )}
+                }
+                <div>
+                  <p style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK, margin:0 }}>My Events</p>
+                  <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:0 }}>Filter by status</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
 
-        {/* ── Right: Event preview or Quick create panel ── */}
-        {panel && selectedDate && (
-          <div
-            className="cal-panel"
-            style={{
-              width: 300, flexShrink: 0,
-              background: 'white', borderRadius: 20,
-              border: `1px solid ${DIV}`,
-              overflow: 'hidden',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.07)',
-            }}
-          >
-            {/* Panel header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: `1px solid #F0EBE3` }}>
-              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 600, color: DARK, lineHeight: 1.3, flex: 1, paddingRight: 8 }}>
-                {formatDisplayDate(selectedDate)}
-              </span>
-              <button onClick={() => { setPanel(null); setSelectedDate(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MID, display: 'flex', flexShrink: 0 }}>
-                <X size={16} />
+              {/* Filter rows */}
+              {([
+                { key:'going',      label:'Going',      icon:<Check size={16} color="white"/>, iconBg:TEAL, count:goingCount },
+                { key:'interested', label:'Interested',  icon:<Star size={16} color="#C8973A" fill="#C8973A"/>, iconBg:'#FEF3C7', count:interestedCount },
+                { key:'saved',      label:'Saved',       icon:<Bookmark size={16} color={TEAL}/>, iconBg:SURFACE, count:savedCount },
+              ] as const).map(row => (
+                <button key={row.key} onClick={() => { setFilter(filter === row.key ? 'all' : row.key); setMenuOpen(false); }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 18px', border:'none', cursor:'pointer', background: filter===row.key ? SURFACE : 'white', transition:'background 0.1s', borderBottom:`1px solid ${DIV}` }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:row.iconBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    {row.icon}
+                  </div>
+                  <span style={{ fontFamily:INTER, fontSize:15, fontWeight:500, color:DARK, flex:1, textAlign:'left' }}>{row.label}</span>
+                  <div style={{ background:SURFACE, borderRadius:100, padding:'2px 10px', minWidth:28, textAlign:'center' }}>
+                    <span style={{ fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK }}>{row.count}</span>
+                  </div>
+                </button>
+              ))}
+
+              {/* Show all */}
+              <button onClick={() => { setFilter('all'); setMenuOpen(false); }}
+                style={{ width:'100%', padding:'14px 18px', border:'none', cursor:'pointer', background:'white', fontFamily:INTER, fontSize:14, color:MID, textAlign:'center' }}>
+                Show all events
               </button>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Preview: list of events on that date */}
-            {panel === 'preview' && (
-              <div style={{ overflowY: 'auto', maxHeight: 520 }}>
-                {selectedEvents.map((evt, idx) => (
-                  <div key={evt.id} style={{ borderBottom: idx < selectedEvents.length - 1 ? `1px solid #F0EBE3` : 'none' }}>
-                    {evt.image_url && (
-                      <div style={{ height: 120, overflow: 'hidden' }}>
-                        <img src={evt.image_url} alt={evt.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    )}
-                    <div style={{ padding: '12px 16px' }}>
-                      {evt.ward_type && (
-                        <div style={{ display: 'inline-block', background: CE_SURFACE, borderRadius: 100, padding: '3px 10px', marginBottom: 8 }}>
-                          <span style={{ fontFamily: INTER, fontSize: 10, fontWeight: 700, color: TEAL, textTransform: 'capitalize', letterSpacing: '0.04em' }}>
-                            {evt.ward_type}
+      {/* ── Calendar grid ─────────────────────────────────────────────── */}
+      <div ref={calRef} style={{ background:'white', border:`1px solid ${DIV}`, borderRadius:20, overflow:'hidden' }}>
+
+        {/* Weekday header */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', background:SURFACE }}>
+          {DAY_HEADERS.map(d => (
+            <div key={d} style={{ padding:'10px 0', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:MID, letterSpacing:'0.05em' }}>{d}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+          {cells.map((cell, i) => {
+            const col       = i % 7;
+            const isWeekend = col === 0 || col === 6;
+            const isToday   = cell.key === todayKey;
+            const isPast    = cell.key < todayKey;
+            const dayEvts   = cell.overflow ? [] : (eventsByDate[cell.key] ?? []);
+            const visible   = dayEvts.slice(0, 2);
+            const more      = dayEvts.length - 2;
+
+            const numColor = cell.overflow ? '#C8C3BC' : isWeekend ? RED : DARK;
+
+            return (
+              <div
+                key={`${cell.key}-${i}`}
+                className={cell.overflow ? '' : 'cal2-cell'}
+                onClick={e => {
+                  if (cell.overflow) return;
+                  if (dayEvts.length === 0) openQC(cell.key, e.currentTarget as HTMLElement);
+                }}
+                style={{
+                  borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`,
+                  padding:'8px 6px 24px',
+                  background: isToday ? 'rgba(31,78,91,0.03)' : 'white',
+                  outline: isToday ? `2px solid ${TEAL}` : 'none',
+                  outlineOffset:-2,
+                  cursor: cell.overflow ? 'default' : 'pointer',
+                  position:'relative', minHeight:110, boxSizing:'border-box',
+                }}
+              >
+                {/* Day number */}
+                <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:6 }}>
+                  {cell.day}
+                </span>
+
+                {/* Event cards */}
+                {visible.map(evt => {
+                  const timeStr = evt.start_time || evt.time;
+                  return (
+                    <div
+                      key={evt.id}
+                      className="cal2-card"
+                      onMouseEnter={e => showHover(evt, e.currentTarget as HTMLElement)}
+                      onMouseLeave={hideHover}
+                      onClick={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
+                      style={{
+                        position:'relative', width:'100%', height:64,
+                        borderRadius:8, overflow:'hidden', marginBottom:4,
+                        background: evt.image_url ? '#111' : TEAL,
+                        flexShrink:0, opacity: isPast ? 0.55 : 1,
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.12)',
+                      }}
+                    >
+                      {evt.image_url && <img src={evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>}
+                      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:28, background:'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }}/>
+                      {timeStr && (
+                        <div style={{ position:'absolute', bottom:5, left:6 }}>
+                          <span style={{ fontFamily:INTER, fontSize:9, fontWeight:700, color:'white', background:'rgba(0,0,0,0.5)', borderRadius:4, padding:'2px 5px' }}>
+                            {fmtTime(timeStr)}
                           </span>
                         </div>
                       )}
-                      <h3 style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: DARK, margin: '0 0 8px', lineHeight: 1.3 }}>
-                        {evt.title}
-                      </h3>
-                      {evt.location && (
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5, marginBottom: 5 }}>
-                          <MapPin size={12} color={MID} style={{ marginTop: 2, flexShrink: 0 }} />
-                          <span style={{ fontFamily: INTER, fontSize: 12, color: MID, lineHeight: 1.4 }}>{evt.location}</span>
+                      {!evt.image_url && (
+                        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <span style={{ fontSize:20, color:'rgba(255,255,255,0.5)' }}>✦</span>
                         </div>
                       )}
-                      {(evt.start_time || evt.time) && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-                          <Clock size={12} color={MID} style={{ flexShrink: 0 }} />
-                          <span style={{ fontFamily: INTER, fontSize: 12, color: MID }}>{formatTime(evt.start_time || evt.time || '')}</span>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => navigate(`/event/${evt.id}`)}
-                        style={{
-                          width: '100%', padding: '10px 0', background: TEAL, color: 'white',
-                          border: 'none', borderRadius: 100, cursor: 'pointer',
-                          fontFamily: INTER, fontSize: 13, fontWeight: 600,
-                        }}
-                      >
-                        View event details →
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                {/* If event selected + logged in, offer quick add */}
-                {isLoggedIn && (
-                  <div style={{ padding: '10px 16px', borderTop: `1px solid #F0EBE3` }}>
-                    <button
-                      onClick={(e) => handlePlusClick(e, selectedDate)}
-                      style={{
-                        width: '100%', padding: '9px 0',
-                        background: 'transparent', color: TEAL,
-                        border: `1.5px solid ${TEAL}`, borderRadius: 100, cursor: 'pointer',
-                        fontFamily: INTER, fontSize: 13, fontWeight: 600,
-                      }}
-                    >
-                      + Add event on this day
-                    </button>
+                {more > 0 && (
+                  <span style={{ fontFamily:INTER, fontSize:10, fontWeight:600, color:TEAL, display:'block', paddingLeft:2 }}>
+                    +{more} more
+                  </span>
+                )}
+
+                {/* Creator dot */}
+                {dayEvts.length > 0 && !cell.overflow && (
+                  <div style={{ position:'absolute', bottom:6, right:6, width:20, height:20, borderRadius:'50%', background:TEAL, border:'2px solid white', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {userAvatar
+                      ? <img src={userAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                      : <Users size={9} color="white"/>
+                    }
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Create: quick event form */}
-            {panel === 'create' && (
-              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <p style={{ fontFamily: INTER, fontSize: 12, color: MID, margin: 0 }}>
-                  Creating event for {formatDisplayDate(selectedDate)}
-                </p>
-
-                <input
-                  type="text"
-                  placeholder="Event name *"
-                  value={eventTitle}
-                  onChange={e => setEventTitle(e.target.value)}
-                  autoFocus
-                  style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: `1.5px solid ${DIV}`, fontFamily: INTER, fontSize: 14, color: DARK,
-                    outline: 'none', boxSizing: 'border-box', background: CE_BG,
-                  }}
-                  onFocus={e => (e.target.style.borderColor = TEAL)}
-                  onBlur={e => (e.target.style.borderColor = DIV)}
-                />
-
-                <div>
-                  <label style={{ fontFamily: INTER, fontSize: 11, fontWeight: 600, color: MID, display: 'block', marginBottom: 4 }}>
-                    Category
-                  </label>
-                  <select
-                    value={eventCategory}
-                    onChange={e => setEventCategory(e.target.value)}
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: 10,
-                      border: `1.5px solid ${DIV}`, fontFamily: INTER, fontSize: 14, color: DARK,
-                      outline: 'none', background: CE_BG, boxSizing: 'border-box', cursor: 'pointer',
-                      appearance: 'none',
-                    }}
+                {/* "+" on hover – empty future dates */}
+                {!cell.overflow && !isPast && dayEvts.length === 0 && isLoggedIn && (
+                  <button
+                    className="cal2-plus"
+                    onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
+                    style={{ position:'absolute', bottom:5, right:5, width:22, height:22, borderRadius:'50%', background:TEAL, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.15s', boxShadow:'0 1px 6px rgba(0,0,0,0.15)' }}
                   >
-                    <option value="fhe">FHE</option>
-                    <option value="spiritual">Spiritual</option>
-                    <option value="service">Service</option>
-                    <option value="conference">Conference</option>
-                    <option value="social">Social</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={handleCreateContinue}
-                  disabled={!eventTitle.trim()}
-                  style={{
-                    width: '100%', padding: '12px 0', background: eventTitle.trim() ? TEAL : '#ccc',
-                    color: 'white', border: 'none', borderRadius: 100,
-                    cursor: eventTitle.trim() ? 'pointer' : 'not-allowed',
-                    fontFamily: INTER, fontSize: 14, fontWeight: 600,
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  Continue in full editor →
-                </button>
-
-                <p style={{ fontFamily: INTER, fontSize: 11, color: MID, margin: 0, textAlign: 'center', lineHeight: 1.5 }}>
-                  Add photo, location, time, and more details on the next page.
-                </p>
+                    <span style={{ color:'white', fontSize:16, lineHeight:1 }}>+</span>
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
+
+      {/* ── Hover preview popup ────────────────────────────────────────── */}
+      {hover && (
+        <div
+          onMouseEnter={stayHover}
+          onMouseLeave={hideHover}
+          style={{
+            position:'fixed', top:hover.top, left:hover.left, zIndex:500,
+            width:POPUP_W, background:'white', borderRadius:18,
+            boxShadow:'0 12px 40px rgba(0,0,0,0.20)', border:`1px solid ${DIV}`,
+            overflow:'hidden', pointerEvents:'auto',
+          }}
+        >
+          {/* Event image */}
+          {hover.evt.image_url && (
+            <div style={{ height:180, overflow:'hidden' }}>
+              <img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+            </div>
+          )}
+          <div style={{ padding:'14px 16px' }}>
+            {/* Time */}
+            {(hover.evt.start_time || hover.evt.time) && (
+              <p style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color:TEAL, margin:'0 0 4px' }}>
+                {fmtTime(hover.evt.start_time || hover.evt.time || '')}
+              </p>
+            )}
+            {/* Title */}
+            <p style={{ fontFamily:INTER, fontSize:16, fontWeight:700, color:DARK, margin:'0 0 4px', lineHeight:1.3 }}>
+              {hover.evt.title}
+            </p>
+            {/* Location */}
+            {hover.evt.location && (
+              <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 6px' }}>{hover.evt.location}</p>
+            )}
+            {/* Description */}
+            {hover.evt.description && (
+              <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 14px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                {hover.evt.description}
+              </p>
+            )}
+            {/* Action buttons */}
+            <div style={{ display:'flex', gap:10, marginTop: hover.evt.description ? 0 : 10 }}>
+              <button
+                onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}
+                style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'10px 0', background:TEAL, border:'none', borderRadius:100, cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:'white' }}
+              >
+                {userAvatar && <img src={userAvatar} alt="" style={{ width:22, height:22, borderRadius:'50%', objectFit:'cover' }}/>}
+                {goingEventIds.has(hover.evt.id) ? 'Going ✓' : 'Going'}
+              </button>
+              <button
+                onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}
+                style={{ flex:1, padding:'10px 0', background:SURFACE, border:'none', borderRadius:100, cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:DARK }}
+              >
+                Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Quick-create popup ─────────────────────────────────────────── */}
+      {qc && (
+        <div
+          className="cal-qc-popup"
+          style={{
+            position:'fixed', top:qc.top, left:qc.left, zIndex:500,
+            width:POPUP_W, background:'white', borderRadius:18,
+            boxShadow:'0 12px 40px rgba(0,0,0,0.18)', border:`1px solid ${DIV}`,
+            padding:'20px 22px 18px',
+          }}
+        >
+          {/* Top bar */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+            <AlignJustify size={18} color={MID}/>
+            <button onClick={() => setQc(null)} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', color:MID }}>
+              <X size={18}/>
+            </button>
+          </div>
+
+          {/* Title input */}
+          <input
+            autoFocus
+            value={qcTitle}
+            onChange={e => setQcTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleQuickSave(); if (e.key === 'Escape') setQc(null); }}
+            placeholder="Add title"
+            style={{ width:'100%', border:'none', borderBottom:`2px solid ${TEAL}`, outline:'none', fontFamily:INTER, fontSize:22, fontWeight:500, color:DARK, padding:'0 0 8px', background:'transparent', boxSizing:'border-box', marginBottom:16 }}
+          />
+
+          {/* Event / Task / Appointment */}
+          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+            {(['event','task','appointment'] as const).map(t => (
+              <button key={t} onClick={() => setQcType(t)}
+                style={{ padding:'6px 14px', borderRadius:100, border:'none', cursor:'pointer', fontFamily:INTER, fontSize:13, fontWeight:600, background:qcType===t ? SURFACE : 'transparent', color:qcType===t ? TEAL : MID, transition:'all 0.15s', textTransform:'capitalize' }}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Date / time */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'10px 12px', borderRadius:10, background:BG }}>
+            <Clock size={16} color={MID}/>
+            <div>
+              <p style={{ fontFamily:INTER, fontSize:14, fontWeight:600, color:DARK, margin:0 }}>
+                {fmtDateTimeLabel(qc.date)}
+              </p>
+              <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:0 }}>Time zone · Does not repeat</p>
+            </div>
+          </div>
+
+          {/* Add guests */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${DIV}` }}>
+            <Users size={16} color={MID}/>
+            <span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add guests</span>
+          </div>
+
+          {/* Add location */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${DIV}` }}>
+            <MapPin size={16} color={MID}/>
+            <span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add location</span>
+          </div>
+
+          {/* Add description */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', marginBottom:16 }}>
+            <AlignJustify size={16} color={MID}/>
+            <span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add description</span>
+          </div>
+
+          {/* Footer */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <button onClick={() => { setQc(null); goCreate(qc.date); }}
+              style={{ background:'none', border:'none', cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:MID }}>
+              More options
+            </button>
+            <button
+              onClick={handleQuickSave}
+              disabled={!qcTitle.trim() || saving}
+              style={{ padding:'10px 24px', background:qcTitle.trim() ? TEAL : DIV, color:qcTitle.trim() ? 'white' : MID, border:'none', borderRadius:100, cursor:qcTitle.trim() ? 'pointer' : 'default', fontFamily:INTER, fontSize:14, fontWeight:700, transition:'background 0.15s' }}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
-};
-
-export default CalendarView;
+}
