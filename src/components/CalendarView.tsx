@@ -89,14 +89,21 @@ const getNthWeekday = (year: number, month: number, weekday: number, n: number):
 };
 
 const getEaster = (year: number): Date => {
-  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
-  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const mo = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-  const dy = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(year, mo, dy);
+  const ea = year % 19;
+  const eb = Math.floor(year / 100);
+  const ec = year % 100;
+  const ed = Math.floor(eb / 4);
+  const ee = eb % 4;
+  const ef = Math.floor((eb + 8) / 25);
+  const eg = Math.floor((eb - ef + 1) / 3);
+  const eh = (19 * ea + eb - ed - eg + 15) % 30;
+  const ei = Math.floor(ec / 4);
+  const ek = ec % 4;
+  const el = (32 + 2 * ee + 2 * ei - eh - ek) % 7;
+  const em = Math.floor((ea + 11 * eh + 22 * el) / 451);
+  const emo = Math.floor((eh + el - 7 * em + 114) / 31) - 1;
+  const edy = ((eh + el - 7 * em + 114) % 31) + 1;
+  return new Date(year, emo, edy);
 };
 
 const buildHolidays = (year: number): Map<string, Holiday> => {
@@ -221,13 +228,6 @@ export default function CalendarView({
     return map;
   }, [events, filter, allByDate, goingEventIds, interestedEventIds, savedEventIds]);
 
-  // Holidays for displayed year + next (covers Dec→Jan overflow cells)
-  const holidays = useMemo(() => {
-    const m = buildHolidays(year);
-    buildHolidays(year + 1).forEach((v, k) => m.set(k, v));
-    return m;
-  }, [year]);
-
   // ── Popup positioning (relative to wrapRef) ───────────────────────────
   const calcPos = (el: HTMLElement) => {
     const wrap = wrapRef.current;
@@ -282,6 +282,16 @@ export default function CalendarView({
 
   // ── Month view helpers ────────────────────────────────────────────────
   const year        = calDate.getFullYear();
+
+  // Holidays for displayed year + next (covers Dec→Jan overflow cells)
+  // NOTE: must be after `year` is declared to avoid TDZ (minifier renames year → single letter)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const holidays = useMemo(() => {
+    const hmap = buildHolidays(year);
+    buildHolidays(year + 1).forEach((v, k) => hmap.set(k, v));
+    return hmap;
+  }, [year]);
+
   const month       = calDate.getMonth();
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const firstDay    = new Date(year, month, 1).getDay();
