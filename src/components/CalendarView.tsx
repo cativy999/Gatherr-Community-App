@@ -23,8 +23,8 @@ type CalEvent = {
   description?: string | null; user_id?: string;
 };
 
-type HoverState = { evt: CalEvent; top: number; left: number; side: 'left'|'right' };
-type QuickCreate = { date: string; top: number; left: number; side: 'left'|'right' };
+type HoverState = { evt: CalEvent; top: number; left: number };
+type QuickCreate = { date: string; top: number; left: number };
 
 interface Props {
   events: CalEvent[];
@@ -56,8 +56,8 @@ const fmtDateTimeLabel = (dk: string) => {
 const todayRaw = new Date();
 const todayKey = `${todayRaw.getFullYear()}-${String(todayRaw.getMonth()+1).padStart(2,'0')}-${String(todayRaw.getDate()).padStart(2,'0')}`;
 
-const POPUP_W = 320;
-const POPUP_H = 380; // approx preview popup height
+const POPUP_W = 300;
+const POPUP_H = 420; // max popup height (image + content)
 
 export default function CalendarView({
   events, navigate, isLoggedIn, userId, userName, userAvatar,
@@ -126,17 +126,38 @@ export default function CalendarView({
   }, []);
 
   // ── Hover preview helpers ─────────────────────────────────────────────
+  // Positions are relative to wrapRef (the outer position:relative div)
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const calcPopupPos = (el: HTMLElement) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return { top: 0, left: 0 };
+    const wRect = wrap.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const wW = wRect.width;
+    const wH = wRect.height;
+
+    // Position relative to wrapper
+    const relTop  = eRect.top  - wRect.top;
+    const relLeft = eRect.left - wRect.left;
+    const relRight = eRect.right - wRect.left;
+
+    // Prefer right of cell; fall to left
+    let left = relRight + 8;
+    if (left + POPUP_W > wW) left = Math.max(0, relLeft - POPUP_W - 8);
+    left = Math.max(0, Math.min(left, wW - POPUP_W - 4));
+
+    // Align top with cell, push up if would overflow
+    let top = relTop;
+    if (top + POPUP_H > wH) top = Math.max(0, wH - POPUP_H - 4);
+
+    return { top, left };
+  };
+
   const showHover = useCallback((evt: CalEvent, el: HTMLElement) => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    const rect = el.getBoundingClientRect();
-    const calRect = calRef.current?.getBoundingClientRect();
-    const vpW = window.innerWidth;
-    const vpH = window.innerHeight;
-    // Determine side: prefer right, fall back to left
-    const side: 'left'|'right' = rect.right + POPUP_W + 12 < vpW ? 'right' : 'left';
-    const rawLeft = side === 'right' ? rect.right + 8 : rect.left - POPUP_W - 8;
-    const rawTop  = Math.min(rect.top, vpH - POPUP_H - 20);
-    setHover({ evt, top: rawTop, left: rawLeft, side });
+    const { top, left } = calcPopupPos(el);
+    setHover({ evt, top, left });
   }, []);
 
   const hideHover = useCallback(() => {
@@ -150,15 +171,10 @@ export default function CalendarView({
   // ── Quick create popup position ───────────────────────────────────────
   const openQC = (dk: string, el: HTMLElement) => {
     if (!isLoggedIn) { navigate('/welcome'); return; }
-    const rect = el.getBoundingClientRect();
-    const vpW  = window.innerWidth;
-    const vpH  = window.innerHeight;
-    const side: 'left'|'right' = rect.right + POPUP_W + 12 < vpW ? 'right' : 'left';
-    const rawLeft = side === 'right' ? rect.right + 8 : rect.left - POPUP_W - 8;
-    const rawTop  = Math.min(rect.top, vpH - 420);
+    const { top, left } = calcPopupPos(el);
     setQcTitle('');
     setQcType('event');
-    setQc({ date: dk, top: rawTop, left: Math.max(8, rawLeft), side });
+    setQc({ date: dk, top, left });
   };
 
   // ── Quick save ────────────────────────────────────────────────────────
@@ -204,7 +220,7 @@ export default function CalendarView({
   const savedCount      = events.filter(e => savedEventIds.has(e.id)).length;
 
   return (
-    <>
+    <div ref={wrapRef} style={{ position: 'relative' }}>
       <style>{`
         .cal2-cell { transition: background 0.1s; }
         .cal2-cell:hover { background: rgba(44,37,35,0.025) !important; }
@@ -437,7 +453,7 @@ export default function CalendarView({
           onMouseEnter={stayHover}
           onMouseLeave={hideHover}
           style={{
-            position:'fixed', top:hover.top, left:hover.left, zIndex:500,
+            position:'absolute', top:hover.top, left:hover.left, zIndex:500,
             width:POPUP_W, background:'white', borderRadius:18,
             boxShadow:'0 12px 40px rgba(0,0,0,0.20)', border:`1px solid ${DIV}`,
             overflow:'hidden', pointerEvents:'auto',
@@ -495,7 +511,7 @@ export default function CalendarView({
         <div
           className="cal-qc-popup"
           style={{
-            position:'fixed', top:qc.top, left:qc.left, zIndex:500,
+            position:'absolute', top:qc.top, left:qc.left, zIndex:500,
             width:POPUP_W, background:'white', borderRadius:18,
             boxShadow:'0 12px 40px rgba(0,0,0,0.18)', border:`1px solid ${DIV}`,
             padding:'20px 22px 18px',
@@ -574,6 +590,6 @@ export default function CalendarView({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
