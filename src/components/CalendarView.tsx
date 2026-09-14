@@ -497,7 +497,7 @@ export default function CalendarView({
           );
 
           return (
-            <div key={mi} style={{ borderRadius:12, padding:'10px', background:isCurrentMonth ? SURFACE : 'transparent', cursor:'pointer' }}
+            <div key={mi} className="cal-year-month" style={{ borderRadius:12, padding:'10px', background:isCurrentMonth ? SURFACE : 'transparent', cursor:'pointer' }}
               onClick={() => { setCalDate(new Date(year, mi, 1)); setViewMode('month'); }}>
               {/* Month name */}
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
@@ -565,6 +565,8 @@ export default function CalendarView({
         .cal2-card:hover { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,0.18) !important; }
         .cal-week-cell:hover { background:rgba(31,78,91,0.03) !important; }
         .cal-year-day:hover span { opacity:0.7; }
+        .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
+        .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
         @media(max-width:860px){ .cal2-plus { opacity:1 !important; } }
       `}</style>
 
