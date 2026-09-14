@@ -387,8 +387,8 @@ export default function CalendarView({
         <div/> {/* spacer for time column */}
         {weekDays.map((d, i) => {
           const isToday  = fmtDateKey(d) === todayKey;
-          const isSat    = d.getDay() === 6;
-          const numColor = isSat ? RED : DARK;
+          const isWknd   = d.getDay() === 0 || d.getDay() === 6;
+          const numColor = isWknd ? RED : DARK;
           return (
             <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'10px 0', gap:4 }}>
               <span style={{ fontFamily:INTER, fontSize:11, fontWeight:600, color:MID, letterSpacing:'0.05em' }}>{DAY_HEADERS[i]}</span>
@@ -581,7 +581,19 @@ export default function CalendarView({
       {hover && (
         <div onMouseEnter={stayHover} onMouseLeave={hideHover}
           style={{ position:'absolute', top:hover.top, left:hover.left, zIndex:500, width:POPUP_W, background:'white', borderRadius:18, boxShadow:'0 12px 40px rgba(0,0,0,0.20)', border:`1px solid ${DIV}`, overflow:'hidden', pointerEvents:'auto' }}>
-          {hover.evt.image_url && <div style={{ height:160, overflow:'hidden' }}><img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/></div>}
+          <div style={{ position:'relative', height:170, overflow:'hidden', cursor:'pointer' }}
+            onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}>
+            {hover.evt.image_url
+              ? <img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              : <div style={{ width:'100%', height:'100%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:40, color:'rgba(255,255,255,0.3)' }}>✦</span></div>}
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)' }}/>
+            {/* Going avatars bottom-right */}
+            {userAvatar && goingEventIds.has(hover.evt.id) && (
+              <div style={{ position:'absolute', bottom:10, right:10, display:'flex' }}>
+                <img src={userAvatar} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:'2px solid white' }}/>
+              </div>
+            )}
+          </div>
           <div style={{ padding:'14px 16px' }}>
             {(() => {
             const t = hover.evt.start_time || hover.evt.time;
@@ -600,18 +612,7 @@ export default function CalendarView({
           })()}
             <p style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK, margin:'0 0 4px', lineHeight:1.3 }}>{hover.evt.title}</p>
             {hover.evt.location && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 6px' }}>{hover.evt.location}</p>}
-            {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 12px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
-            <div style={{ display:'flex', gap:10, marginTop:10 }}>
-              <button onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}
-                style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'10px 0', background:TEAL, border:'none', borderRadius:100, cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:'white' }}>
-                {userAvatar && <img src={userAvatar} alt="" style={{ width:22, height:22, borderRadius:'50%', objectFit:'cover' }}/>}
-                {goingEventIds.has(hover.evt.id) ? 'Going ✓' : 'Going'}
-              </button>
-              <button onClick={() => { navigate(`/event/${hover.evt.id}`); setHover(null); }}
-                style={{ flex:1, padding:'10px 0', background:SURFACE, border:'none', borderRadius:100, cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:DARK }}>
-                Details
-              </button>
-            </div>
+            {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:0, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
           </div>
         </div>
       )}

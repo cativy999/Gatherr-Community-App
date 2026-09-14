@@ -723,17 +723,6 @@ const Wards = () => {
             {/* View toggle: calendar / grid */}
             <div style={{ display: 'flex', alignItems: 'center', background: "rgba(0,0,0,0.05)", borderRadius: 999, padding: 2 }}>
               <button
-                onClick={() => setViewMode('calendar')}
-                style={{
-                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: viewMode === 'calendar' ? TEAL : 'transparent',
-                  transition: 'background 0.2s',
-                }}
-                aria-label="Calendar view"
-              >
-                <Calendar size={16} color={viewMode === 'calendar' ? '#FAF6F0' : DARK} />
-              </button>
-              <button
                 onClick={() => setViewMode('events')}
                 style={{
                   width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -743,6 +732,17 @@ const Wards = () => {
                 aria-label="Grid view"
               >
                 <LayoutGrid size={16} color={viewMode === 'events' ? '#FAF6F0' : DARK} />
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                style={{
+                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: viewMode === 'calendar' ? TEAL : 'transparent',
+                  transition: 'background 0.2s',
+                }}
+                aria-label="Calendar view"
+              >
+                <Calendar size={16} color={viewMode === 'calendar' ? '#FAF6F0' : DARK} />
               </button>
             </div>
             <button
