@@ -2779,11 +2779,19 @@ const CreateEvent = () => {
             <button type="button" onClick={goPrev} style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <ArrowLeft style={{ width: 16, height: 16 }} /> Back
             </button>
-            <button type="button" onClick={goNext} disabled={loading} className="ce-primary"
-              style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
-              {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
-              {step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {isEditing && step < 4 && (
+                <button type="button" onClick={handleSubmit} disabled={loading}
+                  style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: `1.5px solid ${TEAL_W}`, borderRadius: 999, padding: "11px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, opacity: loading ? 0.6 : 1 }}>
+                  <Check style={{ width: 14, height: 14 }} /> Save
+                </button>
+              )}
+              <button type="button" onClick={goNext} disabled={loading} className="ce-primary"
+                style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: "white", background: TEAL_W, border: "none", borderRadius: 999, padding: "12px 28px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+                {loading ? <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> : null}
+                {step === 4 ? (isEditing ? "Save Changes →" : "Publish Event →") : "Next Step →"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
