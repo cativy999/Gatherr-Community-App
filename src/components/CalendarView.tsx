@@ -498,8 +498,7 @@ export default function CalendarView({
                     : DARK;
                   return (
                     <div key={ci} className="cal-year-day"
-                      onClick={e => { e.stopPropagation(); openQC(dk, e.currentTarget as HTMLElement); }}
-                      style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:18, position:'relative', cursor:'pointer' }}>
+                      style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:18, position:'relative' }}>
                       {isToday
                         ? <div style={{ width:18, height:18, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}>
                             <span style={{ fontFamily:INTER, fontSize:8, fontWeight:700, color:'white' }}>{day}</span>
