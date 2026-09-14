@@ -169,8 +169,9 @@ export default function CalendarView({
     // Center horizontally on the hovered element, clamped within wrapper
     let left = eR.left - wR.left + eR.width / 2 - POPUP_W / 2;
     left = Math.max(4, Math.min(left, wR.width - POPUP_W - 4));
-    // Always show above — never flip to below
-    const top = eR.top - wR.top - POPUP_H - 8;
+    // Above if there's room; below if it would cover the chips
+    let top = eR.top - wR.top - POPUP_H - 8;
+    if (top < 0) top = eR.bottom - wR.top + 8;
     return { top, left };
   };
 
