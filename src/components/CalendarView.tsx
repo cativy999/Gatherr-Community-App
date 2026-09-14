@@ -587,9 +587,10 @@ export default function CalendarView({
             const dk = hover.evt.date;
             const dateStr = dk ? new Date(dk + 'T00:00:00').toLocaleDateString('en-US',{ weekday:'long', month:'long', day:'numeric' }) : '';
             const timeStr = t ? fmtTime(t) : '';
+            const tzAbbr = Intl.DateTimeFormat('en-US',{ timeZoneName:'short' }).formatToParts(new Date()).find(p => p.type==='timeZoneName')?.value ?? '';
             return (dateStr || timeStr) ? (
               <p style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color:TEAL, margin:'0 0 4px' }}>
-                {dateStr}{dateStr && timeStr ? ' · ' : ''}{timeStr}
+                {dateStr}{dateStr && timeStr ? ' · ' : ''}{timeStr}{tzAbbr ? ` ${tzAbbr}` : ''}
               </p>
             ) : null;
           })()}
