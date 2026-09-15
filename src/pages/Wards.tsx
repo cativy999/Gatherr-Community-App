@@ -690,6 +690,9 @@ const Wards = () => {
           animation: bell-ring 6.5s ease-in-out infinite;
           display: block;
         }
+        @media(max-width:860px){
+          .wards-location-title { font-size: 24px !important; }
+        }
       `}</style>
 
       {/* ── Sticky header ── */}
@@ -710,7 +713,7 @@ const Wards = () => {
               className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
               aria-label="Change location"
             >
-              <h1 style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
+              <h1 className="wards-location-title" style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
                 {cityName || "Events"}
               </h1>
               <ChevronDown className="h-5 w-5 mt-1" style={{ color: DARK }} />
