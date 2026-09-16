@@ -762,7 +762,7 @@ const Wards = () => {
             </button>
             <button
               onClick={() => { setHasUnread(false); navigate("/notifications"); }}
-              className="relative flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+              className="relative hidden md:flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
               style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
               aria-label="Notifications"
             >
