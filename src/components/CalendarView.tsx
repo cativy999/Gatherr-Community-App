@@ -385,9 +385,10 @@ export default function CalendarView({
   const MonthGrid = (
     <div style={{ background:'white', border:`1px solid ${DIV}`, borderRadius:20, overflow:'hidden' }}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', background:SURFACE }}>
-        {DAY_HEADERS.map(d => (
+        {DAY_HEADERS.map((d, i) => (
           <div key={d} style={{ padding:'10px 0', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:MID, letterSpacing:'0.05em' }}>{d}</span>
+            <span className="cal-day-full" style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:MID, letterSpacing:'0.05em' }}>{d}</span>
+            <span className="cal-day-short" style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:MID }}>{DAY_SINGLE[i]}</span>
           </div>
         ))}
       </div>
@@ -485,7 +486,8 @@ export default function CalendarView({
           const numColor = isWknd ? RED : DARK;
           return (
             <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'10px 0', gap:4 }}>
-              <span style={{ fontFamily:INTER, fontSize:11, fontWeight:600, color:MID, letterSpacing:'0.05em' }}>{DAY_HEADERS[i]}</span>
+              <span className="cal-day-full" style={{ fontFamily:INTER, fontSize:11, fontWeight:600, color:MID, letterSpacing:'0.05em' }}>{DAY_HEADERS[i]}</span>
+              <span className="cal-day-short" style={{ fontFamily:INTER, fontSize:11, fontWeight:600, color:MID }}>{DAY_SINGLE[i]}</span>
               {isToday
                 ? <div style={{ width:30, height:30, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:'white' }}>{d.getDate()}</span>
@@ -596,9 +598,8 @@ export default function CalendarView({
               onClick={() => { setCalDate(new Date(year, mi, 1)); setViewMode('month'); }}>
               {/* Month name */}
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                <span style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>
-                  {monthLabel}
-                </span>
+                <span className="cal-month-full" style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>{monthLabel}</span>
+                <span className="cal-month-short" style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>{MONTHS_SHORT[mi]}</span>
                 {isCurrentMonth && <div style={{ width:6, height:6, borderRadius:'50%', background:TEAL }}/>}
               </div>
               {/* Day headers */}
@@ -662,7 +663,19 @@ export default function CalendarView({
         .cal-year-day:hover span { opacity:0.7; }
         .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
         .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
-        @media(max-width:860px){ .cal2-plus { display:none !important; } .cal-menu-hamburger { display:none !important; } .cal-year-day-headers { display:none !important; } .cal-year-days-grid { display:none !important; } .cal-year-grid { grid-template-columns: repeat(3,1fr) !important; gap: 20px 12px !important; } }
+        .cal-day-short { display:none; }
+        .cal-month-short { display:none; }
+        @media(max-width:860px){
+          .cal2-plus { display:none !important; }
+          .cal-menu-hamburger { display:none !important; }
+          .cal-year-day-headers { display:none !important; }
+          .cal-year-days-grid { display:none !important; }
+          .cal-year-grid { grid-template-columns: repeat(3,1fr) !important; gap: 20px 12px !important; }
+          .cal-day-full { display:none !important; }
+          .cal-day-short { display:inline !important; }
+          .cal-month-full { display:none !important; }
+          .cal-month-short { display:inline !important; }
+        }
       `}</style>
 
       {Header}
