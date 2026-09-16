@@ -257,6 +257,11 @@ export default function CalendarView({
   const openQC = (dk: string, el: HTMLElement) => {
     if (dk < todayKey) return; // no creating on past dates
     if (!isLoggedIn) { navigate('/welcome'); return; }
+    // On mobile, slide into the full create-event page with the date pre-filled
+    if (window.innerWidth <= 860) {
+      navigate(`/create-event?date=${dk}`);
+      return;
+    }
     const { top, left } = calcPos(el);
     setQcTitle(''); setQcType('event');
     setQc({ date: dk, top, left });

@@ -42,7 +42,7 @@ import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { getRecurringLabelFull } from "@/lib/recurring";
-import { useNavigate, useParams, Navigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -919,6 +919,7 @@ const ShareModal = ({
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const isEditing = !!id;
   const { session, loading: sessionLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -976,7 +977,7 @@ const CreateEvent = () => {
   const [isFree, setIsFree] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(() => searchParams.get("date") || "");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
