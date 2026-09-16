@@ -602,7 +602,7 @@ export default function CalendarView({
                 {isCurrentMonth && <div style={{ width:6, height:6, borderRadius:'50%', background:TEAL }}/>}
               </div>
               {/* Day headers */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:2 }}>
+              <div className="cal-year-day-headers" style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:2 }}>
                 {DAY_SINGLE.map((d,i) => (
                   <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'center', height:16 }}>
                     <span style={{ fontFamily:INTER, fontSize:8, fontWeight:600, color: (i===0||i===6) ? (isPastMonth?'#D9B4B4':RED) : (isPastMonth?'#C8C3BC':MID) }}>{d}</span>
@@ -610,7 +610,7 @@ export default function CalendarView({
                 ))}
               </div>
               {/* Days */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+              <div className="cal-year-days-grid" style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
                 {mCells.map((day, ci) => {
                   if (!day) return <div key={ci} style={{ height:18 }}/>;
                   const dk      = fmtKey(year, mi, day);
@@ -662,7 +662,7 @@ export default function CalendarView({
         .cal-year-day:hover span { opacity:0.7; }
         .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
         .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
-        @media(max-width:860px){ .cal2-plus { display:none !important; } .cal-menu-hamburger { display:none !important; } }
+        @media(max-width:860px){ .cal2-plus { display:none !important; } .cal-menu-hamburger { display:none !important; } .cal-year-day-headers { display:none !important; } .cal-year-days-grid { display:none !important; } }
       `}</style>
 
       {Header}
