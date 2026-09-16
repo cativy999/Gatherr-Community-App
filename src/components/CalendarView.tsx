@@ -598,8 +598,7 @@ export default function CalendarView({
               onClick={() => { setCalDate(new Date(year, mi, 1)); setViewMode('month'); }}>
               {/* Month name */}
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                <span className="cal-month-full" style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>{monthLabel}</span>
-                <span className="cal-month-short" style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>{MONTHS_SHORT[mi]}</span>
+                <span style={{ fontFamily:INTER, fontSize:13, fontWeight:700, color: isPastMonth ? '#B0A9A3' : isCurrentMonth ? TEAL : DARK }}>{MONTHS_SHORT[mi]}</span>
                 {isCurrentMonth && <div style={{ width:6, height:6, borderRadius:'50%', background:TEAL }}/>}
               </div>
               {/* Day headers */}
@@ -664,7 +663,6 @@ export default function CalendarView({
         .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
         .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
         .cal-day-short { display:none; }
-        .cal-month-short { display:none; }
         @media(max-width:860px){
           .cal2-plus { display:none !important; }
           .cal-menu-hamburger { display:none !important; }
@@ -673,8 +671,6 @@ export default function CalendarView({
           .cal-year-grid { grid-template-columns: repeat(3,1fr) !important; gap: 20px 12px !important; }
           .cal-day-full { display:none !important; }
           .cal-day-short { display:inline !important; }
-          .cal-month-full { display:none !important; }
-          .cal-month-short { display:inline !important; }
         }
       `}</style>
 
