@@ -2592,6 +2592,15 @@ const CreateEvent = () => {
     <div className="ce-wrap" style={{ background: "white", minHeight: "100vh" }}>
       {/* Global hover / interactive styles for this page */}
       <style>{`
+        @media (max-width: 860px) {
+          @keyframes ce-slide-in {
+            from { transform: translateX(100%); }
+            to   { transform: translateX(0); }
+          }
+          .ce-wrap {
+            animation: ce-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+          }
+        }
         /* Every button gets a subtle dim on hover */
         .ce-wrap button[type="button"]:not(:disabled):hover {
           filter: brightness(0.88);
