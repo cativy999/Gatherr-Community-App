@@ -569,7 +569,7 @@ export default function CalendarView({
 
   const YearGrid = (
     <div style={{ background:'white', border:`1px solid ${DIV}`, borderRadius:20, padding:'28px 24px' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'36px 24px' }}>
+      <div className="cal-year-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'36px 24px' }}>
         {Array.from({ length: 12 }, (_, mi) => {
           const isPastMonth    = year < thisYear || (year === thisYear && mi < thisMonthNum);
           const isCurrentMonth = year === thisYear && mi === thisMonthNum;
@@ -662,7 +662,7 @@ export default function CalendarView({
         .cal-year-day:hover span { opacity:0.7; }
         .cal-year-month { transition: background 0.15s, box-shadow 0.15s; }
         .cal-year-month:hover { background: rgba(31,78,91,0.07) !important; box-shadow: 0 2px 12px rgba(31,78,91,0.10); cursor:pointer; }
-        @media(max-width:860px){ .cal2-plus { display:none !important; } .cal-menu-hamburger { display:none !important; } .cal-year-day-headers { display:none !important; } .cal-year-days-grid { display:none !important; } }
+        @media(max-width:860px){ .cal2-plus { display:none !important; } .cal-menu-hamburger { display:none !important; } .cal-year-day-headers { display:none !important; } .cal-year-days-grid { display:none !important; } .cal-year-grid { grid-template-columns: repeat(3,1fr) !important; gap: 20px 12px !important; } }
       `}</style>
 
       {Header}
