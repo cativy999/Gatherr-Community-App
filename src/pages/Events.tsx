@@ -156,18 +156,26 @@ const Events = () => {
   const [goingEventIds, setGoingEventIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Pull avatar from OAuth session metadata first (Google / Apple)
+    const meta = session?.user?.user_metadata;
+    const metaAvatar = meta?.avatar_url || meta?.picture || null;
+    const metaName = meta?.full_name || meta?.name || "";
+    if (metaAvatar) setUserAvatar(metaAvatar);
+    if (metaName) setUserName(metaName);
+
     if (!userId) return;
+
+    // Also check profiles table (may override with a custom uploaded photo)
     supabase
       .from("profiles")
       .select("full_name, avatar_url")
       .eq("user_id", userId)
       .single()
       .then(({ data }) => {
-        if (data) {
-          setUserAvatar(data.avatar_url ?? null);
-          setUserName(data.full_name ?? "");
-        }
+        if (data?.avatar_url) setUserAvatar(data.avatar_url);
+        if (data?.full_name) setUserName(data.full_name);
       });
+
     supabase
       .from("rsvps")
       .select("event_id")
@@ -176,7 +184,7 @@ const Events = () => {
       .then(({ data }) => {
         setGoingEventIds(new Set((data ?? []).map((r: any) => r.event_id)));
       });
-  }, [userId]);
+  }, [userId, session]);
 
   // ── Big calendar: all events ──
   const [allEvents, setAllEvents] = useState<any[]>([]);

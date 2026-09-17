@@ -750,9 +750,9 @@ export default function CalendarView({
                     </div>
                 }
                 <div>
-                  <span style={{ fontFamily:INTER, fontSize:12, fontWeight:700, color:TEAL }}>YOU</span>
+                  <span style={{ fontFamily:INTER, fontSize:12, fontWeight:700, color:TEAL }}>You're going</span>
                   {(hover.evt.attendees ?? 0) > 1 && (
-                    <span style={{ fontFamily:INTER, fontSize:12, color:MID }}> + {(hover.evt.attendees ?? 1) - 1} others going</span>
+                    <span style={{ fontFamily:INTER, fontSize:12, color:MID }}> · {(hover.evt.attendees ?? 1) - 1} others</span>
                   )}
                 </div>
               </div>
