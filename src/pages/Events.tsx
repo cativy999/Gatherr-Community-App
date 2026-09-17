@@ -410,8 +410,8 @@ const Events = () => {
   // ── Right panel ─────────────────────────────────────────────────────────
   const RightPanel = () => (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Mini calendar — sticky, never scrolls away */}
-      <div style={{ flexShrink: 0, paddingBottom: 16, borderBottom: `1px solid ${DIV}` }}>
+      {/* Mini calendar — sticky, never scrolls away; hidden on mobile */}
+      <div className="ev-mini-cal" style={{ flexShrink: 0, paddingBottom: 16, borderBottom: `1px solid ${DIV}` }}>
         {renderMiniCalendar()}
       </div>
 
@@ -554,6 +554,7 @@ const Events = () => {
             border-top: 1px solid ${DIV};
             padding: 20px 20px 96px;
           }
+          .ev-mini-cal { display: none; }
         }
       `}</style>
 
