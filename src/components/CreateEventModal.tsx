@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  X, ChevronDown, Check, Loader2, MapPin, MoreVertical, Trash2,
-  Calendar, RefreshCw, ArrowRight, Star, Circle, CheckCircle2,
+  X, ChevronDown, ChevronLeft, Check, Loader2, MapPin, MoreVertical, Trash2,
+  Calendar, Clock, RefreshCw, ArrowRight, Star, Circle, CheckCircle2,
   FileText, Car, DollarSign, Ticket, Utensils, Link,
   SunMedium, LandPlot, HandPlatter, Rainbow, Presentation,
   Image as ImageIcon, ImagePlus,
@@ -9,7 +9,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
-  CE_DARK, CE_TEAL, CE_MID, CE_DIV, CE_BG, CE_SURFACE, CE_ERROR, CE_SANS,
+  CE_DARK, CE_TEAL, CE_MID, CE_DIV, CE_BG, CE_SURFACE, CE_ERROR, CE_SANS, CE_SERIF,
 } from '../tokens';
 
 // ── Design token aliases ────────────────────────────────────────────────────
@@ -676,7 +676,8 @@ export default function CreateEventModal({
   const [extra2Preview, setExtra2Preview] = useState<string | null>(null);
 
   // UI state
-  const [saving, setSaving] = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [previewOpen,  setPreviewOpen]  = useState(false);
 
   // Refs
   const locationRef      = useRef<HTMLDivElement>(null);
@@ -1487,6 +1488,86 @@ export default function CreateEventModal({
         </div>
 
         {/* ── Sticky footer ── */}
+        {/* ── Preview overlay ── */}
+        {previewOpen && (
+          <div style={{ position: 'absolute', inset: 0, background: 'white', borderRadius: 18, display: 'flex', flexDirection: 'column', zIndex: 20 }}>
+            {/* Preview header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px 16px', borderBottom: `1px solid ${DIV}`, flexShrink: 0 }}>
+              <button type="button" onClick={() => setPreviewOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+                <ChevronLeft style={{ width: 24, height: 24, color: DARK }} />
+              </button>
+              <h2 style={{ fontFamily: SANS, fontSize: 18, fontWeight: 700, color: DARK, flex: 1, margin: 0 }}>Preview</h2>
+            </div>
+
+            {/* Preview card */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px' }}>
+              {(() => {
+                const fmtDate = (d: string) => d ? new Date(d + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
+                const fmtTime = (t: string) => t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+                const group = ownedGroups.find(g => g.id === communityId);
+                return (
+                  <div style={{ maxWidth: 480, margin: '0 auto', borderRadius: 20, border: `1px solid ${DIV}`, overflow: 'hidden', background: 'white' }}>
+                    {coverPreview && <img src={coverPreview} alt={title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />}
+                    <div style={{ padding: 20 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: DIV, marginBottom: 12 }}>
+                        <span style={{ fontSize: 14 }}>🏠</span>
+                        <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 600, color: DARK }}>{group?.name ?? myProfile?.name ?? userName ?? 'My Event'}</span>
+                      </div>
+                      <h2 style={{ fontFamily: CE_SERIF, fontSize: 26, fontWeight: 700, color: DARK, marginBottom: 12 }}>{title || 'Event Title'}</h2>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                        {(date || isRecurring) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Calendar style={{ width: 16, height: 16, color: MID, flexShrink: 0 }} />
+                            <span style={{ fontFamily: SANS, fontSize: 14, color: DARK }}>{isRecurring ? 'Recurring' : fmtDate(date)}</span>
+                          </div>
+                        )}
+                        {(startTime || endTime) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Clock style={{ width: 16, height: 16, color: MID, flexShrink: 0 }} />
+                            <span style={{ fontFamily: SANS, fontSize: 14, color: DARK }}>{[fmtTime(startTime), fmtTime(endTime)].filter(Boolean).join(' – ')}</span>
+                          </div>
+                        )}
+                        {(address || virtualLink) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <MapPin style={{ width: 16, height: 16, color: MID, flexShrink: 0 }} />
+                            <span style={{ fontFamily: SANS, fontSize: 14, color: DARK }}>{address || virtualLink}</span>
+                          </div>
+                        )}
+                      </div>
+                      {description && <p style={{ fontFamily: SANS, fontSize: 14, color: MID, lineHeight: 1.6, marginBottom: 16 }}>{description}</p>}
+                      {(selectedFoods.length > 0 || (groupAssignmentEnabled && groupTheme)) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTop: `1px solid ${DIV}` }}>
+                          {FOOD_TILES.filter(f => selectedFoods.includes(f.id)).map(f => (
+                            <span key={f.id} style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: DARK }}>{f.emoji} {f.label} Provided</span>
+                          ))}
+                          {groupAssignmentEnabled && groupTheme && (
+                            <span style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: DARK }}>👥 {GROUP_THEMES[groupTheme].label} Assignment</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Preview footer */}
+            <div style={{ flexShrink: 0, borderTop: `1px solid ${DIV}`, padding: '16px 40px', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setPreviewOpen(false)}
+                style={{ padding: '11px 24px', background: 'none', border: `1.5px solid ${DIV}`, borderRadius: 100, cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600, color: DARK }}>
+                Back to Editing
+              </button>
+              <button type="button" onClick={() => { setPreviewOpen(false); handlePublish(); }} disabled={saving}
+                style={{ padding: '11px 28px', background: saving ? '#a0b8c0' : TEAL, color: BG, border: 'none', borderRadius: 100, cursor: saving ? 'default' : 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {saving && <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />}
+                {saving ? 'Publishing…' : 'Publish Now'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Sticky footer ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           background: 'rgba(255,255,255,0.92)',
@@ -1497,7 +1578,7 @@ export default function CreateEventModal({
           padding: '16px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16,
         }}>
-          <button type="button" onClick={onClose}
+          <button type="button" onClick={() => setPreviewOpen(true)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: SANS, fontSize: 14, fontWeight: 600, color: TEAL }}>
             Preview First
           </button>
