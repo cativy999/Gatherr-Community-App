@@ -617,6 +617,10 @@ export default function CreateEventModal({
   // ── Post As ─────────────────────────────────────────────────────────────────
   const [communityId,  setCommunityId]  = useState<string | null>(null);
   const [ownedGroups,  setOwnedGroups]  = useState<{id:string;name:string;avatar_url:string|null}[]>([]);
+  const [myProfile,    setMyProfile]    = useState<{name:string;avatar_url:string|null}|null>(null);
+
+  // ── Poster scan ──────────────────────────────────────────────────────────────
+  const [scanning, setScanning] = useState(false);
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [title,        setTitle]        = useState('');
@@ -689,12 +693,34 @@ export default function CreateEventModal({
     padding: '0 16px', fontFamily: SANS, fontSize: 15, color: DARK, outline: 'none',
   };
 
-  // ── Fetch owned groups when modal opens ───────────────────────────────────
+  // ── Fetch profile + groups when modal opens (same logic as CreateEvent.tsx) ──
   useEffect(() => {
     if (!open || !session?.user?.id) return;
-    supabase.from('communities').select('id, name, avatar_url')
-      .eq('user_id', session.user.id)
-      .then(({ data }) => setOwnedGroups(data ?? []));
+    const userId = session.user.id;
+
+    // My profile for Post As avatar
+    supabase.from('profiles').select('name, avatar_url').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => setMyProfile(data ? { name: data.name, avatar_url: data.avatar_url ?? null } : null));
+
+    // Groups I own + groups I co-admin
+    const loadGroups = async () => {
+      const { data: owned } = await supabase.from('groups').select('id, name, avatar_url').eq('user_id', userId);
+      const { data: adminRows } = await supabase.from('group_admins').select('group_id').eq('user_id', userId).eq('status', 'accepted');
+      let coAdminGroups: {id:string;name:string;avatar_url:string|null}[] = [];
+      if (adminRows && adminRows.length > 0) {
+        const groupIds = adminRows.map((r: any) => r.group_id);
+        const { data: groups } = await supabase.from('groups').select('id, name, avatar_url').in('id', groupIds);
+        coAdminGroups = groups ?? [];
+      }
+      const seen = new Set<string>();
+      const merged = [...(owned ?? []), ...coAdminGroups].filter((g: any) => {
+        if (seen.has(g.id)) return false;
+        seen.add(g.id);
+        return true;
+      });
+      setOwnedGroups(merged);
+    };
+    loadGroups();
   }, [open, session]);
 
   // ── Reset on open ──────────────────────────────────────────────────────────
@@ -792,6 +818,37 @@ export default function CreateEventModal({
   const handleCoverFile = (f: File) => { setCoverFile(f); setCoverPreview(URL.createObjectURL(f)); };
   const handleExtra1File = (f: File) => { setExtra1File(f); setExtra1Preview(URL.createObjectURL(f)); };
   const handleExtra2File = (f: File) => { setExtra2File(f); setExtra2Preview(URL.createObjectURL(f)); };
+
+  // ── Scan poster — exact same as CreateEvent.tsx ───────────────────────────
+  const scanPoster = async () => {
+    if (!coverFile) return;
+    setScanning(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => { const r = reader.result as string; resolve(r.split(',')[1]); };
+        reader.onerror = reject;
+        reader.readAsDataURL(coverFile);
+      });
+      const res = await fetch('/api/scan-poster', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType: coverFile.type || 'image/jpeg' }),
+      });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Failed to scan poster'); }
+      const extracted = await res.json();
+      if (extracted.title) setTitle(extracted.title);
+      if (extracted.description) setDescription(extracted.description.replace(/([.!?])\s+/g, '$1\n').trim());
+      if (extracted.date) setDate(extracted.date);
+      if (extracted.end_date) setEndDate(extracted.end_date);
+      if (extracted.start_time) setStartTime(extracted.start_time);
+      if (extracted.end_time) setEndTime(extracted.end_time);
+      if (extracted.location) { setLocation(extracted.location); setAddress(extracted.location); setLocationSearch(extracted.location); }
+    } catch (e) {
+      console.error(e);
+    }
+    setScanning(false);
+  };
 
   // ── Publish ────────────────────────────────────────────────────────────────
   const handlePublish = async () => {
@@ -905,8 +962,8 @@ export default function CreateEventModal({
             <FieldLabel required>Post As</FieldLabel>
             {(() => {
               const selGroup = ownedGroups.find(g => g.id === communityId);
-              const selAvatar = communityId === null ? userAvatar : selGroup?.avatar_url ?? null;
-              const selName   = communityId === null ? (userName || 'My Profile') : (selGroup?.name ?? '');
+              const selAvatar = communityId === null ? (myProfile?.avatar_url ?? userAvatar) : (selGroup?.avatar_url ?? null);
+              const selName   = communityId === null ? (myProfile?.name || userName || 'My Profile') : (selGroup?.name ?? '');
               return (
                 <div style={{ position: 'relative' }}>
                   <select
@@ -914,7 +971,7 @@ export default function CreateEventModal({
                     onChange={e => setCommunityId(e.target.value === '' ? null : e.target.value)}
                     style={{ ...inputCls, paddingLeft: 44, appearance: 'none', cursor: 'pointer' }}
                   >
-                    <option value="">{userName || 'My Profile'}</option>
+                    <option value="">{myProfile?.name || userName || 'My Profile'}</option>
                     {ownedGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                   <div style={{ pointerEvents: 'none', position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
@@ -1407,9 +1464,9 @@ export default function CreateEventModal({
                   ✨ AI-generated image
                 </button>
                 {coverFile && (
-                  <button type="button"
-                    style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#9333ea', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    ✨ Auto-fill from poster
+                  <button type="button" onClick={scanPoster} disabled={scanning}
+                    style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#9333ea', background: 'none', border: 'none', cursor: scanning ? 'default' : 'pointer', opacity: scanning ? 0.5 : 1, padding: 0 }}>
+                    {scanning ? 'Reading…' : '✨ Auto-fill from poster'}
                   </button>
                 )}
               </div>
