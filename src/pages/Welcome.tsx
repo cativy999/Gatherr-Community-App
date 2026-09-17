@@ -75,7 +75,8 @@ const MarqueeBanner = () => (
 const Welcome = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [step, setStep] = useState<Step>(() => searchParams.get("step") === "email" ? "email" : "home");
+  const arrivedAtEmail = searchParams.get("step") === "email";
+  const [step, setStep] = useState<Step>(() => arrivedAtEmail ? "email" : "home");
   const [email, setEmail] = useState(localStorage.getItem("last_used_email") || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -264,7 +265,7 @@ const Welcome = () => {
       <div style={{ width: "100%", maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 32 }}>
         {/* Back */}
         <button
-          onClick={() => { setStep("home"); setError(""); }}
+          onClick={() => { if (arrivedAtEmail) { navigate(-1); } else { setStep("home"); setError(""); } }}
           style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 14, color: "#635C59", width: "fit-content" }}
         >
           <ArrowLeft style={{ width: 16, height: 16 }} /> Back
