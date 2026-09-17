@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, MapPin, Clock, AlignJustify, Check, Star, Bookmark, Users } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight, X, AlignJustify, Check, Star, Bookmark, Users } from 'lucide-react';
+import CreateEventModal from './CreateEventModal';
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const DARK    = "#2C2523";
@@ -43,10 +42,12 @@ interface Props {
   userId?: string;
   userName?: string;
   userAvatar?: string | null;
+  session?: any;
   savedEventIds?: Set<string>;
   goingEventIds?: Set<string>;
   interestedEventIds?: Set<string>;
   jumpDate?: Date; // external date to jump to (from mini calendar)
+  onEventCreated?: () => void; // called after a new event is published
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -147,9 +148,9 @@ const getWeekStart = (date: Date) => {
 };
 
 export default function CalendarView({
-  events, navigate, isLoggedIn, userId, userName, userAvatar,
+  events, navigate, isLoggedIn, userId, userName, userAvatar, session,
   savedEventIds = new Set(), goingEventIds = new Set(), interestedEventIds = new Set(),
-  jumpDate,
+  jumpDate, onEventCreated,
 }: Props) {
   const [calDate,  setCalDate]  = useState(() => new Date(todayRaw.getFullYear(), todayRaw.getMonth(), todayRaw.getDate()));
   const [viewMode, setViewMode] = useState<'year'|'month'|'week'>('month');
@@ -164,9 +165,8 @@ export default function CalendarView({
   const [filter,   setFilter]   = useState<'all'|'going'|'interested'|'saved'>('all');
   const [hover,    setHover]    = useState<HoverState | null>(null);
   const [qc,       setQc]       = useState<QuickCreate | null>(null);
-  const [qcTitle,  setQcTitle]  = useState('');
-  const [qcType,   setQcType]   = useState<'event'|'task'|'appointment'>('event');
-  const [saving,   setSaving]   = useState(false);
+  const [createModalOpen,    setCreateModalOpen]    = useState(false);
+  const [createModalDate,    setCreateModalDate]    = useState('');
   const [now,      setNow]      = useState(new Date());
   const [calGridH, setCalGridH] = useState(520);
 
@@ -199,7 +199,7 @@ export default function CalendarView({
     const h = (e: MouseEvent) => {
       const t = e.target as Element;
       if (!t.closest('.cal-menu-btn') && !t.closest('.cal-menu-dd')) setMenuOpen(false);
-      if (!t.closest('.cal-qc-popup') && !t.closest('.cal2-cell') && !t.closest('.cal-week-cell') && !t.closest('.cal-year-day')) setQc(null);
+      if (!t.closest('.cal2-cell') && !t.closest('.cal-week-cell') && !t.closest('.cal-year-day')) setQc(null);
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
@@ -263,31 +263,19 @@ export default function CalendarView({
   const hideHover = useCallback(() => { hoverTimer.current = setTimeout(() => setHover(null), 150); }, []);
   const stayHover = useCallback(() => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
 
-  const openQC = (dk: string, el: HTMLElement) => {
+  const openQC = (dk: string, _el: HTMLElement) => {
     if (dk < todayKey) return; // no creating on past dates
     if (!isLoggedIn) { navigate('/welcome'); return; }
-    // On mobile, slide into the full create-event page with the date pre-filled
+    // On mobile, navigate to the full create-event page with the date pre-filled
     if (window.innerWidth <= 860) {
       navigate(`/create-event?date=${dk}`);
       return;
     }
-    const { top, left } = calcPos(el);
-    setQcTitle(''); setQcType('event');
-    setQc({ date: dk, top, left });
+    // On desktop, open the full Create Event modal overlay
+    setCreateModalDate(dk);
+    setCreateModalOpen(true);
   };
 
-  // ── Quick save ────────────────────────────────────────────────────────
-  const handleQuickSave = async () => {
-    if (!qcTitle.trim() || !qc) return;
-    setSaving(true);
-    try {
-      const { error } = await supabase.from('events').insert({ title: qcTitle.trim(), date: qc.date, user_id: userId, ward_type: 'general' });
-      if (error) throw error;
-      toast.success('Event created!');
-      setQc(null);
-    } catch { toast.error('Could not save — try More options'); }
-    finally { setSaving(false); }
-  };
 
   // ── My Events counts ──────────────────────────────────────────────────
   const goingCount      = events.filter(e => goingEventIds.has(e.id)).length;
@@ -761,51 +749,17 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* ── Quick-create popup ── */}
-      {qc && (
-        <div className="cal-qc-popup" style={{ position:'absolute', top:qc.top, left:qc.left, zIndex:500, width:POPUP_W, background:'white', borderRadius:18, boxShadow:'0 12px 40px rgba(0,0,0,0.18)', border:`1px solid ${DIV}`, padding:'20px 22px 18px' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-            <AlignJustify size={18} color={MID}/>
-            <button onClick={() => setQc(null)} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', color:MID }}><X size={18}/></button>
-          </div>
-          <input autoFocus value={qcTitle} onChange={e => setQcTitle(e.target.value)}
-            onKeyDown={e => { if(e.key==='Enter') handleQuickSave(); if(e.key==='Escape') setQc(null); }}
-            placeholder="Add title"
-            style={{ width:'100%', border:'none', borderBottom:`2px solid ${TEAL}`, outline:'none', fontFamily:INTER, fontSize:22, fontWeight:500, color:DARK, padding:'0 0 8px', background:'transparent', boxSizing:'border-box', marginBottom:16 }}/>
-          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
-            {(['event','task','appointment'] as const).map(t => (
-              <button key={t} onClick={() => setQcType(t)}
-                style={{ padding:'6px 14px', borderRadius:100, border:'none', cursor:'pointer', fontFamily:INTER, fontSize:13, fontWeight:600, background:qcType===t?SURFACE:'transparent', color:qcType===t?TEAL:MID, textTransform:'capitalize' }}>
-                {t}
-              </button>
-            ))}
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'10px 12px', borderRadius:10, background:BG }}>
-            <Clock size={16} color={MID}/>
-            <div>
-              <p style={{ fontFamily:INTER, fontSize:14, fontWeight:600, color:DARK, margin:0 }}>{fmtDateTimeLabel(qc.date)}</p>
-              <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:0 }}>Time zone · Does not repeat</p>
-            </div>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${DIV}` }}>
-            <Users size={16} color={MID}/><span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add guests</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:`1px solid ${DIV}` }}>
-            <MapPin size={16} color={MID}/><span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add location</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', marginBottom:16 }}>
-            <AlignJustify size={16} color={MID}/><span style={{ fontFamily:INTER, fontSize:14, color:MID }}>Add description</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <button onClick={() => { setQc(null); navigate('/create-event', { state: { prefillDate: qc.date, prefillTitle: qcTitle } }); }}
-              style={{ background:'none', border:'none', cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:MID }}>More options</button>
-            <button onClick={handleQuickSave} disabled={!qcTitle.trim()||saving}
-              style={{ padding:'10px 24px', background:qcTitle.trim()?TEAL:DIV, color:qcTitle.trim()?'white':MID, border:'none', borderRadius:100, cursor:qcTitle.trim()?'pointer':'default', fontFamily:INTER, fontSize:14, fontWeight:700 }}>
-              {saving?'Saving…':'Save'}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ── Create Event Modal (desktop full overlay) ── */}
+      <CreateEventModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        prefillDate={createModalDate}
+        userId={userId}
+        userName={userName}
+        userAvatar={userAvatar}
+        session={session}
+        onCreated={() => { setCreateModalOpen(false); onEventCreated?.(); }}
+      />
     </div>
   );
 }

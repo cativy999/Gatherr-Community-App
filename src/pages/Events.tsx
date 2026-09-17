@@ -193,7 +193,7 @@ const Events = () => {
 
   const cityName = location.split(",")[0].trim();
 
-  useEffect(() => {
+  const fetchEvents = () => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
     supabase
@@ -203,7 +203,11 @@ const Events = () => {
       .eq("category", "ward")
       .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
       .then(({ data }) => setAllEvents(data ?? []));
-  }, [location]);
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const STATE_ABBR: Record<string, string> = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -616,8 +620,10 @@ const Events = () => {
               userId={userId}
               userName={userName}
               userAvatar={userAvatar}
+              session={session}
               goingEventIds={goingEventIds}
               jumpDate={jumpDate}
+              onEventCreated={fetchEvents}
             />
           </div>
         </div>
