@@ -884,14 +884,15 @@ export default function CreateEventModal({
         description: description.trim() || null,
         category: 'ward',
         ward_type: wardType,
-        date: isRecurring ? null : date,
-        end_date: endDate || null,
+        is_free: true,
+        date: isRecurring ? '2099-12-31' : date,
+        end_date: isRecurring ? null : (endDate || null),
         start_time: startTime || null,
         end_time: endTime || null,
-        timezone: (startTime || endTime) ? timezone : null,
-        location: isVirtual ? null : (location || address || null),
-        address: isVirtual ? null : (address || null),
-        virtual_link: isVirtual ? virtualLink : null,
+        timezone: timezone || null,
+        location: location || address || null,
+        address: address || null,
+        virtual_link: virtualLink || null,
         is_virtual: isVirtual,
         lat: lat ?? null,
         lng: lng ?? null,
@@ -903,6 +904,8 @@ export default function CreateEventModal({
         age_max: maxAge && maxAge !== '+' ? parseInt(maxAge) : null,
         is_recurring: isRecurring,
         recurring_days: isRecurring ? recurringDays : null,
+        recurring_day: isRecurring ? (recurringDays[0] ?? null) : null,
+        recurring_week_of_month: null,
         additional_info: validAdditionalInfo.length > 0 ? validAdditionalInfo : null,
         group_assignment_enabled: groupAssignmentEnabled,
         group_theme: groupAssignmentEnabled ? groupTheme : null,
@@ -920,7 +923,8 @@ export default function CreateEventModal({
       onCreated?.();
     } catch (err: any) {
       console.error('Error publishing event:', err);
-      toast.error('Could not publish event. Please try again.');
+      const msg = err instanceof Error ? err.message : (err as any)?.message ?? 'Could not publish event';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
