@@ -1517,6 +1517,7 @@ const CreateEvent = () => {
       }
 
       const extracted = await res.json();
+      console.log('scan-poster result:', extracted);
 
       if (extracted.title) setTitle(extracted.title);
       if (extracted.description) {

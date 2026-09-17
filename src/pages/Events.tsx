@@ -1,23 +1,32 @@
-import { CE_BG,CE_SURFACE,CE_SUCCESS_BG,CE_SUCCESS_TEXT } from '../tokens';
-import { getRegionTag } from '@/components/EventCard';
-import { useState, useEffect, useRef } from "react";
+import { CE_BG, CE_SURFACE } from '../tokens';
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ThumbsUp, Smile, Heart, MapPin, Users, MoreHorizontal, CalendarDays } from "lucide-react";
+import {
+  ThumbsUp, Smile, Heart, MapPin, Users,
+  ChevronLeft, ChevronRight,
+  Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "@/contexts/LocationContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import CalendarView from "@/components/CalendarView";
+import LocationSelector from "@/components/LocationSelector";
 
 // ── Design tokens ──────────────────────────────────────────────────────────
-const BG        = CE_BG;
-const DARK      = "#2C2523";
-const MID       = "#635C59";
-const TEAL      = "#1F4E5B";
-const ICON_BG   = "#E4DCCF";
-const DIVIDER   = "#E4DCCF";
-const GARAMOND  = "'EB Garamond', Georgia, serif";
+const BG       = CE_BG;
+const DARK     = "#2C2523";
+const MID      = "#635C59";
+const TEAL     = "#1F4E5B";
+const DIV      = "#E4DCCF";
+const SURFACE  = "#EFECE6";
+const INTER    = "'Inter', sans-serif";
 const CORMORANT = "'Cormorant Garamond', Georgia, serif";
-const INTER     = "'Inter', sans-serif";
 
-// ── Chips ──────────────────────────────────────────────────────────────────
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ── Personal events tabs ───────────────────────────────────────────────────
 const TABS = [
   { id: "going",     label: "Going",     Icon: ThumbsUp },
   { id: "interests", label: "Interests", Icon: Smile    },
@@ -25,7 +34,19 @@ const TABS = [
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
-// ── Time helpers ───────────────────────────────────────────────────────────
+// ── Filter chips (same as homepage) ───────────────────────────────────────
+const filterChips = [
+  { id: "all",        label: "All",          icon: null           },
+  { id: "conference", label: "Conference",   icon: Presentation   },
+  { id: "spiritual",  label: "Spiritual",    icon: Church         },
+  { id: "fhe",        label: "FHE",          icon: LandPlot       },
+  { id: "food",       label: "Provide Food", icon: HandPlatter    },
+  { id: "popular",    label: "Popular",      icon: Sparkles       },
+  { id: "service",    label: "Service",      icon: HeartHandshake },
+  { id: "virtual",    label: "Virtual",      icon: Video          },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 const TZ_ABBR: Record<string, string> = {
   "America/Los_Angeles": "PT", "America/Denver": "MT",
   "America/Phoenix": "MT",     "America/Chicago": "CT",
@@ -34,417 +55,61 @@ const TZ_ABBR: Record<string, string> = {
 };
 const fmtTime = (t: string) =>
   new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-const getEventTime = (ev: any) => {
-  const t = ev.start_time ?? ev.time;
-  if (!t) return null;
-  const tz = ev.timezone ? (TZ_ABBR[ev.timezone] ?? "") : "";
-  return tz ? `${fmtTime(t)} ${tz}` : fmtTime(t);
-};
 
 const toLocal = (d: string) => {
   const [y, m, day] = d.split("-").map(Number);
   return new Date(y, m - 1, day);
 };
-
 const isRecurring = (dateStr: string) => parseInt(dateStr.split("-")[0], 10) >= 2099;
 
-const fmtDateLabel = (dateStr: string) => {
-  if (isRecurring(dateStr)) return { monthDay: "Recurring", weekday: "" };
-  const date = toLocal(dateStr);
-  const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  const weekday  = date.toLocaleDateString("en-US", { weekday: "long" });
-  return { monthDay, weekday };
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const groupByDate = (evs: any[]) => {
-  const map = new Map<string, any[]>();
-  for (const ev of evs) {
-    if (!map.has(ev.date)) map.set(ev.date, []);
-    map.get(ev.date)!.push(ev);
-  }
-  return Array.from(map.entries()).map(([date, events]) => ({ date, events }));
-};
-
-// ── Event card (Figma-matched) ──────────────────────────────────────────────
-const EventCard = ({ event, onClick, isDesktop }: { event: any; onClick: () => void; isDesktop?: boolean }) => {
-  const timeStr = getEventTime(event);
-  const ageLabel = event.age_min
-    ? `Ages ${event.age_min}${event.age_max ? `–${event.age_max}` : "+"}`
-    : null;
+// ── Small event card for right panel ──────────────────────────────────────
+const SmallEventCard = ({ event, onClick }: { event: any; onClick: () => void }) => {
+  const t = event.start_time ?? event.time;
+  const tz = event.timezone ? (TZ_ABBR[event.timezone] ?? "") : "";
+  const timeStr = t ? (tz ? `${fmtTime(t)} ${tz}` : fmtTime(t)) : null;
   return (
-    <>
-    <style>{`
-      .ev-thumb-wrap { overflow: hidden; border-radius: 8px; flex-shrink: 0; position: relative; }
-      .ev-thumb { transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); display: block; }
-      .ev-thumb-overlay {
-        position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
-        background: linear-gradient(to top, rgba(0,0,0,0.70) 0%, transparent 60%);
-        opacity: 0; transition: opacity 0.4s ease;
-        display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px;
-      }
-      .ev-thumb-overlay span {
-        color: rgba(255,255,255,0.93);
-        font-size: 13px; font-weight: 700;
-        font-family: 'Cormorant Garamond', Georgia, serif;
-        letter-spacing: 2px;
-      }
-      @media (min-width: 768px) {
-        .ev-card:hover .ev-thumb { transform: scale(1.1); }
-        .ev-card:hover .ev-thumb-overlay { opacity: 1; }
-        .ev-thumb-wrap { width: 123px !important; height: 123px !important; border-radius: 12px !important; }
-        .ev-thumb { width: 123px !important; height: 123px !important; }
-      }
-    `}</style>
     <div
       onClick={onClick}
-      className="ev-card flex gap-3 cursor-pointer transition-opacity hover:opacity-90"
       style={{
-        background: "white", borderRadius: 12,
-        padding: 14, border: `1px solid ${DIVIDER}`,
+        display: "flex", gap: 10, cursor: "pointer",
+        padding: "10px 0", borderBottom: `1px solid ${DIV}`,
+        transition: "opacity 0.15s",
       }}
+      onMouseEnter={e => (e.currentTarget.style.opacity = "0.75")}
+      onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
     >
-      {/* Left: text details */}
-      <div className="flex-1 min-w-0" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {event.image_url ? (
+        <img src={event.image_url} alt={event.title}
+          style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+      ) : (
+        <div style={{ width: 56, height: 56, borderRadius: 8, background: SURFACE, flexShrink: 0 }} />
+      )}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
         {timeStr && (
-          <p style={{
-            color: CE_SUCCESS_TEXT, fontFamily: INTER, fontSize: 11,
-            fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
-          }}>
+          <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {timeStr}
           </p>
         )}
-        <h3 style={{ color: "#2C2523", fontFamily: INTER, fontSize: 16, fontWeight: 700, lineHeight: 1.25 }}>
+        <p style={{ fontFamily: INTER, fontSize: 13, fontWeight: 600, color: DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {event.title}
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
-          {event.location && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: MID }} />
-              <span className="line-clamp-1" style={{ color: MID, fontFamily: INTER, fontSize: 12 }}>
-                {event.location}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-            <Users className="h-3 w-3 flex-shrink-0" style={{ color: MID }} />
-            <span style={{ color: MID, fontFamily: INTER, fontSize: 12 }}>
-              {event.attendees ?? 0} going
+        </p>
+        {event.location && (
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <MapPin style={{ width: 10, height: 10, color: MID, flexShrink: 0 }} />
+            <span style={{ fontFamily: INTER, fontSize: 11, color: MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {event.location}
             </span>
           </div>
-        </div>
-        {/* Age pill — desktop: lives here in left column */}
-        {isDesktop && ageLabel && (
-          <span style={{
-            background: CE_SUCCESS_BG, color: CE_SUCCESS_TEXT,
-            fontFamily: INTER, fontSize: 11, fontWeight: 600,
-            padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
-            alignSelf: "flex-start", marginTop: 4,
-          }}>
-            {ageLabel}
-          </span>
         )}
       </div>
-
-      {/* Right: image (+ age pill on mobile) */}
-      <div className="flex-shrink-0 flex flex-col items-end" style={{ gap: 8 }}>
-        {event.image_url ? (
-          <div className="ev-thumb-wrap" style={{ width: 80, height: 80 }}>
-            <img
-              src={event.image_url}
-              alt={event.title}
-              className="ev-thumb"
-              style={{ width: 80, height: 80, objectFit: "cover" }}
-            />
-            <div className="ev-thumb-overlay">
-              {(() => { const tag = getRegionTag(event.location, event.lat, event.lng); return tag ? <span>{tag}</span> : null; })()}
-            </div>
-          </div>
-        ) : (
-          <div className="ev-thumb-wrap" style={{ width: 80, height: 80, background: ICON_BG, flexShrink: 0 }} />
-        )}
-        {/* Age pill — mobile only: stays in right column */}
-        {!isDesktop && ageLabel && (
-          <span style={{
-            background: CE_SUCCESS_BG, color: CE_SUCCESS_TEXT,
-            fontFamily: INTER, fontSize: 11, fontWeight: 600,
-            padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap",
-          }}>
-            {ageLabel}
-          </span>
-        )}
-      </div>
-    </div>
-    </>
-  );
-};
-
-// ── Timeline section ────────────────────────────────────────────────────────
-const TimelineSection = ({
-  label, dateGroups, onNavigate, isLastSection, isDesktop,
-}: {
-  label: string;
-  dateGroups: { date: string; events: any[] }[];
-  onNavigate: (id: string) => void;
-  isLastSection: boolean;
-  isDesktop?: boolean;
-}) => (
-  <div style={{ marginBottom: 8 }}>
-    {/* Section label */}
-    <p style={{
-      fontFamily: INTER, fontSize: 11, fontWeight: 600,
-      color: MID, letterSpacing: "0.08em", textTransform: "uppercase",
-      paddingBottom: 12,
-    }}>
-      {label}
-    </p>
-
-    {/* Timeline */}
-    {dateGroups.map(({ date, events }, i) => {
-      const isLastInSection = i === dateGroups.length - 1;
-      const isVeryLast = isLastInSection && isLastSection;
-      const { monthDay, weekday } = fmtDateLabel(date);
-      return (
-        <div key={date} style={{ display: "flex", gap: isDesktop ? 0 : 12 }}>
-
-          {/* ── Desktop date column (left of timeline) ── */}
-          {isDesktop && (
-            <div style={{
-              width: 110, flexShrink: 0,
-              display: "flex", flexDirection: "column", alignItems: "flex-end",
-              paddingRight: 16, paddingTop: 2,
-            }}>
-              <span style={{ fontFamily: CORMORANT, fontSize: 20, fontWeight: 700, color: DARK, lineHeight: 1.1 }}>
-                {monthDay}
-              </span>
-              {weekday && (
-                <span style={{ fontFamily: INTER, fontSize: 13, color: MID, marginTop: 2 }}>
-                  {weekday}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* ── Timeline track ── */}
-          <div style={{ width: 24, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-            {/* top cap */}
-            <div style={{ width: 1.5, height: 8, background: i === 0 ? "transparent" : DIVIDER }} />
-            {/* dot — solid teal with white ring */}
-            <div style={{
-              width: 12, height: 12, borderRadius: "50%",
-              background: "rgb(91, 138, 122)", flexShrink: 0,
-              border: "2.5px solid white",
-            }} />
-            {/* vertical line down — always shown; ends naturally at bottom of content */}
-            <div style={{ width: 1.5, flex: 1, background: DIVIDER, minHeight: 20 }} />
-          </div>
-
-          {/* ── Node content ── */}
-          <div style={{ flex: 1, paddingBottom: isVeryLast ? 0 : 28, paddingLeft: isDesktop ? 12 : 0 }}>
-            {/* Date label — mobile only */}
-            {!isDesktop && (
-              <div style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 10 }}>
-                <span style={{ fontFamily: CORMORANT, fontSize: 24, fontWeight: 600, color: DARK, lineHeight: 1 }}>
-                  {monthDay}
-                </span>
-                {weekday && (
-                  <span style={{ fontFamily: INTER, fontSize: 13, color: MID }}>
-                    {weekday}
-                  </span>
-                )}
-              </div>
-            )}
-            {/* Event cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {events.map((ev) => (
-                <EventCard key={ev.id} event={ev} onClick={() => onNavigate(ev.id)} isDesktop={isDesktop} />
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-);
-
-// ── Empty state ─────────────────────────────────────────────────────────────
-const Empty = ({ tab, onViewAll, onEventClick }: { tab: TabId; onViewAll: () => void; onEventClick: (id: string) => void }) => {
-  const msg = {
-    going:     "Events you RSVP to will appear here",
-    interests: "Events you mark as Interested will appear here",
-    saved:     "Events you save will appear here",
-  }[tab];
-
-  const [suggested, setSuggested] = useState<any[]>([]);
-  const scrollRef    = useRef<HTMLDivElement>(null);
-  const leftFadeRef  = useRef<HTMLDivElement>(null);
-  const rightFadeRef = useRef<HTMLDivElement>(null);
-  const pausedRef    = useRef(false);
-  const animRef      = useRef<number | null>(null);
-  const needsLoopRef = useRef(false);
-
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    supabase
-      .from("events")
-      .select("id, title, date, start_time, image_url")
-      .gte("date", today)
-      .order("date", { ascending: true })
-      .limit(8)
-      .then(({ data }) => setSuggested(data ?? []));
-  }, []);
-
-  const updateFades = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const atStart   = el.scrollLeft <= 4;
-    const atEnd     = el.scrollLeft >= el.scrollWidth - el.clientWidth - 4;
-    const overflows = el.scrollWidth > el.clientWidth + 4;
-    if (leftFadeRef.current)  leftFadeRef.current.style.opacity  = atStart ? "0" : "1";
-    if (rightFadeRef.current) rightFadeRef.current.style.opacity = (!overflows || atEnd) ? "0" : "1";
-  };
-
-  // Marquee auto-scroll
-  useEffect(() => {
-    if (suggested.length === 0) return;
-    const el = scrollRef.current;
-    if (!el) return;
-
-    // small delay so DOM has rendered the cards
-    const startTimeout = setTimeout(() => {
-      needsLoopRef.current = el.scrollWidth > el.clientWidth + 4;
-      updateFades();
-
-      const SPEED = 0.45;
-      let accum = 0;
-      const tick = () => {
-        if (!pausedRef.current && el.scrollWidth > el.clientWidth + 4) {
-          accum += SPEED;
-          if (accum >= 1) {
-            const px = Math.floor(accum);
-            accum -= px;
-            el.scrollLeft += px;
-            if (needsLoopRef.current && el.scrollLeft >= el.scrollWidth / 2) {
-              el.scrollLeft -= el.scrollWidth / 2;
-            }
-            updateFades();
-          }
-        }
-        animRef.current = requestAnimationFrame(tick);
-      };
-      animRef.current = requestAnimationFrame(tick);
-    }, 150);
-
-    return () => {
-      clearTimeout(startTimeout);
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [suggested]);
-
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      textAlign: "center", paddingTop: 64, gap: 12, width: "100%",
-    }}>
-      <img
-        src="/Empty state/tent.png"
-        alt=""
-        style={{ width: 180, height: 180, objectFit: "contain" }}
-      />
-      <p style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: DARK, marginTop: 4 }}>
-        No events added here
-      </p>
-      <p style={{ fontFamily: INTER, fontSize: 14, fontWeight: 500, color: MID, lineHeight: 1.5, maxWidth: 260 }}>
-        {msg}
-      </p>
-
-      {/* ── Suggested events carousel ── */}
-      {suggested.length > 0 && (
-        <div style={{ position: "relative", width: "100%", marginTop: 8 }}>
-          {/* Left fade */}
-          <div ref={leftFadeRef} style={{
-            position: "absolute", left: 0, top: 0, bottom: 0, width: 50,
-            background: `linear-gradient(to right, ${BG} 0%, ${BG} 20%, transparent 100%)`,
-            pointerEvents: "none", zIndex: 5,
-            opacity: 0, transition: "opacity 0.35s ease",
-          }} />
-          {/* Right fade */}
-          <div ref={rightFadeRef} style={{
-            position: "absolute", right: 0, top: 0, bottom: 0, width: 50,
-            background: `linear-gradient(to left, ${BG} 0%, ${BG} 20%, transparent 100%)`,
-            pointerEvents: "none", zIndex: 5,
-            opacity: 0, transition: "opacity 0.35s ease",
-          }} />
-
-          {/* Scroll container */}
-          <div
-            ref={scrollRef}
-            onScroll={updateFades}
-            onMouseEnter={() => { pausedRef.current = true; }}
-            onMouseLeave={() => { pausedRef.current = false; }}
-            style={{
-              display: "flex", gap: 12, overflowX: "auto",
-              scrollbarWidth: "none", paddingBottom: 4,
-            } as React.CSSProperties}
-          >
-            {[...suggested, ...suggested].map((ev, idx) => {
-              const dateStr = ev.date && !isRecurring(ev.date)
-                ? toLocal(ev.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                : "Recurring";
-              const timeStr = ev.start_time
-                ? new Date(`2000-01-01T${ev.start_time}`).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-                : null;
-              return (
-                <div
-                  key={`${ev.id}-${idx}`}
-                  onClick={() => onEventClick(ev.id)}
-                  style={{
-                    flexShrink: 0, width: 160, background: "white",
-                    border: `1px solid ${DIVIDER}`, borderRadius: 16,
-                    padding: 10, cursor: "pointer", display: "flex",
-                    flexDirection: "column", gap: 8,
-                    transition: "opacity 0.2s", textAlign: "left",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = "0.8")}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-                >
-                  {ev.image_url ? (
-                    <img
-                      src={ev.image_url}
-                      alt={ev.title}
-                      style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 8, display: "block" }}
-                    />
-                  ) : (
-                    <div style={{ width: 140, height: 100, borderRadius: 8, background: ICON_BG }} />
-                  )}
-                  <p style={{
-                    fontFamily: INTER, fontSize: 13, fontWeight: 600, color: DARK,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 140,
-                  }}>
-                    {ev.title}
-                  </p>
-                  <p style={{ fontFamily: INTER, fontSize: 11, color: MID }}>
-                    {dateStr}{timeStr ? ` • ${timeStr}` : ""}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <p style={{ fontFamily: INTER, fontSize: 14, fontWeight: 500, color: MID, marginTop: 4 }}>
-        Browse events in your area
-      </p>
-      <button
-        onClick={onViewAll}
-        style={{
-          background: "none", border: "none", cursor: "pointer",
-          fontFamily: INTER, fontSize: 13, fontWeight: 500,
-          color: TEAL, textDecoration: "underline", padding: "4px 0",
-        }}
-      >
-        View All
-      </button>
     </div>
   );
 };
@@ -454,198 +119,437 @@ const Events = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const { location, setLocation, locationLat, locationLng } = useLocation();
+  const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
-  const [activeTab, setActiveTab] = useState<TabId>("going");
-  const [events, setEvents]       = useState<any[]>([]);
-  const [loading, setLoading]     = useState(false);
-  const [menuOpen, setMenuOpen]   = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
-
+  // ── Layout ──
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 860);
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const h = () => setIsDesktop(window.innerWidth >= 860);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
   }, []);
 
-  // Close menu on outside click
+  // ── Big calendar: all events ──
+  const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [jumpDate, setJumpDate] = useState<Date | undefined>();
+
+  const cityName = location.split(",")[0].trim();
+
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    supabase
+      .from("events")
+      .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id, description")
+      .eq("status", "published")
+      .eq("category", "ward")
+      .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
+      .then(({ data }) => setAllEvents(data ?? []));
+  }, [location]);
+
+  const STATE_ABBR: Record<string, string> = {
+    'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+    'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+    'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+    'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+    'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+    'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+    'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+    'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+    'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+  };
+
+  const filteredEvents = useMemo(() => {
+    let result = [...allEvents];
+    if (location !== "Everywhere") {
+      const locationParts = location.split(",").map((s: string) => s.trim());
+      const userState = locationParts.length > 1 ? locationParts[locationParts.length - 1].toLowerCase() : null;
+      const isStatePick = locationParts.length === 1;
+      const stateAbbr = STATE_ABBR[location] ?? null;
+      const abbrRegex = stateAbbr ? new RegExp(`\\b${stateAbbr}\\b`, 'i') : null;
+      result = result.filter((e) => {
+        const eventLoc = e.location?.toLowerCase() ?? "";
+        if (isStatePick) {
+          if (eventLoc.includes(location.toLowerCase())) return true;
+          if (abbrRegex && abbrRegex.test(e.location ?? "")) return true;
+          return false;
+        }
+        if (locationLat && locationLng && e.lat && e.lng) return getDistance(locationLat, locationLng, e.lat, e.lng) <= 75;
+        if (userState) return eventLoc.includes(userState);
+        return cityName ? eventLoc.includes(cityName.toLowerCase()) : true;
+      });
+    }
+    result = result.filter((e) => {
+      if (!e.age_min || !e.age_max) return true;
+      return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
+    });
+    if (["spiritual","fhe","service","conference"].includes(activeFilter)) result = result.filter((e) => e.ward_type === activeFilter);
+    if (activeFilter === "food") result = result.filter((e) => e.food && e.food.length > 0);
+    if (activeFilter === "virtual") result = result.filter((e) => e.virtual_link);
+    if (activeFilter === "popular") return result.sort((a, b) => (b.attendees ?? 0) - (a.attendees ?? 0));
+    result.sort((a, b) => {
+      if (locationLat && locationLng && a.lat && b.lat) {
+        const dA = getDistance(locationLat, locationLng, a.lat, a.lng!);
+        const dB = getDistance(locationLat, locationLng, b.lat, b.lng!);
+        if (Math.abs(dA - dB) <= 20) return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return dA - dB;
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    return result;
+  }, [allEvents, activeFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
+
+  // ── Mini calendar ──
+  const [miniMonth, setMiniMonth] = useState(new Date());
+
+  const eventDateSet = useMemo(() => {
+    const set = new Set<string>();
+    allEvents.forEach(ev => { if (ev.date && !isRecurring(ev.date)) set.add(ev.date); });
+    return set;
+  }, [allEvents]);
+
+  const renderMiniCalendar = () => {
+    const year = miniMonth.getFullYear();
+    const month = miniMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+    return (
+      <div>
+        {/* Month header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 600, color: DARK }}>
+            {MONTHS[month]} {year}
+          </span>
+          <div style={{ display: "flex", gap: 2 }}>
+            <button
+              onClick={() => setMiniMonth(new Date(year, month - 1, 1))}
+              style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center" }}
+            >
+              <ChevronLeft size={14} color={MID} />
+            </button>
+            <button
+              onClick={() => setMiniMonth(new Date(year, month + 1, 1))}
+              style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center" }}
+            >
+              <ChevronRight size={14} color={MID} />
+            </button>
+          </div>
+        </div>
+
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 4 }}>
+          {["S","M","T","W","T","F","S"].map((d, i) => (
+            <div key={i} style={{ textAlign: "center", fontFamily: INTER, fontSize: 10, fontWeight: 600, color: MID, padding: "2px 0" }}>
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Date cells */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
+          {cells.map((day, i) => {
+            if (!day) return <div key={`empty-${i}`} style={{ aspectRatio: "1" }} />;
+            const dateKey = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+            const hasEvt = eventDateSet.has(dateKey);
+            const isToday = dateKey === todayKey;
+            return (
+              <button
+                key={dateKey}
+                onClick={() => setJumpDate(new Date(year, month, day))}
+                style={{
+                  aspectRatio: "1", borderRadius: 6, border: "none", cursor: "pointer",
+                  background: isToday ? TEAL : "transparent",
+                  color: isToday ? "white" : DARK,
+                  fontFamily: INTER, fontSize: 11, fontWeight: isToday ? 700 : 400,
+                  position: "relative", display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center", padding: 0,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => { if (!isToday) e.currentTarget.style.background = SURFACE; }}
+                onMouseLeave={e => { if (!isToday) e.currentTarget.style.background = "transparent"; }}
+              >
+                {day}
+                {hasEvt && !isToday && (
+                  <span style={{
+                    position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
+                    width: 4, height: 4, borderRadius: "50%", background: TEAL,
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Personal events (right panel) ──
+  const [activeTab, setActiveTab] = useState<TabId>("going");
+  const [personalEvents, setPersonalEvents] = useState<any[]>([]);
+  const [personalLoading, setPersonalLoading] = useState(false);
 
   useEffect(() => {
-    if (!userId) { setEvents([]); return; }
-    setLoading(true);
-    setEvents([]);
-
+    if (!userId) { setPersonalEvents([]); return; }
+    setPersonalLoading(true);
     const today = new Date(); today.setHours(0, 0, 0, 0);
-
     if (activeTab === "going" || activeTab === "interests") {
       const status = activeTab === "going" ? "going" : "interested";
-      supabase
-        .from("rsvps")
-        .select("events(*)")
-        .eq("user_id", userId)
-        .eq("status", status)
+      supabase.from("rsvps").select("events(*)").eq("user_id", userId).eq("status", status)
         .then(({ data }) => {
-          const upcoming = (data ?? [])
-            .map((r: any) => r.events)
+          const upcoming = (data ?? []).map((r: any) => r.events)
             .filter((e: any) => e && toLocal(e.date) >= today)
             .sort((a: any, b: any) => a.date.localeCompare(b.date));
-          setEvents(upcoming);
-          setLoading(false);
+          setPersonalEvents(upcoming);
+          setPersonalLoading(false);
         });
     } else {
-      supabase
-        .from("saved_events")
-        .select("events(*)")
-        .eq("user_id", userId)
+      supabase.from("saved_events").select("events(*)").eq("user_id", userId)
         .then(({ data }) => {
-          const upcoming = (data ?? [])
-            .map((r: any) => r.events)
+          const upcoming = (data ?? []).map((r: any) => r.events)
             .filter((e: any) => e && toLocal(e.date) >= today)
             .sort((a: any, b: any) => a.date.localeCompare(b.date));
-          setEvents(upcoming);
-          setLoading(false);
+          setPersonalEvents(upcoming);
+          setPersonalLoading(false);
         });
     }
   }, [userId, activeTab]);
 
-  // ── Section bucketing ───────────────────────────────────────────────────
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const endThisWeek = new Date(today);
-  endThisWeek.setDate(today.getDate() + (6 - today.getDay())); // through Saturday
-  const endNextWeek = new Date(endThisWeek);
-  endNextWeek.setDate(endThisWeek.getDate() + 7);
+  // Group personal events by month
+  const groupedPersonal = useMemo(() => {
+    const map = new Map<string, any[]>();
+    personalEvents.forEach(ev => {
+      if (!ev.date) return;
+      const [y, m] = ev.date.split("-");
+      const key = `${y}-${m}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ev);
+    });
+    return Array.from(map.entries()).map(([key, evs]) => {
+      const [y, m] = key.split("-");
+      const label = new Date(parseInt(y), parseInt(m) - 1, 1)
+        .toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      return { label, events: evs };
+    });
+  }, [personalEvents]);
 
-  const thisWeek  = events.filter(ev => isRecurring(ev.date) || toLocal(ev.date) <= endThisWeek);
-  const nextWeek  = events.filter(ev => { const d = toLocal(ev.date); return !isRecurring(ev.date) && d > endThisWeek && d <= endNextWeek; });
-  const later     = events.filter(ev => !isRecurring(ev.date) && toLocal(ev.date) > endNextWeek);
+  // ── Right panel ─────────────────────────────────────────────────────────
+  const RightPanel = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Mini calendar */}
+      <div style={{
+        background: "white", borderRadius: 14,
+        border: `1px solid ${DIV}`, padding: "14px 16px",
+      }}>
+        {renderMiniCalendar()}
+      </div>
 
-  const sections = [
-    { label: "This Week", groups: groupByDate(thisWeek)  },
-    { label: "Next Week", groups: groupByDate(nextWeek)  },
-    { label: "Later",     groups: groupByDate(later)     },
-  ].filter(s => s.groups.length > 0);
-
-  return (
-    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
-      <div className="mx-auto px-3" style={{ maxWidth: 864 }}>
-
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between pt-8 pb-5">
-          <h1 style={{ fontFamily: CORMORANT, color: DARK, fontSize: 32, fontWeight: 700, lineHeight: 1 }}>
-            My Events
-          </h1>
-
-          {/* ⋮ menu */}
-          <div ref={menuRef} style={{ position: "relative" }}>
-            <button
-              onClick={() => setMenuOpen(v => !v)}
-              className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
-              style={{ background: ICON_BG }}
-              aria-label="More options"
-            >
-              <MoreHorizontal className="h-4 w-4" style={{ color: DARK }} />
-            </button>
-
-            {menuOpen && (
-              <div
-                style={{
-                  position: "absolute", top: "calc(100% + 8px)", right: 0,
-                  background: "white", borderRadius: 14,
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-                  border: `1px solid ${DIVIDER}`,
-                  overflow: "hidden", minWidth: 180, zIndex: 50,
-                }}
-              >
-                <button
-                  onClick={() => { setMenuOpen(false); navigate("/my-published-events"); }}
-                  className="flex items-center gap-2.5 w-full transition-colors hover:bg-[#F5F0EA]"
-                  style={{ padding: "12px 16px", textAlign: "left", fontSize: 14, color: DARK, fontFamily: INTER }}
-                >
-                  <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: MID }} />
-                  Published Events
-                </button>
-              </div>
-            )}
-          </div>
+      {/* Your upcoming events */}
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ fontFamily: CORMORANT, fontSize: 22, fontWeight: 700, color: DARK, lineHeight: 1 }}>
+            Your upcoming events
+          </h2>
+          {personalEvents.length > 0 && (
+            <span style={{ fontFamily: INTER, fontSize: 12, color: MID }}>{personalEvents.length}</span>
+          )}
         </div>
 
-        {/* ── Chips ──────────────────────────────────────────────────── */}
-        <div
-          className="flex gap-2 pb-6 -mx-5 px-5"
-          style={{ overflowX: "auto", scrollbarWidth: "none" }}
-        >
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
           {TABS.map(({ id, label, Icon }) => {
             const active = activeTab === id;
             return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
+              <button key={id} onClick={() => setActiveTab(id)}
                 style={{
-                  padding: "8px 16px",
-                  fontFamily: INTER,
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 500,
-                  ...(active
-                    ? { background: TEAL, color: CE_BG, border: "none" }
-                    : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 12px", borderRadius: 999,
+                  fontFamily: INTER, fontSize: 12, fontWeight: active ? 600 : 500,
+                  border: "none", cursor: "pointer", transition: "all 0.15s",
+                  background: active ? TEAL : CE_SURFACE,
+                  color: active ? "white" : MID,
                 }}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon style={{ width: 12, height: 12 }} />
                 {label}
               </button>
             );
           })}
         </div>
 
-        {/* ── Content ────────────────────────────────────────────────── */}
+        {/* Content */}
         {!session ? (
-          <div className="flex flex-col items-center text-center pt-16 gap-3">
-            <p style={{ fontFamily: GARAMOND, color: DARK, fontSize: 18 }}>Sign in to see your events</p>
-          </div>
-        ) : loading ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} style={{ display: "flex", gap: 12 }}>
-                <div style={{ width: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div className="sk" style={{ width: 10, height: 10, borderRadius: "50%" }} />
-                  <div className="sk" style={{ width: 1.5, height: 120, marginTop: 4 }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="sk" style={{ height: 20, width: 140, borderRadius: 6, marginBottom: 10 }} />
-                  <div className="sk" style={{ height: 100, borderRadius: 12 }} />
+          <p style={{ fontFamily: INTER, fontSize: 13, color: MID, textAlign: "center", paddingTop: 24 }}>
+            Sign in to see your events
+          </p>
+        ) : personalLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 8 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ display: "flex", gap: 10 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 8, background: DIV }} />
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ height: 10, width: "60%", borderRadius: 4, background: DIV }} />
+                  <div style={{ height: 13, width: "90%", borderRadius: 4, background: DIV }} />
                 </div>
               </div>
             ))}
           </div>
-        ) : events.length === 0 ? (
-          <Empty tab={activeTab} onViewAll={() => navigate("/wards")} onEventClick={(id) => navigate(`/event/${id}`)} />
+        ) : personalEvents.length === 0 ? (
+          <div style={{ textAlign: "center", paddingTop: 24 }}>
+            <p style={{ fontFamily: INTER, fontSize: 13, color: MID }}>
+              {activeTab === "going" ? "Events you RSVP to will appear here" :
+               activeTab === "interests" ? "Events you marked as Interested will appear here" :
+               "Events you save will appear here"}
+            </p>
+          </div>
         ) : (
           <div>
-            {sections.map(({ label, groups }, si) => (
-              <TimelineSection
-                key={label}
-                label={label}
-                dateGroups={groups}
-                onNavigate={(id) => navigate(`/event/${id}`)}
-                isLastSection={si === sections.length - 1}
-                isDesktop={isDesktop}
-              />
+            {groupedPersonal.map(({ label, events }) => (
+              <div key={label} style={{ marginBottom: 16 }}>
+                <p style={{
+                  fontFamily: INTER, fontSize: 10, fontWeight: 700,
+                  color: MID, textTransform: "uppercase", letterSpacing: "0.08em",
+                  marginBottom: 4,
+                }}>
+                  {label}
+                </p>
+                {events.map(ev => (
+                  <SmallEventCard key={ev.id} event={ev} onClick={() => navigate(`/event/${ev.id}`)} />
+                ))}
+              </div>
             ))}
           </div>
         )}
-
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <style>{`
+        .ev-page-layout {
+          display: flex;
+          min-height: 100vh;
+          background: ${BG};
+        }
+        .ev-page-left {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid ${DIV};
+        }
+        .ev-page-filter-bar {
+          padding: 12px 16px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          border-bottom: 1px solid ${DIV};
+          background: ${BG};
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+        .ev-page-chips {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          padding-bottom: 12px;
+        }
+        .ev-page-chips::-webkit-scrollbar { display: none; }
+        .ev-page-right {
+          width: 300px;
+          flex-shrink: 0;
+          padding: 16px;
+          overflow-y: auto;
+          max-height: 100vh;
+          position: sticky;
+          top: 0;
+          background: ${BG};
+        }
+        @media (max-width: 860px) {
+          .ev-page-layout { flex-direction: column; }
+          .ev-page-left { border-right: none; }
+          .ev-page-filter-bar { position: static; }
+          .ev-page-right {
+            width: 100%;
+            max-height: none;
+            position: static;
+            border-top: 1px solid ${DIV};
+            padding: 20px 16px 96px;
+          }
+        }
+      `}</style>
+
+      <div className="ev-page-layout">
+
+        {/* ── Left: filter bar + big calendar ── */}
+        <div className="ev-page-left">
+
+          {/* Filter bar */}
+          <div className="ev-page-filter-bar">
+            {/* Location pill */}
+            <LocationSelector
+              value={location}
+              onChange={setLocation}
+            />
+
+            {/* Category chips */}
+            <div className="ev-page-chips">
+              {filterChips.map(({ id, label, icon: Icon }) => {
+                const active = activeFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setActiveFilter(id)}
+                    style={{
+                      flexShrink: 0,
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "7px 14px", borderRadius: 999,
+                      fontFamily: INTER, fontSize: 13, fontWeight: active ? 600 : 500,
+                      cursor: "pointer", transition: "all 0.15s",
+                      border: active ? "none" : `1px solid ${DIV}`,
+                      background: active ? TEAL : "white",
+                      color: active ? "white" : MID,
+                    }}
+                  >
+                    {Icon && <Icon style={{ width: 13, height: 13 }} />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Big calendar */}
+          <div style={{ flex: 1 }}>
+            <CalendarView
+              events={filteredEvents as any}
+              navigate={navigate}
+              isLoggedIn={!!session}
+              userId={userId}
+              jumpDate={jumpDate}
+            />
+          </div>
+        </div>
+
+        {/* ── Right: mini calendar + personal events ── */}
+        <div className="ev-page-right">
+          <RightPanel />
+        </div>
+
+      </div>
+    </>
   );
 };
 

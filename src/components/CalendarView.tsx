@@ -46,6 +46,7 @@ interface Props {
   savedEventIds?: Set<string>;
   goingEventIds?: Set<string>;
   interestedEventIds?: Set<string>;
+  jumpDate?: Date; // external date to jump to (from mini calendar)
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -148,9 +149,17 @@ const getWeekStart = (date: Date) => {
 export default function CalendarView({
   events, navigate, isLoggedIn, userId, userName, userAvatar,
   savedEventIds = new Set(), goingEventIds = new Set(), interestedEventIds = new Set(),
+  jumpDate,
 }: Props) {
   const [calDate,  setCalDate]  = useState(() => new Date(todayRaw.getFullYear(), todayRaw.getMonth(), todayRaw.getDate()));
   const [viewMode, setViewMode] = useState<'year'|'month'|'week'>('month');
+
+  // Jump to a specific date when the mini calendar clicks a day
+  useEffect(() => {
+    if (!jumpDate) return;
+    setCalDate(new Date(jumpDate.getFullYear(), jumpDate.getMonth(), jumpDate.getDate()));
+    setViewMode('month');
+  }, [jumpDate]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter,   setFilter]   = useState<'all'|'going'|'interested'|'saved'>('all');
   const [hover,    setHover]    = useState<HoverState | null>(null);
