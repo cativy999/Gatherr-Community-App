@@ -2,7 +2,7 @@ import { CE_BG, CE_SURFACE } from '../tokens';
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ThumbsUp, Smile, Heart, MapPin,
+  ThumbsUp, Smile, Heart, MapPin, Users,
   ChevronLeft, ChevronRight, ChevronDown,
   Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles,
 } from "lucide-react";
@@ -75,6 +75,16 @@ const SmallEventCard = ({ event, onClick }: { event: any; onClick: () => void })
   const t = event.start_time ?? event.time;
   const tz = event.timezone ? (TZ_ABBR[event.timezone] ?? "") : "";
   const timeStr = t ? (tz ? `${fmtTime(t)} ${tz}` : fmtTime(t)) : null;
+
+  const dateStr = (() => {
+    if (!event.date) return null;
+    const [y, m, d] = event.date.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  })();
+
+  const metaLine = [dateStr, timeStr].filter(Boolean).join(" · ");
+  const attendees = event.attendees ?? 0;
+
   return (
     <div
       onClick={onClick}
@@ -93,22 +103,30 @@ const SmallEventCard = ({ event, onClick }: { event: any; onClick: () => void })
         <div style={{ width: 56, height: 56, borderRadius: 8, background: SURFACE, flexShrink: 0 }} />
       )}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-        {timeStr && (
-          <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            {timeStr}
+        {metaLine && (
+          <p style={{ fontFamily: INTER, fontSize: 10, fontWeight: 600, color: TEAL, textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {metaLine}
           </p>
         )}
         <p style={{ fontFamily: INTER, fontSize: 13, fontWeight: 600, color: DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {event.title}
         </p>
-        {event.location && (
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <MapPin style={{ width: 10, height: 10, color: MID, flexShrink: 0 }} />
-            <span style={{ fontFamily: INTER, fontSize: 11, color: MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {event.location}
-            </span>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
+          {event.location && (
+            <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>
+              <MapPin style={{ width: 10, height: 10, color: MID, flexShrink: 0 }} />
+              <span style={{ fontFamily: INTER, fontSize: 11, color: MID, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {event.location}
+              </span>
+            </div>
+          )}
+          {attendees > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0, marginLeft: 6 }}>
+              <Users style={{ width: 10, height: 10, color: MID }} />
+              <span style={{ fontFamily: INTER, fontSize: 11, color: MID }}>{attendees}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
