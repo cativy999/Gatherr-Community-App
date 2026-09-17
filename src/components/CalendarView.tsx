@@ -158,7 +158,7 @@ export default function CalendarView({
   useEffect(() => {
     if (!jumpDate) return;
     setCalDate(new Date(jumpDate.getFullYear(), jumpDate.getMonth(), jumpDate.getDate()));
-    setViewMode('month');
+    setViewMode('week');
   }, [jumpDate]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter,   setFilter]   = useState<'all'|'going'|'interested'|'saved'>('all');
@@ -495,9 +495,10 @@ export default function CalendarView({
       <div style={{ display:'grid', gridTemplateColumns:`${TIME_COL_W}px repeat(7,1fr)`, background:SURFACE, borderBottom:`1px solid ${DIV}` }}>
         <div/> {/* spacer for time column */}
         {weekDays.map((d, i) => {
-          const isToday  = fmtDateKey(d) === todayKey;
-          const isWknd   = d.getDay() === 0 || d.getDay() === 6;
-          const numColor = isWknd ? RED : DARK;
+          const isToday    = fmtDateKey(d) === todayKey;
+          const isSelected = jumpDate && fmtDateKey(d) === fmtDateKey(jumpDate) && !isToday;
+          const isWknd     = d.getDay() === 0 || d.getDay() === 6;
+          const numColor   = isWknd ? RED : DARK;
           return (
             <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'10px 0', gap:4 }}>
               <span className="cal-day-full" style={{ fontFamily:INTER, fontSize:11, fontWeight:600, color:MID, letterSpacing:'0.05em' }}>{DAY_HEADERS[i]}</span>
@@ -506,7 +507,11 @@ export default function CalendarView({
                 ? <div style={{ width:30, height:30, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:'white' }}>{d.getDate()}</span>
                   </div>
-                : <span style={{ fontFamily:INTER, fontSize:14, fontWeight:500, color:numColor }}>{d.getDate()}</span>
+                : isSelected
+                  ? <div style={{ width:30, height:30, borderRadius:'50%', background:SURFACE, border:`2px solid ${TEAL}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:TEAL }}>{d.getDate()}</span>
+                    </div>
+                  : <span style={{ fontFamily:INTER, fontSize:14, fontWeight:500, color:numColor }}>{d.getDate()}</span>
               }
             </div>
           );
