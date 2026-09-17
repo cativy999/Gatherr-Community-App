@@ -439,6 +439,7 @@ const Events = () => {
           display: flex;
           min-height: 100vh;
           background: ${BG};
+          padding: 0 48px;
         }
         .ev-page-left {
           flex: 1;
@@ -478,7 +479,7 @@ const Events = () => {
           border-left: 1px solid ${DIV};
         }
         @media (max-width: 860px) {
-          .ev-page-layout { flex-direction: column; }
+          .ev-page-layout { flex-direction: column; padding: 0 12px; }
           .ev-page-left { border-right: none; }
           .ev-page-filter-bar { position: static; }
           .ev-page-right {
@@ -554,7 +555,7 @@ const Events = () => {
           </div>
 
           {/* Big calendar */}
-          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24, maxWidth: 920, width: "100%" }}>
+          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
             <CalendarView
               events={filteredEvents as any}
               navigate={navigate}
