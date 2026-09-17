@@ -337,13 +337,6 @@ export default function CalendarView({
         <button onClick={goToday} style={{ marginLeft:10, padding:'6px 16px', borderRadius:100, border:`1.5px solid ${DIV}`, background:'white', fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK, cursor:'pointer' }}>Today</button>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:10, position:'relative' }}>
-        {/* Create Event button */}
-        {isLoggedIn && (
-          <button onClick={() => { if (window.innerWidth <= 860) { navigate('/create-event'); } else { setCreateModalDate(''); setCreateModalOpen(true); } }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 18px', borderRadius:100, background:TEAL, border:'none', cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:600, color:'white', boxShadow:'0 2px 8px rgba(31,78,91,0.25)', whiteSpace:'nowrap' }}>
-            <span style={{ fontSize:18, lineHeight:1 }}>+</span> Create Event
-          </button>
-        )}
         {/* Avatar */}
         <button className="cal-menu-btn" onClick={() => setMenuOpen(v=>!v)} style={{ background:'none', border:'none', cursor:'pointer', padding:0, display:'flex' }}>
           {userAvatar

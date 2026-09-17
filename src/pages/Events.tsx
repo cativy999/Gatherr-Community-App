@@ -585,6 +585,14 @@ const Events = () => {
                   dropdownAlign="left"
                 />
               </div>
+              {session && (
+                <button
+                  onClick={() => navigate("/create-event")}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
+                >
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
+                </button>
+              )}
             </div>
 
             {/* Category chips — exact same as homepage */}
