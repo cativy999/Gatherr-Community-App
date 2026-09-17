@@ -554,7 +554,7 @@ const Events = () => {
           </div>
 
           {/* Big calendar */}
-          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
+          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24, maxWidth: 920, width: "100%" }}>
             <CalendarView
               events={filteredEvents as any}
               navigate={navigate}
