@@ -454,14 +454,9 @@ export default function CalendarView({
                   )}
                 </div>
               )}
-              {dayEvts.length > 0 && !cell.overflow && (
-                <div style={{ position:'absolute', bottom:4, right:4, width:18, height:18, borderRadius:'50%', background:TEAL, border:'2px solid white', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1 }}>
-                  {userAvatar ? <img src={userAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : <Users size={8} color="white"/>}
-                </div>
-              )}
-              {!cell.overflow && !isPast && !dayEvts.length && isLoggedIn && (
+              {!cell.overflow && !isPast && isLoggedIn && (
                 <button className="cal2-plus" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
-                  style={{ position:'absolute', bottom:5, right:5, width:22, height:22, borderRadius:'50%', background:TEAL, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.15s', boxShadow:'0 1px 6px rgba(0,0,0,0.15)' }}>
+                  style={{ position:'absolute', top:5, right:5, width:22, height:22, borderRadius:'50%', background:TEAL, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.15s', boxShadow:'0 1px 6px rgba(0,0,0,0.15)', zIndex:2 }}>
                   <span style={{ color:'white', fontSize:16, lineHeight:1 }}>+</span>
                 </button>
               )}
@@ -664,6 +659,7 @@ export default function CalendarView({
         .cal2-cell { transition:background 0.1s; }
         .cal2-cell:hover { background:rgba(44,37,35,0.025) !important; }
         .cal2-cell:hover .cal2-plus { opacity:1 !important; }
+        .cal2-plus:hover { transform:scale(1.15); background:#163a45 !important; }
         .cal2-card { transition:transform 0.12s,box-shadow 0.12s; cursor:pointer; }
         .cal2-card:hover { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,0.18) !important; }
         .cal-week-cell:hover { background:rgba(31,78,91,0.03) !important; }
