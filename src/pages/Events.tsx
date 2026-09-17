@@ -453,7 +453,6 @@ const Events = () => {
           display: flex;
           flex-direction: column;
           gap: 10px;
-          border-bottom: 1px solid ${DIV};
           background: ${BG};
           position: sticky;
           top: 0;
