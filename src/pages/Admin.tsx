@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { ADMIN_EMAIL, isOwnerUserId } from "@/lib/admin";
 
-type Tab = "signups" | "events" | "engagement" | "feedback";
+type Tab = "signups" | "events" | "engagement" | "feedback" | "abtests";
 type OwnerFilter = "all" | "real" | "owner";
 type AgeBucket = "all" | "under20" | "20s" | "30s" | "40s" | "50plus" | "unknown";
 
@@ -50,6 +50,7 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "events", label: "Events & RSVPs", icon: CalendarCheck },
   { key: "engagement", label: "Engagement", icon: MessageCircle },
   { key: "feedback", label: "Feedback", icon: MessageSquare },
+  { key: "abtests", label: "A/B Tests", icon: ChevronRight },
 ];
 
 const AGE_BUCKET_LABELS: Record<AgeBucket, string> = {
@@ -93,6 +94,7 @@ const Admin = () => {
   const [savedCount, setSavedCount] = useState(0);
   const [likedCount, setLikedCount] = useState(0);
   const [stepEntries, setStepEntries] = useState<{ user_id: string; steps: number }[]>([]);
+  const [abEvents, setAbEvents] = useState<{ variant: string; action: string; test: string }[]>([]);
 
   // Drill-down list views (Total Signups / Total Events / Step Challenge stat cards open these)
   const [drill, setDrill] = useState<null | "signups" | "events" | "steps">(null);
@@ -174,6 +176,11 @@ const Admin = () => {
           .filter((r: any) => r.user_id)
           .map((r: any) => ({ user_id: r.user_id, steps: r.steps ?? 0 }))
       );
+
+      const { data: abRows } = await supabase
+        .from("analytics_events")
+        .select("variant, action, test");
+      setAbEvents(abRows ?? []);
 
       setLoading(false);
     };
@@ -566,6 +573,56 @@ const Admin = () => {
                   />
                 </div>
               )}
+
+              {/* A/B Tests */}
+              {tab === "abtests" && (() => {
+                const tests = ["rsvp_login_prompt"];
+                return (
+                  <div className="flex flex-col gap-6">
+                    <p className="text-sm font-semibold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>A/B Tests</p>
+                    <p className="text-xs text-muted-foreground -mt-4">Preview: add <code>?ab_variant=A</code> or <code>?ab_variant=B</code> to any event URL to force a variant.</p>
+                    {tests.map(test => {
+                      const rows = abEvents.filter(e => e.test === test);
+                      const aShown = rows.filter(e => e.variant === 'A' && e.action === 'prompt_shown').length;
+                      const aLogin = rows.filter(e => e.variant === 'A' && e.action === 'login_completed').length;
+                      const bShown = rows.filter(e => e.variant === 'B' && e.action === 'prompt_shown').length;
+                      const bLogin = rows.filter(e => e.variant === 'B' && e.action === 'login_completed').length;
+                      const aRate = aShown > 0 ? ((aLogin / aShown) * 100).toFixed(1) : '—';
+                      const bRate = bShown > 0 ? ((bLogin / bShown) * 100).toFixed(1) : '—';
+                      const winner = aShown > 0 && bShown > 0 ? (parseFloat(bRate) > parseFloat(aRate) ? 'B' : 'A') : null;
+                      return (
+                        <div key={test} className="rounded-xl border border-border p-4 flex flex-col gap-4">
+                          <div>
+                            <p className="text-sm font-bold" style={{ fontFamily: "'Hanken Grotesk', sans-serif" }}>RSVP Login Prompt</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Which login experience converts more logged-out users?</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { label: 'A', desc: '"Log in to RSVP" → redirect to welcome page', shown: aShown, login: aLogin, rate: aRate },
+                              { label: 'B', desc: '"Join to save your spot 🎉" → Google + Email inline', shown: bShown, login: bLogin, rate: bRate },
+                            ].map(v => (
+                              <div key={v.label} className="rounded-lg p-3 flex flex-col gap-2" style={{ background: winner === v.label ? '#f0faf5' : '#f9f9f9', border: winner === v.label ? '1.5px solid #1F4E5B' : '1px solid #e5e5e5' }}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#1F4E5B' }}>Variant {v.label}</span>
+                                  {winner === v.label && <span className="text-xs font-bold text-green-700">🏆 Winning</span>}
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-snug">{v.desc}</p>
+                                <div className="flex flex-col gap-1 mt-1">
+                                  <p className="text-xs text-muted-foreground">Prompt shown: <span className="font-semibold text-foreground">{v.shown}</span></p>
+                                  <p className="text-xs text-muted-foreground">Logged in: <span className="font-semibold text-foreground">{v.login}</span></p>
+                                  <p className="text-sm font-bold" style={{ color: '#1F4E5B' }}>{v.rate}{v.rate !== '—' ? '%' : ''} conversion</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {winner && <p className="text-xs text-center text-muted-foreground">Variant {winner} is currently leading. Keep collecting data to confirm significance.</p>}
+                          {!winner && <p className="text-xs text-center text-muted-foreground">Not enough data yet. Results will appear as users interact with the RSVP prompt.</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Feedback */}
               {tab === "feedback" && (
