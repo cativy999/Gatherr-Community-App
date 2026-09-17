@@ -457,7 +457,7 @@ export default function CalendarView({
               {!cell.overflow && !isPast && isLoggedIn && (
                 <button className="cal2-plus" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
                   style={{ position:'absolute', bottom:8, right:8, width:38, height:38, borderRadius:'50%', background:TEAL, border:'2.5px solid white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity: dayEvts.length > 0 ? 0.7 : 0, transition:'opacity 0.15s, transform 0.15s', boxShadow:'0 3px 10px rgba(0,0,0,0.28)', zIndex:5 }}>
-                  <span style={{ color:'white', fontSize:24, lineHeight:1, fontWeight:300 }}>+</span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
               )}
             </div>
