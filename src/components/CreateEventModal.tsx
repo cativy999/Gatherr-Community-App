@@ -680,6 +680,7 @@ export default function CreateEventModal({
   const minAgeRef        = useRef<HTMLDivElement>(null);
   const maxAgeRef        = useRef<HTMLDivElement>(null);
   const sectionMenuRef   = useRef<HTMLDivElement>(null);
+  const coverInputRef    = useRef<HTMLInputElement>(null);
 
   // ── inputCls (same as CreateEvent.tsx) ─────────────────────────────────────
   const inputCls: React.CSSProperties = {
@@ -1270,7 +1271,7 @@ export default function CreateEventModal({
                       </div>
                       {minAgeOpen && (
                         <div onMouseDown={e => e.stopPropagation()}
-                          style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: `1px solid ${DIV}`, borderRadius: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10000, maxHeight: 200, overflowY: 'auto' }}>
+                          style={{ position: 'absolute', bottom: 'calc(100% + 4px)', top: 'auto', left: 0, right: 0, background: 'white', border: `1px solid ${DIV}`, borderRadius: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10000, maxHeight: 200, overflowY: 'auto' }}>
                           {[18,25,30,35,40,45,50,55,60].map(a => (
                             <button key={a} type="button" onClick={() => { setMinAge(String(a)); setMinAgeOpen(false); }}
                               style={{ width: '100%', textAlign: 'left', padding: '10px 16px', fontFamily: SANS, fontSize: 14, fontWeight: minAge===String(a) ? 700 : 400, color: DARK, background: 'none', border: 'none', cursor: 'pointer' }}>{a}</button>
@@ -1288,7 +1289,7 @@ export default function CreateEventModal({
                       </div>
                       {maxAgeOpen && (
                         <div onMouseDown={e => e.stopPropagation()}
-                          style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'white', border: `1px solid ${DIV}`, borderRadius: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10000, maxHeight: 200, overflowY: 'auto' }}>
+                          style={{ position: 'absolute', bottom: 'calc(100% + 4px)', top: 'auto', left: 0, right: 0, background: 'white', border: `1px solid ${DIV}`, borderRadius: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10000, maxHeight: 200, overflowY: 'auto' }}>
                           <button type="button" onClick={() => { setMaxAge('+'); setMaxAgeOpen(false); }}
                             style={{ width: '100%', textAlign: 'left', padding: '10px 16px', fontFamily: SANS, fontSize: 14, color: DARK, background: 'none', border: 'none', cursor: 'pointer' }}>No limit</button>
                           {[25,30,35,40,45,50,55,60].map(a => (
@@ -1373,27 +1374,52 @@ export default function CreateEventModal({
           </div>
 
           {/* Right: sticky image upload column */}
-          <div style={{ width: 268, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16, alignSelf: 'flex-start', position: 'sticky', top: 0 }}>
-            {/* Cover photo */}
-            <ImageUploadBox
-              preview={coverPreview}
-              onFile={handleCoverFile}
-              onClear={() => { setCoverFile(null); setCoverPreview(null); }}
-              height={301}
-              width={268}
-              borderRadius={16}
-              label="Upload Cover Photo"
-            />
+          <div style={{ width: 268, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14, alignSelf: 'flex-start', position: 'sticky', top: 0, overflowY: 'auto', maxHeight: 'calc(90vh - 120px)' }}>
+            {/* Cover photo — matches CreateEvent.tsx layout */}
+            <div>
+              <div
+                style={{ position: 'relative', width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', background: DIV, cursor: 'pointer' }}
+                onClick={() => coverInputRef.current?.click()}
+              >
+                {coverPreview
+                  ? <img src={coverPreview} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ImagePlus style={{ width: 32, height: 32, color: MID }} />
+                    </div>}
+                <div style={{ position: 'absolute', bottom: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, color: 'white', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', padding: '7px 18px', borderRadius: 999 }}>
+                    {coverPreview ? 'Update Cover Photo' : 'Add Cover Photo'}
+                  </span>
+                </div>
+                {coverPreview && (
+                  <button type="button" onClick={e => { e.stopPropagation(); setCoverFile(null); setCoverPreview(null); }}
+                    style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={10} color="white" />
+                  </button>
+                )}
+                <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFile(f); e.target.value = ''; }} />
+              </div>
+              {/* AI + scan buttons */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
+                <button type="button"
+                  style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#d946ef', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  ✨ AI-generated image
+                </button>
+                {coverFile && (
+                  <button type="button"
+                    style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#9333ea', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    ✨ Auto-fill from poster
+                  </button>
+                )}
+              </div>
+            </div>
             {/* Additional photos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-              <p style={{ fontFamily: SANS, fontSize: 12, color: MID, margin: 0 }}>Additional photos (optional)</p>
+            <div>
+              <p style={{ fontFamily: SANS, fontSize: 12, color: MID, marginBottom: 8 }}>Additional photos (optional)</p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <ImageUploadBox preview={extra1Preview} onFile={handleExtra1File} onClear={() => { setExtra1File(null); setExtra1Preview(null); }} height={80} width={96} borderRadius={12} label="" />
                 <ImageUploadBox preview={extra2Preview} onFile={handleExtra2File} onClear={() => { setExtra2File(null); setExtra2Preview(null); }} height={80} width={96} borderRadius={12} label="" />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <span style={{ fontSize: 14 }}>✨</span>
-                <span style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, color: '#9333ea' }}>AI-generated image</span>
               </div>
             </div>
           </div>
