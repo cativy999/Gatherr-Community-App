@@ -412,16 +412,7 @@ export default function CalendarView({
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
               onClick={e => { if(cell.overflow) return; openQC(cell.key, e.currentTarget as HTMLElement); }}
               style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', boxSizing:'border-box', overflow:'hidden' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor }}>{cell.day}</span>
-                {!cell.overflow && !isPast && isLoggedIn && dayEvts.length > 0 && (
-                  <button className="cal2-add-pill" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement?.parentElement as HTMLElement); }}
-                    style={{ opacity:0, transition:'opacity 0.15s', background:TEAL, border:'none', borderRadius:999, padding:'2px 7px', cursor:'pointer', display:'flex', alignItems:'center', gap:3 }}>
-                    <span style={{ color:'white', fontSize:12, lineHeight:1 }}>+</span>
-                    <span style={{ color:'white', fontSize:10, fontFamily:INTER, fontWeight:600 }}>Add</span>
-                  </button>
-                )}
-              </div>
+              <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:3 }}>{cell.day}</span>
               {!cell.overflow && holidays.has(cell.key) && (() => {
                 const h = holidays.get(cell.key)!;
                 return (
@@ -463,10 +454,10 @@ export default function CalendarView({
                   )}
                 </div>
               )}
-              {!cell.overflow && !isPast && isLoggedIn && dayEvts.length === 0 && (
+              {!cell.overflow && !isPast && isLoggedIn && (
                 <button className="cal2-plus" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
-                  style={{ position:'absolute', bottom:5, right:5, width:22, height:22, borderRadius:'50%', background:TEAL, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity 0.15s', boxShadow:'0 1px 6px rgba(0,0,0,0.15)', zIndex:2 }}>
-                  <span style={{ color:'white', fontSize:16, lineHeight:1 }}>+</span>
+                  style={{ position:'absolute', bottom:8, right:8, width:28, height:28, borderRadius:'50%', background:TEAL, border:'2px solid white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity: dayEvts.length > 0 ? 0.55 : 0, transition:'opacity 0.15s, transform 0.15s', boxShadow:'0 2px 8px rgba(0,0,0,0.22)', zIndex:5 }}>
+                  <span style={{ color:'white', fontSize:18, lineHeight:1, fontWeight:300 }}>+</span>
                 </button>
               )}
             </div>
@@ -668,9 +659,7 @@ export default function CalendarView({
         .cal2-cell { transition:background 0.1s; }
         .cal2-cell:hover { background:rgba(44,37,35,0.025) !important; }
         .cal2-cell:hover .cal2-plus { opacity:1 !important; }
-        .cal2-cell:hover .cal2-add-pill { opacity:1 !important; }
-        .cal2-plus:hover { transform:scale(1.15); background:#163a45 !important; }
-        .cal2-add-pill:hover { background:#163a45 !important; }
+        .cal2-plus:hover { transform:scale(1.12) !important; background:#163a45 !important; }
         .cal2-card { transition:transform 0.12s,box-shadow 0.12s; cursor:pointer; }
         .cal2-card:hover { transform:scale(1.03); box-shadow:0 4px 16px rgba(0,0,0,0.18) !important; }
         .cal-week-cell:hover { background:rgba(31,78,91,0.03) !important; }
@@ -680,7 +669,6 @@ export default function CalendarView({
         .cal-day-short { display:none; }
         @media(max-width:860px){
           .cal2-plus { display:none !important; }
-          .cal2-add-pill { display:none !important; }
           .cal-menu-hamburger { display:none !important; }
           .cal-year-day-headers { display:none !important; }
           .cal-year-days-grid { display:none !important; }
