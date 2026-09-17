@@ -1530,7 +1530,7 @@ const CreateEvent = () => {
       if (extracted.end_date) setEndDate(extracted.end_date);
       if (extracted.start_time) setStartTime(extracted.start_time);
       if (extracted.end_time) setEndTime(extracted.end_time);
-      if (extracted.location) { setLocation(extracted.location); setAddress(extracted.location); }
+      if (extracted.location) { setLocation(extracted.location); setAddress(extracted.location); setLocationSearch(extracted.location); }
 
       toast.success('✨ Event details filled in! Review and adjust as needed.');
     } catch (e) {
