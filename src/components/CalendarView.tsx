@@ -508,8 +508,8 @@ export default function CalendarView({
                     <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:'white' }}>{d.getDate()}</span>
                   </div>
                 : isSelected
-                  ? <div style={{ width:30, height:30, borderRadius:'50%', background:SURFACE, border:`2px solid ${TEAL}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:TEAL }}>{d.getDate()}</span>
+                  ? <div style={{ width:30, height:30, borderRadius:'50%', background:'#2C7A8C', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:'white' }}>{d.getDate()}</span>
                     </div>
                   : <span style={{ fontFamily:INTER, fontSize:14, fontWeight:500, color:numColor }}>{d.getDate()}</span>
               }
@@ -532,12 +532,13 @@ export default function CalendarView({
 
           {/* Day columns */}
           {weekDays.map((d, di) => {
-            const dk      = fmtDateKey(d);
-            const isToday = dk === todayKey;
-            const dayEvts = eventsByDate[dk] ?? [];
+            const dk         = fmtDateKey(d);
+            const isToday    = dk === todayKey;
+            const isSelected = jumpDate && dk === fmtDateKey(jumpDate) && !isToday;
+            const dayEvts    = eventsByDate[dk] ?? [];
             return (
               <div key={di} className="cal-week-cell"
-                style={{ position:'relative', background:isToday?'rgba(31,78,91,0.02)':'transparent', borderLeft:`1px solid ${DIV}` }}
+                style={{ position:'relative', background: isToday ? 'rgba(31,78,91,0.04)' : isSelected ? 'rgba(44,122,140,0.06)' : 'transparent', borderLeft:`1px solid ${DIV}` }}
                 onClick={e => openQC(dk, e.currentTarget as HTMLElement)}
               >
                 {/* Hour lines */}
