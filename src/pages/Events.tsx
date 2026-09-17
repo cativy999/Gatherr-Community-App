@@ -77,6 +77,7 @@ const SmallEventCard = ({ event, onClick }: { event: any; onClick: () => void })
   const timeStr = t ? (tz ? `${fmtTime(t)} ${tz}` : fmtTime(t)) : null;
 
   const dateStr = (() => {
+    if (event.is_recurring) return "Recurring event";
     if (!event.date) return null;
     const [y, m, d] = event.date.split("-").map(Number);
     return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -384,34 +385,38 @@ const Events = () => {
     }
   }, [userId, activeTab]);
 
-  // Group personal events by month
+  // Group personal events by month (recurring events get their own group)
   const groupedPersonal = useMemo(() => {
+    const recurring: any[] = [];
     const map = new Map<string, any[]>();
     personalEvents.forEach(ev => {
+      if (ev.is_recurring) { recurring.push(ev); return; }
       if (!ev.date) return;
       const [y, m] = ev.date.split("-");
       const key = `${y}-${m}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     });
-    return Array.from(map.entries()).map(([key, evs]) => {
+    const groups = Array.from(map.entries()).map(([key, evs]) => {
       const [y, m] = key.split("-");
       const label = new Date(parseInt(y), parseInt(m) - 1, 1)
         .toLocaleDateString("en-US", { month: "long", year: "numeric" });
       return { label, events: evs };
     });
+    if (recurring.length > 0) groups.push({ label: "Recurring Events", events: recurring });
+    return groups;
   }, [personalEvents]);
 
   // ── Right panel ─────────────────────────────────────────────────────────
   const RightPanel = () => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Mini calendar */}
-      <div style={{ paddingBottom: 20, borderBottom: `1px solid ${DIV}` }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Mini calendar — sticky, never scrolls away */}
+      <div style={{ flexShrink: 0, paddingBottom: 16, borderBottom: `1px solid ${DIV}` }}>
         {renderMiniCalendar()}
       </div>
 
-      {/* Your upcoming events */}
-      <div style={{ marginTop: 20 }}>
+      {/* Your upcoming events — scrolls within its own container */}
+      <div style={{ flex: 1, overflowY: "auto", marginTop: 20, paddingBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
           <h2 style={{ fontFamily: CORMORANT, fontSize: 22, fontWeight: 700, color: DARK, lineHeight: 1 }}>
             Your upcoming events
@@ -486,7 +491,7 @@ const Events = () => {
             ))}
           </div>
         )}
-      </div>
+      </div>{/* end upcoming scroll area */}
     </div>
   );
 
@@ -527,9 +532,11 @@ const Events = () => {
         .ev-page-right {
           width: 300px;
           flex-shrink: 0;
-          padding: 108px 20px 16px;
-          overflow-y: auto;
-          max-height: 100vh;
+          padding: 108px 20px 0;
+          overflow: hidden;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
           position: sticky;
           top: 0;
           background: ${BG};

@@ -614,6 +614,10 @@ export default function CreateEventModal({
   open, onClose, prefillDate = '', userId, userName = '', userAvatar, session, onCreated,
 }: CreateEventModalProps) {
 
+  // ── Post As ─────────────────────────────────────────────────────────────────
+  const [communityId,  setCommunityId]  = useState<string | null>(null);
+  const [ownedGroups,  setOwnedGroups]  = useState<{id:string;name:string;avatar_url:string|null}[]>([]);
+
   // ── Form state ──────────────────────────────────────────────────────────────
   const [title,        setTitle]        = useState('');
   const [wardType,     setWardType]     = useState<string | null>(null);
@@ -684,9 +688,18 @@ export default function CreateEventModal({
     padding: '0 16px', fontFamily: SANS, fontSize: 15, color: DARK, outline: 'none',
   };
 
+  // ── Fetch owned groups when modal opens ───────────────────────────────────
+  useEffect(() => {
+    if (!open || !session?.user?.id) return;
+    supabase.from('communities').select('id, name, avatar_url')
+      .eq('user_id', session.user.id)
+      .then(({ data }) => setOwnedGroups(data ?? []));
+  }, [open, session]);
+
   // ── Reset on open ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (open) {
+      setCommunityId(null);
       setTitle(''); setWardType(null);
       setDate(prefillDate || ''); setEndDate('');
       setStartTime(''); setEndTime('');
@@ -836,6 +849,7 @@ export default function CreateEventModal({
         group_assignment_enabled: groupAssignmentEnabled,
         group_theme: groupAssignmentEnabled ? groupTheme : null,
         num_groups: groupAssignmentEnabled && groupTheme ? numGroups : null,
+        community_id: communityId ?? null,
         status: 'published',
         user_id: session.user.id,
       };
@@ -888,16 +902,31 @@ export default function CreateEventModal({
           <h1 style={{ fontFamily: SANS, fontSize: 22, fontWeight: 700, color: TEAL, margin: 0 }}>Create Event</h1>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 270, flexShrink: 0 }}>
             <FieldLabel required>Post As</FieldLabel>
-            <div style={{ ...inputCls, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8 }}>
-              {userAvatar
-                ? <img src={userAvatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 28, height: 28, borderRadius: '50%', background: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: 'white' }}>{(userName || 'M')[0].toUpperCase()}</span>
+            {(() => {
+              const selGroup = ownedGroups.find(g => g.id === communityId);
+              const selAvatar = communityId === null ? userAvatar : selGroup?.avatar_url ?? null;
+              const selName   = communityId === null ? (userName || 'My Profile') : (selGroup?.name ?? '');
+              return (
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={communityId ?? ''}
+                    onChange={e => setCommunityId(e.target.value === '' ? null : e.target.value)}
+                    style={{ ...inputCls, paddingLeft: 44, appearance: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="">{userName || 'My Profile'}</option>
+                    {ownedGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                  <div style={{ pointerEvents: 'none', position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                    {selAvatar
+                      ? <img src={selAvatar} referrerPolicy="no-referrer" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+                      : <div style={{ width: 26, height: 26, borderRadius: '50%', background: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: 'white' }}>{selName.charAt(0).toUpperCase()}</span>
+                        </div>}
                   </div>
-              }
-              <span style={{ fontFamily: SANS, fontSize: 14, color: DARK, flex: 1 }}>{userName || 'You'}</span>
-              <ChevronDown style={{ width: 16, height: 16, color: MID }} />
-            </div>
+                  <ChevronDown style={{ pointerEvents: 'none', position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: MID }} />
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -1198,7 +1227,7 @@ export default function CreateEventModal({
               </div>
 
               {/* ── Section 3: Preferences & Extras ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 8, borderTop: `1px solid ${DIV}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 8, paddingBottom: 60, borderTop: `1px solid ${DIV}` }}>
                 <p style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: TEAL, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '8px 0 0' }}>Preferences & Extras</p>
 
                 {/* Social Links */}
@@ -1298,7 +1327,7 @@ export default function CreateEventModal({
                 </div>
 
                 {/* Group Assignment */}
-                <div>
+                <div style={{ paddingBottom: 40 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                     <p style={{ fontFamily: SANS, fontSize: 15, fontWeight: 600, color: DARK }}>Group Assignment</p>
                     <Toggle on={groupAssignmentEnabled} onToggle={() => { setGroupAssignmentEnabled(v => !v); if (groupAssignmentEnabled) { setGroupTheme(null); setNumGroups(4); } }} />
