@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   X, ChevronDown, ChevronLeft, Check, Loader2, MapPin, MoreVertical, Trash2,
   Calendar, Clock, RefreshCw, ArrowRight, Star, Circle, CheckCircle2,
-  FileText, Car, DollarSign, Ticket, Utensils, Link,
+  FileText, Car, DollarSign, Ticket, Utensils, Link, Expand,
   SunMedium, LandPlot, HandPlatter, Rainbow, Presentation,
   Image as ImageIcon, ImagePlus,
 } from 'lucide-react';
@@ -676,8 +676,9 @@ export default function CreateEventModal({
   const [extra2Preview, setExtra2Preview] = useState<string | null>(null);
 
   // UI state
-  const [saving,       setSaving]       = useState(false);
-  const [previewOpen,  setPreviewOpen]  = useState(false);
+  const [saving,         setSaving]         = useState(false);
+  const [previewOpen,    setPreviewOpen]    = useState(false);
+  const [imageExpanded,  setImageExpanded]  = useState(false);
 
   // Refs
   const locationRef      = useRef<HTMLDivElement>(null);
@@ -1450,10 +1451,18 @@ export default function CreateEventModal({
                   </span>
                 </div>
                 {coverPreview && (
-                  <button type="button" onClick={e => { e.stopPropagation(); setCoverFile(null); setCoverPreview(null); }}
-                    style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <X size={10} color="white" />
-                  </button>
+                  <>
+                    {/* Expand button */}
+                    <button type="button" onClick={e => { e.stopPropagation(); setImageExpanded(true); }}
+                      style={{ position: 'absolute', bottom: 50, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                      <Expand size={14} color="white" />
+                    </button>
+                    {/* Remove button */}
+                    <button type="button" onClick={e => { e.stopPropagation(); setCoverFile(null); setCoverPreview(null); }}
+                      style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                      <X size={10} color="white" />
+                    </button>
+                  </>
                 )}
                 <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFile(f); e.target.value = ''; }} />
@@ -1589,6 +1598,22 @@ export default function CreateEventModal({
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* ── Image lightbox ── */}
+      {imageExpanded && coverPreview && (
+        <div
+          onClick={() => setImageExpanded(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <img src={coverPreview} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 16, objectFit: 'contain' }} />
+          <button
+            onClick={() => setImageExpanded(false)}
+            style={{ position: 'absolute', top: 20, right: 20, width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={20} color="white" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
