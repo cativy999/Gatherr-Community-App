@@ -348,15 +348,12 @@ const Events = () => {
   const RightPanel = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Mini calendar */}
-      <div style={{
-        background: "white", borderRadius: 14,
-        border: `1px solid ${DIV}`, padding: "14px 16px",
-      }}>
+      <div style={{ paddingBottom: 20, borderBottom: `1px solid ${DIV}` }}>
         {renderMiniCalendar()}
       </div>
 
       {/* Your upcoming events */}
-      <div>
+      <div style={{ marginTop: 20 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
           <h2 style={{ fontFamily: CORMORANT, fontSize: 22, fontWeight: 700, color: DARK, lineHeight: 1 }}>
             Your upcoming events
@@ -451,7 +448,7 @@ const Events = () => {
           border-right: 1px solid ${DIV};
         }
         .ev-page-filter-bar {
-          padding: 12px 16px 0;
+          padding: 12px 0 0;
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -472,7 +469,7 @@ const Events = () => {
         .ev-page-right {
           width: 300px;
           flex-shrink: 0;
-          padding: 20px 20px 16px;
+          padding: 108px 20px 16px;
           overflow-y: auto;
           max-height: 100vh;
           position: sticky;
@@ -503,7 +500,7 @@ const Events = () => {
           {/* Filter bar */}
           <div className="ev-page-filter-bar">
             {/* Location title row — exact same as homepage */}
-            <div className="flex items-center justify-between px-5 md:px-3 pt-4 pb-2">
+            <div className="flex items-center justify-between pt-4 pb-2" style={{ paddingLeft: 24, paddingRight: 24 }}>
               <div className="relative">
                 <button
                   onClick={() => setLocationOpen(v => !v)}
@@ -527,8 +524,8 @@ const Events = () => {
 
             {/* Category chips — exact same as homepage */}
             <div
-              className="flex gap-2 overflow-x-auto px-5 md:px-3 pb-3"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              className="flex gap-2 overflow-x-auto pb-3"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none", paddingLeft: 24, paddingRight: 24 }}
             >
               {filterChips.map((chip) => {
                 const Icon = chip.icon;
@@ -557,7 +554,7 @@ const Events = () => {
           </div>
 
           {/* Big calendar */}
-          <div className="px-5 md:px-3" style={{ flex: 1 }}>
+          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
             <CalendarView
               events={filteredEvents as any}
               navigate={navigate}
