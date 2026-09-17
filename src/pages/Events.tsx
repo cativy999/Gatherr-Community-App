@@ -2,8 +2,8 @@ import { CE_BG, CE_SURFACE } from '../tokens';
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ThumbsUp, Smile, Heart, MapPin, Users,
-  ChevronLeft, ChevronRight,
+  ThumbsUp, Smile, Heart, MapPin,
+  ChevronLeft, ChevronRight, ChevronDown,
   Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -121,6 +121,8 @@ const Events = () => {
   const userId = session?.user?.id;
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
+
+  const [locationOpen, setLocationOpen] = useState(false);
 
   // ── Layout ──
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 860);
@@ -470,7 +472,7 @@ const Events = () => {
         .ev-page-right {
           width: 300px;
           flex-shrink: 0;
-          padding: 16px;
+          padding: 20px 16px 16px;
           overflow-y: auto;
           max-height: 100vh;
           position: sticky;
@@ -498,33 +500,54 @@ const Events = () => {
 
           {/* Filter bar */}
           <div className="ev-page-filter-bar">
-            {/* Location pill */}
-            <LocationSelector
-              value={location}
-              onChange={setLocation}
-            />
+            {/* Location title row — exact same as homepage */}
+            <div className="flex items-center justify-between px-5 md:px-3 pt-4 pb-2">
+              <div className="relative">
+                <button
+                  onClick={() => setLocationOpen(v => !v)}
+                  className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
+                  aria-label="Change location"
+                >
+                  <h1 style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
+                    {cityName || "Events"}
+                  </h1>
+                  <ChevronDown className="h-5 w-5 mt-1" style={{ color: DARK }} />
+                </button>
+                <LocationSelector
+                  value={location}
+                  onChange={setLocation}
+                  open={locationOpen}
+                  onOpenChange={setLocationOpen}
+                  dropdownAlign="left"
+                />
+              </div>
+            </div>
 
-            {/* Category chips */}
-            <div className="ev-page-chips">
-              {filterChips.map(({ id, label, icon: Icon }) => {
-                const active = activeFilter === id;
+            {/* Category chips — exact same as homepage */}
+            <div
+              className="flex gap-2 overflow-x-auto px-5 md:px-3 pb-3"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {filterChips.map((chip) => {
+                const Icon = chip.icon;
+                const active = activeFilter === chip.id;
                 return (
                   <button
-                    key={id}
-                    onClick={() => setActiveFilter(id)}
+                    key={chip.id}
+                    onClick={() => setActiveFilter(chip.id)}
+                    className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
                     style={{
-                      flexShrink: 0,
-                      display: "flex", alignItems: "center", gap: 5,
-                      padding: "7px 14px", borderRadius: 999,
-                      fontFamily: INTER, fontSize: 13, fontWeight: active ? 600 : 500,
-                      cursor: "pointer", transition: "all 0.15s",
-                      border: active ? "none" : `1px solid ${DIV}`,
-                      background: active ? TEAL : "white",
-                      color: active ? "white" : MID,
+                      padding: "8px 16px",
+                      fontFamily: INTER,
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      ...(active
+                        ? { background: TEAL, color: CE_BG, border: "none" }
+                        : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
                     }}
                   >
-                    {Icon && <Icon style={{ width: 13, height: 13 }} />}
-                    {label}
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {chip.label}
                   </button>
                 );
               })}
