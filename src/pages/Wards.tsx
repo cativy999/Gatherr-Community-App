@@ -700,7 +700,7 @@ const Wards = () => {
       >
 
         {/* Title row — city name is the location trigger */}
-        <div ref={titleRowRef} className="flex items-center justify-between px-5 md:px-3 pt-6 pb-4 max-w-6xl mx-auto">
+        <div ref={titleRowRef} className="flex items-center justify-between px-5 md:px-12 pt-6 pb-4 max-w-6xl mx-auto">
           <div className="relative">
             <button
               onClick={() => setLocationOpen((v) => !v)}
@@ -760,7 +760,7 @@ const Wards = () => {
         {/* Filter chips */}
         <div className="pb-3 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
           <div
-            className="flex gap-2 overflow-x-auto px-5 md:px-3 max-w-6xl mx-auto"
+            className="flex gap-2 overflow-x-auto px-5 md:px-12 max-w-6xl mx-auto"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {filterChips.map((chip) => {
@@ -791,7 +791,7 @@ const Wards = () => {
       </div>
 
       {/* ── Main content ── */}
-      <main className="flex-1 px-5 md:px-3 py-4">
+      <main className="flex-1 px-5 md:px-12 py-4">
         <div className="max-w-6xl mx-auto space-y-8">
 
           {/* ── Events ── */}
