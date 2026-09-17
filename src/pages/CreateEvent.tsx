@@ -1775,6 +1775,7 @@ const CreateEvent = () => {
   // Food tiles (emoji + label)
   const FOOD_TILES = [
     { id: "pizza",    emoji: "🍕", label: "Pizza" },
+    { id: "tacos",    emoji: "🌮", label: "Tacos" },
     { id: "cookies",  emoji: "🍪", label: "Cookies" },
     { id: "bbq",      emoji: "🍖", label: "BBQ" },
     { id: "burgers",  emoji: "🍔", label: "Burger" },
