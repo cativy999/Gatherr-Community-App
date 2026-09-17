@@ -1,7 +1,7 @@
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type Step = "home" | "email" | "sent" | "verified";
 
@@ -74,7 +74,8 @@ const MarqueeBanner = () => (
 
 const Welcome = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("home");
+  const [searchParams] = useSearchParams();
+  const [step, setStep] = useState<Step>(() => searchParams.get("step") === "email" ? "email" : "home");
   const [email, setEmail] = useState(localStorage.getItem("last_used_email") || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
