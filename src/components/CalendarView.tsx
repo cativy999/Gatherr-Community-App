@@ -450,7 +450,7 @@ export default function CalendarView({
                       <div key={evt.id} className="cal2-card"
                         onMouseEnter={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
                         onMouseLeave={hideHover}
-                        onClick={e => { e.stopPropagation(); showHover(evt, e.currentTarget as HTMLElement); }}
+                        onClick={e => { e.stopPropagation(); navigate(`/event/${evt.id}`); }}
                         style={{ position:'relative', borderRadius:6, overflow:'hidden', background:evt.image_url?'#111':TEAL, opacity:isPast?0.5:1, boxShadow:'0 2px 6px rgba(0,0,0,0.10)' }}>
                         {evt.image_url && <img src={evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>}
                         {showTimeBadge && <div style={{ position:'absolute', bottom:0, left:0, right:0, height:22, background:'linear-gradient(to top,rgba(0,0,0,0.65),transparent)' }}/>}
@@ -710,18 +710,13 @@ export default function CalendarView({
               ? <img src={hover.evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               : <div style={{ width:'100%', height:'100%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ fontSize:40, color:'rgba(255,255,255,0.3)' }}>✦</span></div>}
             <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)' }}/>
-            {/* Going avatars bottom-right — show if anyone is going */}
-            {((hover.evt.attendees ?? 0) > 0 || goingEventIds.has(hover.evt.id)) && (
-              <div style={{ position:'absolute', bottom:10, right:10, display:'flex', alignItems:'center', gap:5 }}>
-                {userAvatar && goingEventIds.has(hover.evt.id) && (
-                  <img src={userAvatar} alt="" style={{ width:26, height:26, borderRadius:'50%', objectFit:'cover', border:'2px solid white' }}/>
-                )}
-                {(hover.evt.attendees ?? 0) > 0 && (
-                  <div style={{ background:'rgba(0,0,0,0.55)', borderRadius:100, padding:'3px 8px', display:'flex', alignItems:'center', gap:4 }}>
-                    <Users size={11} color="white"/>
-                    <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:'white' }}>{hover.evt.attendees}</span>
-                  </div>
-                )}
+            {/* Attendee count overlay — bottom right of image */}
+            {(hover.evt.attendees ?? 0) > 0 && (
+              <div style={{ position:'absolute', bottom:10, right:10 }}>
+                <div style={{ background:'rgba(0,0,0,0.55)', borderRadius:100, padding:'3px 8px', display:'flex', alignItems:'center', gap:4 }}>
+                  <Users size={11} color="white"/>
+                  <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:'white' }}>{hover.evt.attendees} going</span>
+                </div>
               </div>
             )}
           </div>
@@ -743,7 +738,25 @@ export default function CalendarView({
           })()}
             <p style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK, margin:'0 0 4px', lineHeight:1.3 }}>{hover.evt.title}</p>
             {hover.evt.location && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 6px' }}>{hover.evt.location}</p>}
-            {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:0, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
+            {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 10px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
+
+            {/* Who's going */}
+            {goingEventIds.has(hover.evt.id) && (
+              <div style={{ display:'flex', alignItems:'center', gap:8, paddingTop:10, borderTop:`1px solid ${DIV}` }}>
+                {userAvatar
+                  ? <img src={userAvatar} alt="" style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', border:`2px solid ${TEAL}`, flexShrink:0 }}/>
+                  : <div style={{ width:28, height:28, borderRadius:'50%', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <span style={{ fontFamily:INTER, fontSize:11, fontWeight:700, color:'white' }}>{(userName||'M')[0].toUpperCase()}</span>
+                    </div>
+                }
+                <div>
+                  <span style={{ fontFamily:INTER, fontSize:12, fontWeight:700, color:TEAL }}>YOU</span>
+                  {(hover.evt.attendees ?? 0) > 1 && (
+                    <span style={{ fontFamily:INTER, fontSize:12, color:MID }}> + {(hover.evt.attendees ?? 1) - 1} others going</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
