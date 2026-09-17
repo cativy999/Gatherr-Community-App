@@ -150,6 +150,34 @@ const Events = () => {
     return () => window.removeEventListener("resize", h);
   }, []);
 
+  // ── User profile (avatar + name for CalendarView) ──
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [goingEventIds, setGoingEventIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url")
+      .eq("user_id", userId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setUserAvatar(data.avatar_url ?? null);
+          setUserName(data.full_name ?? "");
+        }
+      });
+    supabase
+      .from("rsvps")
+      .select("event_id")
+      .eq("user_id", userId)
+      .eq("status", "going")
+      .then(({ data }) => {
+        setGoingEventIds(new Set((data ?? []).map((r: any) => r.event_id)));
+      });
+  }, [userId]);
+
   // ── Big calendar: all events ──
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -578,6 +606,9 @@ const Events = () => {
               navigate={navigate}
               isLoggedIn={!!session}
               userId={userId}
+              userName={userName}
+              userAvatar={userAvatar}
+              goingEventIds={goingEventIds}
               jumpDate={jumpDate}
             />
           </div>
