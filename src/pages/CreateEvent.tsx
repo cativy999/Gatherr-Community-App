@@ -1074,6 +1074,7 @@ const CreateEvent = () => {
   const [facebookLink, setFacebookLink] = useState("");
   const [instagramLink, setInstagramLink] = useState("");
   const [websiteLink, setWebsiteLink] = useState("");
+  const [audienceGroup, setAudienceGroup] = useState<string | null>(null);
   const [foodProvided, setFoodProvided] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -1231,6 +1232,7 @@ const CreateEvent = () => {
       setExtraImagePreviews([urls[1] ?? null, urls[2] ?? null]);
       setMinAge(data.age_min ? String(data.age_min) : "");
       setMaxAge(data.age_max ? String(data.age_max) : "+");
+      setAudienceGroup(data.audience_group ?? null);
       setStartTime(data.start_time ?? "");
       setEndTime(data.end_time ?? "");
       setEndDate(data.end_date ?? "");
@@ -1688,6 +1690,7 @@ const CreateEvent = () => {
       location: location || address, image_url: allImageUrls[0] ?? null, image_urls: allImageUrls.length > 0 ? allImageUrls : null, status: "published",
       age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat, lng,
       ward_type: category === "ward" ? wardType : null,
+      audience_group: audienceGroup || null,
       food: selectedFoods, virtual_link: virtualLink || null,
       social_links: socialLinks.filter(Boolean).length > 0 ? socialLinks.filter(Boolean) : null,
       is_recurring: isRecurring,
@@ -2399,6 +2402,35 @@ const CreateEvent = () => {
             </CESheet>
           </div>
         </div>
+      </div>
+
+      {/* Audience Group */}
+      <div>
+        <FieldLabel>Audience Group</FieldLabel>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {[
+            { id: "YSA", label: "YSA", sub: "Young Single Adults" },
+            { id: "MSA", label: "MSA", sub: "Mid-Singles Adults" },
+            { id: "SA",  label: "SA",  sub: "Single Adults" },
+          ].map(({ id, label, sub }) => {
+            const active = audienceGroup === id;
+            return (
+              <button key={id} type="button"
+                onClick={() => setAudienceGroup(active ? null : id)}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  padding: "10px 24px", borderRadius: 100,
+                  border: `1.5px solid ${active ? TEAL_W : DIV_W}`,
+                  background: active ? `${TEAL_W}12` : "white",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}>
+                <span style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 700, color: active ? TEAL_W : DARK_W }}>{label}</span>
+                <span style={{ fontFamily: SANS_W, fontSize: 11, color: active ? TEAL_W : MID_W }}>{sub}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginTop: 8 }}>Optional — tap to select, tap again to deselect</p>
       </div>
 
       {/* Food Provided */}
