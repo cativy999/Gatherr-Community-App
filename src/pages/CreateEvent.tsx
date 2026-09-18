@@ -2418,14 +2418,14 @@ const CreateEvent = () => {
               <button key={id} type="button"
                 onClick={() => setAudienceGroup(active ? null : id)}
                 style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  padding: "10px 24px", borderRadius: 100,
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 100,
                   border: `1.5px solid ${active ? TEAL_W : DIV_W}`,
                   background: active ? `${TEAL_W}12` : "white",
                   cursor: "pointer", transition: "all 0.15s",
                 }}>
-                <span style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 700, color: active ? TEAL_W : DARK_W }}>{label}</span>
-                <span style={{ fontFamily: SANS_W, fontSize: 11, color: active ? TEAL_W : MID_W }}>{sub}</span>
+                <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 700, color: active ? TEAL_W : DARK_W }}>{label}</span>
+                <span style={{ fontFamily: SANS_W, fontSize: 12, color: active ? TEAL_W : MID_W }}>{sub}</span>
               </button>
             );
           })}
