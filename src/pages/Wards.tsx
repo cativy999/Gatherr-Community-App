@@ -778,32 +778,31 @@ const Wards = () => {
             className="flex gap-2 overflow-x-auto px-5 md:px-12"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {filterChips.map((chip) => {
+            {filterChips.map((chip, idx) => {
               const Icon = chip.icon;
               const active = activeFilter === chip.id;
               return (
-                <button
-                  key={chip.id}
-                  onClick={() => setActiveFilter(chip.id)}
-                  className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
-                  style={{
-                    padding: "8px 16px",
-                    fontFamily: INTER,
-                    fontSize: 13,
-                    fontWeight: active ? 600 : 500,
-                    ...(active
-                      ? { background: TEAL, color: CE_BG, border: "none" }
-                      : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
-                  }}
-                >
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {chip.label}
-                </button>
-              );
-            })}
-
-            {/* Audience group dropdown chip */}
-            <div ref={audienceDropdownRef} style={{ position: "relative", flexShrink: 0 }}>
+                <>
+                  <button
+                    key={chip.id}
+                    onClick={() => setActiveFilter(chip.id)}
+                    className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
+                    style={{
+                      padding: "8px 16px",
+                      fontFamily: INTER,
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      ...(active
+                        ? { background: TEAL, color: CE_BG, border: "none" }
+                        : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
+                    }}
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {chip.label}
+                  </button>
+                  {idx === 0 && (
+                    /* Audience group dropdown chip — right after "All" */
+                    <div ref={audienceDropdownRef} style={{ position: "relative", flexShrink: 0 }}>
               <button
                 onClick={() => setAudienceDropdownOpen(v => !v)}
                 className="flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
@@ -825,6 +824,10 @@ const Wards = () => {
                 </div>
               )}
             </div>
+                  )}
+                </>
+              );
+            })}
           </div>
         </div>
       </div>
