@@ -661,6 +661,7 @@ export default function CreateEventModal({
   const [maxAge,                 setMaxAge]                 = useState('');
   const [minAgeOpen,             setMinAgeOpen]             = useState(false);
   const [maxAgeOpen,             setMaxAgeOpen]             = useState(false);
+  const [audienceGroup,          setAudienceGroup]          = useState<string | null>(null);
   const [foodProvided,           setFoodProvided]           = useState(false);
   const [selectedFoods,          setSelectedFoods]          = useState<string[]>([]);
   const [groupAssignmentEnabled, setGroupAssignmentEnabled] = useState(false);
@@ -903,6 +904,7 @@ export default function CreateEventModal({
         social_links: socialLinks.filter(Boolean).length > 0 ? socialLinks.filter(Boolean) : null,
         age_min: minAge ? parseInt(minAge) : null,
         age_max: maxAge && maxAge !== '+' ? parseInt(maxAge) : null,
+        audience_group: audienceGroup || null,
         is_recurring: isRecurring,
         recurring_days: isRecurring ? recurringDays : null,
         recurring_day: isRecurring ? (recurringDays[0] ?? null) : null,
@@ -1358,6 +1360,28 @@ export default function CreateEventModal({
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                {/* Audience Group */}
+                <div>
+                  <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 600, color: MID, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Audience Group</p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {([
+                      { id: 'YSA', label: 'YSA', sub: 'Young Single Adults' },
+                      { id: 'MSA', label: 'MSA', sub: 'Mid-Singles Adults' },
+                      { id: 'SA',  label: 'SA',  sub: 'Single Adults' },
+                    ] as const).map(({ id, label, sub }) => {
+                      const active = audienceGroup === id;
+                      return (
+                        <button key={id} type="button"
+                          onClick={() => setAudienceGroup(active ? null : id)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 100, border: `1.5px solid ${active ? TEAL : DIV}`, background: active ? `${TEAL}12` : 'white', cursor: 'pointer', transition: 'all 0.15s' }}>
+                          <span style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: active ? TEAL : DARK }}>{label}</span>
+                          <span style={{ fontFamily: SANS, fontSize: 12, color: active ? TEAL : MID }}>{sub}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
