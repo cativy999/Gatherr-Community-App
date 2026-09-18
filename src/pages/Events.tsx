@@ -316,40 +316,63 @@ const Events = () => {
           ))}
         </div>
 
-        {/* Date cells */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
-          {cells.map((day, i) => {
-            if (!day) return <div key={`empty-${i}`} style={{ aspectRatio: "1" }} />;
-            const dateKey = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-            const hasEvt = eventDateSet.has(dateKey);
-            const isToday = dateKey === todayKey;
+        {/* Date cells — rendered as week rows so we can highlight the current week */}
+        {(() => {
+          // Pad cells to full weeks
+          const padded = [...cells];
+          while (padded.length % 7 !== 0) padded.push(null);
+          const weeks: (number | null)[][] = [];
+          for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7));
+
+          return weeks.map((week, wi) => {
+            // Is today in this week?
+            const isCurrentWeek = week.some(day => {
+              if (!day) return false;
+              const dk = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+              return dk === todayKey;
+            });
             return (
-              <button
-                key={dateKey}
-                onClick={() => setJumpDate(new Date(year, month, day))}
-                style={{
-                  aspectRatio: "1", borderRadius: 6, border: "none", cursor: "pointer",
-                  background: isToday ? TEAL : "transparent",
-                  color: isToday ? "white" : DARK,
-                  fontFamily: INTER, fontSize: 11, fontWeight: isToday ? 700 : 400,
-                  position: "relative", display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center", padding: 0,
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={e => { if (!isToday) e.currentTarget.style.background = SURFACE; }}
-                onMouseLeave={e => { if (!isToday) e.currentTarget.style.background = "transparent"; }}
-              >
-                {day}
-                {hasEvt && !isToday && (
-                  <span style={{
-                    position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
-                    width: 4, height: 4, borderRadius: "50%", background: TEAL,
-                  }} />
-                )}
-              </button>
+              <div key={wi} style={{
+                display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
+                borderRadius: 999,
+                background: isCurrentWeek ? SURFACE : "transparent",
+                marginBottom: 2,
+              }}>
+                {week.map((day, di) => {
+                  if (!day) return <div key={`empty-${wi}-${di}`} style={{ aspectRatio: "1" }} />;
+                  const dateKey = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                  const hasEvt = eventDateSet.has(dateKey);
+                  const isToday = dateKey === todayKey;
+                  return (
+                    <button
+                      key={dateKey}
+                      onClick={() => setJumpDate(new Date(year, month, day))}
+                      style={{
+                        aspectRatio: "1", borderRadius: "50%", border: "none", cursor: "pointer",
+                        background: isToday ? TEAL : "transparent",
+                        color: isToday ? "white" : DARK,
+                        fontFamily: INTER, fontSize: 11, fontWeight: isToday ? 700 : 400,
+                        position: "relative", display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center", padding: 0,
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => { if (!isToday) e.currentTarget.style.background = "#E4DCCF"; }}
+                      onMouseLeave={e => { if (!isToday) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {day}
+                      {hasEvt && !isToday && (
+                        <span style={{
+                          position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
+                          width: 4, height: 4, borderRadius: "50%", background: TEAL,
+                        }} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             );
-          })}
-        </div>
+          });
+        })()}
       </div>
     );
   };
