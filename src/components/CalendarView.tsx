@@ -311,8 +311,8 @@ export default function CalendarView({
   const weekLabel = (() => {
     const s = weekDays[0], e = weekDays[6];
     if (s.getMonth() === e.getMonth())
-      return `${MONTHS_SHORT[s.getMonth()]} ${s.getDate()} – ${e.getDate()}`;
-    return `${MONTHS_SHORT[s.getMonth()]} ${s.getDate()} – ${MONTHS_SHORT[e.getMonth()]} ${e.getDate()}`;
+      return `${MONTHS_SHORT[s.getMonth()]} ${s.getDate()} – ${e.getDate()}, ${e.getFullYear()}`;
+    return `${MONTHS_SHORT[s.getMonth()]} ${s.getDate()} – ${MONTHS_SHORT[e.getMonth()]} ${e.getDate()}, ${e.getFullYear()}`;
   })();
 
   // Current time position in week grid
@@ -331,10 +331,10 @@ export default function CalendarView({
   const Header = (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+        <button onClick={goToday} style={{ padding:'6px 16px', borderRadius:100, border:`1.5px solid ${DIV}`, background:'white', fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK, cursor:'pointer' }}>Today</button>
         <button onClick={prevPeriod} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}><ChevronLeft size={20}/></button>
         <button onClick={nextPeriod} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}><ChevronRight size={20}/></button>
         <span style={{ fontFamily:INTER, fontSize:22, fontWeight:700, color:DARK, marginLeft:6 }}>{headerLabel}</span>
-        <button onClick={goToday} style={{ marginLeft:10, padding:'6px 16px', borderRadius:100, border:`1.5px solid ${DIV}`, background:'white', fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK, cursor:'pointer' }}>Today</button>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:10, position:'relative' }}>
         {/* Avatar */}
