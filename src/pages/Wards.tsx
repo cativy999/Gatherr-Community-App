@@ -266,6 +266,19 @@ const Wards = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [audienceFilter, setAudienceFilter] = useState<string>("YSA");
+  const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
+  const audienceDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (audienceDropdownRef.current && !audienceDropdownRef.current.contains(e.target as Node)) {
+        setAudienceDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation, locationLat, locationLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
@@ -454,6 +467,8 @@ const Wards = () => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
+    // Audience group filter — show matching events + events with no group set
+    result = result.filter((e) => !e.audience_group || e.audience_group === audienceFilter);
     if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service" || activeFilter === "conference") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
@@ -476,7 +491,7 @@ const Wards = () => {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
     return result;
-  }, [events, activeFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
+  }, [events, activeFilter, audienceFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
 
   const groupEventsByTime = (evts: Event[]) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -786,6 +801,30 @@ const Wards = () => {
                 </button>
               );
             })}
+
+            {/* Audience group dropdown chip */}
+            <div ref={audienceDropdownRef} style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                onClick={() => setAudienceDropdownOpen(v => !v)}
+                className="flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
+                style={{ padding: "8px 14px", fontFamily: INTER, fontSize: 13, fontWeight: 600, background: TEAL, color: CE_BG, border: "none", cursor: "pointer" }}
+              >
+                {audienceFilter}
+                <ChevronDown style={{ width: 14, height: 14, transform: audienceDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+              {audienceDropdownOpen && (
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 100, minWidth: 160, overflow: "hidden" }}>
+                  {["YSA", "MSA", "SA"].map(opt => (
+                    <button key={opt} type="button"
+                      onClick={() => { setAudienceFilter(opt); setAudienceDropdownOpen(false); }}
+                      style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontFamily: INTER, fontSize: 13, fontWeight: audienceFilter === opt ? 700 : 400, color: audienceFilter === opt ? TEAL : "#2C2523", background: "none", border: "none", cursor: "pointer" }}>
+                      <span style={{ fontWeight: 700 }}>{opt}</span>
+                      <span style={{ color: MID, marginLeft: 6, fontWeight: 400 }}>{opt === "YSA" ? "Young Single Adults" : opt === "MSA" ? "Mid-Singles Adults" : "Single Adults"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
