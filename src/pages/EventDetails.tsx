@@ -1587,8 +1587,13 @@ const EventDetails = () => {
             >
               {event.title}
             </h1>
-            {(event.age_min || event.age_max || (event.food && event.food.length > 0)) && (
+            {(event.age_min || event.age_max || event.audience_group || (event.food && event.food.length > 0)) && (
               <div className="flex flex-wrap items-center gap-2">
+                {event.audience_group && (
+                  <span className="text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: `${TEAL}18`, color: TEAL, border: `1px solid ${TEAL}33` }}>
+                    {event.audience_group}
+                  </span>
+                )}
                 {(event.age_min || event.age_max) && (
                   <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: ICON_BG, color: MID }}>
                     {event.age_min && event.age_max
