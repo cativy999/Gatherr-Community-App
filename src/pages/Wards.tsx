@@ -467,8 +467,14 @@ const Wards = () => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
-    // Audience group filter — show matching events + events with no group set
-    result = result.filter((e) => !e.audience_group || e.audience_group === audienceFilter);
+    // Audience group filter:
+    // YSA (default) = tagged YSA + untagged events (null treated as YSA)
+    // MSA / SA = strictly tagged only
+    if (audienceFilter === "YSA") {
+      result = result.filter((e) => !e.audience_group || e.audience_group === "YSA");
+    } else {
+      result = result.filter((e) => e.audience_group === audienceFilter);
+    }
     if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service" || activeFilter === "conference") {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
