@@ -374,7 +374,7 @@ const Landing = () => {
           <div style={{ fontFamily: CORMORANT, fontSize: 52, fontWeight: 600, letterSpacing: "-3px", lineHeight: 1.1, textAlign: "center", cursor: "default" }}>
             <div style={{ color: "#131313", padding: "2px 0", lineHeight: 1, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>Find an Event.</div>
             <div style={{ color: "#131313", padding: "2px 0", marginTop: -5, marginBottom: -8, lineHeight: 1, animation: "land-fade-up 0.5s ease both", animationDelay: "0s" }}>Meet Your People.</div>
-            <div className="landing-gradient-text" style={{ fontFamily: INTER, fontWeight: 600, letterSpacing: "normal", animation: "land-fade-up 0.5s ease both", animationDelay: "0.25s" }}>start here</div>
+            <div className="landing-gradient-text" style={{ fontFamily: INTER, fontSize: 36, fontWeight: 600, letterSpacing: "normal", animation: "land-fade-up 0.5s ease both", animationDelay: "0.25s" }}>start here</div>
           </div>
 
           <p style={{ fontFamily: INTER, fontSize: 17, color: "#aba7a0", maxWidth: 420, lineHeight: 1.6, margin: 0, animation: "land-fade-up 0.45s ease both", animationDelay: "0.45s" }}>
