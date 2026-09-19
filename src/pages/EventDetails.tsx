@@ -964,16 +964,26 @@ const EventDetails = () => {
       afterTimeX = timeX + ctx.measureText(timeStr).width;
     }
 
-    // State abbreviation — extracted from event.address
+    // State abbreviation — extracted from event.address or event.location
     const stateAbbr = (() => {
-      const addr = (event as any).address || "";
-      const parts = addr.split(",").map((p: string) => p.trim()).filter(Boolean);
-      for (const p of parts) {
-        if (STATE_ABBR[p]) return STATE_ABBR[p];
-        // also handle already-abbreviated "UT", "ID", etc. (2-letter all-caps)
-        if (/^[A-Z]{2}$/.test(p) && Object.values(STATE_ABBR).includes(p)) return p;
-      }
-      return "";
+      const validAbbrs = new Set(Object.values(STATE_ABBR));
+      const extract = (str: string): string => {
+        if (!str) return "";
+        // Try comma-split first
+        const commaParts = str.split(",").map((p: string) => p.trim()).filter(Boolean);
+        for (const p of commaParts) {
+          if (STATE_ABBR[p]) return STATE_ABBR[p];
+          if (/^[A-Z]{2}$/.test(p) && validAbbrs.has(p)) return p;
+        }
+        // Fallback: space-split (handles "Gardena CA 90248")
+        const spaceParts = str.split(/\s+/);
+        for (const p of spaceParts) {
+          if (STATE_ABBR[p]) return STATE_ABBR[p];
+          if (/^[A-Z]{2}$/.test(p) && validAbbrs.has(p)) return p;
+        }
+        return "";
+      };
+      return extract((event as any).address || "") || extract((event as any).location || "");
     })();
     if (stateAbbr) {
       const dot = "  ·  ";
