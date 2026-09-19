@@ -51,8 +51,8 @@ interface ChallengeCardProps {
   onHasJoinedChange?: (joined: boolean) => void;
 }
 
-const MOBILE_VIDEO_SRC = "/Step%20Challenge/Mobile%20Firefly%20A%20cinematic%20wide%20shot%20of%20a%20group%20of%20pioneers%20walking%20forward%20together%20across%20an%20open%20landsca.mp4";
-const DESKTOP_VIDEO_SRC = "/Step%20Challenge/DesktopFirefly%20A%20cinematic%20wide%20shot%20of%20a%20group%20of%20pioneers%20walking%20forward%20together%20across%20an%20open%20landsca%20(1).mp4";
+const MOBILE_VIDEO_SRC = "/Step%20Challenge/pioneer-mobile.mp4";
+const DESKTOP_VIDEO_SRC = "/Step%20Challenge/pioneer-desktop.mp4";
 
 const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
   const navigate = useNavigate();
@@ -325,7 +325,7 @@ const ChallengeCard = ({ onHasJoinedChange }: ChallengeCardProps = {}) => {
 
           <audio
             ref={audioRef}
-            src="/Step%20Challenge/luis_humanoide-the-heroic-cowboy-cinematic-western-music-509976.mp3"
+            src="/Step%20Challenge/pioneer-music.mp3"
             loop
             muted={muted}
           />
