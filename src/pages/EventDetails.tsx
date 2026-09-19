@@ -950,6 +950,7 @@ const EventDetails = () => {
     ctx.fillText(dateStr, textX, rowY);
 
     // Time — Medium 70% white
+    let afterTimeX = textX + ctx.measureText(dateStr).width;
     if (event.start_time) {
       const [h, m] = event.start_time.split(":").map(Number);
       const ampm = h >= 12 ? "PM" : "AM";
@@ -958,7 +959,27 @@ const EventDetails = () => {
       const gap = Math.round(7.836 * SCALE);
       ctx.font = `500 ${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.fillStyle = "rgba(255,255,255,0.70)";
-      ctx.fillText(timeStr, textX + ctx.measureText(dateStr).width + gap, rowY);
+      const timeX = textX + ctx.measureText(dateStr).width + gap;
+      ctx.fillText(timeStr, timeX, rowY);
+      afterTimeX = timeX + ctx.measureText(timeStr).width;
+    }
+
+    // State abbreviation — extracted from event.address
+    const stateAbbr = (() => {
+      const addr = (event as any).address || "";
+      const parts = addr.split(",").map((p: string) => p.trim()).filter(Boolean);
+      for (const p of parts) {
+        if (STATE_ABBR[p]) return STATE_ABBR[p];
+        // also handle already-abbreviated "UT", "ID", etc. (2-letter all-caps)
+        if (/^[A-Z]{2}$/.test(p) && Object.values(STATE_ABBR).includes(p)) return p;
+      }
+      return "";
+    })();
+    if (stateAbbr) {
+      const dot = "  ·  ";
+      ctx.font = `500 ${rowFontSize}px 'Inter', -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.70)";
+      ctx.fillText(dot + stateAbbr, afterTimeX, rowY);
     }
 
     // ── B. logo bottom-right of card ──
