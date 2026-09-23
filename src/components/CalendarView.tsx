@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, AlignJustify, Check, Star, Bookmark, Users } from 'lucide-react';
 import CreateEventModal from './CreateEventModal';
 
@@ -154,6 +155,8 @@ export default function CalendarView({
 }: Props) {
   const [calDate,  setCalDate]  = useState(() => new Date(todayRaw.getFullYear(), todayRaw.getMonth(), todayRaw.getDate()));
   const [viewMode, setViewMode] = useState<'year'|'month'|'week'>('month');
+  const [mobileSheet, setMobileSheet] = useState<string | null>(null); // date key for bottom sheet
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 860);
 
   // Jump to a specific date when the mini calendar clicks a day
   useEffect(() => {
@@ -177,6 +180,13 @@ export default function CalendarView({
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Track mobile breakpoint
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth <= 860);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
   }, []);
 
   // Fit the month grid to the visible viewport — always show all rows
@@ -408,11 +418,21 @@ export default function CalendarView({
           const visible          = dayEvts;
           const showTimeBadge    = count <= 2;
           const numColor = cell.overflow ? '#C8C3BC' : isPast ? '#B0A9A3' : isWeek ? RED : DARK;
+          const isSelected = mobileSheet === cell.key;
           return (
             <div key={`${cell.key}-${i}`} className={cell.overflow?'':'cal2-cell'}
-              onClick={e => { if(cell.overflow) return; openQC(cell.key, e.currentTarget as HTMLElement); }}
-              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background:isToday?'rgba(31,78,91,0.03)':'white', outline:isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', boxSizing:'border-box', overflow:'hidden' }}>
-              <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday?700:500, color:numColor, display:'block', marginBottom:3 }}>{cell.day}</span>
+              onClick={e => {
+                if (cell.overflow) return;
+                if (isMobile) {
+                  // On mobile: if has events, open bottom sheet; else open QC
+                  if (dayEvts.length > 0) { setMobileSheet(cell.key); return; }
+                  openQC(cell.key, e.currentTarget as HTMLElement);
+                } else {
+                  openQC(cell.key, e.currentTarget as HTMLElement);
+                }
+              }}
+              style={{ borderTop:`1px solid ${DIV}`, borderRight:`1px solid ${DIV}`, padding:'8px 6px 8px', background: isSelected ? 'rgba(31,78,91,0.06)' : isToday?'rgba(31,78,91,0.03)':'white', outline: isSelected ? `2px solid ${TEAL}` : isToday?`2px solid ${TEAL}`:'none', outlineOffset:-2, cursor:cell.overflow?'default':'pointer', position:'relative', boxSizing:'border-box', overflow:'hidden' }}>
+              <span style={{ fontFamily:INTER, fontSize:13, fontWeight:isToday||isSelected?700:500, color: isSelected ? TEAL : numColor, display:'block', marginBottom:3 }}>{cell.day}</span>
               {!cell.overflow && holidays.has(cell.key) && (() => {
                 const h = holidays.get(cell.key)!;
                 return (
@@ -430,7 +450,19 @@ export default function CalendarView({
                   </div>
                 );
               })()}
-              {(visible.length > 0 || hasQCPlaceholder) && (
+
+              {/* Mobile: dots */}
+              {isMobile && dayEvts.length > 0 && (
+                <div style={{ display:'flex', justifyContent:'center', gap:2, marginTop:2 }}>
+                  {dayEvts.slice(0,3).map((_,di) => (
+                    <div key={di} style={{ width:4, height:4, borderRadius:'50%', background: isSelected ? TEAL : (isPast ? '#B0A9A3' : TEAL), opacity: isPast ? 0.5 : 1 }}/>
+                  ))}
+                  {dayEvts.length > 3 && <div style={{ width:4, height:4, borderRadius:'50%', background:'#B0A9A3' }}/>}
+                </div>
+              )}
+
+              {/* Desktop: mini event cards */}
+              {!isMobile && (visible.length > 0 || hasQCPlaceholder) && (
                 <div style={{ display:'grid', gridTemplateColumns:`repeat(${gridCols},1fr)`, gridTemplateRows:`repeat(${gridRows},1fr)`, gap:3, height:'calc(100% - 28px)' }}>
                   {visible.map(evt => {
                     const t = evt.start_time || evt.time;
@@ -454,7 +486,7 @@ export default function CalendarView({
                   )}
                 </div>
               )}
-              {!cell.overflow && !isPast && isLoggedIn && (
+              {!isMobile && !cell.overflow && !isPast && isLoggedIn && (
                 <button className="cal2-plus" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
                   style={{ position:'absolute', bottom:8, right:8, width:38, height:38, borderRadius:'50%', background:TEAL, border:'2.5px solid white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity: dayEvts.length > 0 ? 0.7 : 0, transition:'opacity 0.15s, transform 0.15s', boxShadow:'0 3px 10px rgba(0,0,0,0.28)', zIndex:5 }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -756,6 +788,68 @@ export default function CalendarView({
         session={session}
         onCreated={() => { setCreateModalOpen(false); onEventCreated?.(); }}
       />
+
+      {/* ── Mobile bottom sheet ── */}
+      {mobileSheet && createPortal(
+        <>
+          {/* Backdrop */}
+          <div onClick={() => setMobileSheet(null)}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:900, touchAction:'none' }}/>
+          {/* Sheet */}
+          <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:901, background:'white', borderRadius:'20px 20px 0 0', maxHeight:'70vh', display:'flex', flexDirection:'column', boxShadow:'0 -4px 32px rgba(0,0,0,0.18)', animation:'slideUp 0.25s cubic-bezier(0.32,0.72,0,1)' }}>
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+            {/* Handle */}
+            <div style={{ display:'flex', justifyContent:'center', padding:'12px 0 4px' }}>
+              <div style={{ width:36, height:4, borderRadius:2, background:'#E4DCCF' }}/>
+            </div>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 20px 12px' }}>
+              <span style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK }}>
+                {new Date(mobileSheet + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+              </span>
+              <button onClick={() => setMobileSheet(null)} style={{ background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', color:MID }}>
+                <X size={20}/>
+              </button>
+            </div>
+            {/* Event list */}
+            <div style={{ overflowY:'auto', padding:'0 16px 32px', flex:1 }}>
+              {(eventsByDate[mobileSheet] ?? []).length === 0 ? (
+                <p style={{ fontFamily:INTER, fontSize:14, color:MID, textAlign:'center', padding:'24px 0' }}>No events this day</p>
+              ) : (
+                (eventsByDate[mobileSheet] ?? []).map(evt => {
+                  const t = evt.start_time || evt.time;
+                  return (
+                    <div key={evt.id} onClick={() => { setMobileSheet(null); navigate(`/event/${evt.id}`); }}
+                      style={{ display:'flex', gap:12, alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${DIV}`, cursor:'pointer' }}>
+                      {/* Thumbnail */}
+                      <div style={{ width:56, height:56, borderRadius:10, flexShrink:0, overflow:'hidden', background:TEAL, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        {evt.image_url
+                          ? <img src={evt.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          : <span style={{ fontSize:22, color:'rgba(255,255,255,0.4)' }}>✦</span>}
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <p style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:DARK, margin:'0 0 3px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{evt.title}</p>
+                        {t && <p style={{ fontFamily:INTER, fontSize:12, color:TEAL, fontWeight:600, margin:'0 0 2px' }}>{fmtTime(t)}</p>}
+                        {evt.location && <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{evt.location}</p>}
+                      </div>
+                      <ChevronRight size={16} color={MID} style={{ flexShrink:0 }}/>
+                    </div>
+                  );
+                })
+              )}
+              {/* Create event button for this day */}
+              {isLoggedIn && mobileSheet >= todayKey && (
+                <button onClick={() => { setMobileSheet(null); navigate(`/create-event?date=${mobileSheet}`); }}
+                  style={{ width:'100%', marginTop:16, padding:'14px', borderRadius:14, background:TEAL, border:'none', cursor:'pointer', fontFamily:INTER, fontSize:14, fontWeight:700, color:'white', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                  <span style={{ fontSize:18, lineHeight:1 }}>+</span> Create Event for This Day
+                </button>
+              )}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
