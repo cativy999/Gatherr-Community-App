@@ -651,7 +651,9 @@ const Events = () => {
             </div>
 
             {/* Category chips + audience dropdown — all in one scrollable row */}
-            <div className="flex gap-2 overflow-x-auto pb-3" style={{ paddingLeft: 24, paddingRight: 24, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+            <div className="flex gap-2 overflow-x-auto pb-3" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+              {/* left spacer — replaces padding-left (padding is ignored on overflow-x:auto) */}
+              <div style={{ flexShrink: 0, width: 24 }} />
               {/* Audience dropdown chip — scrolls with the rest */}
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
@@ -688,6 +690,8 @@ const Events = () => {
                   </button>
                 );
               })}
+              {/* trailing spacer — padding-right is ignored on overflow-x:auto */}
+              <div style={{ flexShrink: 0, width: 24 }} />
             </div>
 
             {/* Audience dropdown panel — portalled to body so overflow can't clip it */}
