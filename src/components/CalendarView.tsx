@@ -334,7 +334,7 @@ export default function CalendarView({
         <button onClick={goToday} style={{ padding:'6px 16px', borderRadius:100, border:`1.5px solid ${DIV}`, background:'white', fontFamily:INTER, fontSize:13, fontWeight:600, color:DARK, cursor:'pointer' }}>Today</button>
         <button onClick={prevPeriod} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}><ChevronLeft size={20}/></button>
         <button onClick={nextPeriod} style={{ background:'none', border:'none', cursor:'pointer', padding:6, borderRadius:8, display:'flex', color:DARK }}><ChevronRight size={20}/></button>
-        <span style={{ fontFamily:INTER, fontSize:22, fontWeight:700, color:DARK, marginLeft:6 }}>{headerLabel}</span>
+        <span style={{ fontFamily:INTER, fontSize:18, fontWeight:700, color:DARK, marginLeft:6, whiteSpace:'nowrap' }}>{headerLabel}</span>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:10, position:'relative' }}>
         {/* Avatar */}

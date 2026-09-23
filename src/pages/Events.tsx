@@ -630,7 +630,8 @@ const Events = () => {
               {session && (
                 <button
                   onClick={() => navigate("/create-event")}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
+                  className="hidden md:flex"
+                  style={{ alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
                 >
                   <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
                 </button>
@@ -664,7 +665,7 @@ const Events = () => {
               </div>
 
               {/* Scrollable category chips */}
-              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", msOverflowStyle: "none", flex: 1 }}>
+              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", msOverflowStyle: "none", flex: 1, paddingRight: 24 }}>
                 {filterChips.map((chip) => {
                   const Icon = chip.icon;
                   const active = activeFilter === chip.id;
