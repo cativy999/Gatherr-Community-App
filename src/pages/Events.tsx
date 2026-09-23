@@ -269,15 +269,17 @@ const Events = () => {
       if (!e.age_min || !e.age_max) return true;
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
-    if (["spiritual","fhe","service","conference"].includes(activeFilter)) result = result.filter((e) => e.ward_type === activeFilter);
-    if (activeFilter === "food") result = result.filter((e) => e.food && e.food.length > 0);
-    if (activeFilter === "virtual") result = result.filter((e) => e.virtual_link);
-    if (activeFilter === "popular") return result.sort((a, b) => (b.attendees ?? 0) - (a.attendees ?? 0));
-    // Audience filter: YSA = tagged YSA + untagged; MSA/SA = strict match only
+    // Audience filter applied first — before category filters
     if (audienceFilter === "YSA") {
       result = result.filter((e) => !e.audience_group || e.audience_group === "YSA");
     } else {
       result = result.filter((e) => e.audience_group === audienceFilter);
+    }
+    if (["spiritual","fhe","service","conference"].includes(activeFilter)) result = result.filter((e) => e.ward_type === activeFilter);
+    if (activeFilter === "food") result = result.filter((e) => e.food && e.food.length > 0);
+    if (activeFilter === "virtual") result = result.filter((e) => e.virtual_link);
+    if (activeFilter === "popular") {
+      return result.sort((a, b) => (b.attendees ?? 0) - (a.attendees ?? 0));
     }
     result.sort((a, b) => {
       if (locationLat && locationLng && a.lat && b.lat) {
