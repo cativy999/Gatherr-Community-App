@@ -94,7 +94,7 @@ const Admin = () => {
   const [savedCount, setSavedCount] = useState(0);
   const [likedCount, setLikedCount] = useState(0);
   const [stepEntries, setStepEntries] = useState<{ user_id: string; steps: number }[]>([]);
-  const [abEvents, setAbEvents] = useState<{ variant: string; action: string; test: string }[]>([]);
+  const [abEvents, setAbEvents] = useState<{ variant: string; action: string; test: string; user_id: string | null }[]>([]);
 
   // Drill-down list views (Total Signups / Total Events / Step Challenge stat cards open these)
   const [drill, setDrill] = useState<null | "signups" | "events" | "steps">(null);
@@ -179,8 +179,8 @@ const Admin = () => {
 
       const { data: abRows } = await supabase
         .from("analytics_events")
-        .select("variant, action, test");
-      setAbEvents(abRows ?? []);
+        .select("variant, action, test, user_id");
+      setAbEvents((abRows ?? []).filter(r => !isOwnerUserId(r.user_id)));
 
       setLoading(false);
     };

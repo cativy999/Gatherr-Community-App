@@ -134,7 +134,8 @@ const EventDetails = () => {
   })();
 
   const logAbEvent = async (action: 'prompt_shown' | 'login_completed') => {
-    await supabase.from('analytics_events').insert({ variant: abVariant, action, test: 'rsvp_login_prompt' });
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('analytics_events').insert({ variant: abVariant, action, test: 'rsvp_login_prompt', user_id: user?.id ?? null });
   };
 
   // Log prompt_shown once when guest lands on page
