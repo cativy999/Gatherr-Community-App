@@ -284,8 +284,8 @@ const Wards = () => {
         setAudienceDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("click", h);
+    return () => document.removeEventListener("click", h);
   }, []);
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
   const { location, setLocation, locationLat, locationLng } = useLocation();

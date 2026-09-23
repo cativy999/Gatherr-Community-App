@@ -221,8 +221,8 @@ const Events = () => {
       if (audienceBtnRef.current && !audienceBtnRef.current.contains(e.target as Node))
         setAudienceDropdownOpen(false);
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    document.addEventListener("click", h);
+    return () => document.removeEventListener("click", h);
   }, []);
 
   // Track button position for the portalled dropdown
