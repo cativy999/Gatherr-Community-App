@@ -1,5 +1,6 @@
 import { CE_BG, CE_SURFACE } from '../tokens';
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   ThumbsUp, Smile, Heart, MapPin, Users,
@@ -192,7 +193,9 @@ const Events = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [audienceFilter, setAudienceFilter] = useState("YSA");
   const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
+  const [audienceDropdownPos, setAudienceDropdownPos] = useState({ top: 0, left: 0 });
   const audienceDropdownRef = useRef<HTMLDivElement>(null);
+  const audienceBtnRef = useRef<HTMLButtonElement>(null);
   const [jumpDate, setJumpDate] = useState<Date | undefined>();
 
   const cityName = location.split(",")[0].trim();
@@ -215,12 +218,19 @@ const Events = () => {
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (audienceDropdownRef.current && !audienceDropdownRef.current.contains(e.target as Node))
+      if (audienceBtnRef.current && !audienceBtnRef.current.contains(e.target as Node))
         setAudienceDropdownOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
+  // Track button position for the portalled dropdown
+  useEffect(() => {
+    if (!audienceDropdownOpen || !audienceBtnRef.current) return;
+    const rect = audienceBtnRef.current.getBoundingClientRect();
+    setAudienceDropdownPos({ top: rect.bottom + 6, left: rect.left });
+  }, [audienceDropdownOpen]);
 
   const STATE_ABBR: Record<string, string> = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -638,11 +648,12 @@ const Events = () => {
               )}
             </div>
 
-            {/* Category chips + audience dropdown */}
-            <div className="flex items-center gap-2 pb-3" style={{ paddingLeft: 24, paddingRight: 24 }}>
-              {/* Audience dropdown — outside scroll so it's never clipped */}
-              <div ref={audienceDropdownRef} style={{ position: "relative", flexShrink: 0 }}>
+            {/* Category chips + audience dropdown — all in one scrollable row */}
+            <div className="flex gap-2 overflow-x-auto pb-3" style={{ paddingLeft: 24, paddingRight: 24, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+              {/* Audience dropdown chip — scrolls with the rest */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
+                  ref={audienceBtnRef}
                   onClick={() => setAudienceDropdownOpen(v => !v)}
                   className="flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
                   style={{ padding: "8px 14px", fontFamily: INTER, fontSize: 13, fontWeight: 600, background: TEAL, color: CE_BG, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
@@ -650,45 +661,47 @@ const Events = () => {
                   {audienceFilter}
                   <ChevronDown style={{ width: 14, height: 14, marginLeft: 2, transform: audienceDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                 </button>
-                {audienceDropdownOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 200, minWidth: 190, overflow: "hidden" }}>
-                    {["YSA", "MSA", "SA"].map(opt => (
-                      <button key={opt} type="button"
-                        onClick={() => { setAudienceFilter(opt); setAudienceDropdownOpen(false); }}
-                        style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontFamily: INTER, fontSize: 13, color: audienceFilter === opt ? TEAL : "#2C2523", background: audienceFilter === opt ? `${TEAL}10` : "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 700, minWidth: 32 }}>{opt}</span>
-                        <span style={{ color: MID, fontWeight: 400, fontSize: 12 }}>{opt === "YSA" ? "Young Single Adults" : opt === "MSA" ? "Mid-Singles Adults" : "Single Adults"}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Scrollable category chips */}
-              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none", msOverflowStyle: "none", flex: 1, paddingRight: 24 }}>
-                {filterChips.map((chip) => {
-                  const Icon = chip.icon;
-                  const active = activeFilter === chip.id;
-                  return (
-                    <button
-                      key={chip.id}
-                      onClick={() => setActiveFilter(chip.id)}
-                      className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
-                      style={{
-                        padding: "8px 16px", fontFamily: INTER, fontSize: 13,
-                        fontWeight: active ? 600 : 500,
-                        ...(active
-                          ? { background: TEAL, color: CE_BG, border: "none" }
-                          : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
-                      }}
-                    >
-                      {Icon && <Icon className="h-3.5 w-3.5" />}
-                      {chip.label}
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Category chips */}
+              {filterChips.map((chip) => {
+                const Icon = chip.icon;
+                const active = activeFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => setActiveFilter(chip.id)}
+                    className="flex-shrink-0 flex items-center gap-1.5 rounded-full transition-opacity hover:opacity-80"
+                    style={{
+                      padding: "8px 16px", fontFamily: INTER, fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      whiteSpace: "nowrap",
+                      ...(active
+                        ? { background: TEAL, color: CE_BG, border: "none" }
+                        : { background: CE_SURFACE, color: MID, border: "1px solid #E4DCCF" }),
+                    }}
+                  >
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {chip.label}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Audience dropdown panel — portalled to body so overflow can't clip it */}
+            {audienceDropdownOpen && createPortal(
+              <div style={{ position: "fixed", top: audienceDropdownPos.top, left: audienceDropdownPos.left, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 9999, minWidth: 190, overflow: "hidden" }}>
+                {["YSA", "MSA", "SA"].map(opt => (
+                  <button key={opt} type="button"
+                    onClick={() => { setAudienceFilter(opt); setAudienceDropdownOpen(false); }}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontFamily: INTER, fontSize: 13, color: audienceFilter === opt ? TEAL : "#2C2523", background: audienceFilter === opt ? `${TEAL}10` : "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontWeight: 700, minWidth: 32 }}>{opt}</span>
+                    <span style={{ color: MID, fontWeight: 400, fontSize: 12 }}>{opt === "YSA" ? "Young Single Adults" : opt === "MSA" ? "Mid-Singles Adults" : "Single Adults"}</span>
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )}
           </div>
 
           {/* Big calendar */}
