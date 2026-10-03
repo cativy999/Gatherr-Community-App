@@ -32,6 +32,7 @@ type CalEvent = {
   description?: string | null; user_id?: string;
   timezone?: string | null;
   attendees?: number | null;
+  lat?: number | null; lng?: number | null;
 };
 type HoverState  = { evt: CalEvent; top: number; left: number };
 type QuickCreate = { date: string; top: number; left: number };
@@ -47,11 +48,22 @@ interface Props {
   savedEventIds?: Set<string>;
   goingEventIds?: Set<string>;
   interestedEventIds?: Set<string>;
-  jumpDate?: Date; // external date to jump to (from mini calendar)
-  onEventCreated?: () => void; // called after a new event is published
+  jumpDate?: Date;
+  onEventCreated?: () => void;
+  locationLat?: number | null;
+  locationLng?: number | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 3958.8; // miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+};
+const fmtDist = (miles: number) => miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+
 const fmtTime = (t: string) => {
   const [h, m] = t.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
@@ -151,7 +163,7 @@ const getWeekStart = (date: Date) => {
 export default function CalendarView({
   events, navigate, isLoggedIn, userId, userName, userAvatar, session,
   savedEventIds = new Set(), goingEventIds = new Set(), interestedEventIds = new Set(),
-  jumpDate, onEventCreated,
+  jumpDate, onEventCreated, locationLat, locationLng,
 }: Props) {
   const [calDate,  setCalDate]  = useState(() => new Date(todayRaw.getFullYear(), todayRaw.getMonth(), todayRaw.getDate()));
   const [viewMode, setViewMode] = useState<'year'|'month'|'week'>('month');
@@ -753,7 +765,14 @@ export default function CalendarView({
             ) : null;
           })()}
             <p style={{ fontFamily:INTER, fontSize:15, fontWeight:700, color:DARK, margin:'0 0 4px', lineHeight:1.3 }}>{hover.evt.title}</p>
-            {hover.evt.location && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 6px' }}>{hover.evt.location}</p>}
+            <div style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0 6px', flexWrap:'wrap' }}>
+              {hover.evt.location && <span style={{ fontFamily:INTER, fontSize:13, color:MID }}>{hover.evt.location}</span>}
+              {locationLat && locationLng && hover.evt.lat && hover.evt.lng && (
+                <span style={{ fontFamily:INTER, fontSize:13, color:TEAL, fontWeight:600 }}>
+                  {hover.evt.location ? '· ' : ''}{fmtDist(getDistance(locationLat, locationLng, hover.evt.lat, hover.evt.lng))}
+                </span>
+              )}
+            </div>
             {hover.evt.description && <p style={{ fontFamily:INTER, fontSize:13, color:MID, margin:'0 0 10px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{hover.evt.description}</p>}
 
             {/* Who's going */}
@@ -830,8 +849,15 @@ export default function CalendarView({
                       {/* Info */}
                       <div style={{ flex:1, minWidth:0 }}>
                         <p style={{ fontFamily:INTER, fontSize:14, fontWeight:700, color:DARK, margin:'0 0 3px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{evt.title}</p>
-                        {t && <p style={{ fontFamily:INTER, fontSize:12, color:TEAL, fontWeight:600, margin:'0 0 2px' }}>{fmtTime(t)}</p>}
-                        {evt.location && <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{evt.location}</p>}
+                        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                          {t && <span style={{ fontFamily:INTER, fontSize:12, color:TEAL, fontWeight:600 }}>{fmtTime(t)}</span>}
+                          {locationLat && locationLng && evt.lat && evt.lng && (
+                            <span style={{ fontFamily:INTER, fontSize:12, color:MID, fontWeight:500 }}>
+                              {t && '· '}{fmtDist(getDistance(locationLat, locationLng, evt.lat, evt.lng))}
+                            </span>
+                          )}
+                        </div>
+                        {evt.location && <p style={{ fontFamily:INTER, fontSize:12, color:MID, margin:'2px 0 0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{evt.location}</p>}
                       </div>
                       <ChevronRight size={16} color={MID} style={{ flexShrink:0 }}/>
                     </div>

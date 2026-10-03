@@ -723,6 +723,8 @@ const Events = () => {
               goingEventIds={goingEventIds}
               jumpDate={jumpDate}
               onEventCreated={fetchEvents}
+              locationLat={locationLat}
+              locationLng={locationLng}
             />
           </div>
         </div>
