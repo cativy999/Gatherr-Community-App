@@ -288,7 +288,7 @@ const Wards = () => {
     return () => document.removeEventListener("click", h);
   }, []);
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
-  const { location, setLocation, locationLat, locationLng } = useLocation();
+  const { location, setLocation, locationLat, locationLng, detectedLat, detectedLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
   const [creatorWards, setCreatorWards] = useState<Record<string, string>>({});
   const [communityNames, setCommunityNames] = useState<Record<string, string>>({});
@@ -462,9 +462,9 @@ const Wards = () => {
           if (abbrRegex && abbrRegex.test(e.location ?? "")) return true;
           return false;
         }
-        // City-level pick with coordinates — use 75 mile radius
+        // City-level pick with coordinates — use 150 mile radius
         if (locationLat && locationLng && e.lat && e.lng) {
-          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 75;
+          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 150;
         }
         // Fallback: match state so nearby cities still show up
         if (userState) return eventLoc.includes(userState);

@@ -260,7 +260,7 @@ const Events = () => {
           if (abbrRegex && abbrRegex.test(e.location ?? "")) return true;
           return false;
         }
-        if (locationLat && locationLng && e.lat && e.lng) return getDistance(locationLat, locationLng, e.lat, e.lng) <= 75;
+        if (locationLat && locationLng && e.lat && e.lng) return getDistance(locationLat, locationLng, e.lat, e.lng) <= 150;
         if (userState) return eventLoc.includes(userState);
         return cityName ? eventLoc.includes(cityName.toLowerCase()) : true;
       });
