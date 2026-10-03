@@ -139,7 +139,7 @@ const Events = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const userId = session?.user?.id;
-  const { location, setLocation, locationLat, locationLng } = useLocation();
+  const { location, setLocation, locationLat, locationLng, detectedLat, detectedLng } = useLocation();
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
   const [locationOpen, setLocationOpen] = useState(false);
@@ -723,8 +723,8 @@ const Events = () => {
               goingEventIds={goingEventIds}
               jumpDate={jumpDate}
               onEventCreated={fetchEvents}
-              locationLat={locationLat}
-              locationLng={locationLng}
+              locationLat={locationLat ?? detectedLat}
+              locationLng={locationLng ?? detectedLng}
             />
           </div>
         </div>
