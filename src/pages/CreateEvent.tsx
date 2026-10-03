@@ -1676,6 +1676,26 @@ const CreateEvent = () => {
   const proceedSubmit = async () => {
     setNoImageConfirmOpen(false);
     setLoading(true);
+
+    // If address was typed manually (no autocomplete pick), geocode it now
+    let resolvedLat = lat;
+    let resolvedLng = lng;
+    if (address && (!resolvedLat || !resolvedLng)) {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const results = await res.json();
+        if (results?.[0]) {
+          resolvedLat = parseFloat(results[0].lat);
+          resolvedLng = parseFloat(results[0].lon);
+        }
+      } catch {
+        // geocoding failed — save without coords, distance won't show
+      }
+    }
+
     let imageUrl = imagePreview;
     if (imageFile) {
       const fileName = `${session.user.id}-${Date.now()}.jpg`;
@@ -1706,7 +1726,7 @@ const CreateEvent = () => {
       title, description, category, is_free: isFree,
       date: isRecurring ? "2099-12-31" : date,
       location: location || address, image_url: allImageUrls[0] ?? null, image_urls: allImageUrls.length > 0 ? allImageUrls : null, status: "published",
-      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat, lng,
+      age_min: minAge ? parseInt(minAge) : null, age_max: maxAge && maxAge !== "+" ? parseInt(maxAge) : null, start_time: startTime, end_time: endTime, end_date: isRecurring ? null : (endDate || null), address, lat: resolvedLat, lng: resolvedLng,
       ward_type: category === "ward" ? wardType : null,
       audience_group: audienceGroup || null,
       food: selectedFoods, virtual_link: virtualLink || null,
