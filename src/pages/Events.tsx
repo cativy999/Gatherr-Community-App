@@ -713,15 +713,22 @@ const Events = () => {
 
           {/* Distance slider — only when a city is selected (not Everywhere) */}
           {location !== "Everywhere" && locationLat && locationLng && (
-            <div style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 4, paddingBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+              <style>{`
+                .dist-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; background: #E4DCCF; outline: none; cursor: pointer; }
+                .dist-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: transform 0.1s; }
+                .dist-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+                .dist-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+              `}</style>
               <span style={{ fontFamily: INTER, fontSize: 12, color: MID, whiteSpace: "nowrap", minWidth: 60 }}>Within</span>
               <input
-                type="range" min={25} max={300} step={25}
+                className="dist-slider"
+                type="range" min={10} max={300} step={5}
                 value={radiusMiles}
                 onChange={e => setRadiusMiles(Number(e.target.value))}
-                style={{ flex: 1, accentColor: TEAL, cursor: "pointer" }}
+                style={{ flex: 1 }}
               />
-              <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
+              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
             </div>
           )}
 
