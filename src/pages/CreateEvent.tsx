@@ -1349,7 +1349,24 @@ const CreateEvent = () => {
   }, []);
 
   // ── Unsaved-changes guard ──────────────────────────────────────────────────
-  const hasUnsavedChanges = title.trim() !== "" || description.trim() !== "" || date !== "" || address !== "" || virtualLink !== "";
+  // For new events: any filled field = dirty.
+  // For editing: only dirty if user actually changed something from the original.
+  const hasUnsavedChanges = (() => {
+    const orig = originalEventRef.current;
+    if (!orig) {
+      // New event — dirty if any field has content
+      return title.trim() !== "" || description.trim() !== "" || date !== "" || address !== "" || virtualLink !== "";
+    }
+    // Editing — compare against original values
+    return (
+      title.trim()       !== (orig.title       ?? "").trim()       ||
+      description.trim() !== (orig.description ?? "").trim()       ||
+      date               !== (orig.date        ?? "")              ||
+      address            !== (orig.address     ?? "")              ||
+      virtualLink        !== (orig.virtual_link ?? "")             ||
+      imagePreview       !== (orig.image_url   ?? null)
+    );
+  })();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const pendingNavRef = useRef<(() => void) | null>(null);
 
