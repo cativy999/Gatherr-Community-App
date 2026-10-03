@@ -135,7 +135,14 @@ const useShowDesktopSidebar = () => {
 
 const ContentLayout = ({ children }: { children: ReactNode }) => {
   const showSidebar = useShowDesktopSidebar();
-  return <div className={showSidebar ? "md:pl-24" : ""}>{children}</div>;
+  return (
+    <div
+      className={showSidebar ? "md:pl-24" : ""}
+      style={{ overflowX: "hidden" }}
+    >
+      {children}
+    </div>
+  );
 };
 
 // Wraps routes so every navigation triggers a directional slide.

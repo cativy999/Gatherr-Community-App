@@ -10,18 +10,8 @@
 @tailwind utilities;
 
 /* ── Page transition ──────────────────────────────────────────────────────── */
-/*
-  IMPORTANT: We only animate opacity on the outer wrapper, NEVER transform.
-  Any CSS transform on a parent creates a new containing block for
-  position:fixed descendants, which breaks the floating RSVP bar and any
-  other fixed elements inside the page. Opacity is safe — it never creates
-  a containing block.
 
-  The slide "feel" comes from the inner .page-slide-content div (which wraps
-  only the scrollable content, not the fixed bar) via translateX.
-*/
-
-/* Outer wrapper — opacity only, no transform */
+/* Desktop: subtle fade only */
 @keyframes page-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -31,22 +21,22 @@
   animation: page-fade-in 0.18s ease-out both;
 }
 
-/* Inner content slide — forward (right → left) */
-@keyframes slide-from-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: none; }
-}
-.page-enter .page-slide-content {
-  animation: slide-from-right 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-/* Inner content slide — back (left → right) */
-@keyframes slide-from-left {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: none; }
-}
-.page-slide-from-left .page-slide-content {
-  animation: slide-from-left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+/* Mobile: full-width native slide (right → left on forward, left → right on back) */
+@media (max-width: 767px) {
+  @keyframes mobile-slide-from-right {
+    from { opacity: 1; transform: translateX(100%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes mobile-slide-from-left {
+    from { opacity: 1; transform: translateX(-40%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .page-enter {
+    animation: mobile-slide-from-right 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+  .page-slide-from-left {
+    animation: mobile-slide-from-left 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
 }
 
 /* ── Skeleton pulse ───────────────────────────────────────────────────────── */
