@@ -39,6 +39,8 @@ interface EventCardProps {
   communityId?: string | null;
   isSaved?: boolean;
   onToggleSave?: (id: string, e: React.MouseEvent) => void;
+  userLat?: number | null;
+  userLng?: number | null;
 }
 
 const STATE_ABBR: Record<string, string> = {
@@ -132,6 +134,15 @@ const TZ_ABBR: Record<string, string> = {
 const getTzAbbr = (tz: string | null | undefined): string =>
   tz ? (TZ_ABBR[tz] ?? '') : '';
 
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+const fmtDist = (miles: number) => miles < 10 ? `${miles.toFixed(1)} mi` : `${Math.round(miles)} mi`;
+
 const getInitialColor = (name: string) => {
   const l = (name || '?').charAt(0).toUpperCase();
   if ('ABCD'.includes(l)) return '#F97066';
@@ -144,7 +155,7 @@ const getInitialColor = (name: string) => {
   return '#94A3B8';
 };
 
-const EventCard = ({ event, creatorWard, communityName, communityAvatar, communityId, isSaved = false, onToggleSave }: EventCardProps) => {
+const EventCard = ({ event, creatorWard, communityName, communityAvatar, communityId, isSaved = false, onToggleSave, userLat, userLng }: EventCardProps) => {
   const navigate = useNavigate();
   const [attendeeAvatars, setAttendeeAvatars] = useState<{url: string | null; name: string}[]>([]);
   const regionTag = getRegionTag(event.location, event.lat, event.lng);
@@ -318,6 +329,12 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
           </span>
           {durationPart && <span className="text-muted-foreground"> · {durationPart}</span>}
         </p>
+
+        {userLat && userLng && event.lat && event.lng && (
+          <p className="text-xs font-medium" style={{ color: '#7C9A92' }}>
+            📍 {fmtDist(getDistance(userLat, userLng, event.lat, event.lng))} away
+          </p>
+        )}
 
         {event.food && event.food.length > 0 && (
           <div className="flex items-center gap-2 pt-1">
