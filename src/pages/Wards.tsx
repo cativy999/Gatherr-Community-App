@@ -268,6 +268,7 @@ const Wards = () => {
   const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [audienceFilter, setAudienceFilter] = useState<string>("YSA");
+  const [radiusMiles, setRadiusMiles] = useState(150);
   const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
   const [audienceDropdownPos, setAudienceDropdownPos] = useState({ top: 0, left: 0 });
   const audienceBtnRef = useRef<HTMLButtonElement>(null);
@@ -464,7 +465,7 @@ const Wards = () => {
         }
         // City-level pick with coordinates — use 150 mile radius
         if (locationLat && locationLng && e.lat && e.lng) {
-          return getDistance(locationLat, locationLng, e.lat, e.lng) <= 150;
+          return getDistance(locationLat, locationLng, e.lat, e.lng) <= radiusMiles;
         }
         // Fallback: match state so nearby cities still show up
         if (userState) return eventLoc.includes(userState);
@@ -505,7 +506,7 @@ const Wards = () => {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
     return result;
-  }, [events, activeFilter, audienceFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
+  }, [events, activeFilter, audienceFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName, radiusMiles]);
 
   const groupEventsByTime = (evts: Event[]) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -834,6 +835,20 @@ const Wards = () => {
             {/* right spacer — ensures last chip is never clipped */}
             <div style={{ flexShrink: 0, width: 20 }} className="md:w-12" />
           </div>
+
+          {/* Distance slider — only when a city is selected */}
+          {location !== "Everywhere" && locationLat && locationLng && (
+            <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 8, paddingBottom: 4, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: INTER, fontSize: 12, color: MID, whiteSpace: "nowrap", minWidth: 60 }}>Within</span>
+              <input
+                type="range" min={25} max={300} step={25}
+                value={radiusMiles}
+                onChange={e => setRadiusMiles(Number(e.target.value))}
+                style={{ flex: 1, accentColor: TEAL, cursor: "pointer" }}
+              />
+              <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
+            </div>
+          )}
 
           {/* Audience dropdown — portalled so overflow can't clip it */}
           {audienceDropdownOpen && createPortal(

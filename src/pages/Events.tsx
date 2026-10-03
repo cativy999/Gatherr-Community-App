@@ -143,6 +143,7 @@ const Events = () => {
   const { preferredAgeMin, preferredAgeMax } = useUserProfile();
 
   const [locationOpen, setLocationOpen] = useState(false);
+  const [radiusMiles, setRadiusMiles] = useState(150);
 
   // ── Layout ──
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 860);
@@ -260,7 +261,7 @@ const Events = () => {
           if (abbrRegex && abbrRegex.test(e.location ?? "")) return true;
           return false;
         }
-        if (locationLat && locationLng && e.lat && e.lng) return getDistance(locationLat, locationLng, e.lat, e.lng) <= 150;
+        if (locationLat && locationLng && e.lat && e.lng) return getDistance(locationLat, locationLng, e.lat, e.lng) <= radiusMiles;
         if (userState) return eventLoc.includes(userState);
         return cityName ? eventLoc.includes(cityName.toLowerCase()) : true;
       });
@@ -291,7 +292,7 @@ const Events = () => {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
     return result;
-  }, [allEvents, activeFilter, audienceFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName]);
+  }, [allEvents, activeFilter, audienceFilter, locationLat, locationLng, preferredAgeMin, preferredAgeMax, location, cityName, radiusMiles]);
 
   // ── Mini calendar ──
   const [miniMonth, setMiniMonth] = useState(new Date());
@@ -709,6 +710,20 @@ const Events = () => {
               document.body
             )}
           </div>
+
+          {/* Distance slider — only when a city is selected (not Everywhere) */}
+          {location !== "Everywhere" && locationLat && locationLng && (
+            <div style={{ paddingLeft: 24, paddingRight: 24, paddingBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: INTER, fontSize: 12, color: MID, whiteSpace: "nowrap", minWidth: 60 }}>Within</span>
+              <input
+                type="range" min={25} max={300} step={25}
+                value={radiusMiles}
+                onChange={e => setRadiusMiles(Number(e.target.value))}
+                style={{ flex: 1, accentColor: TEAL, cursor: "pointer" }}
+              />
+              <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
+            </div>
+          )}
 
           {/* Big calendar */}
           <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
