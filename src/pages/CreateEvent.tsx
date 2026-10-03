@@ -40,6 +40,7 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 );
 import confetti from "canvas-confetti";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { getRecurringLabelFull } from "@/lib/recurring";
 import { useNavigate, useParams, useSearchParams, Navigate } from "react-router-dom";
@@ -2742,14 +2743,15 @@ const CreateEvent = () => {
         onDismiss={() => { setShareModalOpen(false); navigate('/wards', { state: { scrollToEventId: publishedEventId } }); }}
       />}
 
-      {/* Image lightbox */}
-      {imageExpanded && ([imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview) && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setImageExpanded(false)}>
-          <img src={[imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview!} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
-          <button className="absolute top-5 right-5 p-2 bg-white/20 rounded-full" onClick={() => setImageExpanded(false)}>
-            <X className="w-5 h-5 text-white" />
+      {/* Image lightbox — portalled to body so the ce-wrap transform doesn't trap fixed positioning */}
+      {imageExpanded && ([imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview) && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setImageExpanded(false)}>
+          <img src={[imagePreview, extraImagePreviews[0], extraImagePreviews[1]][photoSlide] || imagePreview!} alt="" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 16, objectFit: "contain" }} />
+          <button style={{ position: "absolute", top: 20, right: 20, width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setImageExpanded(false)}>
+            <X style={{ width: 20, height: 20, color: "white" }} />
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── DESKTOP ─────────────────────────────────────────────────────────── */}
