@@ -252,7 +252,7 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
         {event.image_url ? (
           <img
             src={event.image_url}
-            alt={event.title}
+            alt=""
             className="ec-img w-full h-44 object-cover"
           />
         ) : (
