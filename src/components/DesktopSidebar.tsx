@@ -57,6 +57,10 @@ const DesktopSidebar = () => {
   return (
     <>
       <style>{`
+        @keyframes tooltip-in {
+          from { opacity: 0; transform: translateY(-50%) translateX(-6px); }
+          to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+        }
         @keyframes draw-icon {
           from { stroke-dashoffset: 1; }
           to   { stroke-dashoffset: 0; }
@@ -229,6 +233,45 @@ const DesktopSidebar = () => {
                     </svg>
                   )}
                 </div>
+
+                {/* Tooltip */}
+                {isHovered && (
+                  <div style={{
+                    position: "absolute",
+                    left: 56,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    display: "flex",
+                    alignItems: "center",
+                    pointerEvents: "none",
+                    zIndex: 200,
+                    filter: "drop-shadow(0px 0px 2px rgba(0,0,0,0.27))",
+                    animation: "tooltip-in 0.14s ease-out both",
+                  }}>
+                    {/* Left-pointing caret */}
+                    <div style={{
+                      width: 0, height: 0,
+                      borderTop: "6px solid transparent",
+                      borderBottom: "6px solid transparent",
+                      borderRight: "7px solid #f6f1ea",
+                      flexShrink: 0,
+                    }} />
+                    {/* Pill */}
+                    <div style={{
+                      background: "#f6f1ea",
+                      borderRadius: 8,
+                      padding: "4px 10px",
+                      whiteSpace: "nowrap",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      color: "#5e5f60",
+                      lineHeight: 1.45,
+                    }}>
+                      {item.label}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
