@@ -732,8 +732,15 @@ const Wards = () => {
       >
 
         {/* Title row — city name is the location trigger */}
+        <style>{`
+          .dist-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; background: #E4DCCF; outline: none; cursor: pointer; }
+          .dist-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: ${TEAL}; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.1s; }
+          .dist-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+          .dist-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: ${TEAL}; cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        `}</style>
         <div ref={titleRowRef} className="flex items-center justify-between px-5 md:px-12 pt-6 pb-4">
-          <div className="relative">
+          <div className="flex items-center gap-3 min-w-0">
+          <div className="relative flex-shrink-0">
             <button
               onClick={() => setLocationOpen((v) => !v)}
               className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
@@ -752,6 +759,22 @@ const Wards = () => {
               dropdownAlign="left"
             />
           </div>
+
+          {/* Compact distance slider — only when a city is selected */}
+          {location !== "Everywhere" && locationLat && locationLng && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, width: 200, flexShrink: 0 }}>
+              <input
+                className="dist-slider"
+                type="range" min={10} max={300} step={5}
+                value={radiusMiles}
+                onChange={e => setRadiusMiles(Number(e.target.value))}
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: TEAL, whiteSpace: "nowrap" }}>{radiusMiles} mi</span>
+            </div>
+          )}
+          </div>
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/search")}
@@ -838,26 +861,6 @@ const Wards = () => {
             <div style={{ flexShrink: 0, width: 20 }} className="md:w-12" />
           </div>
 
-          {/* Distance slider — only when a city is selected */}
-          {location !== "Everywhere" && locationLat && locationLng && (
-            <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 4, paddingBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-              <style>{`
-                .dist-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; background: #E4DCCF; outline: none; cursor: pointer; }
-                .dist-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: transform 0.1s; }
-                .dist-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
-                .dist-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
-              `}</style>
-              <span style={{ fontFamily: INTER, fontSize: 12, color: MID, whiteSpace: "nowrap", minWidth: 60 }}>Within</span>
-              <input
-                className="dist-slider"
-                type="range" min={10} max={300} step={5}
-                value={radiusMiles}
-                onChange={e => setRadiusMiles(Number(e.target.value))}
-                style={{ flex: 1 }}
-              />
-              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
-            </div>
-          )}
 
           {/* Audience dropdown — portalled so overflow can't clip it */}
           {audienceDropdownOpen && createPortal(
