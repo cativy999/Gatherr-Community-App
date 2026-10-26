@@ -267,7 +267,9 @@ const Wards = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const isLoggedIn = !!session;
   const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [audienceFilter, setAudienceFilter] = useState<string>("YSA");
+  const [audienceFilter, setAudienceFilter] = useState<string>(
+    () => localStorage.getItem("gatherr_audience_filter") ?? "YSA"
+  );
   const [radiusMiles, setRadiusMiles] = useState(150);
   const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
   const [audienceDropdownPos, setAudienceDropdownPos] = useState({ top: 0, left: 0 });
@@ -862,7 +864,7 @@ const Wards = () => {
             <div style={{ position: "fixed", top: audienceDropdownPos.top, left: audienceDropdownPos.left, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 9999, minWidth: 190, overflow: "hidden" }}>
               {["YSA", "MSA", "SA"].map(opt => (
                 <button key={opt} type="button"
-                  onClick={() => { setAudienceFilter(opt); setAudienceDropdownOpen(false); }}
+                  onClick={() => { setAudienceFilter(opt); localStorage.setItem("gatherr_audience_filter", opt); setAudienceDropdownOpen(false); }}
                   style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontFamily: INTER, fontSize: 13, color: audienceFilter === opt ? TEAL : "#2C2523", background: audienceFilter === opt ? `${TEAL}10` : "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontWeight: 700, minWidth: 32 }}>{opt}</span>
                   <span style={{ color: MID, fontWeight: 400, fontSize: 12 }}>{opt === "YSA" ? "Young Single Adults" : opt === "MSA" ? "Mid-Singles Adults" : "Single Adults"}</span>
