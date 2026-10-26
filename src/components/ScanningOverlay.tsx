@@ -45,7 +45,7 @@ const ScanningOverlay = () => (
           height: 280,
           borderRadius: 16,
           overflow: "hidden",
-          boxShadow: "0 0 0 2px rgba(0,255,80,0.5), 0 0 24px rgba(0,255,80,0.2)",
+          boxShadow: "0 0 0 2px rgba(234,212,196,0.6), 0 0 24px rgba(234,212,196,0.2)",
         }}>
           {/* Illustration */}
           <img
@@ -58,7 +58,7 @@ const ScanningOverlay = () => (
           <div style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(0, 255, 80, 0.04)",
+            background: "rgba(234, 212, 196, 0.06)",
             pointerEvents: "none",
           }} />
 
@@ -68,8 +68,8 @@ const ScanningOverlay = () => (
             left: 0,
             right: 0,
             height: 3,
-            background: "linear-gradient(90deg, transparent 0%, #00ff50 20%, #00ff50 80%, transparent 100%)",
-            boxShadow: "0 0 6px 2px #00ff50, 0 0 18px 4px rgba(0,255,80,0.6), 0 0 40px 8px rgba(0,255,80,0.3)",
+            background: "linear-gradient(90deg, transparent 0%, #EAD4C4 20%, #EAD4C4 80%, transparent 100%)",
+            boxShadow: "0 0 6px 2px #EAD4C4, 0 0 18px 4px rgba(234,212,196,0.6), 0 0 40px 8px rgba(234,212,196,0.3)",
             animation: "scan-line 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite",
             pointerEvents: "none",
           }} />
@@ -81,10 +81,10 @@ const ScanningOverlay = () => (
               width: 20, height: 20,
               ...(corner.includes("top")    ? { top: 8 }    : { bottom: 8 }),
               ...(corner.includes("left")   ? { left: 8 }   : { right: 8 }),
-              borderTop:    corner.includes("top")    ? "2px solid #00ff50" : "none",
-              borderBottom: corner.includes("bottom") ? "2px solid #00ff50" : "none",
-              borderLeft:   corner.includes("left")   ? "2px solid #00ff50" : "none",
-              borderRight:  corner.includes("right")  ? "2px solid #00ff50" : "none",
+              borderTop:    corner.includes("top")    ? "2px solid #EAD4C4" : "none",
+              borderBottom: corner.includes("bottom") ? "2px solid #EAD4C4" : "none",
+              borderLeft:   corner.includes("left")   ? "2px solid #EAD4C4" : "none",
+              borderRight:  corner.includes("right")  ? "2px solid #EAD4C4" : "none",
               borderRadius: corner === "top-left" ? "4px 0 0 0" : corner === "top-right" ? "0 4px 0 0" : corner === "bottom-left" ? "0 0 0 4px" : "0 0 4px 0",
             }} />
           ))}
@@ -95,10 +95,10 @@ const ScanningOverlay = () => (
           fontFamily: "Inter, sans-serif",
           fontSize: 13,
           fontWeight: 600,
-          color: "#00ff50",
+          color: "#EAD4C4",
           letterSpacing: "0.05em",
           animation: "scan-text-blink 1.4s ease-in-out infinite",
-          textShadow: "0 0 10px rgba(0,255,80,0.6)",
+          textShadow: "0 0 10px rgba(234,212,196,0.6)",
         }}>
           AI is reading your poster…
         </p>
