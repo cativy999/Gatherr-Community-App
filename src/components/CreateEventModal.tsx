@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import ScanningOverlay from './ScanningOverlay';
 import {
   X, ChevronDown, ChevronLeft, Check, Loader2, MapPin, MoreVertical, Trash2,
   Calendar, Clock, RefreshCw, ArrowRight, Star, Circle, CheckCircle2,
@@ -108,6 +110,8 @@ const CESheet = ({ open, onClose, title, children }: {
   }, [open]);
   if (!mounted) return null;
   return (
+    <>
+    {scanning && createPortal(<ScanningOverlay />, document.body)}
     <div style={{ position: 'fixed', inset: 0, zIndex: 10100 }} onClick={onClose}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', opacity: visible ? 1 : 0, transition: 'opacity 0.22s ease' }} />
       <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'white', borderRadius: '20px 20px 0 0', maxHeight: '72vh', display: 'flex', flexDirection: 'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 0.34s cubic-bezier(0.32,0.72,0,1)' }}>
@@ -1639,5 +1643,6 @@ export default function CreateEventModal({
         </div>
       )}
     </div>
+    </>
   );
 }
