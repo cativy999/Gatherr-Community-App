@@ -10,6 +10,9 @@ interface LocationSelectorProps {
   onOpenChange?: (open: boolean) => void;
   /** Which edge the dropdown aligns to (default: "right") */
   dropdownAlign?: "left" | "right";
+  /** Distance slider — shown inside the popup on mobile only */
+  radiusMiles?: number;
+  onRadiusChange?: (miles: number) => void;
 }
 
 const LocationSelector = ({
@@ -18,6 +21,8 @@ const LocationSelector = ({
   open: controlledOpen,
   onOpenChange,
   dropdownAlign = "right",
+  radiusMiles,
+  onRadiusChange,
 }: LocationSelectorProps) => {
   const { setLocationCoords, clearLocation, detectedLocation, detectedLat, detectedLng, restoreDetectedLocation } = useLocation();
   const isEverywhere = value === "Everywhere";
@@ -199,6 +204,27 @@ const LocationSelector = ({
               <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               Everywhere
             </button>
+
+            {/* Distance slider — mobile only, shown when a city is selected */}
+            {radiusMiles !== undefined && onRadiusChange && value !== "Everywhere" && (
+              <div className="md:hidden px-4 py-3 border-t border-border">
+                <style>{`
+                  .loc-dist-slider { -webkit-appearance:none; appearance:none; height:4px; border-radius:99px; background:#E4DCCF; outline:none; cursor:pointer; width:100%; }
+                  .loc-dist-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%; background:#1F4E5B; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
+                  .loc-dist-slider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:#1F4E5B; cursor:pointer; border:none; }
+                `}</style>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground font-medium">Distance</span>
+                  <span className="text-xs font-bold" style={{ color: "#1F4E5B" }}>{radiusMiles} mi</span>
+                </div>
+                <input
+                  className="loc-dist-slider"
+                  type="range" min={10} max={300} step={5}
+                  value={radiusMiles}
+                  onChange={e => onRadiusChange(Number(e.target.value))}
+                />
+              </div>
+            )}
 
             {showMyLocation && (
               <button

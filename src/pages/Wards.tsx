@@ -757,12 +757,14 @@ const Wards = () => {
               open={locationOpen}
               onOpenChange={setLocationOpen}
               dropdownAlign="left"
+              radiusMiles={radiusMiles}
+              onRadiusChange={setRadiusMiles}
             />
           </div>
 
-          {/* Compact distance slider — only when a city is selected */}
+          {/* Compact distance slider — desktop only; mobile version is inside the location popup */}
           {location !== "Everywhere" && locationLat && locationLng && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, width: 200, flexShrink: 0 }}>
+            <div className="hidden md:flex" style={{ alignItems: "center", gap: 8, width: 200, flexShrink: 0 }}>
               <input
                 className="dist-slider"
                 type="range" min={10} max={300} step={5}
