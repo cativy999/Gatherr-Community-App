@@ -803,6 +803,16 @@ const Wards = () => {
                 />
               )}
             </button>
+            {/* Mobile: circle + button */}
+            <button
+              onClick={() => navigate(isLoggedIn ? "/create-event" : "/welcome")}
+              className="flex md:hidden items-center justify-center transition-opacity hover:opacity-70"
+              style={{ width: 36, height: 36, borderRadius: 999, background: TEAL, border: "none", cursor: "pointer", flexShrink: 0 }}
+              aria-label="Create Event"
+            >
+              <span style={{ color: CE_BG, fontSize: 22, lineHeight: 1, marginTop: -1 }}>+</span>
+            </button>
+            {/* Desktop: full pill with text */}
             <button
               onClick={() => navigate(isLoggedIn ? "/create-event" : "/welcome")}
               className="hidden md:flex items-center gap-1.5 transition-opacity hover:opacity-70"
