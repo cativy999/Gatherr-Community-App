@@ -47,6 +47,7 @@ import { useNavigate, useParams, useSearchParams, Navigate } from "react-router-
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ScanningOverlay from "@/components/ScanningOverlay";
 
 // PDF support is loaded on demand (only when a user picks a .pdf file) so it
 // doesn't add ~450kb to the bundle every visitor downloads.
@@ -2662,6 +2663,9 @@ const CreateEvent = () => {
 
   return (
     <div className="ce-wrap" style={{ background: "white", minHeight: "100vh" }}>
+      {/* Scanning overlay */}
+      {scanning && createPortal(<ScanningOverlay />, document.body)}
+
       {/* Global hover / interactive styles for this page */}
       <style>{`
         @media (max-width: 860px) {
