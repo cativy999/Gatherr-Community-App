@@ -623,33 +623,59 @@ const Events = () => {
           <div className="ev-page-filter-bar">
             {/* Location title row — exact same as homepage */}
             <div className="flex items-center justify-between pt-4 pb-2" style={{ paddingLeft: 24, paddingRight: 24 }}>
-              <div className="relative">
-                <button
-                  onClick={() => setLocationOpen(v => !v)}
-                  className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
-                  aria-label="Change location"
-                >
-                  <h1 style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
-                    {cityName || "Events"}
-                  </h1>
-                  <ChevronDown className="h-5 w-5 mt-1" style={{ color: DARK }} />
-                </button>
-                <LocationSelector
-                  value={location}
-                  onChange={setLocation}
-                  open={locationOpen}
-                  onOpenChange={setLocationOpen}
-                  dropdownAlign="left"
-                />
+              <div className="flex items-center gap-3 min-w-0">
+                <div style={{ flexShrink: 0, position: "relative" }}>
+                  <button
+                    onClick={() => setLocationOpen(v => !v)}
+                    className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
+                    aria-label="Change location"
+                  >
+                    <h1 style={{ fontFamily: CORMORANT, fontSize: 32, fontWeight: 700, color: DARK, lineHeight: 1 }}>
+                      {cityName || "Events"}
+                    </h1>
+                    <ChevronDown className="h-5 w-5 mt-1" style={{ color: DARK }} />
+                  </button>
+                  <LocationSelector
+                    value={location}
+                    onChange={setLocation}
+                    open={locationOpen}
+                    onOpenChange={setLocationOpen}
+                    dropdownAlign="left"
+                    radiusMiles={radiusMiles}
+                    onRadiusChange={setRadiusMiles}
+                  />
+                </div>
+                {/* Desktop inline slider */}
+                {location !== "Everywhere" && locationLat && locationLng && (
+                  <div className="hidden md:flex" style={{ alignItems: "center", gap: 8, width: 200, flexShrink: 0 }}>
+                    <style>{`.evt-dist-slider{-webkit-appearance:none;appearance:none;height:4px;border-radius:99px;background:#E4DCCF;outline:none;cursor:pointer;}.evt-dist-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:${TEAL};cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);}.evt-dist-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:${TEAL};cursor:pointer;border:none;}`}</style>
+                    <input className="evt-dist-slider" type="range" min={10} max={300} step={5}
+                      value={radiusMiles} onChange={e => setRadiusMiles(Number(e.target.value))}
+                      style={{ flex: 1, minWidth: 0 }} />
+                    <span style={{ fontFamily: INTER, fontSize: 12, fontWeight: 700, color: TEAL, whiteSpace: "nowrap" }}>{radiusMiles} mi</span>
+                  </div>
+                )}
               </div>
               {session && (
-                <button
-                  onClick={() => navigate("/create-event")}
-                  className="hidden md:flex"
-                  style={{ alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
-                >
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
-                </button>
+                <>
+                  {/* Mobile: circle + button */}
+                  <button
+                    onClick={() => navigate("/create-event")}
+                    className="flex md:hidden items-center justify-center transition-opacity hover:opacity-70"
+                    style={{ width: 36, height: 36, borderRadius: 999, background: TEAL, border: "none", cursor: "pointer", flexShrink: 0 }}
+                    aria-label="Create Event"
+                  >
+                    <span style={{ color: "#FAF6F0", fontSize: 22, lineHeight: 1, marginTop: -1 }}>+</span>
+                  </button>
+                  {/* Desktop: full pill */}
+                  <button
+                    onClick={() => navigate("/create-event")}
+                    className="hidden md:flex"
+                    style={{ alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
+                  </button>
+                </>
               )}
             </div>
 
@@ -714,25 +740,6 @@ const Events = () => {
           </div>
 
           {/* Distance slider — only when a city is selected (not Everywhere) */}
-          {location !== "Everywhere" && locationLat && locationLng && (
-            <div style={{ paddingLeft: 24, paddingRight: 24, paddingTop: 4, paddingBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-              <style>{`
-                .dist-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; background: #E4DCCF; outline: none; cursor: pointer; }
-                .dist-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: transform 0.1s; }
-                .dist-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
-                .dist-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: ${TEAL}; cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
-              `}</style>
-              <span style={{ fontFamily: INTER, fontSize: 12, color: MID, whiteSpace: "nowrap", minWidth: 60 }}>Within</span>
-              <input
-                className="dist-slider"
-                type="range" min={10} max={300} step={5}
-                value={radiusMiles}
-                onChange={e => setRadiusMiles(Number(e.target.value))}
-                style={{ flex: 1 }}
-              />
-              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 700, color: TEAL, whiteSpace: "nowrap", minWidth: 52 }}>{radiusMiles} mi</span>
-            </div>
-          )}
 
           {/* Big calendar */}
           <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
