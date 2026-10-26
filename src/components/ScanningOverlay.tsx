@@ -45,7 +45,7 @@ const ScanningOverlay = () => (
           height: 280,
           borderRadius: 16,
           overflow: "hidden",
-          boxShadow: "0 0 0 2px rgba(234,212,196,0.6), 0 0 24px rgba(234,212,196,0.2)",
+          boxShadow: "none",
         }}>
           {/* Illustration */}
           <img
@@ -69,7 +69,7 @@ const ScanningOverlay = () => (
             right: 0,
             height: 3,
             background: "linear-gradient(90deg, transparent 0%, #EAD4C4 20%, #EAD4C4 80%, transparent 100%)",
-            boxShadow: "0 0 6px 2px #EAD4C4, 0 0 18px 4px rgba(234,212,196,0.6), 0 0 40px 8px rgba(234,212,196,0.3)",
+            boxShadow: "none",
             animation: "scan-line 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite",
             pointerEvents: "none",
           }} />
@@ -98,7 +98,7 @@ const ScanningOverlay = () => (
           color: "#EAD4C4",
           letterSpacing: "0.05em",
           animation: "scan-text-blink 1.4s ease-in-out infinite",
-          textShadow: "0 0 10px rgba(234,212,196,0.6)",
+          textShadow: "none",
         }}>
           AI is reading your poster…
         </p>
