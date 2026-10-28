@@ -11,10 +11,11 @@ export default async function handler(req, res) {
   const isBot = /facebookexternalhit|twitterbot|slackbot|whatsapp|telegram|discord|linkedinbot|applebot/i.test(userAgent);
 
   const { id } = req.query;
-  const url = `https://gatherr-one.vercel.app/event/${id}`;
+  const BASE_URL = process.env.SITE_URL || "https://www.joinbeyondsunday.app";
+  const url = `${BASE_URL}/event/${id}`;
 
   if (!isBot) {
-    return res.redirect(302, `https://gatherr-one.vercel.app/?redirect=/event/${id}`);
+    return res.redirect(302, `${BASE_URL}/?redirect=/event/${id}`);
   }
   
 
@@ -37,7 +38,7 @@ const title = datePrefix ? `${datePrefix} · ${event.title ?? "Beyond Sunday Eve
   const description = dateFormatted
     ? `${dateFormatted} · ${event.description?.slice(0, 100) ?? ""}`
     : event.description?.slice(0, 150) ?? "Join us for this event!";
-  const image = event.image_url ?? "https://gatherr-one.vercel.app/byond%20sunsay%20Ig%202.png";
+  const image = event.image_url ?? `${BASE_URL}/byond%20sunsay%20Ig%202.png`;
 
   res.setHeader("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>

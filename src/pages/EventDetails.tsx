@@ -407,7 +407,7 @@ const EventDetails = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setInviteLink(invite ? `https://gatherr-one.vercel.app/cohost-invite/${invite.id}` : null);
+      setInviteLink(invite ? `${import.meta.env.VITE_SITE_URL}/cohost-invite/${invite.id}` : null);
     };
     fetchCohostData();
   }, [id]);
@@ -1113,7 +1113,7 @@ const EventDetails = () => {
     }
   };
 
-  const shareUrl = `https://gatherr-one.vercel.app/event/${id}`;
+  const shareUrl = `${import.meta.env.VITE_SITE_URL}/event/${id}`;
 
   const ensureInviteLink = async (): Promise<string | null> => {
     if (!id || !userId) return null;
@@ -1136,7 +1136,7 @@ const EventDetails = () => {
       if (error || !created) { toast.error("Couldn't create an invite link."); return null; }
       token = created.id;
     }
-    const link = `https://gatherr-one.vercel.app/cohost-invite/${token}`;
+    const link = `${import.meta.env.VITE_SITE_URL}/cohost-invite/${token}`;
     setInviteLink(link);
     return link;
   };

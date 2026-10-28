@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq("id", id)
     .single();
 
-  const baseUrl = "https://gatherr-one.vercel.app";
+  const baseUrl = process.env.SITE_URL || "https://www.joinbeyondsunday.app";
   const title = group?.name || "Beyond Sunday Group";
   const image = group?.cover_image_url || group?.avatar_url || `${baseUrl}/Beyond Sunday.jpg`;
 

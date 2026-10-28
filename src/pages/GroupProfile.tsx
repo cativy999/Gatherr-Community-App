@@ -236,7 +236,7 @@ const GroupProfile = () => {
   const [shareMenuOpen, setShareMenuOpen]       = useState(false);
   const shareButtonRef                          = useRef<HTMLButtonElement>(null);
 
-  const shareUrl = `https://gatherr-one.vercel.app/group/${id}`;
+  const shareUrl = `${import.meta.env.VITE_SITE_URL}/group/${id}`;
 
   // ── Share to story ─────────────────────────────────────────────────────
   const shareToStory = async () => {
