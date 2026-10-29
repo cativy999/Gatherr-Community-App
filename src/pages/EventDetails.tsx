@@ -3296,7 +3296,7 @@ const EventDetails = () => {
       )}
 
       {/* ── Sticky RSVP Bar ─────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:flex md:justify-center md:px-6 md:pb-6 md:pl-[calc(96px+48px)]">
+      {createPortal(<div className="fixed bottom-0 left-0 right-0 z-50 md:flex md:justify-center md:px-6 md:pb-6 md:pl-[calc(96px+48px)]">
         {/* Mobile bar */}
         <div
           className="md:hidden px-5 w-full"
@@ -3370,7 +3370,7 @@ const EventDetails = () => {
           )}
         </div>
 
-      </div>
+      </div>, document.body)}
 
     </div>
   );
