@@ -354,15 +354,17 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
               </>
             )}
             {event.is_private && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#1F4E5B", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="11" width="18" height="11" rx="3" fill="white"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold" style={{ color: '#1F4E5B' }}>Private</span>
-              </div>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: '#1F4E5B',
+                background: 'rgba(31,78,91,0.08)',
+                borderRadius: 20,
+                padding: '2px 8px',
+                letterSpacing: '0.03em',
+                whiteSpace: 'nowrap',
+                fontFamily: "'Hanken Grotesk', sans-serif",
+              }}>✦ Invite only</span>
             )}
           </div>
         )}
