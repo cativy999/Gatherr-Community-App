@@ -1,6 +1,6 @@
 import { CE_BG,CE_LIGHT,CE_TEAL_PRESS,CE_ERROR,CE_SUCCESS_BG_LIGHT } from '../tokens';
 import { ArrowLeft, MapPin, Heart, Copy, Loader2, ThumbsUp, Smile, User, Trash2, Link, Video, Clock, Navigation, CalendarPlus, Expand, Balloon, Calendar, Star, Circle, CheckCircle2, Check, FileText, Car, DollarSign, Ticket, Utensils, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, HandPlatter, Flame, Popcorn, Shield, History, ChevronRight, ChevronLeft, ChevronDown, PartyPopper } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -115,6 +115,8 @@ const INFO_ICON_MAP: Record<string, React.ElementType> = {
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestsRef = useRef<HTMLDivElement>(null);
   const { session } = useAuth();
   const userId = session?.user?.id;
   const { requireAuth, GateSheet } = useAuthGate();
@@ -370,6 +372,15 @@ const EventDetails = () => {
     };
     fetchRequests();
   }, [event?.id, event?.is_private, isHost]);
+
+  // Auto-scroll to join requests when arriving from notification
+  useEffect(() => {
+    if (searchParams.get("requests") === "1" && isHost && pendingRequests.length > 0) {
+      setTimeout(() => {
+        requestsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 400);
+    }
+  }, [searchParams, isHost, pendingRequests.length]);
 
   const handleAccessDecision = async (requestId: string, requesterId: string, approve: boolean) => {
     const newStatus = approve ? "approved" : "declined";
@@ -2335,7 +2346,7 @@ const EventDetails = () => {
 
           {/* ── Access Requests (host only, private events) ─────── */}
           {isHost && event.is_private && pendingRequests.length > 0 && (
-            <div className="rounded-2xl px-5 py-4 space-y-3" style={{ background: "rgba(234,212,196,0.2)", border: "1px solid rgba(234,212,196,0.6)" }}>
+            <div ref={requestsRef} className="rounded-2xl px-5 py-4 space-y-3" style={{ background: "rgba(234,212,196,0.2)", border: "1px solid rgba(234,212,196,0.6)" }}>
               <p className="text-sm font-semibold" style={{ color: DARK }}>🔒 Join requests ({pendingRequests.length})</p>
               {pendingRequests.map(req => (
                 <div key={req.id} className="flex items-center gap-3">

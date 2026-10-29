@@ -35,6 +35,9 @@ const notifIcon = (type: string): string => {
     case "group_coadmin_declined": return "👋";
     case "new_signup":           return "👤";
     case "new_event":            return "📅";
+    case "access_request":       return "🔒";
+    case "access_approved":      return "✦";
+    case "access_declined":      return "👋";
     default:                     return "🔔";
   }
 };
@@ -74,6 +77,8 @@ const NotificationsPage = () => {
   const handleTap = (n: any) => {
     if (n.type === "group_coadmin_invite" && n.reference_id) {
       navigate(`/group-admin-invite/${n.reference_id}`);
+    } else if (n.type === "access_request" && n.event_id) {
+      navigate(`/event/${n.event_id}?requests=1`);
     } else if (n.event_id) {
       navigate(`/event/${n.event_id}`);
     }

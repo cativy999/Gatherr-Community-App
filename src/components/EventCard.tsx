@@ -281,18 +281,18 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
           </div>
         )}
 
-        {/* Private invite-only badge on image */}
+        {/* Private ✦ badge on image */}
         {event.is_private && (
           <div style={{
             position: "absolute", bottom: 10, right: 10,
+            width: 34, height: 34,
             background: "rgba(31,78,91,0.82)",
             backdropFilter: "blur(6px)",
-            borderRadius: 20,
-            padding: "4px 10px",
-            display: "flex", alignItems: "center", gap: 4,
+            borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
             boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
           }}>
-            <span style={{ color: "#EAD4C4", fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "'Hanken Grotesk', sans-serif" }}>✦ Invite only</span>
+            <span style={{ color: "#EAD4C4", fontSize: 16, lineHeight: 1, fontFamily: "serif" }}>✦</span>
           </div>
         )}
 
@@ -369,17 +369,7 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
               </>
             )}
             {event.is_private && (
-              <span style={{
-                fontSize: 10,
-                fontWeight: 600,
-                color: '#1F4E5B',
-                background: 'rgba(31,78,91,0.08)',
-                borderRadius: 20,
-                padding: '2px 8px',
-                letterSpacing: '0.03em',
-                whiteSpace: 'nowrap',
-                fontFamily: "'Hanken Grotesk', sans-serif",
-              }}>✦ Invite only</span>
+              <span style={{ color: '#1F4E5B', fontSize: 15, lineHeight: 1, fontFamily: "serif" }}>✦</span>
             )}
           </div>
         )}
