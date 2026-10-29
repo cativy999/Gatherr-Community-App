@@ -1186,7 +1186,6 @@ const EventDetails = () => {
       const scrollingUp = currentY < lastScrollY;
       if (window.innerWidth < 768) {
         setShowTitleInHeader(scrollingUp && titlePassed);
-        setShowRsvpBar(scrollingUp || currentY < 80);
       }
       lastScrollY = currentY;
     };
@@ -3306,9 +3305,8 @@ const EventDetails = () => {
             borderTop: `1px solid ${DIVIDER}`,
             paddingTop: 12,
             paddingBottom: `calc(env(safe-area-inset-bottom) + 16px)`,
-            transform: showRsvpBar ? "translateY(0)" : "translateY(100%)",
-            opacity: showRsvpBar ? 1 : 0,
-            transition: "transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease",
+            transform: "translateY(0)",
+            opacity: 1,
           }}
         >
           {isGuest ? (
