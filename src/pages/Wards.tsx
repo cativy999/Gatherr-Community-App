@@ -41,6 +41,7 @@ type Event = {
   recurring_week_of_month?: number | null;
   timezone?: string | null;
   community_id?: string | null;
+  is_private?: boolean | null;
 };
 
 // ── Design tokens ──────────────────────────────────────────────────────────
@@ -312,7 +313,7 @@ const Wards = () => {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id, description, audience_group")
+        .select("id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, is_recurring, recurring_day, recurring_days, recurring_week_of_month, timezone, community_id, description, audience_group, is_private")
         .eq("status", "published")
         .eq("category", "ward")
         .or(`end_date.gte.${today},and(end_date.is.null,date.gte.${today})`)
