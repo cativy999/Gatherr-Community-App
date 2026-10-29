@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 // ── Design tokens ──────────────────────────────────────────────────────────
 const BG      = CE_BG;
