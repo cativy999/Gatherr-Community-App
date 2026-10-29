@@ -1082,6 +1082,7 @@ const CreateEvent = () => {
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [recurringDays, setRecurringDays] = useState<string[]>(["Sunday"]);
   const [recurringWeekOfMonth, setRecurringWeekOfMonth] = useState<number | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -1741,6 +1742,7 @@ const CreateEvent = () => {
         ? additionalInfo.filter(item => item.title.trim())
         : null,
       community_id: communityId ?? null,
+      is_private: isPrivate,
     };
     // Only set user_id when creating a brand-new event. On an edit, a co-host
     // saving changes must NOT overwrite who the original host is.
@@ -2084,12 +2086,33 @@ const CreateEvent = () => {
   // ── Step 1 form fields ─────────────────────────────────────────────────────
   const Step1Fields = () => (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      {/* Event Name */}
+      {/* Event Name + Public/Private toggle */}
       <div>
-        <FieldLabel required>Event Name</FieldLabel>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <FieldLabel required style={{ marginBottom: 0 }}>Event Name</FieldLabel>
+          {/* Desktop: toggle inline with label */}
+          <div className="hidden md:flex" style={{ alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: isPrivate ? MID_W : TEAL_W }}>Public</span>
+            <Toggle on={isPrivate} onToggle={() => setIsPrivate(v => !v)} />
+            <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: isPrivate ? TEAL_W : MID_W }}>Private</span>
+          </div>
+        </div>
         <input className="ds-input" style={inputCls} placeholder="e.g. Community Picnic" value={title} maxLength={80}
           onChange={(e) => { const v = e.target.value; setTitle(v.charAt(0).toUpperCase() + v.slice(1)); }} />
-        <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, textAlign: "right", marginTop: 4 }}>{title.length}/80</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          {/* Mobile: toggle below input */}
+          <div className="flex md:hidden" style={{ alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: isPrivate ? MID_W : TEAL_W }}>Public</span>
+            <Toggle on={isPrivate} onToggle={() => setIsPrivate(v => !v)} />
+            <span style={{ fontFamily: SANS_W, fontSize: 13, fontWeight: 600, color: isPrivate ? TEAL_W : MID_W }}>Private</span>
+          </div>
+          <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginLeft: "auto" }}>{title.length}/80</p>
+        </div>
+        {isPrivate && (
+          <p style={{ fontFamily: SANS_W, fontSize: 12, color: MID_W, marginTop: 6 }}>
+            🔒 Only people you approve can see this event's details.
+          </p>
+        )}
       </div>
 
       {/* Category */}

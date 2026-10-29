@@ -172,6 +172,9 @@ const EventDetails = () => {
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [accessStatus, setAccessStatus] = useState<"none" | "pending" | "approved">("none");
+  const [accessRequestLoading, setAccessRequestLoading] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<{ id: string; requester_id: string; name: string; avatar: string | null }[]>([]);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [showTitleInHeader, setShowTitleInHeader] = useState(false);
   const [showRsvpBar, setShowRsvpBar] = useState(true);
@@ -327,6 +330,85 @@ const EventDetails = () => {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const isHost = !!userId && userId === event?.user_id;
   const isHostOrCohost = isHost || (!!userId && cohostIds.includes(userId));
+
+  // Check if current user has access to a private event
+  useEffect(() => {
+    if (!event?.is_private || !userId || isHost) return;
+    const checkAccess = async () => {
+      const { data } = await supabase
+        .from("event_access_requests")
+        .select("status")
+        .eq("event_id", event.id)
+        .eq("requester_id", userId)
+        .maybeSingle();
+      if (data?.status === "approved") setAccessStatus("approved");
+      else if (data?.status === "pending") setAccessStatus("pending");
+      else setAccessStatus("none");
+    };
+    checkAccess();
+  }, [event?.id, event?.is_private, userId, isHost]);
+
+  // Fetch pending access requests (host only)
+  useEffect(() => {
+    if (!event?.is_private || !isHost || !event?.id) return;
+    const fetchRequests = async () => {
+      const { data } = await supabase
+        .from("event_access_requests")
+        .select("id, requester_id, status")
+        .eq("event_id", event.id)
+        .eq("status", "pending");
+      if (!data?.length) { setPendingRequests([]); return; }
+      const profileResults = await Promise.all(
+        data.map(r => supabase.from("profiles").select("name, avatar_url").eq("user_id", r.requester_id).maybeSingle())
+      );
+      setPendingRequests(data.map((r, i) => ({
+        id: r.id,
+        requester_id: r.requester_id,
+        name: profileResults[i]?.data?.name || "Someone",
+        avatar: profileResults[i]?.data?.avatar_url || null,
+      })));
+    };
+    fetchRequests();
+  }, [event?.id, event?.is_private, isHost]);
+
+  const handleAccessDecision = async (requestId: string, requesterId: string, approve: boolean) => {
+    const newStatus = approve ? "approved" : "declined";
+    await supabase.from("event_access_requests").update({ status: newStatus }).eq("id", requestId);
+    await supabase.from("notifications").insert({
+      user_id: requesterId,
+      from_user_id: userId,
+      type: approve ? "access_approved" : "access_declined",
+      event_id: event?.id,
+    });
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+    toast.success(approve ? "Access granted!" : "Request declined.");
+  };
+
+  const handleRequestAccess = async () => {
+    if (!userId) { requireAuth(); return; }
+    if (!event?.id) return;
+    setAccessRequestLoading(true);
+    try {
+      await supabase.from("event_access_requests").insert({
+        event_id: event.id,
+        requester_id: userId,
+        host_id: event.user_id,
+        status: "pending",
+      });
+      // Notify the host
+      await supabase.from("notifications").insert({
+        user_id: event.user_id,
+        from_user_id: userId,
+        type: "access_request",
+        event_id: event.id,
+      });
+      setAccessStatus("pending");
+      toast.success("Request sent! The host will be notified.");
+    } catch {
+      toast.error("Couldn't send request. Try again.");
+    }
+    setAccessRequestLoading(false);
+  };
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -1217,6 +1299,54 @@ const EventDetails = () => {
 
   if (!event) {
     return <div className="flex min-h-screen items-center justify-center" style={{ color: MID }}>Event not found</div>;
+  }
+
+  // Private event gate — show for non-hosts who aren't approved
+  if (event.is_private && !isHost && !isHostOrCohost && accessStatus !== "approved") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-6" style={{ background: BG, fontFamily: "'Inter', sans-serif" }}>
+        {/* Blurred event poster */}
+        {event.image_url && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
+            <img src={event.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(24px) brightness(0.4)", transform: "scale(1.1)" }} />
+          </div>
+        )}
+        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, maxWidth: 360, width: "100%", textAlign: "center" }}>
+          {/* Lock badge */}
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", border: "1.5px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="3" fill="white" opacity="0.9"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9"/>
+            </svg>
+          </div>
+          {/* Event title */}
+          <div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "white", marginBottom: 8, lineHeight: 1.2 }}>{event.title}</h1>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>This is a private event. The host decides who can join.</p>
+          </div>
+          {/* Action */}
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+            {accessStatus === "pending" ? (
+              <div style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", borderRadius: 16, padding: "16px 20px", border: "1px solid rgba(255,255,255,0.2)" }}>
+                <p style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Request sent ✓</p>
+                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, marginTop: 4 }}>You'll get a notification when the host responds.</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleRequestAccess}
+                disabled={accessRequestLoading}
+                style={{ width: "100%", padding: "15px 0", borderRadius: 999, background: "white", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700, color: DARK, opacity: accessRequestLoading ? 0.7 : 1, transition: "opacity 0.2s" }}
+              >
+                {accessRequestLoading ? "Sending…" : "Request to join"}
+              </button>
+            )}
+            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 500 }}>
+              ← Go back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const timeAgo = (dateStr: string) => {
@@ -2194,6 +2324,24 @@ const EventDetails = () => {
             )}
           </div>
 
+          {/* ── Access Requests (host only, private events) ─────── */}
+          {isHost && event.is_private && pendingRequests.length > 0 && (
+            <div className="rounded-2xl px-5 py-4 space-y-3" style={{ background: "rgba(234,212,196,0.2)", border: "1px solid rgba(234,212,196,0.6)" }}>
+              <p className="text-sm font-semibold" style={{ color: DARK }}>🔒 Join requests ({pendingRequests.length})</p>
+              {pendingRequests.map(req => (
+                <div key={req.id} className="flex items-center gap-3">
+                  {req.avatar
+                    ? <img src={req.avatar} className="w-8 h-8 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                    : <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ background: TEAL }}>{req.name.charAt(0)}</div>
+                  }
+                  <span className="flex-1 text-sm font-medium truncate" style={{ color: DARK }}>{req.name}</span>
+                  <button onClick={() => handleAccessDecision(req.id, req.requester_id, true)} className="px-3 py-1.5 rounded-full text-xs font-semibold text-white" style={{ background: TEAL }}>Accept</button>
+                  <button onClick={() => handleAccessDecision(req.id, req.requester_id, false)} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ border: `1px solid ${DIVIDER}`, color: MID, background: "white" }}>Decline</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* ── Invite Co-hosts (host only) ────────────────────── */}
           {isHost && (
             <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "rgba(112,185,190,0.11)", border: "1px solid rgba(112,185,190,0.25)" }}>
@@ -2842,6 +2990,22 @@ const EventDetails = () => {
                       : <><span className="font-medium" style={{ color: DARK }}>{cohosts[0].name}, {cohosts[1].name}</span> + {cohosts.length - 2} co-hosts</>
                   }
                 </p>
+              </div>
+            )}
+            {isHost && event.is_private && pendingRequests.length > 0 && (
+              <div className="rounded-2xl px-5 py-4 space-y-3" style={{ background: "rgba(234,212,196,0.2)", border: "1px solid rgba(234,212,196,0.6)" }}>
+                <p className="text-sm font-semibold" style={{ color: DARK }}>🔒 Join requests ({pendingRequests.length})</p>
+                {pendingRequests.map(req => (
+                  <div key={req.id} className="flex items-center gap-3">
+                    {req.avatar
+                      ? <img src={req.avatar} className="w-8 h-8 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+                      : <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ background: TEAL }}>{req.name.charAt(0)}</div>
+                    }
+                    <span className="flex-1 text-sm font-medium truncate" style={{ color: DARK }}>{req.name}</span>
+                    <button onClick={() => handleAccessDecision(req.id, req.requester_id, true)} className="px-3 py-1.5 rounded-full text-xs font-semibold text-white" style={{ background: TEAL }}>Accept</button>
+                    <button onClick={() => handleAccessDecision(req.id, req.requester_id, false)} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ border: `1px solid ${DIVIDER}`, color: MID, background: "white" }}>Decline</button>
+                  </div>
+                ))}
               </div>
             )}
             {isHost && (

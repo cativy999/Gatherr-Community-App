@@ -32,6 +32,7 @@ interface EventCardProps {
     lat?: number | null;
     lng?: number | null;
     timezone?: string | null;
+    is_private?: boolean | null;
   };
   creatorWard?: string;
   communityName?: string;
@@ -281,9 +282,26 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
         )}
 
         {/* Don't miss this banner */}
-        {event.attendees >= 2 && (
+        {event.attendees >= 2 && !event.is_private && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2 flex justify-center">
             <span className="text-white text-xs font-bold tracking-wide">🔥 Don't miss this!</span>
+          </div>
+        )}
+
+        {/* Private lock badge */}
+        {event.is_private && (
+          <div style={{
+            position: "absolute", bottom: 10, right: 10,
+            width: 32, height: 32, borderRadius: "50%",
+            background: "rgba(20,20,20,0.65)",
+            backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="3" fill="white" opacity="0.9"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9"/>
+            </svg>
           </div>
         )}
 
