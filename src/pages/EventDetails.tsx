@@ -390,6 +390,9 @@ const EventDetails = () => {
       from_user_id: userId,
       type: approve ? "access_approved" : "access_declined",
       event_id: event?.id,
+      message: approve
+        ? `You've been approved to join "${event?.title}"! Tap to view the event.`
+        : `Your request to join "${event?.title}" was not approved this time.`,
     });
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
     toast.success(approve ? "Access granted!" : "Request declined.");
@@ -406,12 +409,16 @@ const EventDetails = () => {
         host_id: event.user_id,
         status: "pending",
       });
-      // Notify the host
+      // Notify the host (include requester name + event title in message)
+      const { data: requesterProfile } = await supabase
+        .from("profiles").select("name").eq("user_id", userId).maybeSingle();
+      const requesterName = requesterProfile?.name || "Someone";
       await supabase.from("notifications").insert({
         user_id: event.user_id,
         from_user_id: userId,
         type: "access_request",
         event_id: event.id,
+        message: `${requesterName} wants to join your private event "${event.title}"`,
       });
       setAccessStatus("pending");
       toast.success("Request sent! The host will be notified.");
