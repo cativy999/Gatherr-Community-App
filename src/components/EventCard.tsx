@@ -281,6 +281,21 @@ const EventCard = ({ event, creatorWard, communityName, communityAvatar, communi
           </div>
         )}
 
+        {/* Private invite-only badge on image */}
+        {event.is_private && (
+          <div style={{
+            position: "absolute", bottom: 10, right: 10,
+            background: "rgba(31,78,91,0.82)",
+            backdropFilter: "blur(6px)",
+            borderRadius: 20,
+            padding: "4px 10px",
+            display: "flex", alignItems: "center", gap: 4,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          }}>
+            <span style={{ color: "#EAD4C4", fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "'Hanken Grotesk', sans-serif" }}>✦ Invite only</span>
+          </div>
+        )}
+
         {/* Don't miss this banner */}
         {event.attendees >= 2 && !event.is_private && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent rounded-b-2xl px-3 py-2 flex justify-center">
