@@ -51,9 +51,10 @@ type AccessPopup = {
   requestId: string | null;
   requesterName: string;
   requesterAvatar: string | null;
+  eventTitle: string;
 };
 
-const AccessRequestSheet = ({
+const AccessRequestModal = ({
   popup,
   onClose,
   onDecision,
@@ -66,79 +67,80 @@ const AccessRequestSheet = ({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50"
-        style={{ background: "rgba(44,37,35,0.35)", backdropFilter: "blur(2px)" }}
+        className="fixed inset-0 z-50 flex items-center justify-center px-5"
+        style={{ background: "rgba(44,37,35,0.45)", backdropFilter: "blur(3px)" }}
         onClick={onClose}
-      />
-      {/* Sheet */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
-        style={{
-          background: BG,
-          borderRadius: "24px 24px 0 0",
-          padding: "28px 24px",
-          paddingBottom: "calc(env(safe-area-inset-bottom) + 28px)",
-          boxShadow: "0 -4px 32px rgba(0,0,0,0.14)",
-        }}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full"
-          style={{ background: ICON_BG }}
-        >
-          <X className="h-4 w-4" style={{ color: MID }} />
-        </button>
-
-        {/* Lock icon */}
+        {/* Modal — stop propagation so clicks inside don't close */}
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-          style={{ background: "rgba(31,78,91,0.1)" }}
+          className="relative w-full max-w-sm"
+          style={{
+            background: BG,
+            borderRadius: 24,
+            padding: "32px 28px 28px",
+            boxShadow: "0 8px 48px rgba(0,0,0,0.18)",
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <span style={{ fontSize: 22 }}>🔒</span>
-        </div>
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full"
+            style={{ background: ICON_BG }}
+          >
+            <X className="h-4 w-4" style={{ color: MID }} />
+          </button>
 
-        {/* Requester info */}
-        <div className="flex items-center gap-3 mb-3">
-          {popup.requesterAvatar
-            ? <img src={popup.requesterAvatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-            : <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold" style={{ background: TEAL }}>{popup.requesterName.charAt(0)}</div>
-          }
-          <div className="min-w-0">
-            <p className="font-semibold text-sm truncate" style={{ color: DARK }}>{popup.requesterName}</p>
-            <p className="text-xs" style={{ color: MID }}>wants to join your private event</p>
+          {/* Lock icon */}
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center mb-5"
+            style={{ background: "rgba(31,78,91,0.1)" }}
+          >
+            <span style={{ fontSize: 22 }}>🔒</span>
           </div>
-        </div>
 
-        {/* Event name */}
-        <p
-          className="text-base font-semibold mb-6 leading-snug"
-          style={{ color: DARK, fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20 }}
-        >
-          {popup.notif.message?.match(/"(.+?)"/)?.[1] ?? "your event"}
-        </p>
-
-        {/* Buttons */}
-        {popup.requestId ? (
-          <div className="flex gap-3">
-            <button
-              onClick={() => onDecision(popup.requestId!, popup.notif.id, false)}
-              className="flex-1 py-3 rounded-full text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{ border: `1.5px solid ${DIVIDER}`, color: MID, background: "white" }}
-            >
-              Decline
-            </button>
-            <button
-              onClick={() => onDecision(popup.requestId!, popup.notif.id, true)}
-              className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
-              style={{ background: TEAL }}
-            >
-              Accept
-            </button>
+          {/* Requester info */}
+          <div className="flex items-center gap-3 mb-4">
+            {popup.requesterAvatar
+              ? <img src={popup.requesterAvatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" referrerPolicy="no-referrer" />
+              : <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold" style={{ background: TEAL }}>{popup.requesterName.charAt(0)}</div>
+            }
+            <div className="min-w-0">
+              <p className="font-semibold text-sm" style={{ color: DARK }}>{popup.requesterName}</p>
+              <p className="text-xs" style={{ color: MID }}>wants to join your private event</p>
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-center" style={{ color: MID }}>This request has already been handled.</p>
-        )}
+
+          {/* Event name */}
+          <p
+            className="mb-7 leading-snug"
+            style={{ color: DARK, fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 600 }}
+          >
+            "{popup.eventTitle}"
+          </p>
+
+          {/* Buttons */}
+          {popup.requestId ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => onDecision(popup.requestId!, popup.notif.id, false)}
+                className="flex-1 py-3 rounded-full text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ border: `1.5px solid ${DIVIDER}`, color: MID, background: "white" }}
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => onDecision(popup.requestId!, popup.notif.id, true)}
+                className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+                style={{ background: TEAL }}
+              >
+                Accept
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-center" style={{ color: MID }}>This request has already been handled.</p>
+          )}
+        </div>
       </div>
     </>,
     document.body
@@ -183,10 +185,9 @@ const NotificationsPage = () => {
     if (n.type === "group_coadmin_invite" && n.reference_id) {
       navigate(`/group-admin-invite/${n.reference_id}`);
     } else if (n.type === "access_request" && n.event_id) {
-      // Show quick accept/decline popup
+      // Show quick accept/decline modal
       setPopupLoading(true);
-      // Fetch requester profile + pending request id in parallel
-      const [profileRes, requestRes] = await Promise.all([
+      const [profileRes, requestRes, eventRes] = await Promise.all([
         supabase.from("profiles").select("name, avatar_url").eq("user_id", n.from_user_id).maybeSingle(),
         supabase.from("event_access_requests")
           .select("id")
@@ -194,6 +195,7 @@ const NotificationsPage = () => {
           .eq("requester_id", n.from_user_id)
           .eq("status", "pending")
           .maybeSingle(),
+        supabase.from("events").select("title").eq("id", n.event_id).maybeSingle(),
       ]);
       setPopupLoading(false);
       setAccessPopup({
@@ -201,6 +203,7 @@ const NotificationsPage = () => {
         requestId: requestRes.data?.id ?? null,
         requesterName: profileRes.data?.name || "Someone",
         requesterAvatar: profileRes.data?.avatar_url || null,
+        eventTitle: eventRes.data?.title || "your event",
       });
     } else if (n.event_id) {
       navigate(`/event/${n.event_id}`);
@@ -218,8 +221,8 @@ const NotificationsPage = () => {
       type: approve ? "access_approved" : "access_declined",
       event_id: popup.notif.event_id,
       message: approve
-        ? `You've been approved to join "${popup.notif.message?.match(/"(.+?)"/)?.[1] ?? "the event"}"! Tap to view the event.`
-        : `Your request to join "${popup.notif.message?.match(/"(.+?)"/)?.[1] ?? "the event"}" was not approved this time.`,
+        ? `You've been approved to join "${popup.eventTitle}"! Tap to view the event.`
+        : `Your request to join "${popup.eventTitle}" was not approved this time.`,
     });
     // Remove notification from list
     setNotifications(prev => prev.filter(n => n.id !== notifId));
@@ -328,7 +331,7 @@ const NotificationsPage = () => {
 
       {/* Access request popup */}
       {accessPopup && (
-        <AccessRequestSheet
+        <AccessRequestModal
           popup={accessPopup}
           onClose={() => setAccessPopup(null)}
           onDecision={handleAccessDecision}
