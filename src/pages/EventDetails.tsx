@@ -646,7 +646,7 @@ const EventDetails = () => {
           if (userAvatar) setPreviewAvatars(prev => [{ url: userAvatar, name: myName || "You" }, ...prev].slice(0, 8));
         } else setInterestedCount(c => c + 1);
         setRsvpStatus(status);
-        toast.success(status === "going" ? "You're going!" : "Marked as interested!");
+        toast.success(status === "going" ? "You're in!" : "Marked as maybe!");
       }
     } catch (err) {
       toast.error("Something went wrong");
@@ -2068,7 +2068,7 @@ const EventDetails = () => {
             <div className="space-y-3 pt-6">
               <div className="flex items-center flex-col justify-center gap-1">
                 <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
-                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Things to Know</h2>
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Good to know</h2>
               </div>
               {/* Social Links — centered under title */}
               {event.social_links?.filter(Boolean).length > 0 && (() => {
@@ -2149,7 +2149,7 @@ const EventDetails = () => {
           <div className="space-y-3 pt-6">
             <div className="flex items-center flex-col justify-center gap-1">
               <img src="/Event detail Icons/New Icons mobile/Attendee.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
-              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Attendees</h2>
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Who's going?</h2>
             </div>
             <button
               onClick={() => { setGoingListOpen(true); fetchGoingList(); }}
@@ -2167,7 +2167,7 @@ const EventDetails = () => {
                 </div>
               )}
               <p className="text-sm" style={{ color: MID }}>
-                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> interested
+                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> maybe
                 {likeCount > 0 && <> · <span className="font-semibold" style={{ color: DARK }}>{likeCount}</span> liked</>}
               </p>
             </button>
@@ -2228,7 +2228,7 @@ const EventDetails = () => {
             <div className="space-y-3 pt-6">
               <div className="flex items-center flex-col justify-center gap-1">
                 <img src="/Event detail Icons/New Icons mobile/Location.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
-                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Location</h2>
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>Find us here</h2>
               </div>
               {event.address && (
                 <p className="text-sm text-center" style={{ color: MID }}>{formatAddress(event.address)}</p>
@@ -2269,7 +2269,7 @@ const EventDetails = () => {
             <div className="flex flex-col items-center gap-1">
               <img src="/Event detail Icons/New Icons mobile/Comments.svg" alt="" style={{ height: 38, width: "auto", objectFit: "contain" }} />
               <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 22, fontWeight: 500 }}>
-                {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
+                {comments.length > 0 ? `Got questions? (${comments.length})` : "Got questions?"}
               </h2>
             </div>
             {!isGuest ? (
@@ -2300,7 +2300,7 @@ const EventDetails = () => {
                     className="px-5 py-2.5 text-sm font-semibold rounded-full text-white transition-opacity hover:opacity-80"
                     style={{ background: TEAL }}
                   >
-                    Post Comment
+                    Say something
                   </button>
                 </div>
               </div>
@@ -2809,7 +2809,7 @@ const EventDetails = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-1">
               <img src="/Event detail Icons/New Icons mobile/Attendee.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
-              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Attendees</h2>
+              <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Who's going?</h2>
             </div>
             <button onClick={() => { setGoingListOpen(true); fetchGoingList(); }} className="flex flex-col gap-2 text-left transition-opacity hover:opacity-70">
               {previewAvatars.length > 0 && (
@@ -2822,7 +2822,7 @@ const EventDetails = () => {
                 </div>
               )}
               <p className="text-sm" style={{ color: MID }}>
-                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> interested
+                <span className="font-semibold" style={{ color: DARK }}>{goingCount}</span> going · <span className="font-semibold" style={{ color: DARK }}>{interestedCount}</span> maybe
               </p>
             </button>
             {cohosts.length > 0 && (
@@ -2870,7 +2870,7 @@ const EventDetails = () => {
             <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <img src="/Event detail Icons/New Icons mobile/Location.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
-                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Location</h2>
+                <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Find us here</h2>
               </div>
               <div
                 className="relative rounded-2xl overflow-hidden cursor-pointer"
@@ -2908,7 +2908,7 @@ const EventDetails = () => {
             <div className="flex items-center gap-2">
               <img src="/Event detail Icons/New Icons mobile/Comments.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
               <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>
-                {comments.length > 0 ? `Comments (${comments.length})` : "Comments"}
+                {comments.length > 0 ? `Got questions? (${comments.length})` : "Got questions?"}
               </h2>
             </div>
             {!isGuest ? (
@@ -2926,7 +2926,7 @@ const EventDetails = () => {
                 />
                 <div className="flex justify-end">
                   <button onClick={handleSubmitComment} className="px-6 py-2.5 text-sm font-semibold rounded-full text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
-                    Post Comment
+                    Say something
                   </button>
                 </div>
               </div>
@@ -3181,7 +3181,7 @@ const EventDetails = () => {
               style={{ background: rsvpStatus === "going" ? CE_TEAL_PRESS : TEAL, fontSize: 18, position: "relative", overflow: "hidden" }}
             >
               {shimmerGoing && (<><span className="shimmer-pass shimmer-pass-1" /><span className="shimmer-pass shimmer-pass-2" /></>)}
-              {rsvpLoading === "going" ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : rsvpStatus === "going" ? "✓ I'm going!" : "Reserve a Spot"}
+              {rsvpLoading === "going" ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : rsvpStatus === "going" ? "Count me in ✓" : "Count me in"}
             </button>
           )}
           {!isGuest && (
@@ -3191,7 +3191,7 @@ const EventDetails = () => {
               className="w-full py-3 rounded-full text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
               style={{ border: `1.5px solid ${TEAL}`, color: rsvpStatus === "interested" ? "#fff" : TEAL, background: rsvpStatus === "interested" ? TEAL : "#fff" }}
             >
-              {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
+              {rsvpLoading === "interested" ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : rsvpStatus === "interested" ? "Maybe ✓" : "Maybe"}
             </button>
           )}
         </div>{/* end right column */}
@@ -3204,7 +3204,7 @@ const EventDetails = () => {
           <div style={{ height: 1, background: DIVIDER, marginBottom: 32 }} />
           <div className="flex items-center justify-center gap-1 mb-4">
             <img src="/Event detail Icons/New Icons mobile/Things to Know.svg" alt="" style={{ height: 40, width: "auto", objectFit: "contain" }} />
-            <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Things to Know</h2>
+            <h2 style={{ fontFamily: SERIF, color: DARK, fontSize: 24, fontWeight: 700 }}>Good to know</h2>
           </div>
           {event.social_links?.filter(Boolean).length > 0 && (() => {
             const links = event.social_links.filter(Boolean);
@@ -3348,7 +3348,7 @@ const EventDetails = () => {
                 ) : (
                   <span className="flex items-center justify-center gap-1.5">
                     {rsvpStatus === "going" && <Check className="h-4 w-4" />}
-                    {rsvpStatus === "going" ? "I'm going!" : "Going"}
+                    {rsvpStatus === "going" ? "Count me in ✓" : "Count me in"}
                   </span>
                 )}
               </button>
@@ -3364,7 +3364,7 @@ const EventDetails = () => {
               >
                 {rsvpLoading === "interested" ? (
                   <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                ) : rsvpStatus === "interested" ? "I'm interested" : "Interested"}
+                ) : rsvpStatus === "interested" ? "Maybe ✓" : "Maybe"}
               </button>
             </div>
           )}
