@@ -1305,42 +1305,51 @@ const EventDetails = () => {
   if (event.is_private && !isHost && !isHostOrCohost && accessStatus !== "approved") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-6" style={{ background: BG, fontFamily: "'Inter', sans-serif" }}>
-        {/* Blurred event poster */}
+        {/* Blurred poster with brand nude overlay */}
         {event.image_url && (
           <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden" }}>
-            <img src={event.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(24px) brightness(0.4)", transform: "scale(1.1)" }} />
+            <img src={event.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "blur(28px) brightness(0.9)", transform: "scale(1.1)" }} />
+            {/* Brand nude overlay to tie into palette */}
+            <div style={{ position: "absolute", inset: 0, background: "rgba(250,246,240,0.72)" }} />
           </div>
         )}
+        {/* Fallback background if no image */}
+        {!event.image_url && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 0, background: BG }} />
+        )}
+
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 24, maxWidth: 360, width: "100%", textAlign: "center" }}>
-          {/* Lock badge */}
-          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", border: "1.5px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+          {/* Lock badge — brand teal circle */}
+          <div style={{ width: 76, height: 76, borderRadius: "50%", background: "rgba(250,246,240,0.85)", backdropFilter: "blur(8px)", border: `2px solid #E4DCCF`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(44,37,35,0.10)" }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="11" width="18" height="11" rx="3" fill="white" opacity="0.9"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9"/>
+              <rect x="3" y="11" width="18" height="11" rx="3" fill={TEAL}/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke={TEAL} strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
           </div>
-          {/* Event title */}
+
+          {/* Event title + description */}
           <div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 700, color: "white", marginBottom: 8, lineHeight: 1.2 }}>{event.title}</h1>
-            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>This is a private event. The host decides who can join.</p>
+            <h1 style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 700, color: DARK, marginBottom: 8, lineHeight: 1.2 }}>{event.title}</h1>
+            <p style={{ fontSize: 15, color: MID, lineHeight: 1.6 }}>This is a private event. The host decides who can join.</p>
           </div>
+
           {/* Action */}
           <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
             {accessStatus === "pending" ? (
-              <div style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", borderRadius: 16, padding: "16px 20px", border: "1px solid rgba(255,255,255,0.2)" }}>
-                <p style={{ color: "white", fontWeight: 600, fontSize: 14 }}>Request sent ✓</p>
-                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, marginTop: 4 }}>You'll get a notification when the host responds.</p>
+              <div style={{ background: "rgba(250,246,240,0.9)", backdropFilter: "blur(8px)", borderRadius: 16, padding: "16px 20px", border: `1px solid #E4DCCF` }}>
+                <p style={{ color: DARK, fontWeight: 600, fontSize: 14 }}>Request sent ✓</p>
+                <p style={{ color: MID, fontSize: 13, marginTop: 4 }}>You'll get a notification when the host responds.</p>
               </div>
             ) : (
               <button
                 onClick={handleRequestAccess}
                 disabled={accessRequestLoading}
-                style={{ width: "100%", padding: "15px 0", borderRadius: 999, background: "white", border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700, color: DARK, opacity: accessRequestLoading ? 0.7 : 1, transition: "opacity 0.2s" }}
+                style={{ width: "100%", padding: "15px 0", borderRadius: 999, background: TEAL, border: "none", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700, color: BG, opacity: accessRequestLoading ? 0.7 : 1, transition: "opacity 0.2s" }}
               >
                 {accessRequestLoading ? "Sending…" : "Request to join"}
               </button>
             )}
-            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 500 }}>
+            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: MID, fontSize: 14, fontWeight: 500 }}>
               ← Go back
             </button>
           </div>
