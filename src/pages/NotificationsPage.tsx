@@ -147,6 +147,64 @@ const AccessRequestModal = ({
   );
 };
 
+// ── Ward Request Modal ─────────────────────────────────────────────────────
+const WardRequestModal = ({
+  wardName,
+  notifId,
+  onClose,
+  onDecision,
+}: {
+  wardName: string;
+  notifId: string;
+  onClose: () => void;
+  onDecision: (notifId: string, approve: boolean) => void;
+}) => createPortal(
+  <>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-5"
+      style={{ background: "rgba(44,37,35,0.45)", backdropFilter: "blur(3px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm"
+        style={{ background: BG, borderRadius: 24, padding: "32px 28px 28px", boxShadow: "0 8px 48px rgba(0,0,0,0.18)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full" style={{ background: ICON_BG }}>
+          <X className="h-4 w-4" style={{ color: MID }} />
+        </button>
+
+        <div className="w-12 h-12 rounded-full flex items-center justify-center mb-5" style={{ background: "rgba(31,78,91,0.1)" }}>
+          <span style={{ fontSize: 22 }}>🏛️</span>
+        </div>
+
+        <p className="text-sm mb-1" style={{ color: MID }}>Someone wants to add this ward:</p>
+        <p className="mb-7 leading-snug" style={{ color: DARK, fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 600 }}>
+          "{wardName}"
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => onDecision(notifId, false)}
+            className="flex-1 py-3 rounded-full text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ border: `1.5px solid ${DIVIDER}`, color: MID, background: "white" }}
+          >
+            Dismiss
+          </button>
+          <button
+            onClick={() => onDecision(notifId, true)}
+            className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
+            style={{ background: TEAL }}
+          >
+            Add to list
+          </button>
+        </div>
+      </div>
+    </div>
+  </>,
+  document.body
+);
+
 // ── Component ──────────────────────────────────────────────────────────────
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -155,6 +213,7 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessPopup, setAccessPopup] = useState<AccessPopup | null>(null);
+  const [wardPopup, setWardPopup] = useState<{ wardName: string; notifId: string } | null>(null);
   const [popupLoading, setPopupLoading] = useState(false);
 
   useEffect(() => {
@@ -181,7 +240,30 @@ const NotificationsPage = () => {
     fetchAndMarkRead();
   }, [user]);
 
+  const handleWardDecision = async (notifId: string, approve: boolean) => {
+    if (approve && wardPopup) {
+      const { error } = await supabase.from("custom_wards").insert({
+        name: wardPopup.wardName,
+        state: "California",
+        region: "Other",
+        type: "YSA",
+      });
+      if (error) { toast.error("Couldn't add ward. Try again."); return; }
+      toast.success(`"${wardPopup.wardName}" added to the ward list!`);
+    } else {
+      toast.success("Notification dismissed.");
+    }
+    await supabase.from("notifications").delete().eq("id", notifId);
+    setNotifications(prev => prev.filter(n => n.id !== notifId));
+    setWardPopup(null);
+  };
+
   const handleTap = async (n: any) => {
+    if (n.type === "ward_request") {
+      const wardName = n.message?.match(/"(.+?)"/)?.[1] ?? "Unknown ward";
+      setWardPopup({ wardName, notifId: n.id });
+      return;
+    }
     if (n.type === "group_coadmin_invite" && n.reference_id) {
       navigate(`/group-admin-invite/${n.reference_id}`);
     } else if (n.type === "access_request" && n.event_id) {
@@ -269,7 +351,7 @@ const NotificationsPage = () => {
         ) : (
           <div>
             {notifications.map((n, i) => {
-              const isClickable = !!n.event_id || n.type === "group_coadmin_invite";
+              const isClickable = !!n.event_id || n.type === "group_coadmin_invite" || n.type === "ward_request" || n.type === "access_request";
               return (
                 <div key={n.id}>
                   <button
@@ -296,6 +378,9 @@ const NotificationsPage = () => {
                       >
                         {n.message || "(no message)"}
                       </p>
+                      {n.type === "ward_request" && (
+                        <p className="text-xs font-semibold mt-1" style={{ color: TEAL }}>Tap to add or dismiss →</p>
+                      )}
                       {n.type === "access_request" && (
                         <p className="text-xs font-semibold mt-1" style={{ color: TEAL }}>
                           Tap to accept or decline →
@@ -335,6 +420,16 @@ const NotificationsPage = () => {
           popup={accessPopup}
           onClose={() => setAccessPopup(null)}
           onDecision={handleAccessDecision}
+        />
+      )}
+
+      {/* Ward request popup */}
+      {wardPopup && (
+        <WardRequestModal
+          wardName={wardPopup.wardName}
+          notifId={wardPopup.notifId}
+          onClose={() => setWardPopup(null)}
+          onDecision={handleWardDecision}
         />
       )}
     </div>

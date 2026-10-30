@@ -91,6 +91,22 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
   const [showCantFind, setShowCantFind] = useState(false);
   const [customWard, setCustomWard]   = useState("");
   const [submitting, setSubmitting]   = useState(false);
+  const [allWards, setAllWards]       = useState<WardEntry[]>(WARD_DATA);
+
+  // Merge static wards with any admin-approved custom wards from Supabase
+  useEffect(() => {
+    supabase.from("custom_wards").select("name, state, region, type, city").then(({ data }) => {
+      if (data?.length) {
+        const custom: WardEntry[] = data.map(r => ({
+          name: r.name, state: r.state, region: r.region,
+          type: r.type as WardEntry["type"], city: r.city ?? undefined,
+        }));
+        // Merge, avoiding duplicates by name
+        const names = new Set(WARD_DATA.map(w => w.name));
+        setAllWards([...WARD_DATA, ...custom.filter(w => !names.has(w.name))]);
+      }
+    });
+  }, []);
 
   // Trigger slide-in after mount
   useEffect(() => {
@@ -102,12 +118,12 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
   // Pre-select state when editing an existing group
   useEffect(() => {
     if (!open || !value) return;
-    const found = WARD_DATA.find((w) => w.name === value);
+    const found = allWards.find((w) => w.name === value);
     if (found) {
       setSelectedState(found.state);
       setStateQuery(found.state);
     }
-  }, [open, value]);
+  }, [open, value, allWards]);
 
   const stateMatches =
     stateQuery.length > 0
@@ -117,7 +133,7 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
       : [];
 
   const wardsForState = selectedState
-    ? WARD_DATA.filter((w) => w.state === selectedState)
+    ? allWards.filter((w) => w.state === selectedState)
     : [];
 
   const filteredWards =
@@ -177,7 +193,7 @@ const WardPicker = ({ value, onChange, claimedWards, userId }: WardPickerProps) 
     setTimeout(() => {
       setOpen(false);
       setShowCantFind(false);
-      const found = WARD_DATA.find((w) => w.name === value);
+      const found = allWards.find((w) => w.name === value);
       setSelectedState(found?.state ?? null);
       setStateQuery(found?.state ?? "");
     }, 280);

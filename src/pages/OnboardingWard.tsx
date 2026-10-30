@@ -1,23 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { WARD_DATA } from "@/data/wards";
+import { WARD_DATA, WardEntry } from "@/data/wards";
 
-// Build a flat list from WARD_DATA for the onboarding chips, grouped by type
-const YSA_WARDS   = WARD_DATA.filter(w => w.type === "YSA" || w.type === "Branch").map(w => w.name);
-const SA_WARDS    = WARD_DATA.filter(w => w.type === "SA").map(w => w.name);
-const MSA_WARDS   = WARD_DATA.filter(w => w.type === "MSA").map(w => w.name);
-
-const WARD_LIST: { type: string; label: string }[] = [
-  { type: "header", label: "YSA Wards" },
-  ...YSA_WARDS.map(label => ({ type: "ward", label })),
-  { type: "header", label: "Mid-Singles Wards" },
-  ...MSA_WARDS.map(label => ({ type: "ward", label })),
-  { type: "header", label: "Single Adult Wards" },
-  ...SA_WARDS.map(label => ({ type: "ward", label })),
-];
+const buildWardList = (wards: WardEntry[]) => {
+  const ysa = wards.filter(w => w.type === "YSA" || w.type === "Branch").map(w => w.name);
+  const msa = wards.filter(w => w.type === "MSA").map(w => w.name);
+  const sa  = wards.filter(w => w.type === "SA").map(w => w.name);
+  return [
+    { type: "header", label: "YSA Wards" },
+    ...ysa.map(label => ({ type: "ward", label })),
+    { type: "header", label: "Mid-Singles Wards" },
+    ...msa.map(label => ({ type: "ward", label })),
+    { type: "header", label: "Single Adult Wards" },
+    ...sa.map(label => ({ type: "ward", label })),
+  ];
+};
 
 const OnboardingWard = () => {
   const navigate = useNavigate();
@@ -25,6 +25,22 @@ const OnboardingWard = () => {
   const [customWard, setCustomWard] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [wardList, setWardList] = useState(() => buildWardList(WARD_DATA));
+
+  // Merge in any admin-approved custom wards from Supabase
+  useEffect(() => {
+    supabase.from("custom_wards").select("name, state, region, type, city").then(({ data }) => {
+      if (data?.length) {
+        const custom: WardEntry[] = data.map(r => ({
+          name: r.name, state: r.state, region: r.region,
+          type: r.type as WardEntry["type"], city: r.city ?? undefined,
+        }));
+        const names = new Set(WARD_DATA.map(w => w.name));
+        const merged = [...WARD_DATA, ...custom.filter(w => !names.has(w.name))];
+        setWardList(buildWardList(merged));
+      }
+    });
+  }, []);
 
   const ward = showCustomInput ? customWard : selectedWard;
 
@@ -84,7 +100,7 @@ const OnboardingWard = () => {
 
         {/* Chips */}
         <div className="pt-2">
-          {WARD_LIST.map((item, i) =>
+          {wardList.map((item, i) =>
             item.type === "header" ? (
               <p key={i} className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pt-6 pb-2">
   {item.label}
