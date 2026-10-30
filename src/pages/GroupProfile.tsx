@@ -120,11 +120,16 @@ const EventCard = ({ event, navigate }: { event: any; navigate: (p: string) => v
             </span>
           </div>
         )}
-        <div className="flex items-center gap-1">
-          <Users className="h-3 w-3" style={{ color: MID }} />
-          <span style={{ color: MID, fontFamily: INTER, fontSize: 12 }}>
-            {event.attendees ?? 0} going
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Users className="h-3 w-3" style={{ color: MID }} />
+            <span style={{ color: MID, fontFamily: INTER, fontSize: 12 }}>
+              {event.attendees ?? 0} going
+            </span>
+          </div>
+          {event.is_private && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#1F4E5B', background: 'rgba(31,78,91,0.08)', borderRadius: 20, padding: '2px 7px', letterSpacing: '0.03em', whiteSpace: 'nowrap', fontFamily: "'Hanken Grotesk', sans-serif" }}>✦ Invite only</span>
+          )}
         </div>
       </div>
 
@@ -133,15 +138,25 @@ const EventCard = ({ event, navigate }: { event: any; navigate: (p: string) => v
         className="flex-shrink-0 flex flex-col items-end"
         style={{ gap: 6 }}
       >
-        {event.image_url ? (
-          <img
-            src={event.image_url}
-            alt={event.title}
-            style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
-          />
-        ) : (
-          <div style={{ width: 84, height: 84, borderRadius: 10, background: ICON_BG, flexShrink: 0 }} />
-        )}
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          {event.image_url ? (
+            <img
+              src={event.image_url}
+              alt={event.title}
+              style={{ width: 84, height: 84, borderRadius: 10, objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <div style={{ width: 84, height: 84, borderRadius: 10, background: ICON_BG }} />
+          )}
+          {event.is_private && (
+            <div style={{ position: "absolute", bottom: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: "rgba(20,20,20,0.65)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="11" width="18" height="11" rx="3" fill="white" opacity="0.9"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.9"/>
+              </svg>
+            </div>
+          )}
+        </div>
         {ageLabel && (
           <span
             style={{
@@ -323,7 +338,7 @@ const GroupProfile = () => {
 
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id, timezone, is_recurring";
+      const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id, timezone, is_recurring, is_private";
       const dateFilter = `end_date.gte.${today},and(end_date.is.null,date.gte.${today})`;
 
       const { data: communityEvents } = await supabase.from("events").select(FIELDS).eq("status", "published").eq("community_id", groupData.id).or(dateFilter).order("date", { ascending: true });
