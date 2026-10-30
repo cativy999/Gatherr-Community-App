@@ -547,19 +547,7 @@ const GroupProfile = () => {
               Good to Know
             </h2>
             <div className="rounded-2xl px-4 py-4" style={{ background: "white" }}>
-              {group.good_to_know.includes(":") ? (() => {
-                const colonIdx = group.good_to_know.indexOf(":");
-                const title = group.good_to_know.slice(0, colonIdx).trim();
-                const body  = group.good_to_know.slice(colonIdx + 1).trim();
-                return (
-                  <>
-                    <p className="text-sm font-semibold mb-1" style={{ color: TEAL, fontFamily: INTER }}>{title}</p>
-                    <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER }}>{body}</p>
-                  </>
-                );
-              })() : (
-                <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER }}>{group.good_to_know}</p>
-              )}
+              <p className="text-sm leading-relaxed" style={{ color: MID, fontFamily: INTER, whiteSpace: "pre-wrap" }}>{group.good_to_know}</p>
             </div>
           </div>
         )}
