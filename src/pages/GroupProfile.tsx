@@ -323,7 +323,7 @@ const GroupProfile = () => {
 
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id, timezone";
+      const FIELDS = "id, title, image_url, date, time, start_time, end_time, end_date, attendees, is_free, age_min, age_max, created_at, location, lat, lng, ward_type, user_id, food, duration, virtual_link, community_id, timezone, is_recurring";
       const dateFilter = `end_date.gte.${today},and(end_date.is.null,date.gte.${today})`;
 
       const { data: communityEvents } = await supabase.from("events").select(FIELDS).eq("status", "published").eq("community_id", groupData.id).or(dateFilter).order("date", { ascending: true });
