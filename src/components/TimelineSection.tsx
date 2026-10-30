@@ -42,15 +42,15 @@ export const groupByWeek = (events: any[]) => {
   const endOfNextWeek = new Date(startOfNextWeek);
   endOfNextWeek.setDate(startOfNextWeek.getDate() + 6); // next Saturday
 
+  const recurring: any[] = [];
   const thisWeek: any[] = [];
   const nextWeek: any[] = [];
   const later: any[] = [];
 
   events.forEach((event) => {
-    // Recurring events always appear in both this week and next week
+    // Recurring events get their own section, not date-bucketed
     if (event.is_recurring) {
-      thisWeek.push(event);
-      nextWeek.push(event);
+      recurring.push(event);
       return;
     }
 
@@ -65,7 +65,7 @@ export const groupByWeek = (events: any[]) => {
     else later.push(event);
   });
 
-  return { thisWeek, nextWeek, later };
+  return { recurring, thisWeek, nextWeek, later };
 };
 
 interface CreatorProfile {

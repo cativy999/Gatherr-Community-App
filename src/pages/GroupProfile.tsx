@@ -165,10 +165,12 @@ const EventCard = ({ event, navigate }: { event: any; navigate: (p: string) => v
 
 // ── Events section ─────────────────────────────────────────────────────────
 const EventsSection = ({
-  label, events, navigate,
-}: { label: string; events: any[]; navigate: (p: string) => void }) => {
+  label, events, navigate, hideDate,
+}: { label: string; events: any[]; navigate: (p: string) => void; hideDate?: boolean }) => {
   if (events.length === 0) return null;
-  const dateGroups = groupByDate(events);
+  const dateGroups = hideDate
+    ? [{ key: "recurring", label: "Recurring", dayOfWeek: "", events }]
+    : groupByDate(events);
   return (
     <div className="space-y-3">
       {/* Section label e.g. "THIS WEEK" */}
@@ -197,15 +199,17 @@ const EventsSection = ({
 
           {/* Date + cards */}
           <div className="flex-1" style={{ paddingBottom: 20 }}>
-            {/* Date header */}
-            <div className="flex items-baseline gap-2" style={{ marginBottom: 10 }}>
-              <span style={{ fontFamily: CORMORANT, fontSize: 19, fontWeight: 600, color: DARK, lineHeight: 1 }}>
-                {dateLabel}
-              </span>
-              <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 400, color: MID, lineHeight: 1 }}>
-                {dayOfWeek}
-              </span>
-            </div>
+            {/* Date header — hidden for recurring section */}
+            {!hideDate && (
+              <div className="flex items-baseline gap-2" style={{ marginBottom: 10 }}>
+                <span style={{ fontFamily: CORMORANT, fontSize: 19, fontWeight: 600, color: DARK, lineHeight: 1 }}>
+                  {dateLabel}
+                </span>
+                <span style={{ fontFamily: INTER, fontSize: 13, fontWeight: 400, color: MID, lineHeight: 1 }}>
+                  {dayOfWeek}
+                </span>
+              </div>
+            )}
 
             {/* Event cards */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -373,7 +377,7 @@ const GroupProfile = () => {
     <div className="flex min-h-screen items-center justify-center" style={{ color: MID }}>Group not found</div>
   );
 
-  const { thisWeek, nextWeek, later } = groupByWeek(events);
+  const { recurring, thisWeek, nextWeek, later } = groupByWeek(events);
   const isOwnerOrAdmin = session?.user?.id === group?.user_id || isCoAdmin;
 
   return (
@@ -560,6 +564,7 @@ const GroupProfile = () => {
 
           {events.length > 0 ? (
             <div className="space-y-6">
+              <EventsSection label="Recurring"  events={recurring} navigate={navigate} hideDate />
               <EventsSection label="This Week" events={thisWeek} navigate={navigate} />
               <EventsSection label="Next Week" events={nextWeek} navigate={navigate} />
               <EventsSection label="Later"     events={later}    navigate={navigate} />
