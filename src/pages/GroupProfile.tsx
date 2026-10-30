@@ -433,7 +433,7 @@ const GroupProfile = () => {
           <button
             onClick={() => navigate(`/create-group/${id}`)}
             className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-            style={{ background: "rgba(255,255,255,0.88)", color: DARK, boxShadow: BUTTON_SHADOW }}
+            style={{ background: "rgba(255,255,255,0.88)", color: DARK, boxShadow: BUTTON_SHADOW, zIndex: 2 }}
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
           </button>
