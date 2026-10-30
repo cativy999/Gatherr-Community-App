@@ -3,20 +3,20 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { WARD_DATA } from "@/data/wards";
 
-const WARD_LIST = [
+// Build a flat list from WARD_DATA for the onboarding chips, grouped by type
+const YSA_WARDS   = WARD_DATA.filter(w => w.type === "YSA" || w.type === "Branch").map(w => w.name);
+const SA_WARDS    = WARD_DATA.filter(w => w.type === "SA").map(w => w.name);
+const MSA_WARDS   = WARD_DATA.filter(w => w.type === "MSA").map(w => w.name);
+
+const WARD_LIST: { type: string; label: string }[] = [
   { type: "header", label: "YSA Wards" },
-  { type: "ward", label: "Santa Monica YSA" },
-  { type: "ward", label: "South Bay YSA" },
-  { type: "ward", label: "San Gabriel Valley YSA" },
-  { type: "ward", label: "Huntington Beach YSA" },
-  { type: "ward", label: "Inland Empire YSA" },
+  ...YSA_WARDS.map(label => ({ type: "ward", label })),
+  { type: "header", label: "Mid-Singles Wards" },
+  ...MSA_WARDS.map(label => ({ type: "ward", label })),
   { type: "header", label: "Single Adult Wards" },
-  { type: "ward", label: "Glendale SA Ward" },
-  { type: "ward", label: "Huntington Beach SA" },  
-  { type: "ward", label: "Inland Empire Mid-Singles" },
-  { type: "ward", label: "Heritage Park Mid-Singles" },
-  { type: "ward", label: "Corona Single Adult" },
+  ...SA_WARDS.map(label => ({ type: "ward", label })),
 ];
 
 const OnboardingWard = () => {
