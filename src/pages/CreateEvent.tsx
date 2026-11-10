@@ -2828,12 +2828,12 @@ const CreateEvent = () => {
           <div style={{ flexShrink: 0, padding: `36px ${bodyHPad}px 20px ${bodyHPad}px`, display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Back (left) + Delete post (right) — same row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: MID_W, fontFamily: SANS_W, fontSize: 13, fontWeight: 600 }}>
+              <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: TEAL_W, fontFamily: SANS_W, fontSize: 13, fontWeight: 600 }}>
                 <ArrowLeft style={{ width: 15, height: 15 }} /> Back
               </button>
               {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) ? (
                 <button type="button" onClick={() => setDeleteOpen(true)} disabled={loading}
-                  style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: MID_W, fontFamily: SANS_W, fontSize: 13, fontWeight: 500, opacity: loading ? 0.4 : 1 }}>
+                  style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: CE_ERROR, fontFamily: SANS_W, fontSize: 13, fontWeight: 500, opacity: loading ? 0.4 : 1 }}>
                   <Trash2 style={{ width: 13, height: 13 }} /> Delete post
                 </button>
               ) : <span />}
