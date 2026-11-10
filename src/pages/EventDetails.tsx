@@ -1950,9 +1950,12 @@ const EventDetails = () => {
               <div className="flex-shrink-0 flex items-center justify-center rounded-full" style={{ width: 40, height: 40, background: ICON_BG }}>
                 <MapPin className="h-4 w-4" style={{ color: TEAL }} />
               </div>
-              <div className="min-w-0 flex-1">
+              <button
+                className="min-w-0 flex-1 text-left transition-opacity active:opacity-60"
+                onClick={() => setMapPickerOpen(true)}
+              >
                 <p className="text-sm font-semibold" style={{ color: DARK }}>{formatAddress(event.address)}</p>
-              </div>
+              </button>
               <button
                 onClick={() => setMapPickerOpen(true)}
                 className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0"
