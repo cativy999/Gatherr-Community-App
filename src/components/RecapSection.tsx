@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import ShareMenu from "@/components/ShareMenu";
+import { toast } from "sonner";
 
 const DARK  = "#2C2523";
 const MID   = "#635C59";
@@ -178,6 +180,36 @@ const RecapCard = ({
   recap: RecapItem;
   onPhotoClick: (photos: string[], index: number, title: string) => void;
 }) => {
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareRef = useRef<HTMLButtonElement>(null);
+  const siteUrl = (import.meta.env.VITE_SITE_URL ?? window.location.origin).replace(/\/$/, "");
+  const shareUrl = `${siteUrl}/event/${recap.event_id}`;
+
+  const shareToStory = async () => {
+    const imgSrc = recap.event_poster ?? allPhotos[0] ?? null;
+    if (!imgSrc) { toast.error("No image to share"); return; }
+    try {
+      const img = new Image(); img.crossOrigin = "anonymous";
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = imgSrc; });
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080; canvas.height = 1920;
+      const ctx = canvas.getContext("2d")!;
+      const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], "recap.jpg", { type: "image/jpeg" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: recap.event_title });
+        } else {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "recap.jpg"; a.click();
+        }
+      }, "image/jpeg", 0.92);
+    } catch { toast.error("Couldn't share image"); }
+  };
   // Poster in the centre, recap photos on left + right
   const poster = recap.event_poster ?? null;
   const rp = recap.photos; // recap photos
@@ -250,20 +282,49 @@ const RecapCard = ({
 
       {/* Info */}
       <div style={{ padding: "12px 14px 14px" }}>
-        <p style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: TEAL, marginBottom: 4 }}>
-          {dateLabel}
-        </p>
-        <p style={{
-          fontFamily: CORMORANT, fontSize: 18, fontWeight: 600, color: DARK,
-          margin: 0, lineHeight: 1.2,
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-        }}>
-          {recap.event_title}
-        </p>
-        {recap.event_location && (
-          <p style={{ fontFamily: INTER, fontSize: 12, color: MID, marginTop: 4 }}>{recap.event_location}</p>
-        )}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: TEAL, marginBottom: 4 }}>
+              {dateLabel}
+            </p>
+            <p style={{
+              fontFamily: CORMORANT, fontSize: 18, fontWeight: 600, color: DARK,
+              margin: 0, lineHeight: 1.2,
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            }}>
+              {recap.event_title}
+            </p>
+            {recap.event_location && (
+              <p style={{ fontFamily: INTER, fontSize: 12, color: MID, marginTop: 4 }}>{recap.event_location}</p>
+            )}
+          </div>
+
+          {/* Share button */}
+          <button
+            ref={shareRef}
+            onClick={(e) => { e.stopPropagation(); setShareOpen(prev => !prev); }}
+            style={{
+              flexShrink: 0, width: 32, height: 32, borderRadius: "50%",
+              border: "none", background: "#F5F1EC", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginTop: 2,
+            }}
+          >
+            <Share2 size={14} color={MID} />
+          </button>
+        </div>
       </div>
+
+      <ShareMenu
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        triggerRef={shareRef}
+        items={[
+          { label: "Copy Link", onClick: () => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied!"); } },
+          { label: "Share Link", onClick: () => navigator.share?.({ title: recap.event_title, url: shareUrl }), hidden: !navigator.share },
+          { label: "Share to Story", onClick: shareToStory },
+        ]}
+      />
     </div>
   );
 };
