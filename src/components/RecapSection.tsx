@@ -65,6 +65,7 @@ const PhotoViewer = ({
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.92)",
         display: "flex", flexDirection: "column",
+        height: "100vh", overflow: "hidden",
       }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -89,8 +90,14 @@ const PhotoViewer = ({
         </button>
       </div>
 
-      {/* Photo */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+      {/* Photo — fixed height so chevrons never shift */}
+      <div style={{
+        flex: 1,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        minHeight: 0, // critical for flex shrink
+      }}>
         {current > 0 && (
           <button
             onClick={prev}
@@ -100,6 +107,7 @@ const PhotoViewer = ({
               width: 40, height: 40, borderRadius: "50%",
               background: "rgba(255,255,255,0.15)", border: "none", cursor: "pointer",
               alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             <ChevronLeft size={20} color="#fff" />
@@ -110,11 +118,15 @@ const PhotoViewer = ({
           src={photos[current]}
           alt=""
           style={{
-            maxWidth: "100%", maxHeight: "100%",
+            maxWidth: "100%",
+            maxHeight: "100%",
+            width: "auto",
+            height: "auto",
             objectFit: "contain",
             borderRadius: 4,
             userSelect: "none",
             WebkitUserDrag: "none" as any,
+            display: "block",
           }}
         />
         {current < photos.length - 1 && (
@@ -126,6 +138,7 @@ const PhotoViewer = ({
               width: 40, height: 40, borderRadius: "50%",
               background: "rgba(255,255,255,0.15)", border: "none", cursor: "pointer",
               alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             <ChevronRight size={20} color="#fff" />
