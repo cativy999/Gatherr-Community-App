@@ -244,8 +244,8 @@ const PublishedEventsPage = () => {
         </p>
       </div>
 
-      {/* Recap button — past events only */}
-      {isPast && (
+      {/* Recap button — past events within 60 days only */}
+      {isPast && toLocal(event.date) >= new Date(Date.now() - 60 * 24 * 3600 * 1000) && (
         <div style={{ padding: "0 10px 12px" }}>
           <button
             onClick={(e) => { e.stopPropagation(); navigate(`/recap/${event.id}`); }}
