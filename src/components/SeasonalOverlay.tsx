@@ -33,15 +33,10 @@ const SeasonalOverlay = () => {
           src="/seasonal background/thanksgiving.png"
           alt=""
           className="hidden md:block"
+
           style={{ position: "absolute", top: 0, right: 0, width: 660, opacity: 0.95 }}
         />
-        {/* Mobile */}
-        <img
-          src="/seasonal background/thanksgiving.png"
-          alt=""
-          className="block md:hidden"
-          style={{ position: "absolute", top: 0, right: 0, width: 260, opacity: 0.9 }}
-        />
+        {/* Mobile: hidden — fixed positioning unreliable on iOS */}
       </div>
     </>
   );
