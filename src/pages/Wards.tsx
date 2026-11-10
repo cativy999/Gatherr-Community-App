@@ -2,7 +2,7 @@ import { CE_BG,CE_SURFACE , CE_ERROR} from '../tokens';
 import {
   Church, Search, Video, Presentation, Bell, MapPin,
   LandPlot, HandPlatter, HeartHandshake, Sparkles, ChevronDown, Heart,
-  ChevronLeft, ChevronRight } from "lucide-react";
+  ChevronLeft, ChevronRight, Users, Globe, X } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import LocationSelector from "@/components/LocationSelector";
@@ -273,6 +273,7 @@ const Wards = () => {
   );
   const [radiusMiles, setRadiusMiles] = useState(150);
   const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
+  const [audienceSheetOpen, setAudienceSheetOpen] = useState(false);
   const [audienceDropdownPos, setAudienceDropdownPos] = useState({ top: 0, left: 0 });
   const audienceBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -839,7 +840,13 @@ const Wards = () => {
             {/* YSA audience chip — scrolls with the rest */}
             <button
               ref={audienceBtnRef}
-              onClick={() => setAudienceDropdownOpen(v => !v)}
+              onClick={() => {
+                if (window.innerWidth < 768) {
+                  setAudienceSheetOpen(true);
+                } else {
+                  setAudienceDropdownOpen(v => !v);
+                }
+              }}
               className="flex-shrink-0 flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
               style={{ padding: "8px 14px", fontFamily: INTER, fontSize: 13, fontWeight: 600, background: TEAL, color: CE_BG, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
             >
@@ -876,7 +883,7 @@ const Wards = () => {
           </div>
 
 
-          {/* Audience dropdown — portalled so overflow can't clip it */}
+          {/* Audience dropdown — desktop only, portalled so overflow can't clip it */}
           {audienceDropdownOpen && createPortal(
             <div style={{ position: "fixed", top: audienceDropdownPos.top, left: audienceDropdownPos.left, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 9999, minWidth: 190, overflow: "hidden" }}>
               {["YSA", "MSA", "SA"].map(opt => (
@@ -892,6 +899,72 @@ const Wards = () => {
           )}
         </div>
       </div>
+
+      {/* ── Audience bottom sheet (mobile only) ───────────────────────────── */}
+      {createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            className={`fixed inset-0 z-40 transition-opacity duration-200 ${audienceSheetOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+            style={{ background: "rgba(0,0,0,0.4)" }}
+            onClick={() => setAudienceSheetOpen(false)}
+          />
+          {/* Sheet */}
+          <div
+            className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl transition-transform duration-300 ease-out ${audienceSheetOpen ? "translate-y-0" : "translate-y-full"}`}
+            style={{ boxShadow: "0 -4px 32px rgba(0,0,0,0.12)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div style={{ width: 36, height: 4, borderRadius: 100, background: "#C8C0B8" }} />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-1">
+              <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", color: "#2C2523", fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>
+                Who is this for?
+              </h2>
+              <button onClick={() => setAudienceSheetOpen(false)} className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-60" aria-label="Close">
+                <X className="h-5 w-5" style={{ color: MID }} />
+              </button>
+            </div>
+            {/* Options */}
+            <div className="px-4 pt-2 pb-4">
+              {([
+                { id: "YSA", label: "YSA", description: "Young Single Adults", Icon: Sparkles },
+                { id: "MSA", label: "MSA", description: "Mid-Singles Adults",  Icon: Users   },
+                { id: "SA",  label: "SA",  description: "Single Adults",        Icon: Globe   },
+              ] as const).map(({ id, label, description, Icon }, i, arr) => (
+                <div key={id}>
+                  <button
+                    onClick={() => { setAudienceFilter(id); localStorage.setItem("gatherr_audience_filter", id); setAudienceSheetOpen(false); }}
+                    className="w-full flex items-center gap-4 px-2 py-3.5 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
+                  >
+                    {/* Icon circle */}
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: audienceFilter === id ? `${TEAL}18` : "#E4DCCF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon style={{ width: 20, height: 20, color: TEAL }} />
+                    </div>
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: "#2C2523", fontFamily: "'Inter', sans-serif" }}>{label}</p>
+                      <p className="text-xs mt-0.5" style={{ color: MID, fontFamily: "'Inter', sans-serif" }}>{description}</p>
+                    </div>
+                    {/* Active checkmark */}
+                    {audienceFilter === id && (
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: TEAL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <svg viewBox="0 0 12 10" width="12" height="10" fill="none"><path d="M1 5l3 3 7-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </button>
+                  {i < arr.length - 1 && (
+                    <div style={{ height: 1, background: "#E8E2DA", marginLeft: 60, marginRight: 8 }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       {/* ── Main content ── */}
       <main className="flex-1 px-5 md:px-12 py-4">
