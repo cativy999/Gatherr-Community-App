@@ -418,6 +418,7 @@ const Wards = () => {
     const triggerRecapNotifications = async () => {
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 60 * 24 * 3600 * 1000).toISOString().split("T")[0];
+      const yesterday = new Date(now.getTime() - 1 * 24 * 3600 * 1000).toISOString().split("T")[0];
       const today = now.toISOString().split("T")[0];
       // Events hosted by user that ended in last 7 days
       const { data: hostedEvents } = await supabase
@@ -425,7 +426,7 @@ const Wards = () => {
         .select("id, title, date")
         .eq("user_id", userId)
         .gte("date", sevenDaysAgo)
-        .lt("date", today)
+        .lte("date", yesterday)
         .order("date", { ascending: false }); // newest first so notifs stack correctly
       if (!hostedEvents || hostedEvents.length === 0) return;
       const eventIds = hostedEvents.map((e: any) => e.id);
