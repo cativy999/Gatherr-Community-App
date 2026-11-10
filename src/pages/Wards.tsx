@@ -422,10 +422,11 @@ const Wards = () => {
       // Events hosted by user that ended in last 7 days
       const { data: hostedEvents } = await supabase
         .from("events")
-        .select("id, title")
+        .select("id, title, date")
         .eq("user_id", userId)
         .gte("date", sevenDaysAgo)
-        .lt("date", today);
+        .lt("date", today)
+        .order("date", { ascending: false }); // newest first so notifs stack correctly
       if (!hostedEvents || hostedEvents.length === 0) return;
       const eventIds = hostedEvents.map((e: any) => e.id);
       // Check which already have a recap
@@ -447,11 +448,17 @@ const Wards = () => {
         (e: any) => !recappedIds.has(e.id) && !notifiedIds.has(e.id)
       );
       for (const ev of toNotify) {
+        const dateLabel = (() => {
+          try {
+            const d = new Date(ev.date + "T00:00:00");
+            return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          } catch { return ev.date; }
+        })();
         await supabase.from("notifications").insert({
           user_id: userId,
           type: "recap_reminder",
           event_id: ev.id,
-          message: `Your event "${ev.title}" just wrapped up! Add a recap so your community can relive it.`,
+          message: `${dateLabel} · "${ev.title}" just wrapped up — add a recap so your community can relive it!`,
           read: false,
         });
       }
