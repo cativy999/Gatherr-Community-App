@@ -173,6 +173,9 @@ const EventDetails = () => {
   const [likeCount, setLikeCount] = useState(0);
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapBackdropActive, setMapBackdropActive] = useState(false);
+  const openMapPicker = () => { setMapPickerOpen(true); setTimeout(() => setMapBackdropActive(true), 400); };
+  const closeMapPicker = () => { setMapPickerOpen(false); setMapBackdropActive(false); };
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [accessStatus, setAccessStatus] = useState<"none" | "pending" | "approved">("none");
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
@@ -1952,12 +1955,12 @@ const EventDetails = () => {
               </div>
               <button
                 className="min-w-0 flex-1 text-left transition-opacity active:opacity-60"
-                onClick={() => setMapPickerOpen(true)}
+                onClick={() => openMapPicker()}
               >
                 <p className="text-sm font-semibold" style={{ color: DARK }}>{formatAddress(event.address)}</p>
               </button>
               <button
-                onClick={() => setMapPickerOpen(true)}
+                onClick={() => openMapPicker()}
                 className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0"
               >
                 <Navigation className="h-4 w-4" style={{ color: TEAL }} />
@@ -1970,9 +1973,9 @@ const EventDetails = () => {
             <>
               {/* Backdrop */}
               <div
-                className={`fixed inset-0 z-[60] transition-opacity duration-200 ${mapPickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                className={`fixed inset-0 z-[60] transition-opacity duration-200 ${mapPickerOpen ? "opacity-100" : "opacity-0 pointer-events-none"} ${mapBackdropActive ? "pointer-events-auto" : "pointer-events-none"}`}
                 style={{ background: "rgba(0,0,0,0.4)" }}
-                onClick={() => setMapPickerOpen(false)}
+                onClick={() => closeMapPicker()}
               />
               {/* Sheet */}
               <div
@@ -1988,7 +1991,7 @@ const EventDetails = () => {
                   <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>
                     Open in Maps
                   </h2>
-                  <button onClick={() => setMapPickerOpen(false)} className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-60">
+                  <button onClick={() => closeMapPicker()} className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-60">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                   </button>
                 </div>
@@ -2019,7 +2022,7 @@ const EventDetails = () => {
                   ].map(({ label, url, icon }, i, arr) => (
                     <div key={label}>
                       <button
-                        onClick={() => { window.open(url, '_blank'); setMapPickerOpen(false); }}
+                        onClick={() => { window.open(url, '_blank'); closeMapPicker(); }}
                         className="w-full flex items-center gap-4 px-2 py-3.5 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
                       >
                         <div style={{ width: 44, height: 44, borderRadius: 14, background: ICON_BG, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2433,7 +2436,7 @@ const EventDetails = () => {
               <div
                 className="relative rounded-2xl overflow-hidden cursor-pointer"
                 style={{ height: 160, border: `1px solid ${DIVIDER}` }}
-                onClick={() => setMapPickerOpen(true)}
+                onClick={() => openMapPicker()}
               >
                 <iframe
                   width="100%"
@@ -2923,7 +2926,7 @@ const EventDetails = () => {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold" style={{ color: DARK }}>{formatAddress(event.address)}</p>
                 </div>
-                <button onClick={() => setMapPickerOpen(true)} className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0">
+                <button onClick={() => openMapPicker()} className="flex items-center justify-center transition-opacity hover:opacity-70 flex-shrink-0">
                   <Navigation className="h-4 w-4" style={{ color: TEAL }} />
                 </button>
               </div>
@@ -3100,7 +3103,7 @@ const EventDetails = () => {
               <div
                 className="relative rounded-2xl overflow-hidden cursor-pointer"
                 style={{ height: 200, border: `1px solid ${DIVIDER}` }}
-                onClick={() => setMapPickerOpen(true)}
+                onClick={() => openMapPicker()}
               >
                 <iframe
                   width="100%" height="200"
