@@ -1765,8 +1765,7 @@ const CreateEvent = () => {
         confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#facc15", "#4ade80", "#60a5fa"] });
       }, 200);
       setTimeout(() => {
-        setPublishedEventId(savedId ?? null);
-        setShareModalOpen(true);
+        navigate('/wards', { state: { scrollToEventId: savedId ?? null } });
       }, 900);
     }
     setLoading(false);
@@ -2791,8 +2790,8 @@ const CreateEvent = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Share Modal ────────────────────────────────────────────────────── */}
-      {shareModalOpen && <ShareModal
+      {/* ── Share Modal (disabled) ─────────────────────────────────────────── */}
+      {false && shareModalOpen && <ShareModal
         publishedEventId={publishedEventId}
         title={title}
         date={date}
