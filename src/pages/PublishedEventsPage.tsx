@@ -1,7 +1,7 @@
 import { CE_BG,CE_LIGHT , CE_ERROR} from '../tokens';
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, CalendarDays, CheckCircle2, Clock, Copy, MoreHorizontal, Trash2 } from "lucide-react";
+import { ChevronLeft, CalendarDays, CheckCircle2, Clock, Copy, MoreHorizontal, Trash2, Camera } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -64,6 +64,8 @@ const PublishedEventsPage = () => {
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  // recap data: map of event_id → photo count (-1 = no recap)
+  const [recapCounts, setRecapCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -114,6 +116,20 @@ const PublishedEventsPage = () => {
 
       setEvents(merged);
       setLoading(false);
+
+      // Fetch recap photo counts for past events
+      if (activeTab === "past" && merged.length > 0) {
+        const eventIds = merged.map((e: any) => e.id);
+        const { data: recaps } = await supabase
+          .from("event_recaps")
+          .select("event_id, recap_photos(count)")
+          .in("event_id", eventIds);
+        const counts: Record<string, number> = {};
+        (recaps ?? []).forEach((r: any) => {
+          counts[r.event_id] = r.recap_photos?.[0]?.count ?? 0;
+        });
+        setRecapCounts(counts);
+      }
     };
 
     fetchAll();
@@ -149,14 +165,14 @@ const PublishedEventsPage = () => {
   };
 
   // ── Event Card ─────────────────────────────────────────────────────────
-  const EventCard = ({ event }: { event: Event }) => (
+  const EventCard = ({ event, isPast }: { event: Event; isPast?: boolean }) => (
     <div
-      onClick={() => navigate(`/create-event/${event.id}`)}
-      className="bg-white overflow-hidden cursor-pointer hover:shadow-md transition-shadow flex flex-col"
-      style={{ borderRadius: 20 }}
+      className="bg-white overflow-hidden flex flex-col"
+      style={{ borderRadius: 20, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}
     >
-      {/* Cover image */}
-      <div className="relative flex-shrink-0">
+      {/* Cover image — tapping goes to edit */}
+      <div className="relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+        onClick={() => navigate(`/create-event/${event.id}`)}>
         {event.image_url ? (
           <img
             src={event.image_url}
@@ -212,8 +228,9 @@ const PublishedEventsPage = () => {
         </div>
       </div>
 
-      {/* Text */}
-      <div className="px-3 pt-3 pb-4 flex flex-col gap-1">
+      {/* Text — tapping goes to edit */}
+      <div className="px-3 pt-3 pb-3 flex flex-col gap-1 cursor-pointer"
+        onClick={() => navigate(`/create-event/${event.id}`)}>
         <h3
           className="font-semibold text-sm leading-snug line-clamp-2"
           style={{ color: DARK, fontFamily: "'Inter', sans-serif" }}
@@ -224,6 +241,29 @@ const PublishedEventsPage = () => {
           {formatDate(event.date, event.start_time)}
         </p>
       </div>
+
+      {/* Recap button — past events only */}
+      {isPast && (
+        <div style={{ padding: "0 10px 12px" }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/recap/${event.id}`); }}
+            style={{
+              width: "100%", height: 34, borderRadius: 10,
+              border: `1.5px solid ${event.id in recapCounts ? TEAL : DIVIDER}`,
+              background: event.id in recapCounts ? "rgba(31,78,91,0.07)" : "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              cursor: "pointer",
+              fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
+              color: event.id in recapCounts ? TEAL : MID,
+            }}
+          >
+            <Camera size={12} />
+            {event.id in recapCounts
+              ? `Update recap · ${recapCounts[event.id]} photo${recapCounts[event.id] !== 1 ? "s" : ""}`
+              : "Add recap photos"}
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -246,6 +286,14 @@ const PublishedEventsPage = () => {
   };
 
   const { thisWeek, nextWeek, later } = groupByWeek(events);
+
+  // Group past events by "Month Year"
+  const pastByMonth = events.reduce((acc: Record<string, Event[]>, e) => {
+    const label = toLocal(e.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    if (!acc[label]) acc[label] = [];
+    acc[label].push(e);
+    return acc;
+  }, {});
 
   // ── Skeleton ───────────────────────────────────────────────────────────
   const Skeleton = () => (
@@ -348,8 +396,18 @@ const PublishedEventsPage = () => {
             <Section label="Later"      items={later} />
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
-            {events.map((e) => <EventCard key={e.id} event={e} />)}
+          <div>
+            {Object.entries(pastByMonth).map(([month, items]) => (
+              <div key={month} className="mb-8">
+                <h2 className="font-semibold mb-3"
+                  style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: "1.25rem" }}>
+                  {month}
+                </h2>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+                  {items.map((e) => <EventCard key={e.id} event={e} isPast />)}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
