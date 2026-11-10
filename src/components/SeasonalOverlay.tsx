@@ -17,7 +17,7 @@ const SeasonalOverlay = () => {
     >
       {/* Top-right corner — desktop */}
       <img
-        src="/thanksgiving.png"
+        src="/seasonal background/thanksgiving.png"
         alt=""
         className="hidden md:block"
         style={{
@@ -30,7 +30,7 @@ const SeasonalOverlay = () => {
       />
       {/* Top-right corner — mobile (smaller) */}
       <img
-        src="/thanksgiving.png"
+        src="/seasonal background/thanksgiving.png"
         alt=""
         className="block md:hidden"
         style={{
