@@ -24,8 +24,8 @@ const SeasonalOverlay = () => {
           position: "absolute",
           top: 0,
           right: 0,
-          width: 420,
-          opacity: 0.92,
+          width: 660,
+          opacity: 0.95,
         }}
       />
       {/* Top-right corner — mobile (smaller) */}
@@ -37,8 +37,8 @@ const SeasonalOverlay = () => {
           position: "absolute",
           top: 0,
           right: 0,
-          width: 200,
-          opacity: 0.88,
+          width: 260,
+          opacity: 0.9,
         }}
       />
     </div>

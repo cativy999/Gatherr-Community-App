@@ -730,7 +730,7 @@ const Wards = () => {
       <div
         className="sticky z-10"
         style={{
-          background: CE_BG,
+          background: "transparent",
           top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
           transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
