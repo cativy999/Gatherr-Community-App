@@ -11,7 +11,7 @@ const SeasonalOverlay = () => {
         position: "fixed",
         inset: 0,
         pointerEvents: "none",
-        zIndex: 0,
+        zIndex: 5,
         overflow: "hidden",
       }}
     >
