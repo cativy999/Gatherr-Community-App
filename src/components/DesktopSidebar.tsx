@@ -15,6 +15,17 @@ const NAV_ITEMS = [
   { id: "profile",   label: "Profile",   icon: User,       path: "/profile" },
 ];
 
+const isNovember = new Date().getMonth() === 10;
+
+const SEASONAL_BADGE: Record<string, { src: string; bottom: number; right: number }> = {
+  home:      { src: "/seasonal background/nav items/Object.png",   bottom: -6, right: -8 },
+  calendar:  { src: "/seasonal background/nav items/Object-1.png", bottom: -6, right: -8 },
+  plus:      { src: "/seasonal background/nav items/Object-2.png", bottom: -6, right: -8 },
+  community: { src: "/seasonal background/nav items/Object-5.png", bottom: -6, right: -8 },
+  search:    { src: "/seasonal background/nav items/Object-4.png", bottom: -6, right: -8 },
+  profile:   { src: "/seasonal background/nav items/Object-3.png", bottom: -6, right: -8 },
+};
+
 const DesktopSidebar = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -235,6 +246,23 @@ const DesktopSidebar = () => {
                     </svg>
                   )}
                 </div>
+
+                {/* Seasonal badge — November only, active state only */}
+                {isNovember && isActive && SEASONAL_BADGE[item.id] && (
+                  <img
+                    src={SEASONAL_BADGE[item.id].src}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      bottom: SEASONAL_BADGE[item.id].bottom,
+                      right: SEASONAL_BADGE[item.id].right,
+                      width: 22,
+                      height: 22,
+                      objectFit: "contain",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
 
                 {/* Tooltip */}
                 {isHovered && (
