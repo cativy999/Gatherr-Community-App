@@ -34,7 +34,7 @@ const SeasonalOverlay = () => {
           alt=""
           className="hidden md:block"
 
-          style={{ position: "absolute", top: 0, right: 0, width: 660, opacity: 0.95 }}
+          style={{ position: "absolute", top: 0, right: 0, width: 660, height: "auto", opacity: 1 }}
         />
         {/* Mobile: hidden — fixed positioning unreliable on iOS */}
       </div>
