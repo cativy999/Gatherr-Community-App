@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ThumbsUp, Smile, Heart, MapPin, Users,
   ChevronLeft, ChevronRight, ChevronDown,
-  Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles,
+  Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles, Globe, X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -197,6 +197,7 @@ const Events = () => {
   );
   const [audienceDropdownOpen, setAudienceDropdownOpen] = useState(false);
   const [audienceDropdownPos, setAudienceDropdownPos] = useState({ top: 0, left: 0 });
+  const [audienceSheetOpen, setAudienceSheetOpen] = useState(false);
   const audienceDropdownRef = useRef<HTMLDivElement>(null);
   const audienceBtnRef = useRef<HTMLButtonElement>(null);
   const [jumpDate, setJumpDate] = useState<Date | undefined>();
@@ -688,7 +689,13 @@ const Events = () => {
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
                   ref={audienceBtnRef}
-                  onClick={() => setAudienceDropdownOpen(v => !v)}
+                  onClick={() => {
+                    if (window.innerWidth < 768) {
+                      setAudienceSheetOpen(true);
+                    } else {
+                      setAudienceDropdownOpen(v => !v);
+                    }
+                  }}
                   className="flex items-center gap-1 rounded-full transition-opacity hover:opacity-80"
                   style={{ padding: "8px 14px", fontFamily: INTER, fontSize: 13, fontWeight: 600, background: TEAL, color: CE_BG, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
                 >
@@ -724,7 +731,7 @@ const Events = () => {
               <div style={{ flexShrink: 0, width: 24 }} />
             </div>
 
-            {/* Audience dropdown panel — portalled to body so overflow can't clip it */}
+            {/* Audience dropdown panel — desktop only, portalled to body */}
             {audienceDropdownOpen && createPortal(
               <div style={{ position: "fixed", top: audienceDropdownPos.top, left: audienceDropdownPos.left, background: "white", border: "1px solid #E4DCCF", borderRadius: 14, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 9999, minWidth: 190, overflow: "hidden" }}>
                 {["YSA", "MSA", "SA"].map(opt => (
@@ -736,6 +743,64 @@ const Events = () => {
                   </button>
                 ))}
               </div>,
+              document.body
+            )}
+
+            {/* Audience bottom sheet — mobile only */}
+            {createPortal(
+              <>
+                <div
+                  className={`fixed inset-0 z-40 transition-opacity duration-200 ${audienceSheetOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                  style={{ background: "rgba(0,0,0,0.4)" }}
+                  onClick={() => setAudienceSheetOpen(false)}
+                />
+                <div
+                  className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl transition-transform duration-300 ease-out ${audienceSheetOpen ? "translate-y-0" : "translate-y-full"}`}
+                  style={{ boxShadow: "0 -4px 32px rgba(0,0,0,0.12)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+                >
+                  <div className="flex justify-center pt-3 pb-1">
+                    <div style={{ width: 36, height: 4, borderRadius: 100, background: "#C8C0B8" }} />
+                  </div>
+                  <div className="flex items-center justify-between px-5 pt-4 pb-1">
+                    <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>
+                      Who is this for?
+                    </h2>
+                    <button onClick={() => setAudienceSheetOpen(false)} className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-60" aria-label="Close">
+                      <X className="h-5 w-5" style={{ color: MID }} />
+                    </button>
+                  </div>
+                  <div className="px-4 pt-2 pb-4">
+                    {([
+                      { id: "YSA", label: "YSA", description: "Young Single Adults", Icon: Sparkles },
+                      { id: "MSA", label: "MSA", description: "Mid-Singles Adults",  Icon: Users   },
+                      { id: "SA",  label: "SA",  description: "Single Adults",        Icon: Globe   },
+                    ] as const).map(({ id, label, description, Icon }, i, arr) => (
+                      <div key={id}>
+                        <button
+                          onClick={() => { setAudienceFilter(id); localStorage.setItem("gatherr_audience_filter", id); setAudienceSheetOpen(false); }}
+                          className="w-full flex items-center gap-4 px-2 py-3.5 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
+                        >
+                          <div style={{ width: 44, height: 44, borderRadius: 14, background: audienceFilter === id ? `${TEAL}18` : "#E4DCCF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Icon style={{ width: 20, height: 20, color: TEAL }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold" style={{ color: DARK, fontFamily: INTER }}>{label}</p>
+                            <p className="text-xs mt-0.5" style={{ color: MID, fontFamily: INTER }}>{description}</p>
+                          </div>
+                          {audienceFilter === id && (
+                            <div style={{ width: 20, height: 20, borderRadius: "50%", background: TEAL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <svg viewBox="0 0 12 10" width="12" height="10" fill="none"><path d="M1 5l3 3 7-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                          )}
+                        </button>
+                        {i < arr.length - 1 && (
+                          <div style={{ height: 1, background: "#E8E2DA", marginLeft: 60, marginRight: 8 }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>,
               document.body
             )}
           </div>
