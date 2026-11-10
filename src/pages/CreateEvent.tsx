@@ -2830,9 +2830,10 @@ const CreateEvent = () => {
             {/* Optional delete (editing only) */}
             {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button variant="ghost" size="icon" className="p-2 rounded-full text-red-500 hover:bg-red-50" onClick={() => setDeleteOpen(true)} disabled={loading}>
-                  <Trash2 className="h-5 w-5" />
-                </Button>
+                <button type="button" onClick={() => setDeleteOpen(true)} disabled={loading}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1.5px solid #ef4444`, borderRadius: 999, padding: "7px 14px", cursor: "pointer", color: "#ef4444", fontFamily: SANS_W, fontSize: 13, fontWeight: 600 }}>
+                  <Trash2 style={{ width: 14, height: 14 }} /> Delete post
+                </button>
               </div>
             )}
             {/* Progress bar */}
