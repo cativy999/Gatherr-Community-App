@@ -173,9 +173,15 @@ const EventDetails = () => {
   const [likeCount, setLikeCount] = useState(0);
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
-  const [mapBackdropActive, setMapBackdropActive] = useState(false);
-  const openMapPicker = () => { setMapPickerOpen(true); setTimeout(() => setMapBackdropActive(true), 400); };
-  const closeMapPicker = () => { setMapPickerOpen(false); setMapBackdropActive(false); };
+  const [mapPickerMounted, setMapPickerMounted] = useState(false);
+  const openMapPicker = () => {
+    setMapPickerMounted(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setMapPickerOpen(true)));
+  };
+  const closeMapPicker = () => {
+    setMapPickerOpen(false);
+    setTimeout(() => setMapPickerMounted(false), 350);
+  };
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [accessStatus, setAccessStatus] = useState<"none" | "pending" | "approved">("none");
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
@@ -1969,11 +1975,11 @@ const EventDetails = () => {
           ) : null}
 
           {/* ── Map Picker Bottom Sheet ──────────────────────────────── */}
-          {createPortal(
+          {mapPickerMounted && createPortal(
             <>
               {/* Backdrop */}
               <div
-                className={`fixed inset-0 z-[60] transition-opacity duration-200 ${mapPickerOpen ? "opacity-100" : "opacity-0 pointer-events-none"} ${mapBackdropActive ? "pointer-events-auto" : "pointer-events-none"}`}
+                className={`fixed inset-0 z-[60] transition-opacity duration-200 ${mapPickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
                 style={{ background: "rgba(0,0,0,0.4)" }}
                 onClick={() => closeMapPicker()}
               />
