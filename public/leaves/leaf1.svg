@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" fill="none">
+  <!-- Warm amber maple leaf -->
+  <path d="M100 10 C95 25 80 20 70 30 C60 40 65 55 55 60 C40 65 25 55 20 65 C30 70 35 80 30 90 C45 85 55 95 50 110 C60 105 70 115 65 130 C75 125 85 135 80 150 C90 145 100 160 100 175 C100 160 110 145 120 150 C115 135 125 125 135 130 C130 115 140 105 150 110 C145 95 155 85 170 90 C165 80 170 70 180 65 C175 55 160 65 145 60 C135 55 140 40 130 30 C120 20 105 25 100 10Z" fill="#C8651A" opacity="0.9"/>
+  <!-- Stem -->
+  <path d="M100 175 C100 185 98 200 97 215" stroke="#8B4513" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Veins -->
+  <path d="M100 175 C100 140 100 100 100 10" stroke="#A0522D" stroke-width="1.5" opacity="0.4" fill="none"/>
+  <path d="M100 100 C85 85 70 75 55 60" stroke="#A0522D" stroke-width="1" opacity="0.35" fill="none"/>
+  <path d="M100 100 C115 85 130 75 145 60" stroke="#A0522D" stroke-width="1" opacity="0.35" fill="none"/>
+  <path d="M100 130 C80 115 60 108 50 110" stroke="#A0522D" stroke-width="1" opacity="0.3" fill="none"/>
+  <path d="M100 130 C120 115 140 108 150 110" stroke="#A0522D" stroke-width="1" opacity="0.3" fill="none"/>
+</svg>

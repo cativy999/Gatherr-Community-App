@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 200" fill="none">
+  <!-- Deep rust oak-style leaf -->
+  <path d="M90 15 C88 30 75 28 68 38 C58 50 65 62 55 68 C43 75 32 68 28 78 C38 82 42 94 36 103 C50 100 58 112 54 124 C65 120 74 132 70 145 C80 140 88 152 88 165 C89 152 97 140 107 145 C103 132 112 120 123 124 C119 112 128 100 142 103 C136 94 140 82 150 78 C146 68 135 75 123 68 C113 62 120 50 110 38 C103 28 92 30 90 15Z" fill="#B84A1E" opacity="0.88"/>
+  <!-- Lobed bumps -->
+  <path d="M55 68 C48 60 42 52 38 45" stroke="#B84A1E" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M123 68 C130 60 136 52 140 45" stroke="#B84A1E" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <!-- Stem -->
+  <path d="M88 165 C87 178 86 192 85 205" stroke="#7A3010" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Vein -->
+  <path d="M88 165 L90 15" stroke="#922B10" stroke-width="1.5" opacity="0.35" fill="none"/>
+  <path d="M90 90 C72 78 58 72 36 103" stroke="#922B10" stroke-width="1" opacity="0.3" fill="none"/>
+  <path d="M90 90 C108 78 120 72 142 103" stroke="#922B10" stroke-width="1" opacity="0.3" fill="none"/>
+</svg>

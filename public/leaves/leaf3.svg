@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 190" fill="none">
+  <!-- Golden yellow simple leaf -->
+  <path d="M80 12 C60 35 30 50 20 80 C10 110 25 140 45 158 C55 167 70 172 80 172 C90 172 105 167 115 158 C135 140 150 110 140 80 C130 50 100 35 80 12Z" fill="#D4891A" opacity="0.85"/>
+  <!-- Highlight -->
+  <path d="M80 12 C72 40 55 65 48 95 C44 115 50 138 60 152" stroke="#E8A030" stroke-width="2.5" opacity="0.4" fill="none"/>
+  <!-- Stem -->
+  <path d="M80 172 C79 182 78 194 77 205" stroke="#8B5E0A" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Center vein -->
+  <path d="M80 172 L80 12" stroke="#A06510" stroke-width="1.5" opacity="0.3" fill="none"/>
+  <!-- Side veins -->
+  <path d="M80 80 C65 72 50 68 25 80" stroke="#A06510" stroke-width="1" opacity="0.28" fill="none"/>
+  <path d="M80 80 C95 72 110 68 135 80" stroke="#A06510" stroke-width="1" opacity="0.28" fill="none"/>
+  <path d="M80 115 C63 108 45 106 28 115" stroke="#A06510" stroke-width="1" opacity="0.25" fill="none"/>
+  <path d="M80 115 C97 108 115 106 132 115" stroke="#A06510" stroke-width="1" opacity="0.25" fill="none"/>
+</svg>

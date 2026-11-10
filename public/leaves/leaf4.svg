@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 210" fill="none">
+  <!-- Rich red maple with more lobes -->
+  <path d="M100 8 C97 22 85 18 76 26 C66 35 70 48 60 54 C47 60 33 52 28 62 C40 67 44 78 38 89 C52 85 62 96 57 110 C68 106 78 118 73 132 C83 127 93 140 92 155 C94 142 103 128 113 132 C108 118 118 106 129 110 C124 96 134 85 148 89 C142 78 146 67 158 62 C153 52 139 60 126 54 C116 48 120 35 110 26 C101 18 103 22 100 8Z" fill="#A83020" opacity="0.87"/>
+  <!-- Extra side lobes -->
+  <path d="M60 54 C54 44 50 36 48 26" stroke="#A83020" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M140 54 C146 44 150 36 152 26" stroke="#A83020" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M38 89 C30 82 24 74 22 64" stroke="#A83020" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <path d="M162 89 C170 82 176 74 178 64" stroke="#A83020" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <!-- Stem -->
+  <path d="M92 155 C91 167 90 182 89 197" stroke="#6B1A0A" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Veins -->
+  <path d="M100 155 L100 8" stroke="#7A2015" stroke-width="1.5" opacity="0.32" fill="none"/>
+  <path d="M100 85 C82 72 65 64 38 89" stroke="#7A2015" stroke-width="1" opacity="0.28" fill="none"/>
+  <path d="M100 85 C118 72 135 64 162 89" stroke="#7A2015" stroke-width="1" opacity="0.28" fill="none"/>
+</svg>

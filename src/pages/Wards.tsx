@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
 import EventCard from "@/components/EventCard";
+import SeasonalOverlay from "@/components/SeasonalOverlay";
 import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
 type Event = {
@@ -704,6 +705,7 @@ const Wards = () => {
 
   return (
     <div className="relative flex min-h-screen flex-col pb-20" style={{ background: CE_BG }}>
+      <SeasonalOverlay />
       <style>{`
         @keyframes bell-ring {
           0%   { transform: rotate(0deg);   transform-origin: 50% 4px; }
