@@ -771,24 +771,21 @@ const Events = () => {
                   </div>
                   <div className="px-4 pt-2 pb-4">
                     {([
-                      { id: "YSA", label: "YSA", description: "Young Single Adults", Icon: Sparkles },
-                      { id: "MSA", label: "MSA", description: "Mid-Singles Adults",  Icon: Users   },
-                      { id: "SA",  label: "SA",  description: "Single Adults",        Icon: Globe   },
-                    ] as const).map(({ id, label, description, Icon }, i, arr) => (
+                      { id: "YSA", label: "YSA", description: "Young Single Adults" },
+                      { id: "MSA", label: "MSA", description: "Mid-Singles Adults"  },
+                      { id: "SA",  label: "SA",  description: "Single Adults"       },
+                    ] as const).map(({ id, label, description }, i, arr) => (
                       <div key={id}>
                         <button
                           onClick={() => { setAudienceFilter(id); localStorage.setItem("gatherr_audience_filter", id); setAudienceSheetOpen(false); }}
-                          className="w-full flex items-center gap-4 px-2 py-3.5 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
+                          className="w-full flex items-center px-4 py-4 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
                         >
-                          <div style={{ width: 44, height: 44, borderRadius: 14, background: audienceFilter === id ? `${TEAL}18` : "#E4DCCF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <Icon style={{ width: 20, height: 20, color: TEAL }} />
-                          </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold" style={{ color: DARK, fontFamily: INTER }}>{label}</p>
-                            <p className="text-xs mt-0.5" style={{ color: MID, fontFamily: INTER }}>{description}</p>
+                            <p style={{ color: DARK, fontFamily: INTER, fontSize: 16, fontWeight: 600 }}>{label}</p>
+                            <p style={{ color: MID, fontFamily: INTER, fontSize: 13, marginTop: 2 }}>{description}</p>
                           </div>
                           {audienceFilter === id && (
-                            <div style={{ width: 20, height: 20, borderRadius: "50%", background: TEAL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: TEAL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               <svg viewBox="0 0 12 10" width="12" height="10" fill="none"><path d="M1 5l3 3 7-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </div>
                           )}
