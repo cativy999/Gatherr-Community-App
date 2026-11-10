@@ -17,6 +17,7 @@ type RecapItem = {
   event_title: string;
   event_date: string;
   event_location: string | null;
+  event_poster: string | null;
   photos: string[];
 };
 
@@ -164,11 +165,14 @@ const RecapCard = ({
   recap: RecapItem;
   onPhotoClick: (photos: string[], index: number, title: string) => void;
 }) => {
-  const photos = recap.photos;
-  const p0 = photos[0] ?? null;
-  const p1 = photos[1] ?? null;
-  const p2 = photos[2] ?? null;
-  const remaining = photos.length - 3;
+  // Poster always first so viewers instantly recognise the event
+  const allPhotos = recap.event_poster
+    ? [recap.event_poster, ...recap.photos]
+    : recap.photos;
+  const p0 = allPhotos[0] ?? null; // poster (top-left)
+  const p1 = allPhotos[1] ?? null; // first recap photo (bottom-left)
+  const p2 = allPhotos[2] ?? null; // second recap photo (tall right)
+  const remaining = allPhotos.length - 3;
 
   const dateLabel = (() => {
     try {
@@ -188,7 +192,7 @@ const RecapCard = ({
         boxShadow: "0 1px 8px rgba(0,0,0,0.07)",
         cursor: "pointer",
       }}
-      onClick={() => photos.length > 0 && onPhotoClick(photos, 0, recap.event_title)}
+      onClick={() => allPhotos.length > 0 && onPhotoClick(allPhotos, 0, recap.event_title)}
     >
       {/* 3-photo mosaic: 2 stacked left, 1 tall right */}
       <div style={{ height: 200, display: "flex", gap: 2, background: DIV }}>
@@ -275,7 +279,7 @@ const RecapSection = ({ audience }: { audience: string }) => {
           id,
           event_id,
           created_at,
-          events!inner(title, date, location, age_min, age_max, audience_group, ward_type)
+          events!inner(title, date, location, image_url, age_min, age_max, audience_group, ward_type)
         `)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -322,6 +326,7 @@ const RecapSection = ({ audience }: { audience: string }) => {
           event_title: r.events?.title ?? "Event",
           event_date: r.events?.date ?? "",
           event_location: r.events?.location ?? null,
+          event_poster: r.events?.image_url ?? null,
           photos: photoMap[r.id] ?? [],
         })).filter(r => r.photos.length > 0)
       );
