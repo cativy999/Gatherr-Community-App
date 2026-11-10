@@ -263,10 +263,24 @@ const RecapCard = ({
       // Info section
       const infoY = cardY + COLLAGE_H + 28;
       ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      // "The recap is here 📸" pill
+      ctx.font = "600 24px Inter, sans-serif";
+      const pillText = "The recap is here 📸";
+      const pillW = ctx.measureText(pillText).width + 36;
+      const pillH = 44, pillX = cardX + 28, pillY = infoY - 10;
+      ctx.fillStyle = "#1F4E5B";
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY - pillH + 8, pillW, pillH, 22);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(pillText, pillX + 18, pillY - pillH / 2 + 10);
+      ctx.textBaseline = "alphabetic";
+
       // Date
       ctx.fillStyle = "#1F4E5B";
       ctx.font = "600 28px Inter, sans-serif";
-      ctx.fillText(dateLabel, cardX + 28, infoY);
+      ctx.fillText(dateLabel, cardX + 28, infoY + 52);
       // Title
       ctx.fillStyle = "#2C2523";
       ctx.font = "600 46px 'EB Garamond', Georgia, serif";
@@ -274,12 +288,12 @@ const RecapCard = ({
       let title = recap.event_title;
       while (ctx.measureText(title).width > maxW && title.length > 0) title = title.slice(0, -1);
       if (title !== recap.event_title) title += "…";
-      ctx.fillText(title, cardX + 28, infoY + 52);
+      ctx.fillText(title, cardX + 28, infoY + 52 + 48);
       // Location
       if (recap.event_location) {
         ctx.fillStyle = "#635C59";
         ctx.font = "400 26px Inter, sans-serif";
-        ctx.fillText(recap.event_location, cardX + 28, infoY + 92);
+        ctx.fillText(recap.event_location, cardX + 28, infoY + 92 + 48);
       }
       // App tag at bottom
       ctx.fillStyle = "#635C59";
