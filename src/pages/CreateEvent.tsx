@@ -2826,15 +2826,18 @@ const CreateEvent = () => {
 
           {/* ─ Fixed header ─────────────────────────────────────────────────── */}
           <div style={{ flexShrink: 0, padding: `36px ${bodyHPad}px 20px ${bodyHPad}px`, display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Optional delete (editing only) */}
-            {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) && (
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            {/* Back (left) + Delete post (right) — same row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <button type="button" onClick={goPrev} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: MID_W, fontFamily: SANS_W, fontSize: 13, fontWeight: 600 }}>
+                <ArrowLeft style={{ width: 15, height: 15 }} /> Back
+              </button>
+              {isEditing && (!originalEventRef.current || session?.user?.id === originalEventRef.current.user_id) ? (
                 <button type="button" onClick={() => setDeleteOpen(true)} disabled={loading}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1.5px solid #ef4444`, borderRadius: 999, padding: "7px 14px", cursor: "pointer", color: "#ef4444", fontFamily: SANS_W, fontSize: 13, fontWeight: 600 }}>
-                  <Trash2 style={{ width: 14, height: 14 }} /> Delete post
+                  style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: MID_W, fontFamily: SANS_W, fontSize: 13, fontWeight: 500, opacity: loading ? 0.4 : 1 }}>
+                  <Trash2 style={{ width: 13, height: 13 }} /> Delete post
                 </button>
-              </div>
-            )}
+              ) : <span />}
+            </div>
             {/* Progress bar */}
             {ProgressBar()}
             {/* Title row: heading LEFT | PostAs RIGHT (step 1 only) */}
@@ -2885,10 +2888,7 @@ const CreateEvent = () => {
           </div>
 
           {/* ─ Fixed footer ─────────────────────────────────────────────────── */}
-          <div style={{ flexShrink: 0, background: "white", padding: `18px ${bodyHPad}px 28px`, borderTop: `1px solid ${DIV_W}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button type="button" onClick={goPrev} style={{ fontFamily: SANS_W, fontSize: 14, fontWeight: 600, color: TEAL_W, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <ArrowLeft style={{ width: 16, height: 16 }} /> Back
-            </button>
+          <div style={{ flexShrink: 0, background: "white", padding: `18px ${bodyHPad}px 28px`, borderTop: `1px solid ${DIV_W}`, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {isEditing && step < 4 && (
                 <button type="button" onClick={handleSubmit} disabled={loading}
