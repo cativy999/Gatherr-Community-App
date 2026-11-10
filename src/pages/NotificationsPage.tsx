@@ -41,6 +41,7 @@ const notifIcon = (type: string): string => {
     case "access_request":         return "🔒";
     case "access_approved":        return "✦";
     case "access_declined":        return "👋";
+    case "recap_reminder":         return "📸";
     default:                       return "🔔";
   }
 };
@@ -264,7 +265,9 @@ const NotificationsPage = () => {
       setWardPopup({ wardName, notifId: n.id });
       return;
     }
-    if (n.type === "group_coadmin_invite" && n.reference_id) {
+    if (n.type === "recap_reminder" && n.event_id) {
+      navigate(`/recap/${n.event_id}`);
+    } else if (n.type === "group_coadmin_invite" && n.reference_id) {
       navigate(`/group-admin-invite/${n.reference_id}`);
     } else if (n.type === "access_request" && n.event_id) {
       // Show quick accept/decline modal
@@ -351,7 +354,7 @@ const NotificationsPage = () => {
         ) : (
           <div>
             {notifications.map((n, i) => {
-              const isClickable = !!n.event_id || n.type === "group_coadmin_invite" || n.type === "ward_request" || n.type === "access_request";
+              const isClickable = !!n.event_id || n.type === "group_coadmin_invite" || n.type === "ward_request" || n.type === "access_request" || n.type === "recap_reminder";
               return (
                 <div key={n.id}>
                   <button

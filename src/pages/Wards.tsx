@@ -16,6 +16,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { toast } from "sonner";
 import EventCard from "@/components/EventCard";
 import SeasonalOverlay from "@/components/SeasonalOverlay";
+import RecapSection from "@/components/RecapSection";
 import { useNavigate, useLocation as useRouterLocation } from "react-router-dom";
 
 type Event = {
@@ -409,6 +410,53 @@ const Wards = () => {
           .filter((e: any) => e && toLocal(e.date) >= todayDate);
         setGoingEvents(upcoming);
       });
+  }, [userId]);
+
+  // Auto-notify hosts of events that ended recently if no recap yet
+  useEffect(() => {
+    if (!userId) return;
+    const triggerRecapNotifications = async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString().split("T")[0];
+      const today = now.toISOString().split("T")[0];
+      // Events hosted by user that ended in last 7 days
+      const { data: hostedEvents } = await supabase
+        .from("events")
+        .select("id, title")
+        .eq("user_id", userId)
+        .gte("date", sevenDaysAgo)
+        .lt("date", today);
+      if (!hostedEvents || hostedEvents.length === 0) return;
+      const eventIds = hostedEvents.map((e: any) => e.id);
+      // Check which already have a recap
+      const { data: existingRecaps } = await supabase
+        .from("event_recaps")
+        .select("event_id")
+        .in("event_id", eventIds);
+      const recappedIds = new Set((existingRecaps ?? []).map((r: any) => r.event_id));
+      // Check which already have a recap_reminder notification
+      const { data: existingNotifs } = await supabase
+        .from("notifications")
+        .select("event_id")
+        .eq("user_id", userId)
+        .eq("type", "recap_reminder")
+        .in("event_id", eventIds);
+      const notifiedIds = new Set((existingNotifs ?? []).map((n: any) => n.event_id));
+      // Insert notifications for events that need one
+      const toNotify = hostedEvents.filter(
+        (e: any) => !recappedIds.has(e.id) && !notifiedIds.has(e.id)
+      );
+      for (const ev of toNotify) {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          type: "recap_reminder",
+          event_id: ev.id,
+          message: `Your event "${ev.title}" just wrapped up! Add a recap so your community can relive it.`,
+          read: false,
+        });
+      }
+    };
+    triggerRecapNotifications();
   }, [userId]);
 
   const toggleSaved = async (id: string, e: React.MouseEvent) => {
@@ -969,6 +1017,9 @@ const Wards = () => {
 
           {/* ── Events ── */}
           {(<>
+
+          {/* ── Event Recap ── */}
+          <RecapSection audience={audienceFilter} />
 
           {/* ── You're going ── */}
           {goingEvents.length > 0 && (

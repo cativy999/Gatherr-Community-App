@@ -40,6 +40,7 @@ import CohostInvite from "./pages/CohostInvite";
 import GroupAdminInvite from "./pages/GroupAdminInvite";
 import LodgingSetup from "./pages/LodgingSetup";
 import LodgingOption from "./pages/LodgingOption";
+import RecapUpload from "./pages/RecapUpload";
 import FeedbackButton from "@/components/FeedbackButton";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -219,6 +220,7 @@ const App = () => {
                 <Route path="/cohost-invite/:token" element={<CohostInvite />} />
                 <Route path="/group-admin-invite/:inviteId" element={<GroupAdminInvite />} />
                 {/* Lodging — feature flagged to admin/owner accounts */}
+                <Route path="/recap/:eventId" element={<RecapUpload />} />
                 <Route path="/event/:eventId/lodging/:groupId" element={<LodgingSetup />} />
                 <Route path="/event/:eventId/lodging/:groupId/option/new/:type" element={<LodgingOption />} />
                 <Route path="/event/:eventId/lodging/:groupId/option/:optionId/edit" element={<LodgingOption />} />
