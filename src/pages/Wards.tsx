@@ -953,7 +953,7 @@ const Wards = () => {
                     )}
                   </button>
                   {i < arr.length - 1 && (
-                    <div style={{ height: 1, background: "#E8E2DA", marginLeft: 60, marginRight: 8 }} />
+                    <div style={{ height: 1, background: "#E8E2DA", marginLeft: 16, marginRight: 16 }} />
                   )}
                 </div>
               ))}
