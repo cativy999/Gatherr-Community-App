@@ -165,14 +165,16 @@ const RecapCard = ({
   recap: RecapItem;
   onPhotoClick: (photos: string[], index: number, title: string) => void;
 }) => {
-  // Poster always first so viewers instantly recognise the event
-  const allPhotos = recap.event_poster
-    ? [recap.event_poster, ...recap.photos]
-    : recap.photos;
-  const p0 = allPhotos[0] ?? null; // poster (top-left)
-  const p1 = allPhotos[1] ?? null; // first recap photo (bottom-left)
-  const p2 = allPhotos[2] ?? null; // second recap photo (tall right)
-  const remaining = allPhotos.length - 3;
+  // Poster in the centre, recap photos on left + right
+  const poster = recap.event_poster ?? null;
+  const rp = recap.photos; // recap photos
+  const left0  = rp[0] ?? null;
+  const left1  = rp[1] ?? null;
+  const right0 = rp[2] ?? null;
+  const right1 = rp[3] ?? null;
+  const remaining = rp.length - 4;
+  // Full list for the viewer: poster first, then recap photos
+  const allPhotos = poster ? [poster, ...rp] : rp;
 
   const dateLabel = (() => {
     try {
@@ -194,42 +196,43 @@ const RecapCard = ({
       }}
       onClick={() => allPhotos.length > 0 && onPhotoClick(allPhotos, 0, recap.event_title)}
     >
-      {/* 3-photo mosaic: 2 stacked left, 1 tall right */}
-      <div style={{ height: 200, display: "flex", gap: 2, background: DIV }}>
-        {/* Left column: 2 stacked */}
+      {/* Triptych: 2 stacked left │ poster center │ 2 stacked right */}
+      <div style={{ height: 210, display: "flex", gap: 2, background: DIV }}>
+
+        {/* Left column */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-          {p0 ? (
-            <div style={{ flex: 1, overflow: "hidden", background: "#e0d8ce" }}>
-              <img src={p0} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            </div>
-          ) : (
-            <div style={{ flex: 1, background: DIV }} />
-          )}
-          {p1 ? (
-            <div style={{ flex: 1, overflow: "hidden", background: "#e0d8ce" }}>
-              <img src={p1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            </div>
-          ) : (
-            <div style={{ flex: 1, background: "#e8e0d5" }} />
-          )}
+          <div style={{ flex: 1, overflow: "hidden", background: "#ddd5c8" }}>
+            {left0 && <img src={left0} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          </div>
+          <div style={{ flex: 1, overflow: "hidden", background: "#e4dcd1" }}>
+            {left1 && <img src={left1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          </div>
         </div>
-        {/* Right column: 1 tall */}
-        <div style={{ flex: 1.1, overflow: "hidden", position: "relative", background: "#e0d8ce" }}>
-          {p2 ? (
-            <img src={p2} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-          ) : (
-            <div style={{ width: "100%", height: "100%", background: DIV }} />
-          )}
-          {remaining > 0 && (
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "rgba(44,37,35,0.45)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <span style={{ fontFamily: INTER, fontSize: 20, fontWeight: 700, color: "#fff" }}>+{remaining}</span>
-            </div>
-          )}
+
+        {/* Centre: poster */}
+        <div style={{ flex: 1.3, overflow: "hidden", background: "#ccc4b8" }}>
+          {poster && <img src={poster} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
         </div>
+
+        {/* Right column */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ flex: 1, overflow: "hidden", background: "#ddd5c8" }}>
+            {right0 && <img src={right0} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+          </div>
+          <div style={{ flex: 1, overflow: "hidden", position: "relative", background: "#e4dcd1" }}>
+            {right1 && <img src={right1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+            {remaining > 0 && (
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "rgba(44,37,35,0.5)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontFamily: INTER, fontSize: 18, fontWeight: 700, color: "#fff" }}>+{remaining}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* Info */}
