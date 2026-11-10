@@ -282,14 +282,14 @@ const RecapSection = ({ audience }: { audience: string }) => {
 
       if (!recapData || recapData.length === 0) return;
 
-      // Filter by audience
+      // Filter by audience — loose overlap check
       const filtered = recapData.filter((r: any) => {
-        const ageMin = r.events?.age_min ?? 0;
-        const ageMax = r.events?.age_max ?? 999;
-        if (audience === "YSA") return ageMin >= 18 && ageMax <= 30;
-        if (audience === "MSA") return ageMin >= 31 && ageMax <= 45;
-        if (audience === "SA")  return ageMin >= 18;
-        return true; // "All"
+        if (!r.events) return false;
+        const ageMin = r.events.age_min ?? 0;
+        const ageMax = r.events.age_max ?? 999;
+        if (audience === "YSA") return ageMin <= 30 && ageMax >= 18;
+        if (audience === "MSA") return ageMin <= 45 && ageMax >= 31;
+        return true; // "SA" or "All"
       });
 
       // Load photos for each recap
