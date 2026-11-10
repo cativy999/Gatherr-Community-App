@@ -191,7 +191,7 @@ const RecapUpload = () => {
   })();
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 100, fontFamily: INTER }}>
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: "calc(140px + env(safe-area-inset-bottom))", fontFamily: INTER }}>
       {/* Header */}
       <div style={{
         position: "sticky", top: 0, zIndex: 10,
@@ -288,13 +288,22 @@ const RecapUpload = () => {
         </div>
       </div>
 
-      {/* Save bar */}
+      {/* Save bar — sits above the mobile bottom nav */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: BG, borderTop: `1px solid ${DIV}`,
         padding: "12px 20px",
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
         display: "flex", gap: 10,
-      }}>
+        zIndex: 50,
+      }}
+        className="recap-save-bar"
+      >
+        <style>{`
+          @media (max-width: 767px) {
+            .recap-save-bar { bottom: 64px !important; padding-bottom: 12px !important; }
+          }
+        `}</style>
         <button
           onClick={() => navigate(-1)}
           style={{
