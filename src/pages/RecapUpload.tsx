@@ -93,11 +93,32 @@ const RecapUpload = () => {
     });
   };
 
+  const handleDelete = async () => {
+    if (!existingRecap?.id || !session?.user) return;
+    setSaving(true);
+    try {
+      await supabase.from("recap_photos").delete().eq("recap_id", existingRecap.id);
+      await supabase.from("event_recaps").delete().eq("id", existingRecap.id);
+      toast.success("Recap removed.");
+      navigate("/wards");
+    } catch (err: any) {
+      toast.error("Couldn't delete recap.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!session?.user || !event) return;
-    if (photos.length === 0) { toast.error("Add at least one photo"); return; }
-    setSaving(true);
 
+    // If 0 photos and recap exists → delete it
+    if (photos.length === 0 && existingRecap?.id) {
+      await handleDelete();
+      return;
+    }
+    if (photos.length === 0) { toast.error("Add at least one photo"); return; }
+
+    setSaving(true);
     try {
       // 1. Create or reuse recap row
       let recapId = existingRecap?.id;
@@ -110,7 +131,6 @@ const RecapUpload = () => {
         if (error) throw error;
         recapId = data.id;
       } else {
-        // Clear old photos
         await supabase.from("recap_photos").delete().eq("recap_id", recapId);
       }
 
@@ -118,7 +138,6 @@ const RecapUpload = () => {
       const uploadedUrls: string[] = [];
       for (const photo of photos) {
         if (photo.url && !photo.file) {
-          // Already uploaded
           uploadedUrls.push(photo.url);
         } else if (photo.file) {
           const compressed = await compressImage(photo.file);
@@ -137,18 +156,16 @@ const RecapUpload = () => {
         uploadedUrls.map((url, i) => ({ recap_id: recapId, photo_url: url, order_index: i }))
       );
 
-      // 4. Mark notification as read (if any)
-      if (session.user.id) {
-        await supabase
-          .from("notifications")
-          .update({ read: true })
-          .eq("user_id", session.user.id)
-          .eq("type", "recap_reminder")
-          .eq("event_id", eventId);
-      }
+      // 4. Mark notification as read
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", session.user.id)
+        .eq("type", "recap_reminder")
+        .eq("event_id", eventId);
 
-      toast.success("Recap saved!");
-      navigate(-1);
+      toast.success(existingRecap ? "Recap updated!" : "Recap saved!");
+      navigate("/wards");
     } catch (err: any) {
       console.error("Recap save error:", err);
       const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
@@ -286,6 +303,22 @@ const RecapUpload = () => {
           <p style={{ fontSize: 12, color: MID, marginTop: 10, lineHeight: 1.5 }}>
             Photos are compressed automatically. Add up to {MAX_PHOTOS} photos from the event.
           </p>
+
+          {/* Delete album — only if recap already exists */}
+          {existingRecap && (
+            <button
+              onClick={handleDelete}
+              disabled={saving}
+              style={{
+                marginTop: 20, width: "100%", height: 44, borderRadius: 22,
+                border: "none", background: "transparent",
+                fontFamily: INTER, fontSize: 14, fontWeight: 600,
+                color: "#C0392B", cursor: "pointer", textDecoration: "underline",
+              }}
+            >
+              Remove this recap
+            </button>
+          )}
         </div>
       </div>
 
@@ -306,7 +339,7 @@ const RecapUpload = () => {
           }
         `}</style>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/wards")}
           style={{
             flex: 1, height: 48, borderRadius: 24,
             border: `1.5px solid ${DIV}`, background: "transparent",
