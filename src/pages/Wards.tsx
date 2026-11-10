@@ -706,7 +706,7 @@ const Wards = () => {
   return (
     <>
     <SeasonalOverlay />
-    <div className="relative flex min-h-screen flex-col pb-20" style={{ background: CE_BG }}>
+    <div className="relative flex min-h-screen flex-col pb-20" style={{ background: "transparent", position: "relative", zIndex: 2 }}>
       <style>{`
         @keyframes bell-ring {
           0%   { transform: rotate(0deg);   transform-origin: 50% 4px; }

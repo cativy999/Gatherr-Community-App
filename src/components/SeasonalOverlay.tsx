@@ -5,43 +5,45 @@ const SeasonalOverlay = () => {
   if (!isNovember) return null;
 
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        pointerEvents: "none",
-        zIndex: 5,
-        overflow: "hidden",
-      }}
-    >
-      {/* Top-right corner — desktop */}
-      <img
-        src="/seasonal background/thanksgiving.png"
-        alt=""
-        className="hidden md:block"
+    <>
+      {/* Layer 0: solid page background (fixed so it never scrolls) */}
+      <div
+        aria-hidden="true"
         style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          width: 660,
-          opacity: 0.95,
+          position: "fixed",
+          inset: 0,
+          background: "#FAF6F0",
+          zIndex: 0,
+          pointerEvents: "none",
         }}
       />
-      {/* Top-right corner — mobile (smaller) */}
-      <img
-        src="/seasonal background/thanksgiving.png"
-        alt=""
-        className="block md:hidden"
+      {/* Layer 1: illustration — fixed, always top-right, behind all content */}
+      <div
+        aria-hidden="true"
         style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          width: 260,
-          opacity: 0.9,
+          position: "fixed",
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: "none",
+          overflow: "hidden",
         }}
-      />
-    </div>
+      >
+        {/* Desktop */}
+        <img
+          src="/seasonal background/thanksgiving.png"
+          alt=""
+          className="hidden md:block"
+          style={{ position: "absolute", top: 0, right: 0, width: 660, opacity: 0.95 }}
+        />
+        {/* Mobile */}
+        <img
+          src="/seasonal background/thanksgiving.png"
+          alt=""
+          className="block md:hidden"
+          style={{ position: "absolute", top: 0, right: 0, width: 260, opacity: 0.9 }}
+        />
+      </div>
+    </>
   );
 };
 
