@@ -266,7 +266,8 @@ const RecapSection = ({ audience }: { audience: string }) => {
   useEffect(() => {
     const load = async () => {
       // Get recaps from last 60 days with their events and photos
-      const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString();
+      const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString().split("T")[0];
+      const until = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split("T")[0];
 
       const { data: recapData } = await supabase
         .from("event_recaps")
@@ -274,22 +275,28 @@ const RecapSection = ({ audience }: { audience: string }) => {
           id,
           event_id,
           created_at,
-          events!inner(title, date, location, age_min, age_max)
+          events!inner(title, date, location, age_min, age_max, audience_group, ward_type)
         `)
-        .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (!recapData || recapData.length === 0) return;
 
-      // Filter by audience — loose overlap check
-      const filtered = recapData.filter((r: any) => {
+      // Filter by event date (7–60 days ago) so only recent-ish events show
+      const withDateFilter = recapData.filter((r: any) => {
+        const d = r.events?.date;
+        if (!d) return true;
+        return d >= since && d <= until;
+      });
+
+      // Filter by audience using audience_group or ward_type field
+      const filtered = withDateFilter.filter((r: any) => {
         if (!r.events) return false;
-        const ageMin = r.events.age_min ?? 0;
-        const ageMax = r.events.age_max ?? 999;
-        if (audience === "YSA") return ageMin <= 30 && ageMax >= 18;
-        if (audience === "MSA") return ageMin <= 45 && ageMax >= 31;
-        return true; // "SA" or "All"
+        const ag = r.events.audience_group ?? r.events.ward_type ?? "YSA";
+        if (audience === "YSA") return ag === "YSA" || ag == null;
+        if (audience === "MSA") return ag === "MSA";
+        if (audience === "SA")  return ag === "SA" || ag === "YSA" || ag === "MSA";
+        return true;
       });
 
       // Load photos for each recap
