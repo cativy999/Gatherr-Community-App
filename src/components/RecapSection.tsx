@@ -183,32 +183,124 @@ const RecapCard = ({
   const [shareOpen, setShareOpen] = useState(false);
   const shareRef = useRef<HTMLButtonElement>(null);
   const siteUrl = (import.meta.env.VITE_SITE_URL ?? window.location.origin).replace(/\/$/, "");
-  const shareUrl = `${siteUrl}/event/${recap.event_id}`;
+  const shareUrl = `${siteUrl}/wards`;
 
   const shareToStory = async () => {
-    const imgSrc = recap.event_poster ?? allPhotos[0] ?? null;
-    if (!imgSrc) { toast.error("No image to share"); return; }
     try {
-      const img = new Image(); img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = imgSrc; });
+      // Load all collage images in parallel
+      const loadImg = (src: string): Promise<HTMLImageElement> =>
+        new Promise((res, rej) => {
+          const i = new Image(); i.crossOrigin = "anonymous";
+          i.onload = () => res(i); i.onerror = rej; i.src = src;
+        });
+
+      const srcs = [left0, left1, poster, right0, right1].filter(Boolean) as string[];
+      const imgMap: Record<string, HTMLImageElement> = {};
+      await Promise.all(srcs.map(async s => { try { imgMap[s] = await loadImg(s); } catch {} }));
+
+      // Canvas: 1080×1080 square card
+      const C = 1080, PAD = 48, RADIUS = 36;
+      const COLLAGE_H = 560, INFO_H = 220;
       const canvas = document.createElement("canvas");
-      canvas.width = 1080; canvas.height = 1920;
+      canvas.width = C; canvas.height = C;
       const ctx = canvas.getContext("2d")!;
-      const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-      const w = img.width * scale, h = img.height * scale;
-      ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+
+      // Background
+      ctx.fillStyle = "#FAF6F0";
+      ctx.fillRect(0, 0, C, C);
+
+      // White card with rounded corners
+      const cardX = PAD, cardY = PAD, cardW = C - PAD * 2, cardH = COLLAGE_H + INFO_H;
+      ctx.shadowColor = "rgba(0,0,0,0.1)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 4;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.roundRect(cardX, cardY, cardW, cardH, RADIUS);
+      ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      // Clip collage to top of card
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(cardX, cardY, cardW, COLLAGE_H, [RADIUS, RADIUS, 0, 0]);
+      ctx.clip();
+
+      // Draw triptych: left col | center poster | right col
+      const gap = 3;
+      const leftW = Math.round(cardW * 0.29);
+      const centerW = Math.round(cardW * 0.4);
+      const rightW = cardW - leftW - centerW - gap * 2;
+      const halfH = Math.round((COLLAGE_H - gap) / 2);
+
+      const drawCover = (img: HTMLImageElement | undefined, x: number, y: number, w: number, h: number) => {
+        if (!img) { ctx.fillStyle = "#E4DCCF"; ctx.fillRect(x, y, w, h); return; }
+        const scale = Math.max(w / img.width, h / img.height);
+        const sw = img.width * scale, sh = img.height * scale;
+        ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
+      };
+
+      // Left column
+      const lx = cardX;
+      drawCover(imgMap[left0!], lx, cardY, leftW, halfH);
+      drawCover(imgMap[left1!], lx, cardY + halfH + gap, leftW, halfH);
+      // Center poster
+      const cx = cardX + leftW + gap;
+      drawCover(imgMap[poster!], cx, cardY, centerW, COLLAGE_H);
+      // Right column
+      const rx = cx + centerW + gap;
+      drawCover(imgMap[right0!], rx, cardY, rightW, halfH);
+      drawCover(imgMap[right1!], rx, cardY + halfH + gap, rightW, halfH);
+      // +N overlay on bottom-right if more photos
+      if (remaining > 0) {
+        ctx.fillStyle = "rgba(44,37,35,0.5)";
+        ctx.fillRect(rx, cardY + halfH + gap, rightW, halfH);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 52px Inter, sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(`+${remaining}`, rx + rightW / 2, cardY + halfH + gap + halfH / 2);
+      }
+      ctx.restore();
+
+      // Info section
+      const infoY = cardY + COLLAGE_H + 28;
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      // Date
+      ctx.fillStyle = "#1F4E5B";
+      ctx.font = "600 28px Inter, sans-serif";
+      ctx.fillText(dateLabel, cardX + 28, infoY);
+      // Title
+      ctx.fillStyle = "#2C2523";
+      ctx.font = "600 46px 'EB Garamond', Georgia, serif";
+      const maxW = cardW - 56;
+      let title = recap.event_title;
+      while (ctx.measureText(title).width > maxW && title.length > 0) title = title.slice(0, -1);
+      if (title !== recap.event_title) title += "…";
+      ctx.fillText(title, cardX + 28, infoY + 52);
+      // Location
+      if (recap.event_location) {
+        ctx.fillStyle = "#635C59";
+        ctx.font = "400 26px Inter, sans-serif";
+        ctx.fillText(recap.event_location, cardX + 28, infoY + 92);
+      }
+      // App tag at bottom
+      ctx.fillStyle = "#635C59";
+      ctx.font = "500 22px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Beyond Sunday", C / 2, C - 22);
+
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], "recap.jpg", { type: "image/jpeg" });
+        const file = new File([blob], "event-recap.jpg", { type: "image/jpeg" });
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], title: recap.event_title });
         } else {
           const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = "recap.jpg"; a.click();
+          a.href = URL.createObjectURL(blob); a.download = "event-recap.jpg"; a.click();
         }
-      }, "image/jpeg", 0.92);
-    } catch { toast.error("Couldn't share image"); }
+      }, "image/jpeg", 0.93);
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't create share image");
+    }
   };
   // Poster in the centre, recap photos on left + right
   const poster = recap.event_poster ?? null;
