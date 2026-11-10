@@ -270,6 +270,7 @@ const Events = () => {
     }
     result = result.filter((e) => {
       if (!e.age_min || !e.age_max) return true;
+      if (e.user_id === userId) return true; // always show creator's own events
       return e.age_min <= preferredAgeMax && e.age_max >= preferredAgeMin;
     });
     // Audience filter applied first — before category filters
