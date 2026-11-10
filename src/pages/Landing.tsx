@@ -124,6 +124,7 @@ const fmtEventDate = (ev: any) => {
 const Landing = () => {
   const navigate = useNavigate();
   const goToWelcome = () => navigate("/welcome");
+  const goToWards = () => navigate("/wards");
   const [events, setEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const heroRef = useRef<HTMLElement>(null);
@@ -397,7 +398,7 @@ const Landing = () => {
               Create Your First Event
             </button>
             <button
-              onClick={goToWelcome}
+              onClick={goToWards}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 fontFamily: INTER, fontSize: 13, color: "rgba(21,21,21,0.45)",
@@ -525,7 +526,7 @@ const Landing = () => {
           {/* CTA below grid */}
           <div style={{ textAlign: "center", marginTop: 32, padding: "0 40px" }}>
             <button
-              onClick={goToWelcome}
+              onClick={goToWards}
               style={{
                 background: TEAL, color: "#FAF6F0", border: "none", cursor: "pointer",
                 padding: "14px 36px", borderRadius: 999,
@@ -535,9 +536,6 @@ const Landing = () => {
             >
               Events near you →
             </button>
-            <p style={{ fontFamily: INTER, fontSize: 12, color: "#BDBAB5", marginTop: 10 }}>
-              Sign in to see what's happening in your area
-            </p>
           </div>
       </section>
 
@@ -570,7 +568,7 @@ const Landing = () => {
           Your next favorite moment is one event away
         </h2>
         <button
-          onClick={goToWelcome}
+          onClick={goToWards}
           style={{
             background: "white", border: "none", cursor: "pointer",
             padding: "12px 28px", borderRadius: 999,
