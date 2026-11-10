@@ -421,13 +421,36 @@ const Wards = () => {
       const yesterday = new Date(now.getTime() - 1 * 24 * 3600 * 1000).toISOString().split("T")[0];
       const today = now.toISOString().split("T")[0];
       // Events hosted by user that ended in last 7 days
+      // Clean up stale recap_reminder notifications outside the 1-60 day window
+      const { data: allRecapNotifs } = await supabase
+        .from("notifications")
+        .select("id, event_id")
+        .eq("user_id", userId)
+        .eq("type", "recap_reminder");
+      if (allRecapNotifs && allRecapNotifs.length > 0) {
+        const validEventIds = new Set<string>();
+        const { data: validEvents } = await supabase
+          .from("events")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("date", sevenDaysAgo)
+          .lte("date", yesterday);
+        (validEvents ?? []).forEach((e: any) => validEventIds.add(e.id));
+        const staleIds = allRecapNotifs
+          .filter((n: any) => !validEventIds.has(n.event_id))
+          .map((n: any) => n.id);
+        if (staleIds.length > 0) {
+          await supabase.from("notifications").delete().in("id", staleIds);
+        }
+      }
+
       const { data: hostedEvents } = await supabase
         .from("events")
         .select("id, title, date")
         .eq("user_id", userId)
         .gte("date", sevenDaysAgo)
         .lte("date", yesterday)
-        .order("date", { ascending: false }); // newest first so notifs stack correctly
+        .order("date", { ascending: false });
       if (!hostedEvents || hostedEvents.length === 0) return;
       const eventIds = hostedEvents.map((e: any) => e.id);
       // Check which already have a recap
