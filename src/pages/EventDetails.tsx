@@ -1970,13 +1970,13 @@ const EventDetails = () => {
             <>
               {/* Backdrop */}
               <div
-                className={`fixed inset-0 z-40 transition-opacity duration-200 ${mapPickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                className={`fixed inset-0 z-[60] transition-opacity duration-200 ${mapPickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
                 style={{ background: "rgba(0,0,0,0.4)" }}
                 onClick={() => setMapPickerOpen(false)}
               />
               {/* Sheet */}
               <div
-                className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl transition-transform duration-300 ease-out ${mapPickerOpen ? "translate-y-0" : "translate-y-full"}`}
+                className={`fixed bottom-0 left-0 right-0 z-[61] bg-white rounded-t-3xl transition-transform duration-300 ease-out ${mapPickerOpen ? "translate-y-0" : "translate-y-full"}`}
                 style={{ boxShadow: "0 -4px 32px rgba(0,0,0,0.12)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
               >
                 {/* Drag handle */}
