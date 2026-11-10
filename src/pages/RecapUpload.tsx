@@ -150,8 +150,9 @@ const RecapUpload = () => {
       toast.success("Recap saved!");
       navigate(-1);
     } catch (err: any) {
-      console.error(err);
-      toast.error("Couldn't save recap. Try again.");
+      console.error("Recap save error:", err);
+      const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
+      toast.error(`Save failed: ${msg}`, { duration: 8000 });
     } finally {
       setSaving(false);
     }
@@ -301,7 +302,7 @@ const RecapUpload = () => {
       >
         <style>{`
           @media (max-width: 767px) {
-            .recap-save-bar { bottom: 64px !important; padding-bottom: 12px !important; }
+            .recap-save-bar { bottom: 84px !important; padding-bottom: 12px !important; }
           }
         `}</style>
         <button
