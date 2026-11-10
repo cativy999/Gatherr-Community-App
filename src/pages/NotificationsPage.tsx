@@ -212,6 +212,7 @@ const NotificationsPage = () => {
   const { session } = useAuth();
   const user = session?.user;
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [eventPosters, setEventPosters] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [accessPopup, setAccessPopup] = useState<AccessPopup | null>(null);
   const [wardPopup, setWardPopup] = useState<{ wardName: string; notifId: string } | null>(null);
@@ -229,6 +230,20 @@ const NotificationsPage = () => {
         .limit(50);
       setNotifications(data ?? []);
       setLoading(false);
+
+      // Fetch event posters for recap_reminder notifications
+      const recapEventIds = (data ?? [])
+        .filter((n: any) => n.type === "recap_reminder" && n.event_id)
+        .map((n: any) => n.event_id);
+      if (recapEventIds.length > 0) {
+        const { data: events } = await supabase
+          .from("events")
+          .select("id, image_url")
+          .in("id", recapEventIds);
+        const posterMap: Record<string, string> = {};
+        (events ?? []).forEach((e: any) => { if (e.image_url) posterMap[e.id] = e.image_url; });
+        setEventPosters(posterMap);
+      }
 
       // Mark all as read
       await supabase
@@ -365,13 +380,19 @@ const NotificationsPage = () => {
                     onMouseEnter={(e) => { if (isClickable) (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
                   >
-                    {/* Icon circle */}
-                    <div
-                      className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full text-xl"
-                      style={{ background: n.type === "access_request" ? "rgba(31,78,91,0.1)" : ICON_BG }}
-                    >
-                      {notifIcon(n.type)}
-                    </div>
+                    {/* Icon circle — poster thumbnail for recap_reminder */}
+                    {n.type === "recap_reminder" && eventPosters[n.event_id] ? (
+                      <div className="flex-shrink-0 w-11 h-11 rounded-xl overflow-hidden" style={{ background: ICON_BG }}>
+                        <img src={eventPosters[n.event_id]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full text-xl"
+                        style={{ background: n.type === "access_request" ? "rgba(31,78,91,0.1)" : ICON_BG }}
+                      >
+                        {notifIcon(n.type)}
+                      </div>
+                    )}
 
                     {/* Text */}
                     <div className="flex-1 min-w-0 pt-0.5">

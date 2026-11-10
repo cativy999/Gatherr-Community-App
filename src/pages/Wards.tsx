@@ -417,7 +417,7 @@ const Wards = () => {
     if (!userId) return;
     const triggerRecapNotifications = async () => {
       const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
+      const sevenDaysAgo = new Date(now.getTime() - 180 * 24 * 3600 * 1000).toISOString().split("T")[0];
       const today = now.toISOString().split("T")[0];
       // Events hosted by user that ended in last 7 days
       const { data: hostedEvents } = await supabase
