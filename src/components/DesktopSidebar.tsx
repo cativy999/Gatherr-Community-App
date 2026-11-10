@@ -69,8 +69,8 @@ const DesktopSidebar = () => {
     <>
       <style>{`
         @keyframes seasonal-pop {
-          0%   { transform: scale(0);   opacity: 0; }
-          60%  { transform: scale(1.4); opacity: 1; }
+          0%   { transform: scale(0.3); opacity: 0; }
+          70%  { transform: scale(1.1); opacity: 1; }
           100% { transform: scale(1);   opacity: 1; }
         }
         @keyframes tooltip-in {
@@ -266,11 +266,11 @@ const DesktopSidebar = () => {
                         ...(b.bottom !== undefined ? { bottom: b.bottom } : {}),
                         ...(b.left   !== undefined ? { left:   b.left   } : {}),
                         ...(b.right  !== undefined ? { right:  b.right  } : {}),
-                        width: 22,
-                        height: 22,
+                        width: 30,
+                        height: 30,
                         objectFit: "contain",
                         pointerEvents: "none",
-                        animation: "seasonal-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                        animation: "seasonal-pop 0.5s cubic-bezier(0.22,1,0.36,1) forwards",
                       }}
                     />
                   );
