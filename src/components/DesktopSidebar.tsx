@@ -216,10 +216,12 @@ const DesktopSidebar = () => {
                       <path className="plus-p2" pathLength="1" d="M12 5v14" />
                     </svg>
                   ) : item.id === "community" ? (
-                    <svg className={isHovered ? "users-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
-                      <circle className="users-c" pathLength="1" cx="10" cy="8" r="5" />
-                      <path className="users-p1" pathLength="1" d="M18 21a8 8 0 0 0-16 0" />
-                      <path className="users-p2" pathLength="1" d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+                    <svg viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 9h4"/>
+                      <path d="M12 7v5"/>
+                      <path d="M14 21v-3a2 2 0 0 0-4 0v3"/>
+                      <path d="m18 9 3.52 2.147a1 1 0 0 1 .48.854V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6.999a1 1 0 0 1 .48-.854L6 9"/>
+                      <path d="M6 21V7a1 1 0 0 1 .376-.782l5-3.999a1 1 0 0 1 1.249.001l5 4A1 1 0 0 1 18 7v14"/>
                     </svg>
                   ) : item.id === "search" ? (
                     <svg className={isHovered ? "search-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
