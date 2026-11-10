@@ -30,7 +30,7 @@ const SeasonalOverlay = () => {
       >
         {/* Desktop */}
         <img
-          src="/seasonal background/thanksgiving.png"
+          src="/seasonal background/thanksgiving 2.png"
           alt=""
           className="hidden md:block"
 
