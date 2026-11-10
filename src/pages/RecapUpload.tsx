@@ -100,7 +100,7 @@ const RecapUpload = () => {
       await supabase.from("recap_photos").delete().eq("recap_id", existingRecap.id);
       await supabase.from("event_recaps").delete().eq("id", existingRecap.id);
       toast.success("Recap removed.");
-      navigate("/wards");
+      navigate(-1);
     } catch (err: any) {
       toast.error("Couldn't delete recap.");
     } finally {
@@ -165,7 +165,7 @@ const RecapUpload = () => {
         .eq("event_id", eventId);
 
       toast.success(existingRecap ? "Recap updated!" : "Recap saved!");
-      navigate("/wards");
+      navigate(-1);
     } catch (err: any) {
       console.error("Recap save error:", err);
       const msg = err?.message ?? err?.error_description ?? JSON.stringify(err);
@@ -339,7 +339,7 @@ const RecapUpload = () => {
           }
         `}</style>
         <button
-          onClick={() => navigate("/wards")}
+          onClick={() => navigate(-1)}
           style={{
             flex: 1, height: 48, borderRadius: 24,
             border: `1.5px solid ${DIV}`, background: "transparent",

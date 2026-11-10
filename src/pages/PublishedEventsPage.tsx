@@ -59,7 +59,9 @@ const groupByWeek = (events: Event[]) => {
 const PublishedEventsPage = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">(
+    () => (localStorage.getItem("publishedEventsTab") as "upcoming" | "past") ?? "upcoming"
+  );
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -255,11 +257,12 @@ const PublishedEventsPage = () => {
               cursor: "pointer",
               fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600,
               color: event.id in recapCounts ? TEAL : MID,
+              whiteSpace: "nowrap", overflow: "hidden",
             }}
           >
-            <Camera size={12} />
+            <Camera size={12} style={{ flexShrink: 0 }} />
             {event.id in recapCounts
-              ? `Update recap · ${recapCounts[event.id]} photo${recapCounts[event.id] !== 1 ? "s" : ""}`
+              ? `Recap · ${recapCounts[event.id]} photos`
               : "Add recap photos"}
           </button>
         </div>
@@ -341,7 +344,7 @@ const PublishedEventsPage = () => {
             return (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => { setActiveTab(id); localStorage.setItem("publishedEventsTab", id); }}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all"
                 style={active
                   ? { background: TEAL, color: "white", border: "none" }
