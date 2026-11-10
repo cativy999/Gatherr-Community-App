@@ -286,8 +286,7 @@ const RecapSection = ({ audience }: { audience: string }) => {
   useEffect(() => {
     const load = async () => {
       // Get recaps from last 60 days with their events and photos
-      const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString().split("T")[0];
-      const until = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split("T")[0];
+      const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString();
 
       const { data: recapData } = await supabase
         .from("event_recaps")
@@ -297,20 +296,14 @@ const RecapSection = ({ audience }: { audience: string }) => {
           created_at,
           events!inner(title, date, location, image_url, age_min, age_max, audience_group, ward_type)
         `)
+        .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (!recapData || recapData.length === 0) return;
 
-      // Filter by event date (7–60 days ago) so only recent-ish events show
-      const withDateFilter = recapData.filter((r: any) => {
-        const d = r.events?.date;
-        if (!d) return true;
-        return d >= since && d <= until;
-      });
-
       // Filter by audience using audience_group or ward_type field
-      const filtered = withDateFilter.filter((r: any) => {
+      const filtered = recapData.filter((r: any) => {
         if (!r.events) return false;
         const ag = r.events.audience_group ?? r.events.ward_type ?? "YSA";
         if (audience === "YSA") return ag === "YSA" || ag == null;
