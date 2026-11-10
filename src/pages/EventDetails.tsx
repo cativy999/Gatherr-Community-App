@@ -1965,61 +1965,80 @@ const EventDetails = () => {
             </div>
           ) : null}
 
-          {/* ── Map Picker Dialog ──────────────────────────────── */}
-          <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
-            <DialogContent className="w-[calc(100%-40px)] max-w-[360px] rounded-2xl p-0 overflow-hidden">
-              <DialogHeader className="p-5 pb-3">
-                <DialogTitle className="text-lg font-bold">Open in Maps</DialogTitle>
-              </DialogHeader>
-              <div className="px-5 pb-5 space-y-1">
-                <button
-                  onClick={() => { window.open(`https://maps.google.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
-                >
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
-                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M24 4C15.16 4 8 11.16 8 20c0 11.87 14.29 23.45 15 24l1 .87 1-.87C25.71 43.45 40 31.87 40 20c0-8.84-7.16-16-16-16z" fill="#EA4335"/>
-                      <circle cx="24" cy="20" r="6" fill="white"/>
-                    </svg>
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: DARK }}>Google Maps</span>
-                </button>
-                <button
-                  onClick={() => { window.open(`https://maps.apple.com/?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
-                >
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
-                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="48" height="48" rx="10" fill="url(#appleGrad2)"/>
-                      <path d="M24 10l3.5 7 7.5 1.1-5.5 5.3 1.3 7.6L24 27.5l-6.8 3.5 1.3-7.6L13 18.1l7.5-1.1L24 10z" fill="white"/>
-                      <defs>
-                        <linearGradient id="appleGrad2" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#4CD964"/>
-                          <stop offset="1" stopColor="#007AFF"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: DARK }}>Apple Maps</span>
-                </button>
-                <button
-                  onClick={() => { window.open(`https://waze.com/ul?q=${encodeURIComponent(event?.address || '')}`, '_blank'); setMapPickerOpen(false); }}
-                  className="w-full flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg transition-opacity hover:opacity-70"
-                >
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: ICON_BG }}>
-                    <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <ellipse cx="24" cy="22" rx="16" ry="14" fill="#05C8F0"/>
-                      <circle cx="19" cy="20" r="2.5" fill="#1A1A1A"/>
-                      <circle cx="29" cy="20" r="2.5" fill="#1A1A1A"/>
-                      <path d="M19 26c1.2 2 8.8 2 10 0" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round"/>
-                      <ellipse cx="34" cy="30" rx="5" ry="4" fill="#FFCC00"/>
-                    </svg>
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: DARK }}>Waze</span>
-                </button>
+          {/* ── Map Picker Bottom Sheet ──────────────────────────────── */}
+          {createPortal(
+            <>
+              {/* Backdrop */}
+              <div
+                className={`fixed inset-0 z-40 transition-opacity duration-200 ${mapPickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+                style={{ background: "rgba(0,0,0,0.4)" }}
+                onClick={() => setMapPickerOpen(false)}
+              />
+              {/* Sheet */}
+              <div
+                className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl transition-transform duration-300 ease-out ${mapPickerOpen ? "translate-y-0" : "translate-y-full"}`}
+                style={{ boxShadow: "0 -4px 32px rgba(0,0,0,0.12)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+              >
+                {/* Drag handle */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div style={{ width: 36, height: 4, borderRadius: 100, background: "#C8C0B8" }} />
+                </div>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-4 pb-1">
+                  <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 22, fontWeight: 400, lineHeight: 1.2 }}>
+                    Open in Maps
+                  </h2>
+                  <button onClick={() => setMapPickerOpen(false)} className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-60">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                {/* Options */}
+                <div className="px-4 pt-2 pb-4">
+                  {[
+                    {
+                      label: "Google Maps",
+                      url: `https://maps.google.com/?q=${encodeURIComponent(event?.address || '')}`,
+                      icon: (
+                        <svg width="20" height="20" viewBox="0 0 48 48" fill="none"><path d="M24 4C15.16 4 8 11.16 8 20c0 11.87 14.29 23.45 15 24l1 .87 1-.87C25.71 43.45 40 31.87 40 20c0-8.84-7.16-16-16-16z" fill="#EA4335"/><circle cx="24" cy="20" r="6" fill="white"/></svg>
+                      ),
+                    },
+                    {
+                      label: "Apple Maps",
+                      url: `https://maps.apple.com/?q=${encodeURIComponent(event?.address || '')}`,
+                      icon: (
+                        <svg width="20" height="20" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="10" fill="url(#appleGradSheet)"/><path d="M24 10l3.5 7 7.5 1.1-5.5 5.3 1.3 7.6L24 27.5l-6.8 3.5 1.3-7.6L13 18.1l7.5-1.1L24 10z" fill="white"/><defs><linearGradient id="appleGradSheet" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stopColor="#4CD964"/><stop offset="1" stopColor="#007AFF"/></linearGradient></defs></svg>
+                      ),
+                    },
+                    {
+                      label: "Waze",
+                      url: `https://waze.com/ul?q=${encodeURIComponent(event?.address || '')}`,
+                      icon: (
+                        <svg width="22" height="22" viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="22" rx="16" ry="14" fill="#05C8F0"/><circle cx="19" cy="20" r="2.5" fill="#1A1A1A"/><circle cx="29" cy="20" r="2.5" fill="#1A1A1A"/><path d="M19 26c1.2 2 8.8 2 10 0" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round"/><ellipse cx="34" cy="30" rx="5" ry="4" fill="#FFCC00"/></svg>
+                      ),
+                    },
+                  ].map(({ label, url, icon }, i, arr) => (
+                    <div key={label}>
+                      <button
+                        onClick={() => { window.open(url, '_blank'); setMapPickerOpen(false); }}
+                        className="w-full flex items-center gap-4 px-2 py-3.5 rounded-2xl text-left transition-opacity hover:opacity-75 active:opacity-60"
+                      >
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: ICON_BG, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          {icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold" style={{ color: DARK, fontFamily: "'Inter', sans-serif" }}>{label}</p>
+                        </div>
+                      </button>
+                      {i < arr.length - 1 && (
+                        <div style={{ height: 1, background: "#E8E2DA", marginLeft: 60, marginRight: 8 }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            </>,
+            document.body
+          )}
 
           {/* ── Going List Dialog ──────────────────────────────── */}
           <Dialog open={goingListOpen} onOpenChange={setGoingListOpen}>
