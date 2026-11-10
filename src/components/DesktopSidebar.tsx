@@ -17,13 +17,13 @@ const NAV_ITEMS = [
 
 const isNovember = new Date().getMonth() === 10;
 
-const SEASONAL_BADGE: Record<string, { src: string; bottom: number; right: number }> = {
+const SEASONAL_BADGE: Record<string, { src: string; top?: number; bottom?: number; left?: number; right?: number }> = {
   home:      { src: "/seasonal background/nav items/Object.png",   bottom: -6, right: -8 },
-  calendar:  { src: "/seasonal background/nav items/Object-1.png", bottom: -6, right: -8 },
+  calendar:  { src: "/seasonal background/nav items/Object-1.png", bottom: -6, left: -8 },
   plus:      { src: "/seasonal background/nav items/Object-2.png", bottom: -6, right: -8 },
-  community: { src: "/seasonal background/nav items/Object-5.png", bottom: -6, right: -8 },
+  community: { src: "/seasonal background/nav items/Object-5.png", bottom: -2, right: -2 },
   search:    { src: "/seasonal background/nav items/Object-4.png", bottom: -6, right: -8 },
-  profile:   { src: "/seasonal background/nav items/Object-3.png", bottom: -6, right: -8 },
+  profile:   { src: "/seasonal background/nav items/Object-3.png", top: -10,   left: 13  },
 };
 
 const DesktopSidebar = () => {
@@ -68,6 +68,11 @@ const DesktopSidebar = () => {
   return (
     <>
       <style>{`
+        @keyframes seasonal-pop {
+          0%   { transform: scale(0);   opacity: 0; }
+          60%  { transform: scale(1.4); opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
         @keyframes tooltip-in {
           from { opacity: 0; transform: translateY(-50%) translateX(-6px); }
           to   { opacity: 1; transform: translateY(-50%) translateX(0); }
@@ -248,21 +253,28 @@ const DesktopSidebar = () => {
                 </div>
 
                 {/* Seasonal badge — November only, active state only */}
-                {isNovember && isActive && SEASONAL_BADGE[item.id] && (
-                  <img
-                    src={SEASONAL_BADGE[item.id].src}
-                    alt=""
-                    style={{
-                      position: "absolute",
-                      bottom: SEASONAL_BADGE[item.id].bottom,
-                      right: SEASONAL_BADGE[item.id].right,
-                      width: 22,
-                      height: 22,
-                      objectFit: "contain",
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
+                {isNovember && isActive && SEASONAL_BADGE[item.id] && (() => {
+                  const b = SEASONAL_BADGE[item.id];
+                  return (
+                    <img
+                      key={item.id + "-badge"}
+                      src={b.src}
+                      alt=""
+                      style={{
+                        position: "absolute",
+                        ...(b.top    !== undefined ? { top:    b.top    } : {}),
+                        ...(b.bottom !== undefined ? { bottom: b.bottom } : {}),
+                        ...(b.left   !== undefined ? { left:   b.left   } : {}),
+                        ...(b.right  !== undefined ? { right:  b.right  } : {}),
+                        width: 22,
+                        height: 22,
+                        objectFit: "contain",
+                        pointerEvents: "none",
+                        animation: "seasonal-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                      }}
+                    />
+                  );
+                })()}
 
                 {/* Tooltip */}
                 {isHovered && (
