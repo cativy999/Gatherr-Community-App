@@ -544,12 +544,15 @@ const RecapSection = ({ audience }: { audience: string }) => {
 
       {/* Horizontal scroll — negative margin breaks out of parent px-5 md:px-12, padding restores so cards peek at edges */}
       <div
-        className="hide-scrollbar -mx-5 px-5 md:-mx-12 md:px-12"
+        className="hide-scrollbar -mx-5 md:-mx-12"
         style={{
           display: "flex",
           gap: 12,
           overflowX: "auto",
           paddingBottom: 4,
+          paddingLeft: 20,
+          paddingRight: 20,
+          scrollPaddingLeft: 20,
           scrollSnapType: "x mandatory",
           WebkitOverflowScrolling: "touch",
           msOverflowStyle: "none",
