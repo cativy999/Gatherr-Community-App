@@ -1750,32 +1750,36 @@ const EventDetails = () => {
         )}
       </div>
 
-      {/* ── Mobile sticky title header ──────────────────────────────────── */}
-      <div
-        className="md:hidden fixed top-0 left-0 right-0 z-50"
-        style={{
-          background: BG,
-          borderBottom: `1px solid ${DIVIDER}`,
-          paddingTop: "env(safe-area-inset-top)",
-          transform: showTitleInHeader ? "translateY(0)" : "translateY(-100%)",
-          opacity: showTitleInHeader ? 1 : 0,
-          pointerEvents: showTitleInHeader ? "auto" : "none",
-          transition: "transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease",
-        }}
-      >
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => goBack()}
-            className="flex items-center justify-center rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
-            style={{ width: 36, height: 36, background: ICON_BG, border: `1px solid ${DIVIDER}` }}
-          >
-            <ArrowLeft className="h-[18px] w-[18px]" style={{ color: DARK }} />
-          </button>
-          <span className="flex-1 min-w-0 truncate text-base font-semibold" style={{ fontFamily: SERIF, color: DARK }}>
-            {event.title}
-          </span>
-        </div>
-      </div>
+      {/* ── Mobile sticky title header — portalled to body to escape page-transition transform ── */}
+      {createPortal(
+        <div
+          className="md:hidden"
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+            background: BG,
+            borderBottom: `1px solid ${DIVIDER}`,
+            paddingTop: "env(safe-area-inset-top)",
+            transform: showTitleInHeader ? "translateY(0)" : "translateY(-100%)",
+            opacity: showTitleInHeader ? 1 : 0,
+            pointerEvents: showTitleInHeader ? "auto" : "none",
+            transition: "transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease",
+          }}
+        >
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button
+              onClick={() => goBack()}
+              className="flex items-center justify-center rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
+              style={{ width: 36, height: 36, background: ICON_BG, border: `1px solid ${DIVIDER}` }}
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" style={{ color: DARK }} />
+            </button>
+            <span className="flex-1 min-w-0 truncate text-base font-semibold" style={{ fontFamily: SERIF, color: DARK }}>
+              {event.title}
+            </span>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Main content (mobile only) ──────────────────────────────────── */}
       <main className="md:hidden flex-1 px-5">
