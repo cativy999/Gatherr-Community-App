@@ -1296,11 +1296,9 @@ const EventDetails = () => {
     const onScroll = () => {
       const currentY = window.scrollY;
       const el = titleRef.current;
-      if (el) {
-        titlePassed = currentY > el.getBoundingClientRect().bottom + currentY;
-      }
-      const scrollingUp = currentY < lastScrollY;
-      if (window.innerWidth < 768) {
+      if (el && window.innerWidth < 768) {
+        // Show header once the title's top edge scrolls above 60px (header height)
+        titlePassed = el.getBoundingClientRect().top < 60;
         setShowTitleInHeader(titlePassed);
       }
       lastScrollY = currentY;
