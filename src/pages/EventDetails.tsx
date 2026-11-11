@@ -1301,7 +1301,7 @@ const EventDetails = () => {
       }
       const scrollingUp = currentY < lastScrollY;
       if (window.innerWidth < 768) {
-        setShowTitleInHeader(scrollingUp && titlePassed);
+        setShowTitleInHeader(titlePassed);
       }
       lastScrollY = currentY;
     };
