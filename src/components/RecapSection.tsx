@@ -542,22 +542,19 @@ const RecapSection = ({ audience }: { audience: string }) => {
         Event Recap
       </h2>
 
-      {/* Horizontal scroll — negative margin breaks out of parent px-5, padding restores it so cards peek at edges */}
-      <div style={{
-        display: "flex",
-        gap: 12,
-        overflowX: "auto",
-        paddingBottom: 4,
-        paddingLeft: 20,
-        paddingRight: 20,
-        marginLeft: -20,
-        marginRight: -20,
-        scrollSnapType: "x mandatory",
-        WebkitOverflowScrolling: "touch",
-        msOverflowStyle: "none",
-        scrollbarWidth: "none",
-      }}
-        className="hide-scrollbar"
+      {/* Horizontal scroll — negative margin breaks out of parent px-5 md:px-12, padding restores so cards peek at edges */}
+      <div
+        className="hide-scrollbar -mx-5 px-5 md:-mx-12 md:px-12"
+        style={{
+          display: "flex",
+          gap: 12,
+          overflowX: "auto",
+          paddingBottom: 4,
+          scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
+        }}
       >
         {recaps.map(recap => (
           <div key={recap.recap_id} style={{ scrollSnapAlign: "start" }}>
