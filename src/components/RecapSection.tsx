@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Share2, Eye } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import ShareMenu from "@/components/ShareMenu";
 import { toast } from "sonner";
+
+const INTERNAL_USER_IDS = new Set([
+  "57ff4ff5-bbeb-40f4-a518-4688ba45552c",
+  "4359038f-435a-455e-b56a-c93d4c93fdc1",
+]);
 
 const DARK  = "#2C2523";
 const MID   = "#635C59";
@@ -21,6 +27,7 @@ type RecapItem = {
   event_location: string | null;
   event_poster: string | null;
   photos: string[];
+  view_count: number;
 };
 
 // ── Photo Viewer ─────────────────────────────────────────────────────────────
@@ -178,7 +185,7 @@ const RecapCard = ({
   onPhotoClick,
 }: {
   recap: RecapItem;
-  onPhotoClick: (photos: string[], index: number, title: string) => void;
+  onPhotoClick: (photos: string[], index: number, title: string, recapId: string) => void;
 }) => {
   const [shareOpen, setShareOpen] = useState(false);
   const shareRef = useRef<HTMLButtonElement>(null);
@@ -345,7 +352,7 @@ const RecapCard = ({
         boxShadow: "0 1px 8px rgba(0,0,0,0.07)",
         cursor: "pointer",
       }}
-      onClick={() => allPhotos.length > 0 && onPhotoClick(allPhotos, 0, recap.event_title)}
+      onClick={() => allPhotos.length > 0 && onPhotoClick(allPhotos, 0, recap.event_title, recap.recap_id)}
     >
       {/* Triptych: 2 stacked left │ poster center │ 2 stacked right */}
       <div style={{ height: 210, display: "flex", gap: 2, background: DIV }}>
@@ -403,6 +410,12 @@ const RecapCard = ({
             {recap.event_location && (
               <p style={{ fontFamily: INTER, fontSize: 12, color: MID, marginTop: 4 }}>{recap.event_location}</p>
             )}
+            {recap.view_count > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                <Eye size={11} color={MID} />
+                <span style={{ fontFamily: INTER, fontSize: 11, color: MID }}>{recap.view_count} {recap.view_count === 1 ? "view" : "views"}</span>
+              </div>
+            )}
           </div>
 
           {/* Share button */}
@@ -440,10 +453,18 @@ const RecapSection = ({ audience }: { audience: string }) => {
   const [recaps, setRecaps] = useState<RecapItem[]>([]);
   const [viewer, setViewer] = useState<{ photos: string[]; index: number; title: string } | null>(null);
   const [viewerMounted, setViewerMounted] = useState(false);
+  const { session } = useAuth();
 
-  const openViewer = (photos: string[], index: number, title: string) => {
+  const openViewer = (photos: string[], index: number, title: string, recapId: string) => {
     setViewerMounted(true);
     requestAnimationFrame(() => requestAnimationFrame(() => setViewer({ photos, index, title })));
+    // Increment view count — skip internal accounts
+    const userId = session?.user?.id ?? null;
+    if (!userId || !INTERNAL_USER_IDS.has(userId)) {
+      supabase.rpc("increment_recap_views", { recap_id: recapId, viewer_id: userId ?? undefined });
+      // Optimistically update local count
+      setRecaps(prev => prev.map(r => r.recap_id === recapId ? { ...r, view_count: r.view_count + 1 } : r));
+    }
   };
   const closeViewer = () => {
     setViewer(null);
@@ -461,6 +482,7 @@ const RecapSection = ({ audience }: { audience: string }) => {
           id,
           event_id,
           created_at,
+          view_count,
           events!inner(title, date, location, image_url, age_min, age_max, audience_group, ward_type)
         `)
         .gte("created_at", since)
@@ -504,6 +526,7 @@ const RecapSection = ({ audience }: { audience: string }) => {
           event_location: r.events?.location ?? null,
           event_poster: r.events?.image_url ?? null,
           photos: photoMap[r.id] ?? [],
+          view_count: r.view_count ?? 0,
         })).filter(r => r.photos.length > 0)
       );
     };
