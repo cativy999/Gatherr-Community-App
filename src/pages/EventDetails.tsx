@@ -3388,7 +3388,7 @@ const EventDetails = () => {
           {/* RSVP buttons */}
           {isGuest ? (
             abVariant === 'A' ? (
-              <button onClick={() => navigate("/welcome")} className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
+              <button onClick={() => { localStorage.setItem("postAuthRedirect", window.location.pathname); navigate("/welcome"); }} className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80" style={{ background: TEAL }}>
                 Log in to RSVP
               </button>
             ) : (
@@ -3527,7 +3527,7 @@ const EventDetails = () => {
           {isGuest ? (
             abVariant === 'A' ? (
               <button
-                onClick={() => navigate("/welcome")}
+                onClick={() => { localStorage.setItem("postAuthRedirect", window.location.pathname); navigate("/welcome"); }}
                 className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
                 style={{ background: TEAL }}
               >
