@@ -542,12 +542,16 @@ const RecapSection = ({ audience }: { audience: string }) => {
         Event Recap
       </h2>
 
-      {/* Horizontal scroll */}
+      {/* Horizontal scroll — negative margin breaks out of parent px-5, padding restores it so cards peek at edges */}
       <div style={{
         display: "flex",
         gap: 12,
         overflowX: "auto",
         paddingBottom: 4,
+        paddingLeft: 20,
+        paddingRight: 20,
+        marginLeft: -20,
+        marginRight: -20,
         scrollSnapType: "x mandatory",
         WebkitOverflowScrolling: "touch",
         msOverflowStyle: "none",
