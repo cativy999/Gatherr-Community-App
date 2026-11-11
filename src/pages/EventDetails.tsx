@@ -122,6 +122,13 @@ const EventDetails = () => {
   const { requireAuth, GateSheet } = useAuthGate();
   const isGuest = !session;
 
+  // Go back, but never land on the Landing page ("/") — send to /wards instead
+  const goBack = () => {
+    const prev = (window.history.state as any)?.usr?.from;
+    if (prev && prev !== "/") { navigate(-1); }
+    else { navigate("/wards"); }
+  };
+
   // ── A/B variant: "rsvp_login_prompt" ──────────────────────────────────────
   // URL param ?ab_variant=A or B overrides (for previewing)
   // Otherwise random 50/50, stored in localStorage for consistency
@@ -1376,7 +1383,7 @@ const EventDetails = () => {
                 {accessRequestLoading ? "Sending…" : "Request to join"}
               </button>
             )}
-            <button onClick={() => navigate(-1)} style={{ background: "none", border: "none", cursor: "pointer", color: MID, fontSize: 14, fontWeight: 500 }}>
+            <button onClick={() => goBack()} style={{ background: "none", border: "none", cursor: "pointer", color: MID, fontSize: 14, fontWeight: 500 }}>
               ← Go back
             </button>
           </div>
@@ -1570,7 +1577,7 @@ const EventDetails = () => {
 
         {/* Back button */}
         <button
-          onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+          onClick={() => goBack()}
           className="absolute flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
           style={{ top: 52, left: 16, width: 36, height: 36, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)", zIndex: 4 }}
         >
@@ -1760,7 +1767,7 @@ const EventDetails = () => {
       >
         <div className="flex items-center gap-3 px-4 py-3">
           <button
-            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+            onClick={() => goBack()}
             className="flex items-center justify-center rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
             style={{ width: 36, height: 36, background: ICON_BG, border: `1px solid ${DIVIDER}` }}
           >
@@ -2759,7 +2766,7 @@ const EventDetails = () => {
       <div className="hidden md:flex items-center justify-between py-5" style={{ background: BG, paddingLeft: hPad, paddingRight: hPad, transition: "padding 0.15s ease" }}>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/wards"); }}
+            onClick={() => goBack()}
             className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
             style={{ width: 40, height: 40, background: "rgba(255,255,255,0.9)", border: `1px solid ${DIVIDER}` }}
           >
