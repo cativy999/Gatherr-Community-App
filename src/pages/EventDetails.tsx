@@ -3395,7 +3395,7 @@ const EventDetails = () => {
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 <p style={{ textAlign:'center', fontWeight:700, fontSize:15, color:DARK, margin:0 }}>Join to save your spot 🎉</p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.href, queryParams:{ prompt:'select_account' } } }); }}
+                  onClick={(e) => { e.stopPropagation(); localStorage.setItem("postAuthRedirect", window.location.pathname); supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin, queryParams:{ prompt:'select_account' } } }); }}
                   className="w-full py-3.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
                   style={{ background: TEAL, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
                 >
@@ -3537,7 +3537,7 @@ const EventDetails = () => {
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 <p style={{ textAlign:'center', fontWeight:700, fontSize:14, color:DARK, margin:0 }}>Join to save your spot 🎉</p>
                 <button
-                  onClick={(e) => { e.stopPropagation(); supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.href, queryParams:{ prompt:'select_account' } } }); }}
+                  onClick={(e) => { e.stopPropagation(); localStorage.setItem("postAuthRedirect", window.location.pathname); supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin, queryParams:{ prompt:'select_account' } } }); }}
                   className="w-full py-3 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-80"
                   style={{ background: TEAL, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
                 >
