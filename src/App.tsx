@@ -139,7 +139,7 @@ const ContentLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div
       className={showSidebar ? "md:pl-24" : ""}
-      style={{ overflowX: "hidden" }}
+      style={{ overflowX: "clip" }}
     >
       {children}
     </div>
