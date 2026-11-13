@@ -461,7 +461,8 @@ const RecapSection = ({ audience }: { audience: string }) => {
     // Increment view count — skip internal accounts
     const userId = session?.user?.id ?? null;
     if (!userId || !INTERNAL_USER_IDS.has(userId)) {
-      supabase.rpc("increment_recap_views", { recap_id: recapId, viewer_id: userId ?? undefined });
+      supabase.rpc("increment_recap_views", { recap_id: recapId, viewer_id: userId ?? null })
+        .then(({ error }) => { if (error) console.error("increment_recap_views error:", error); });
       // Optimistically update local count
       setRecaps(prev => prev.map(r => r.recap_id === recapId ? { ...r, view_count: r.view_count + 1 } : r));
     }
