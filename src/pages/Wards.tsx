@@ -812,10 +812,10 @@ const Wards = () => {
       <div
         className="sticky z-10"
         style={{
-          background: "#FAF6F0",
+          background: (window.innerWidth >= 768 && !headerScrolled) ? "transparent" : "#FAF6F0",
           top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
           boxShadow: headerScrolled ? "0 2px 8px rgba(0,0,0,0.03)" : "none",
-          transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease",
+          transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, background 0.15s ease",
         }}
       >
 
