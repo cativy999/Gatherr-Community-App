@@ -236,6 +236,7 @@ const Wards = () => {
 
   // ── Scroll-hide header/nav (mobile only) ──
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   const titleRowRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(typeof window !== "undefined" ? window.scrollY : 0);
   useEffect(() => {
@@ -243,6 +244,7 @@ const Wards = () => {
     const onScroll = () => {
       if (window.innerWidth >= 768) return;
       const y = window.scrollY;
+      setHeaderScrolled(y > 10);
       if (y > lastScrollY.current + 6) setHeaderHidden(true);
       else if (y < lastScrollY.current - 6) setHeaderHidden(false);
       lastScrollY.current = y;
@@ -812,8 +814,8 @@ const Wards = () => {
         style={{
           background: "#FAF6F0",
           top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
-          transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          boxShadow: headerScrolled ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+          transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease",
         }}
       >
 
