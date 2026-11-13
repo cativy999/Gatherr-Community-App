@@ -913,7 +913,7 @@ const Wards = () => {
         </div>
 
         {/* Filter chips */}
-        <div className="pb-8 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+        <div className="pb-5 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
           {/* All chips in one scrollable row — padding is inlined as spacer divs
                because padding-right on overflow-x:auto containers is ignored by browsers */}
           <div className="flex gap-2 overflow-x-auto"
