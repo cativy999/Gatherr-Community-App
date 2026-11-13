@@ -171,7 +171,16 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
   }, [location.pathname]);
 
   return (
-    <div key={location.key} className={animClassRef.current}>
+    <div
+      key={location.key}
+      className={animClassRef.current}
+      onAnimationEnd={(e) => {
+        // Remove the animation class after it finishes so the transform is cleared.
+        // This lets position:sticky and position:fixed children work correctly —
+        // a lingering transform(0) would otherwise create a containing block that traps them.
+        (e.currentTarget as HTMLDivElement).classList.remove("page-enter", "page-slide-from-left");
+      }}
+    >
       {children}
     </div>
   );
