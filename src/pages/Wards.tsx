@@ -813,6 +813,7 @@ const Wards = () => {
           background: "#FAF6F0",
           top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
           transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
         }}
       >
 
