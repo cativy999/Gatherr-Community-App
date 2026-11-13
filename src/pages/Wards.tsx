@@ -814,7 +814,7 @@ const Wards = () => {
         style={{
           background: "#FAF6F0",
           top: headerHidden ? -(titleRowRef.current?.offsetHeight ?? 80) : 0,
-          boxShadow: headerScrolled ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+          boxShadow: headerScrolled ? "0 2px 8px rgba(0,0,0,0.03)" : "none",
           transition: "top 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease",
         }}
       >
@@ -913,7 +913,7 @@ const Wards = () => {
         </div>
 
         {/* Filter chips */}
-        <div className="pb-3 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+        <div className="pb-8 md:pt-0" style={{ paddingTop: headerHidden ? 6 : 0, transition: "padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
           {/* All chips in one scrollable row — padding is inlined as spacer divs
                because padding-right on overflow-x:auto containers is ignored by browsers */}
           <div className="flex gap-2 overflow-x-auto"
