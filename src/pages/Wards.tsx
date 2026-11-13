@@ -242,9 +242,9 @@ const Wards = () => {
   useEffect(() => {
     lastScrollY.current = window.scrollY;
     const onScroll = () => {
-      if (window.innerWidth >= 768) return;
       const y = window.scrollY;
       setHeaderScrolled(y > 10);
+      if (window.innerWidth >= 768) return;
       if (y > lastScrollY.current + 6) setHeaderHidden(true);
       else if (y < lastScrollY.current - 6) setHeaderHidden(false);
       lastScrollY.current = y;
