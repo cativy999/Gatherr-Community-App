@@ -189,7 +189,7 @@ const Profile = () => {
 
   const settingsRows = [
     { icon: User,        label: "Account Info",     sub: null,                          badge: null,                               path: "/account-info" },
-    { icon: Bell,        label: "Notifications",    sub: null,                          badge: unreadCount > 0 ? unreadCount : null, path: "/notifications" },
+    { icon: Bell,        label: "Notifications",    sub: null,                          badge: unreadCount > 0 ? unreadCount : null, path: "/notifications", hideOnDesktop: true },
     { icon: CalendarDays,label: "Published Events", sub: `${publishedCount} events`,    badge: null,                               path: "/my-published-events" },
     { icon: Users,       label: "Manage Groups",    sub: `${groupCount} groups`,        badge: null,                               path: "/my-published-groups" },
     ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin Dashboard", sub: null, badge: adminActivityCount > 0 ? adminActivityCount : null, path: "/admin" }] : []),
@@ -281,7 +281,7 @@ const Profile = () => {
             {settingsRows.map((row, i) => {
               const Icon = row.icon;
               return (
-                <div key={row.label}>
+                <div key={row.label} className={(row as any).hideOnDesktop ? "md:hidden" : ""}>
                   <button
                     onClick={() => navigate(row.path)}
                     className="w-full flex items-center gap-4 py-4 text-left transition-opacity hover:opacity-70"

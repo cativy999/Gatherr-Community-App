@@ -1,7 +1,7 @@
 import { CE_ERROR } from '../tokens';
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { House, Calendar1, Plus, UsersRound, Search, User } from "lucide-react";
+import { House, Calendar1, Plus, UsersRound, Search, User, Bell } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateActionModal from "./CreateActionModal";
@@ -11,8 +11,9 @@ const NAV_ITEMS = [
   { id: "calendar",  label: "My Events", icon: Calendar1,  path: "/events" },
   { id: "plus",      label: "Create",    icon: Plus,       path: null },
   { id: "community", label: "Community", icon: UsersRound, path: "/community" },
-  { id: "search",    label: "Search",    icon: Search,     path: "/search" },
-  { id: "profile",   label: "Profile",   icon: User,       path: "/profile" },
+  { id: "search",        label: "Search",        icon: Search, path: "/search" },
+  { id: "notifications", label: "Notifications", icon: Bell,   path: "/notifications" },
+  { id: "profile",       label: "Profile",       icon: User,   path: "/profile" },
 ];
 
 const isNovember = new Date().getMonth() === 10;
@@ -103,6 +104,9 @@ const DesktopSidebar = () => {
         .users-drawing .users-p2 { animation: draw-icon 0.25s cubic-bezier(0.4,0,0.2,1) 0.5s both; }
         .search-drawing .search-c { animation: draw-icon 0.4s  cubic-bezier(0.4,0,0.2,1) both; }
         .search-drawing .search-p { animation: draw-icon 0.15s cubic-bezier(0.4,0,0.2,1) 0.38s both; }
+        .bell-b,.bell-p { stroke-dasharray: 1; stroke-dashoffset: 0; }
+        .bell-drawing .bell-b { animation: draw-icon 0.4s cubic-bezier(0.4,0,0.2,1) both; }
+        .bell-drawing .bell-p { animation: draw-icon 0.2s cubic-bezier(0.4,0,0.2,1) 0.35s both; }
         .profile-drawing .profile-c { animation: draw-icon 0.45s cubic-bezier(0.4,0,0.2,1) both; }
       `}</style>
       <aside
@@ -170,19 +174,12 @@ const DesktopSidebar = () => {
                     justifyContent: "center",
                   }}
                 >
-                  {item.id === "profile" && avatarUrl ? (
+                  {item.id === "notifications" ? (
                     <div style={{ position: "relative" }}>
-                      <img
-                        src={avatarUrl}
-                        referrerPolicy="no-referrer"
-                        style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          outline: isActive ? `2px solid ${ICON_COLOR_ACTIVE}` : "none",
-                        }}
-                      />
+                      <svg className={isHovered ? "bell-drawing" : ""} viewBox="0 0 24 24" style={{ width: 22, height: 22 }} fill="none" stroke={iconColor} strokeWidth={isActive ? 2.5 : 2.2} strokeLinecap="round" strokeLinejoin="round">
+                        <path className="bell-b" pathLength="1" d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <path className="bell-p" pathLength="1" d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                      </svg>
                       {unreadCount > 0 && (
                         <span style={{
                           position: "absolute", top: -2, right: -4,
@@ -196,6 +193,18 @@ const DesktopSidebar = () => {
                         </span>
                       )}
                     </div>
+                  ) : item.id === "profile" && avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      referrerPolicy="no-referrer"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        outline: isActive ? `2px solid ${ICON_COLOR_ACTIVE}` : "none",
+                      }}
+                    />
                   ) : item.id === "home" ? (
                     <svg
                       className={isHovered ? "home-drawing" : ""}
