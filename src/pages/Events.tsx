@@ -625,7 +625,7 @@ const Events = () => {
           {/* Filter bar */}
           <div className="ev-page-filter-bar">
             {/* Location title row — exact same as homepage */}
-            <div className="flex items-center justify-between pt-4 pb-2" style={{ paddingLeft: 24, paddingRight: 24 }}>
+            <div className="flex items-center justify-between pt-4 pb-2" style={{ paddingLeft: 20, paddingRight: 20 }}>
               <div className="flex items-center gap-3 min-w-0">
                 <div style={{ flexShrink: 0, position: "relative" }}>
                   <button
@@ -796,7 +796,7 @@ const Events = () => {
           {/* Distance slider — only when a city is selected (not Everywhere) */}
 
           {/* Big calendar */}
-          <div style={{ flex: 1, paddingLeft: 24, paddingRight: 24 }}>
+          <div style={{ flex: 1, paddingLeft: 20, paddingRight: 20 }}>
             <CalendarView
               events={filteredEvents as any}
               navigate={navigate}

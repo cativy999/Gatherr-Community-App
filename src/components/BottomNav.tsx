@@ -162,7 +162,7 @@ const BottomNav = () => {
               return (
                 <button
                   key="profile"
-                  onClick={() => { triggerTilt("profile"); navigate("/profile"); }}
+                  onClick={() => { triggerTilt("profile"); navigate("/profile", { state: { tabSwitch: true } }); }}
                   className="flex-1 flex flex-col items-center relative"
                   style={{ gap: 4 }}
                 >
@@ -216,7 +216,7 @@ const BottomNav = () => {
                     setSeenCount(goingCount);
                   }
                   triggerTilt(item.id);
-                  navigate(item.path!);
+                  navigate(item.path!, { state: { tabSwitch: true } });
                 }}
                 className="flex-1 flex flex-col items-center relative"
                 style={{ gap: 4 }}

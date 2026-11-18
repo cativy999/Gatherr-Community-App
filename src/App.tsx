@@ -152,14 +152,20 @@ const ContentLayout = ({ children }: { children: ReactNode }) => {
 const PageTransition = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const prevIdxRef = useRef<number>(window.history.state?.idx ?? 0);
-  const animClassRef = useRef<string>("page-enter");
+  const animClassRef = useRef<string>("");
 
   const currentIdx = window.history.state?.idx ?? 0;
   if (currentIdx !== prevIdxRef.current) {
-    // Going back → slide in from left; going forward → slide in from right
-    animClassRef.current = currentIdx < prevIdxRef.current
-      ? "page-slide-from-left"
-      : "page-enter";
+    const isTabSwitch = !!(location.state as any)?.tabSwitch;
+    if (isTabSwitch) {
+      // Tab bar taps: no slide animation
+      animClassRef.current = "";
+    } else {
+      // Sub-page navigation: slide in from right (forward) or left (back)
+      animClassRef.current = currentIdx < prevIdxRef.current
+        ? "page-slide-from-left"
+        : "page-enter";
+    }
     prevIdxRef.current = currentIdx;
   }
 
