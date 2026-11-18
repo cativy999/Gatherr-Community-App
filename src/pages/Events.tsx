@@ -602,7 +602,7 @@ const Events = () => {
           border-left: 1px solid ${DIV};
         }
         @media (max-width: 860px) {
-          .ev-page-layout { flex-direction: column; padding: 0 12px; }
+          .ev-page-layout { flex-direction: column; padding: 0; }
           .ev-page-left { border-right: none; }
           .ev-page-filter-bar { position: static; }
           .ev-page-right {
