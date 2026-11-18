@@ -1,5 +1,5 @@
 import { CE_BG } from '../tokens';
-import { Search as SearchIcon, MapPin, Users } from "lucide-react";
+import { Search as SearchIcon, MapPin, Users, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
@@ -189,7 +189,14 @@ const Search = () => {
       <div className="max-w-2xl mx-auto px-5">
 
         {/* ── Header ──────────────────────────────────────────────────── */}
-        <div style={{ paddingTop: 32, paddingBottom: 20 }}>
+        <div className="flex items-center gap-4" style={{ paddingTop: 32, paddingBottom: 20 }}>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+            style={{ background: ICON_BG }}
+          >
+            <ChevronLeft className="h-5 w-5" style={{ color: DARK }} />
+          </button>
           <h1 style={{ fontFamily: CORMORANT, color: DARK, fontSize: 32, fontWeight: 700, lineHeight: 1 }}>
             Search
           </h1>
