@@ -209,15 +209,13 @@ const GoingCard = ({
 
 const filterChips = [
   { id: "all",        label: "All",          icon: null           },
+  { id: "food",       label: "Provide Food", icon: HandPlatter    },
+  { id: "temple",     label: "Temple",       icon: Landmark       },
+  { id: "institute",  label: "Institute",    icon: BookOpen       },
+  { id: "popular",    label: "Popular",      icon: Sparkles       },
   { id: "conference", label: "Conference",   icon: Presentation   },
   { id: "spiritual",  label: "Spiritual",    icon: Church         },
   { id: "fhe",        label: "FHE",          icon: LandPlot       },
-  { id: "food",       label: "Provide Food", icon: HandPlatter    },
-  { id: "popular",    label: "Popular",      icon: Sparkles       },
-  { id: "service",    label: "Service",      icon: HeartHandshake },
-  { id: "virtual",    label: "Virtual",      icon: Video          },
-  { id: "institute",  label: "Institute",    icon: BookOpen       },
-  { id: "temple",     label: "Temple",       icon: Landmark       },
 ];
 
 const Wards = () => {
