@@ -868,28 +868,11 @@ const Wards = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/search")}
-              className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+              className="flex md:hidden items-center justify-center rounded-full transition-opacity hover:opacity-70"
               style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
               aria-label="Search"
             >
               <Search className="h-[18px] w-[18px]" style={{ color: DARK }} />
-            </button>
-            <button
-              onClick={() => { setHasUnread(false); navigate("/notifications"); }}
-              className="relative hidden md:flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
-              style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
-              aria-label="Notifications"
-            >
-              <Bell
-                className={`h-[18px] w-[18px]${hasUnread ? " bell-ring" : ""}`}
-                style={{ color: hasUnread ? "rgb(31, 78, 91)" : DARK, fill: hasUnread ? "rgb(31, 78, 91)" : "none" }}
-              />
-              {hasUnread && (
-                <span
-                  className="absolute"
-                  style={{ top: 6, right: 6, width: 11, height: 11, borderRadius: "50%", background: CE_ERROR, border: "2px solid rgb(31, 78, 91)" }}
-                />
-              )}
             </button>
             {/* Mobile: circle + button */}
             <button
