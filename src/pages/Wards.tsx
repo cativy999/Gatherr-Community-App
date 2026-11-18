@@ -2,7 +2,7 @@ import { CE_BG,CE_SURFACE , CE_ERROR} from '../tokens';
 import {
   Church, Search, Video, Presentation, Bell, MapPin,
   LandPlot, HandPlatter, HeartHandshake, Sparkles, ChevronDown, Heart,
-  ChevronLeft, ChevronRight, Users, Globe, X } from "lucide-react";
+  ChevronLeft, ChevronRight, Users, Globe, X, BookOpen, Landmark } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import LocationSelector from "@/components/LocationSelector";
@@ -216,6 +216,8 @@ const filterChips = [
   { id: "popular",    label: "Popular",      icon: Sparkles       },
   { id: "service",    label: "Service",      icon: HeartHandshake },
   { id: "virtual",    label: "Virtual",      icon: Video          },
+  { id: "institute",  label: "Institute",    icon: BookOpen       },
+  { id: "temple",     label: "Temple",       icon: Landmark       },
 ];
 
 const Wards = () => {
@@ -571,7 +573,7 @@ const Wards = () => {
     } else {
       result = result.filter((e) => e.audience_group === audienceFilter);
     }
-    if (activeFilter === "spiritual" || activeFilter === "fhe" || activeFilter === "service" || activeFilter === "conference") {
+    if (["spiritual","fhe","service","conference","institute","temple"].includes(activeFilter)) {
       result = result.filter((e) => e.ward_type === activeFilter);
     }
     if (activeFilter === "food") {

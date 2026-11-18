@@ -23,7 +23,7 @@ if (typeof document !== "undefined" && !document.getElementById("ce-trigger-styl
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, MoreHorizontal, MessageSquare, User, X, Check, Eye, Expand, RefreshCw, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, Image as ImageIcon, Trash2, Loader2, Clock, SunMedium, LandPlot, HandPlatter, Rainbow, ArrowLeft, Pizza, CupSoda, Cookie, Hamburger, IceCreamCone, Salad, Link, ChevronDown, ChevronLeft, ChevronRight, Globe, Star, Circle, CheckCircle2, FileText, Car, DollarSign, Ticket, Utensils, Popcorn, Flame, Presentation, MoreVertical, MoreHorizontal, MessageSquare, User, X, Check, Eye, Expand, RefreshCw, ArrowRight, BookOpen, Landmark } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -1814,6 +1814,8 @@ const CreateEvent = () => {
     { id: "service",    label: "Service",     Icon: HandPlatter },
     { id: "general",    label: "General",     Icon: Rainbow },
     { id: "conference", label: "Conference",  Icon: Presentation },
+    { id: "institute",  label: "Institute",   Icon: BookOpen },
+    { id: "temple",     label: "Temple",      Icon: Landmark },
   ];
 
   // Food tiles (emoji + label)

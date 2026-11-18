@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ThumbsUp, Smile, Heart, MapPin, Users,
   ChevronLeft, ChevronRight, ChevronDown,
-  Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles, Globe, X,
+  Church, Video, Presentation, LandPlot, HandPlatter, HeartHandshake, Sparkles, Globe, X, BookOpen, Landmark,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +46,8 @@ const filterChips = [
   { id: "popular",    label: "Popular",      icon: Sparkles       },
   { id: "service",    label: "Service",      icon: HeartHandshake },
   { id: "virtual",    label: "Virtual",      icon: Video          },
+  { id: "institute",  label: "Institute",    icon: BookOpen       },
+  { id: "temple",     label: "Temple",       icon: Landmark       },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -281,7 +283,7 @@ const Events = () => {
     } else {
       result = result.filter((e) => e.audience_group === audienceFilter);
     }
-    if (["spiritual","fhe","service","conference"].includes(activeFilter)) result = result.filter((e) => e.ward_type === activeFilter);
+    if (["spiritual","fhe","service","conference","institute","temple"].includes(activeFilter)) result = result.filter((e) => e.ward_type === activeFilter);
     if (activeFilter === "food") result = result.filter((e) => e.food && e.food.length > 0);
     if (activeFilter === "virtual") result = result.filter((e) => e.virtual_link);
     if (activeFilter === "popular") {
