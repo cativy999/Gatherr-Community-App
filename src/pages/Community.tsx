@@ -1,4 +1,5 @@
 import { CE_BG,CE_LIGHT } from '../tokens';
+import MobileHeaderActions from "@/components/MobileHeaderActions";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, MoreHorizontal } from "lucide-react";
@@ -133,24 +134,27 @@ const Community = () => {
             Community
           </h1>
 
-          <div className="relative">
-            <button
-              ref={menuRef}
-              onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
-              style={{ background: ICON_BG }}
-              aria-label="More options"
-            >
-              <MoreHorizontal className="h-4 w-4" style={{ color: DARK }} />
-            </button>
-            <ShareMenu
-              open={menuOpen}
-              onClose={() => setMenuOpen(false)}
-              triggerRef={menuRef}
-              items={[
-                { label: "Manage Groups", onClick: () => navigate("/my-published-groups") },
-              ]}
-            />
+          <div className="flex items-center gap-2">
+            <MobileHeaderActions />
+            <div className="relative">
+              <button
+                ref={menuRef}
+                onClick={() => setMenuOpen((o) => !o)}
+                className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+                style={{ background: ICON_BG }}
+                aria-label="More options"
+              >
+                <MoreHorizontal className="h-4 w-4" style={{ color: DARK }} />
+              </button>
+              <ShareMenu
+                open={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                triggerRef={menuRef}
+                items={[
+                  { label: "Manage Groups", onClick: () => navigate("/my-published-groups") },
+                ]}
+              />
+            </div>
           </div>
         </div>
 

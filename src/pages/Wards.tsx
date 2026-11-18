@@ -866,23 +866,28 @@ const Wards = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/search")}
-              className="flex md:hidden items-center justify-center rounded-full transition-opacity hover:opacity-70"
-              style={{ width: 40, height: 40, background: "rgba(0,0,0,0.05)" }}
-              aria-label="Search"
-            >
-              <Search className="h-[18px] w-[18px]" style={{ color: DARK }} />
-            </button>
-            {/* Mobile: circle + button */}
-            <button
-              onClick={() => navigate(isLoggedIn ? "/create-event" : "/welcome")}
-              className="flex md:hidden items-center justify-center transition-opacity hover:opacity-70"
-              style={{ width: 36, height: 36, borderRadius: 999, background: TEAL, border: "none", cursor: "pointer", flexShrink: 0 }}
-              aria-label="Create Event"
-            >
-              <span style={{ color: CE_BG, fontSize: 22, lineHeight: 1, marginTop: -1 }}>+</span>
-            </button>
+            {/* Mobile: Search + Bell */}
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                onClick={() => navigate("/search")}
+                className="flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                style={{ width: 36, height: 36, background: "rgba(0,0,0,0.05)" }}
+                aria-label="Search"
+              >
+                <Search className="h-[18px] w-[18px]" style={{ color: DARK }} />
+              </button>
+              <button
+                onClick={() => { setHasUnread(false); navigate("/notifications"); }}
+                className="relative flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+                style={{ width: 36, height: 36, background: "rgba(0,0,0,0.05)" }}
+                aria-label="Notifications"
+              >
+                <Bell className={`h-[18px] w-[18px]${hasUnread ? " bell-ring" : ""}`} style={{ color: DARK }} />
+                {hasUnread && (
+                  <span className="absolute" style={{ top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: CE_ERROR }} />
+                )}
+              </button>
+            </div>
             {/* Desktop: full pill with text */}
             <button
               onClick={() => navigate(isLoggedIn ? "/create-event" : "/welcome")}

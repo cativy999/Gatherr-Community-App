@@ -1,5 +1,6 @@
 import { CE_BG,CE_LIGHT , CE_ERROR} from '../tokens';
 import { LogOut, ChevronRight, Bell, CalendarDays, Users, User, Camera, Loader2, ShieldCheck, QrCode, X } from "lucide-react";
+import MobileHeaderActions from "@/components/MobileHeaderActions";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -189,7 +190,6 @@ const Profile = () => {
 
   const settingsRows = [
     { icon: User,        label: "Account Info",     sub: null,                          badge: null,                               path: "/account-info" },
-    { icon: Bell,        label: "Notifications",    sub: null,                          badge: unreadCount > 0 ? unreadCount : null, path: "/notifications", hideOnDesktop: true },
     { icon: CalendarDays,label: "Published Events", sub: `${publishedCount} events`,    badge: null,                               path: "/my-published-events" },
     { icon: Users,       label: "Manage Groups",    sub: `${groupCount} groups`,        badge: null,                               path: "/my-published-groups" },
     ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin Dashboard", sub: null, badge: adminActivityCount > 0 ? adminActivityCount : null, path: "/admin" }] : []),
@@ -207,14 +207,17 @@ const Profile = () => {
           >
             Profile
           </h1>
-          <button
-            onClick={() => setShowQR(true)}
-            className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
-            style={{ background: ICON_BG }}
-            aria-label="Show QR code"
-          >
-            <QrCode className="h-4 w-4" style={{ color: DARK }} />
-          </button>
+          <div className="flex items-center gap-2">
+            <MobileHeaderActions />
+            <button
+              onClick={() => setShowQR(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-70"
+              style={{ background: ICON_BG }}
+              aria-label="Show QR code"
+            >
+              <QrCode className="h-4 w-4" style={{ color: DARK }} />
+            </button>
+          </div>
         </div>
 
         {showQR && <QRModal onClose={() => setShowQR(false)} />}
@@ -281,7 +284,7 @@ const Profile = () => {
             {settingsRows.map((row, i) => {
               const Icon = row.icon;
               return (
-                <div key={row.label} className={(row as any).hideOnDesktop ? "md:hidden" : ""}>
+                <div key={row.label}>
                   <button
                     onClick={() => navigate(row.path)}
                     className="w-full flex items-center gap-4 py-4 text-left transition-opacity hover:opacity-70"

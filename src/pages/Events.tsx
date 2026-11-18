@@ -1,4 +1,5 @@
 import { CE_BG, CE_SURFACE } from '../tokens';
+import MobileHeaderActions from "@/components/MobileHeaderActions";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -658,26 +659,16 @@ const Events = () => {
                   </div>
                 )}
               </div>
+              <MobileHeaderActions />
               {session && (
-                <>
-                  {/* Mobile: circle + button */}
-                  <button
-                    onClick={() => navigate("/create-event")}
-                    className="flex md:hidden items-center justify-center transition-opacity hover:opacity-70"
-                    style={{ width: 36, height: 36, borderRadius: 999, background: TEAL, border: "none", cursor: "pointer", flexShrink: 0 }}
-                    aria-label="Create Event"
-                  >
-                    <span style={{ color: "#FAF6F0", fontSize: 22, lineHeight: 1, marginTop: -1 }}>+</span>
-                  </button>
-                  {/* Desktop: full pill */}
-                  <button
-                    onClick={() => navigate("/create-event")}
-                    className="hidden md:flex"
-                    style={{ alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
-                  >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
-                  </button>
-                </>
+                /* Desktop: full pill */
+                <button
+                  onClick={() => navigate("/create-event")}
+                  className="hidden md:flex"
+                  style={{ alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 100, background: TEAL, border: "none", cursor: "pointer", fontFamily: INTER, fontSize: 14, fontWeight: 600, color: "#FAF6F0", boxShadow: "0 2px 8px rgba(31,78,91,0.22)", whiteSpace: "nowrap", flexShrink: 0 }}
+                >
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Create Event
+                </button>
               )}
             </div>
 
