@@ -352,7 +352,22 @@ const NotificationsPage = () => {
         </div>
 
         {/* ── Content ────────────────────────────────────────────────────── */}
-        {loading ? (
+        {!user ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(31,78,91,0.08)" }}>
+              <ChevronLeft className="h-7 w-7 rotate-180" style={{ color: TEAL }} />
+            </div>
+            <p style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 22, fontWeight: 600, color: DARK }}>Log in to see notifications</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: MID, maxWidth: 260 }}>Sign in to stay updated on events, RSVPs, and more.</p>
+            <button
+              onClick={() => navigate("/welcome")}
+              className="transition-opacity hover:opacity-80"
+              style={{ marginTop: 8, padding: "10px 28px", borderRadius: 999, background: TEAL, color: "#FAF6F0", fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer" }}
+            >
+              Log in
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center py-20">
             <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: TEAL, borderTopColor: "transparent" }} />
           </div>

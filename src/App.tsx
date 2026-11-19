@@ -111,27 +111,20 @@ const hideNavPaths = ["/", "/welcome", "/onboarding/name", "/onboarding/age", "/
 const hideNavPatterns = ["/create-event", "/cohost-invite", "/group-admin-invite", "/event/"];
 
 const AppLayout = () => {
-  const { session } = useAuth();
   const { pathname } = useLocation();
-
-  if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
-
+  if (hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
   return <BottomNav />;
 };
 
 const DesktopSidebarLayout = () => {
-  const { session } = useAuth();
   const { pathname } = useLocation();
-
-  if (!session || hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
-
+  if (hideNavPaths.includes(pathname) || hideNavPatterns.some(p => pathname.startsWith(p))) return null;
   return <DesktopSidebar />;
 };
 
 const useShowDesktopSidebar = () => {
-  const { session } = useAuth();
   const { pathname } = useLocation();
-  return !!session && !hideNavPaths.includes(pathname) && !hideNavPatterns.some(p => pathname.startsWith(p));
+  return !hideNavPaths.includes(pathname) && !hideNavPatterns.some(p => pathname.startsWith(p));
 };
 
 const ContentLayout = ({ children }: { children: ReactNode }) => {

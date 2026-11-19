@@ -65,8 +65,30 @@ const Profile = () => {
   const [showQR, setShowQR]               = useState(false);
   const avatarInputRef                    = useRef<HTMLInputElement>(null);
 
-  // Redirect guests to login — after all hooks
-  if (!sessionLoading && !session) return <Navigate to="/" replace />;
+  // Guest state — show a "log in" prompt instead of redirecting
+  if (!sessionLoading && !session) return (
+    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="max-w-2xl mx-auto px-5">
+        <div className="flex items-center justify-between pt-8 pb-6">
+          <h1 className="font-bold leading-tight" style={{ fontFamily: "'EB Garamond', Georgia, serif", color: DARK, fontSize: 32 }}>Profile</h1>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16 gap-5 text-center">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: ICON_BG }}>
+            <User className="h-9 w-9" style={{ color: MID }} />
+          </div>
+          <p style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 24, fontWeight: 600, color: DARK }}>Your profile lives here</p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: MID, maxWidth: 280, lineHeight: 1.6 }}>Log in to see your events, groups, and account settings.</p>
+          <button
+            onClick={() => navigate("/welcome")}
+            className="transition-opacity hover:opacity-80"
+            style={{ padding: "10px 28px", borderRadius: 999, background: TEAL, color: "#FAF6F0", fontFamily: "'Inter', sans-serif", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer" }}
+          >
+            Log in
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase() || "U";
 

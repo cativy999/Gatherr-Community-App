@@ -1101,6 +1101,67 @@ const CreateEvent = () => {
   const [communityId, setCommunityId] = useState<string | null>(null);
   const [ownedGroups, setOwnedGroups] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
   const [myProfile, setMyProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
+
+  // ── Guest draft: save / restore ──────────────────────────────────────────
+  const DRAFT_KEY = "pendingEventDraft";
+
+  const saveDraft = () => {
+    const draft = {
+      title, description, category, wardType,
+      date, endDate, startTime, endTime, timezone,
+      address, location, lat, lng,
+      isFree, isVirtual, virtualLink,
+      selectedFoods, foodProvided,
+      audienceGroup,
+      isRecurring, recurringDays, recurringWeekOfMonth,
+      isPrivate, socialLinks, additionalInfo,
+      minAge, maxAge, communityId,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  // Restore once on mount (only for new events, not edits)
+  useEffect(() => {
+    if (id) return; // editing an existing event — don't overwrite
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (d.title)              setTitle(d.title);
+      if (d.description)        setDescription(d.description);
+      if (d.category)           setCategory(d.category);
+      if (d.wardType)           setWardType(d.wardType);
+      if (d.date)               setDate(d.date);
+      if (d.endDate)            setEndDate(d.endDate);
+      if (d.startTime)          setStartTime(d.startTime);
+      if (d.endTime)            setEndTime(d.endTime);
+      if (d.timezone)           setTimezone(d.timezone);
+      if (d.address)            { setAddress(d.address); setLocationSearch(d.address); }
+      if (d.location)           setLocation(d.location);
+      if (d.lat != null)        setLat(d.lat);
+      if (d.lng != null)        setLng(d.lng);
+      if (d.isFree != null)     setIsFree(d.isFree);
+      if (d.isVirtual)          setIsVirtual(d.isVirtual);
+      if (d.virtualLink)        setVirtualLink(d.virtualLink);
+      if (d.selectedFoods?.length) setSelectedFoods(d.selectedFoods);
+      if (d.foodProvided)       setFoodProvided(d.foodProvided);
+      if (d.audienceGroup)      setAudienceGroup(d.audienceGroup);
+      if (d.isRecurring)        setIsRecurring(d.isRecurring);
+      if (d.recurringDays?.length) setRecurringDays(d.recurringDays);
+      if (d.recurringWeekOfMonth != null) setRecurringWeekOfMonth(d.recurringWeekOfMonth);
+      if (d.isPrivate)          setIsPrivate(d.isPrivate);
+      if (d.socialLinks?.length) setSocialLinks(d.socialLinks);
+      if (d.additionalInfo?.length) setAdditionalInfo(d.additionalInfo);
+      if (d.minAge)             setMinAge(d.minAge);
+      if (d.maxAge)             setMaxAge(d.maxAge);
+      if (d.communityId)        setCommunityId(d.communityId);
+      localStorage.removeItem(DRAFT_KEY);
+      toast.success("Your draft has been restored!");
+    } catch { localStorage.removeItem(DRAFT_KEY); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Tracks which "Extra Details" sections are collapsed (by index) — UI-only state, not saved.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
   // Custom drag-to-resize for the Description box. Native CSS `resize` doesn't
@@ -1667,7 +1728,12 @@ const CreateEvent = () => {
       return;
     }
     if (sessionLoading) { alert("Still loading, please wait a moment!"); return; }
-    if (!session?.user) { alert("Not logged in!"); return; }
+    if (!session?.user) {
+      saveDraft();
+      localStorage.setItem("postAuthRedirect", "/create-event");
+      navigate("/welcome");
+      return;
+    }
     if (!imageFile && !imagePreview) {
       setNoImageConfirmOpen(true);
       return;
@@ -1758,6 +1824,7 @@ const CreateEvent = () => {
     }
     if (error) { console.error("Error saving event:", JSON.stringify(error)); alert(JSON.stringify(error)); }
     else {
+      localStorage.removeItem(DRAFT_KEY);
       if (isEditing) logEventChanges(eventData);
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ["#a855f7", "#ec4899", "#f97316", "#facc15", "#4ade80"] });
       setTimeout(() => {
@@ -1831,8 +1898,7 @@ const CreateEvent = () => {
     { id: "smores",   emoji: "🍫", label: "S'mores" },
   ];
 
-  // Guests can't create or edit events
-  if (!sessionLoading && !session) return <Navigate to="/" replace />;
+  // Guests can browse the form but are gated at publish (draft saved to localStorage)
 
   if (isAuthorized === null) {
     return (
