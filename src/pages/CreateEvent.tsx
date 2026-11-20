@@ -1731,7 +1731,14 @@ const CreateEvent = () => {
     if (!session?.user) {
       saveDraft();
       localStorage.setItem("postAuthRedirect", "/create-event");
-      navigate("/welcome");
+      toast("Log in to publish your event", {
+        description: "Your draft will be saved — you won't lose anything.",
+        duration: Infinity,
+        action: {
+          label: "Log in",
+          onClick: () => navigate("/welcome"),
+        },
+      });
       return;
     }
     if (!imageFile && !imagePreview) {
