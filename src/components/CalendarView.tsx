@@ -287,7 +287,6 @@ export default function CalendarView({
 
   const openQC = (dk: string, _el: HTMLElement) => {
     if (dk < todayKey) return; // no creating on past dates
-    if (!isLoggedIn) { navigate('/welcome'); return; }
     // On mobile, navigate to the full create-event page with the date pre-filled
     if (window.innerWidth <= 860) {
       navigate(`/create-event?date=${dk}`);
@@ -498,7 +497,7 @@ export default function CalendarView({
                   )}
                 </div>
               )}
-              {!isMobile && !cell.overflow && !isPast && isLoggedIn && (
+              {!isMobile && !cell.overflow && !isPast && (
                 <button className="cal2-plus" onClick={e => { e.stopPropagation(); openQC(cell.key, e.currentTarget.parentElement as HTMLElement); }}
                   style={{ position:'absolute', bottom:8, right:8, width:38, height:38, borderRadius:'50%', background:TEAL, border:'2.5px solid white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', opacity: dayEvts.length > 0 ? 0.7 : 0, transition:'opacity 0.15s, transform 0.15s', boxShadow:'0 3px 10px rgba(0,0,0,0.28)', zIndex:5 }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
