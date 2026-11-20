@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import ScanningOverlay from './ScanningOverlay';
 import {
@@ -6,7 +7,7 @@ import {
   Calendar, Clock, RefreshCw, ArrowRight, Star, Circle, CheckCircle2,
   FileText, Car, DollarSign, Ticket, Utensils, Link, Expand,
   SunMedium, LandPlot, HandPlatter, Rainbow, Presentation,
-  Image as ImageIcon, ImagePlus,
+  Image as ImageIcon, ImagePlus, BookOpen, Landmark,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -69,6 +70,8 @@ const CATEGORIES = [
   { id: 'service',    label: 'Service',     Icon: HandPlatter },
   { id: 'general',    label: 'General',     Icon: Rainbow },
   { id: 'conference', label: 'Conference',  Icon: Presentation },
+  { id: 'institute',  label: 'Institute',   Icon: BookOpen },
+  { id: 'temple',     label: 'Temple',      Icon: Landmark },
 ];
 
 const FOOD_TILES = [
@@ -615,6 +618,7 @@ export interface CreateEventModalProps {
 export default function CreateEventModal({
   open, onClose, prefillDate = '', userId, userName = '', userAvatar, session, onCreated,
 }: CreateEventModalProps) {
+  const navigate = useNavigate();
 
   // ── Post As ─────────────────────────────────────────────────────────────────
   const [communityId,  setCommunityId]  = useState<string | null>(null);
@@ -860,7 +864,29 @@ export default function CreateEventModal({
     if (!title.trim()) { toast.error('Please enter an event name'); return; }
     if (!isRecurring && !date) { toast.error('Please pick a start date'); return; }
     if (!address.trim() && !virtualLink.trim()) { toast.error('Please add a location'); return; }
-    if (!session?.user) { toast.error('You must be logged in'); return; }
+    if (!session?.user) {
+      // Save draft to localStorage so it's restored after login
+      const draft = {
+        title, description, wardType,
+        date, endDate, startTime, endTime, timezone,
+        address, location, lat, lng,
+        isVirtual, virtualLink,
+        selectedFoods, foodProvided,
+        audienceGroup, isRecurring, recurringDays,
+        socialLinks, additionalInfo, minAge, maxAge, communityId,
+      };
+      localStorage.setItem('pendingEventDraft', JSON.stringify(draft));
+      localStorage.setItem('postAuthRedirect', '/create-event');
+      toast("Log in to publish your event", {
+        description: "Your draft will be saved — you won't lose anything.",
+        duration: Infinity,
+        action: {
+          label: "Log in",
+          onClick: () => { onClose(); navigate('/welcome'); },
+        },
+      });
+      return;
+    }
 
     setSaving(true);
     try {

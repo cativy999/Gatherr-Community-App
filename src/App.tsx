@@ -196,7 +196,27 @@ const App = () => {
         <LocationProvider>
           <UserProfileProvider>
             <Toaster />
-            <Sonner duration={1400} />
+            <Sonner
+  duration={1400}
+  toastOptions={{
+    style: {
+      fontFamily: "'Inter', sans-serif",
+      background: "#FAF6F0",
+      border: "1px solid #E4DCCF",
+      color: "#2C2523",
+      borderRadius: 14,
+    },
+    actionButtonStyle: {
+      background: "#1F4E5B",
+      color: "#FAF6F0",
+      fontFamily: "'Inter', sans-serif",
+      fontWeight: 600,
+      fontSize: 13,
+      borderRadius: 999,
+      padding: "6px 14px",
+    },
+  }}
+/>
             {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
             <BrowserRouter>
               <AuthListener />
