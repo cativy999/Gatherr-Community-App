@@ -115,27 +115,26 @@ const CESheet = ({ open, onClose, title, children }: {
 
   if (!mounted) return null;
 
-  return (
+  // Portal to body so the ce-wrap slide-in transform doesn't trap position:fixed
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={onClose}>
-      {/* Backdrop — fades in/out independently and slightly faster */}
+      {/* Backdrop */}
       <div style={{
-        position: 'absolute', inset: 0,
+        position: 'fixed', inset: 0,
         background: 'rgba(0,0,0,0.45)',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.22s ease',
-        willChange: 'opacity',
       }} />
-      {/* Sheet — slides up from below the fold */}
+      {/* Sheet */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
+          position: 'fixed', bottom: 0, left: 0, right: 0,
           background: 'white', borderRadius: '20px 20px 0 0',
           maxHeight: '72vh', display: 'flex', flexDirection: 'column',
+          zIndex: 201,
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
-          // cubic-bezier(0.32, 0.72, 0, 1) is the iOS-standard spring-like sheet curve
           transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
-          willChange: 'transform',
         }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
           <div style={{ width: 40, height: 4, borderRadius: 99, background: CE_DIV }} />
@@ -143,7 +142,8 @@ const CESheet = ({ open, onClose, title, children }: {
         <p style={{ textAlign: 'center', fontFamily: CE_SANS, fontSize: 17, fontWeight: 700, color: CE_DARK, padding: '0 24px 14px', borderBottom: `1px solid ${CE_DIV}` }}>{title}</p>
         <div style={{ overflowY: 'auto', paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -603,20 +603,20 @@ const CERangePicker = ({
         const mobileRows  = Array.from({ length: Math.ceil(mobileCells.length / 7) }, (_, i) =>
           mobileCells.slice(i * 7, i * 7 + 7));
         const mobileEffEnd = pendingEnd || null;
-        return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={handleCancel}>
-            {/* Backdrop */}
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', opacity: mobileSheetVisible ? 1 : 0, transition: 'opacity 0.22s ease', willChange: 'opacity' }} />
-            {/* Sheet */}
+        return createPortal(
+          <>
+            {/* Backdrop — fixed directly to viewport */}
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.45)', opacity: mobileSheetVisible ? 1 : 0, transition: 'opacity 0.22s ease' }} onClick={handleCancel} />
+            {/* Sheet — fixed directly to bottom of viewport */}
             <div onClick={e => e.stopPropagation()} style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
               background: 'white', borderRadius: '24px 24px 0 0',
               boxShadow: '0px -8px 12px rgba(15,23,42,0.12)',
               display: 'flex', flexDirection: 'column', gap: 24,
               padding: '12px 24px', paddingBottom: 'calc(34px + env(safe-area-inset-bottom))',
+              maxHeight: '90dvh', overflowY: 'auto',
               transform: mobileSheetVisible ? 'translateY(0)' : 'translateY(100%)',
               transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
-              willChange: 'transform',
             }}>
               {/* Drag handle (invisible, structural only) */}
               <div style={{ display: 'flex', justifyContent: 'center', opacity: 0 }}>
@@ -705,8 +705,7 @@ const CERangePicker = ({
                 </button>
               </div>
             </div>
-          </div>
-        );
+          </>, document.body);
       })()}
     </>
   );
@@ -2759,7 +2758,9 @@ const CreateEvent = () => {
   };
 
   return (
-    <div className="ce-wrap" style={{ background: "white", minHeight: "100vh" }}>
+    <div className="ce-wrap" style={{ background: "white", minHeight: "100vh" }}
+      onAnimationEnd={(e) => { if (e.animationName === 'ce-slide-in') (e.currentTarget as HTMLDivElement).style.animation = 'none'; }}
+    >
       {/* Scanning overlay */}
       {scanning && createPortal(<ScanningOverlay />, document.body)}
 
@@ -2771,7 +2772,7 @@ const CreateEvent = () => {
             to   { transform: translateX(0); }
           }
           .ce-wrap {
-            animation: ce-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            animation: ce-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
           }
         }
         /* Every button gets a subtle dim on hover */
@@ -3080,24 +3081,27 @@ const CreateEvent = () => {
               </div>
             </div>
 
-            {/* Sticky footer — Publish (primary) + Preview (secondary) */}
-            <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom)", display: "flex", flexDirection: "column", gap: 8 }}>
-              <button type="button" onClick={handleSubmit} disabled={loading}
-                style={{ width: "100%", height: 52, borderRadius: 999, background: TEAL_W, border: "none", fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
-                {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : null}
-                {isEditing ? "Save Changes" : "Publish Now"} →
-              </button>
-              <button type="button" onClick={() => {
-                if (!title.trim()) { toast.error("Please enter an event name"); return; }
-                if (!isRecurring && !date) { toast.error("Please pick a start date"); return; }
-                if (!address && !virtualLink) { toast.error("Please add a location"); return; }
-                setMobilePreview(true);
-                window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-              }}
-                style={{ width: "100%", height: 40, borderRadius: 999, background: "transparent", border: "none", fontFamily: SANS_W, fontSize: 14, fontWeight: 500, color: TEAL_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <Eye style={{ width: 15, height: 15 }} /> Preview first
-              </button>
-            </div>
+            {/* Sticky footer — portalled to body so ce-wrap transform doesn't trap fixed positioning */}
+            {createPortal(
+              <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20, background: "white", borderTop: `1px solid ${DIV_W}`, padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column", gap: 8 }}>
+                <button type="button" onClick={handleSubmit} disabled={loading}
+                  style={{ width: "100%", height: 52, borderRadius: 999, background: TEAL_W, border: "none", fontFamily: SANS_W, fontSize: 16, fontWeight: 600, color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: loading ? 0.6 : 1 }}>
+                  {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : null}
+                  {isEditing ? "Save Changes" : "Publish Now"} →
+                </button>
+                <button type="button" onClick={() => {
+                  if (!title.trim()) { toast.error("Please enter an event name"); return; }
+                  if (!isRecurring && !date) { toast.error("Please pick a start date"); return; }
+                  if (!address && !virtualLink) { toast.error("Please add a location"); return; }
+                  setMobilePreview(true);
+                  window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+                }}
+                  style={{ width: "100%", height: 40, borderRadius: 999, background: "transparent", border: "none", fontFamily: SANS_W, fontSize: 14, fontWeight: 500, color: TEAL_W, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <Eye style={{ width: 15, height: 15 }} /> Preview first
+                </button>
+              </div>,
+              document.body
+            )}
           </>
         )}
 
